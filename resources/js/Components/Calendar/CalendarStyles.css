@@ -1,0 +1,58 @@
+.time-block:hover {
+    z-index: 30;
+}
+
+.time-block-scale:hover {
+    transform: scale(1.025);
+}
+
+.clicked {
+    z-index: 30;
+    transform: scale(1.025);
+    filter: none;
+}
+
+.clicked a {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.clicked_contrast .time-block:not(.clicked) {
+    filter: brightness(90%) blur(0.5px);
+}
+
+:not(.clicked_contrast).hovering .time-block {
+    filter: brightness(95%);
+}
+
+.clicked_contrast .time-block:hover {
+    filter: none;
+}
+
+:not(.clicked_contrast).hovering .time-block:hover {
+    filter: none;
+    z-index: 30;
+}
+
+.hovering .time-block a:hover {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.time-block .group-hover\:block {
+    display: none;
+}
+
+.time-block:hover .group-hover\:block {
+    display: block;
+}
+
+.time-block .group-hover\:hidden {
+    display: block;
+}
+
+.time-block:hover .group-hover\:hidden {
+    display: none;
+}

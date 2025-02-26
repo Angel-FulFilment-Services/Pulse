@@ -1,0 +1,23 @@
+.middle-ring {
+    position: relative;
+    z-index: 1;
+  }
+  
+.middle-ring::before,
+.middle-ring::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: rgb(209 213 219 / 1);
+    z-index: -1;
+}
+  
+.middle-ring::before {
+    top: 0;
+}
+  
+.middle-ring::after {
+    bottom: 0;
+}
