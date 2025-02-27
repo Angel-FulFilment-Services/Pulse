@@ -174,8 +174,17 @@ export default function CalendarView({ setView, viewType }) {
   };
 
   const handleDateClick = (date) => {
-    setCurrentDate(date);
-    setView('Day');
+    const calendarHeader = document.querySelector('#calendarHeader')
+
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        setCurrentDate(date);
+        setView('Day');
+      });
+    } else {
+      setCurrentDate(date);
+      setView('Day');
+    }
   };
 
   return (
@@ -187,7 +196,7 @@ export default function CalendarView({ setView, viewType }) {
         <div style={{ width: viewType === 'Week' ? '165%' : '100%' }} className="flex max-w-full flex-none flex-col sm:max-w-none md:max-w-full">
           <div
             ref={containerNav}
-            className="sticky top-0 z-30 flex-none bg-white shadow ring-1 ring-black ring-opacity-5 sm:pr-8"
+            className="sticky top-0 z-30 flex-none bg-white shadow ring-1 ring-black ring-opacity-5 sm:pr-8 calendar-header"
           >
             <div className="grid grid-cols-7 text-sm leading-6 text-gray-500 sm:hidden">
               {daysOfWeek.map((day, index) => (

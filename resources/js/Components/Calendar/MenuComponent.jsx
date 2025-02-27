@@ -48,6 +48,9 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
         {currentView === 'Day' && (
           <p className="mt-1 text-sm text-gray-500">{formattedDay}</p>
         )}
+        {currentView === 'Week' && (
+          <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
+        )}
       </div>
 
       <div className="flex flex-row items-center justify-end w-full gap-x-2">
