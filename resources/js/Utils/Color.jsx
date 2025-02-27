@@ -13,10 +13,10 @@ const colors = [
   'bg-gray-100 text-gray-500 border-gray-300',
 ];
   
-  let colorIndex = 0;
-  
-  export function getNextColor() {
-    const color = colors[colorIndex];
-    colorIndex = (colorIndex + 1) % colors.length;
-    return color;
-  }
+let colorIndex = 0;
+
+export function getNextColor() {
+  const color = colors[colorIndex];
+  colorIndex = (colorIndex + 1) % colors.length;
+  return color;
+}

@@ -19,11 +19,11 @@
 }
 
 .clicked_contrast .time-block:not(.clicked) {
-    filter: brightness(90%) blur(0.5px);
+    filter: brightness(90%);
 }
 
 :not(.clicked_contrast).hovering .time-block {
-    filter: brightness(95%);
+    filter: brightness(97.5%);
 }
 
 .clicked_contrast .time-block:hover {
@@ -55,4 +55,26 @@
 
 .time-block:hover .group-hover\:hidden {
     display: none;
+}
+
+/* New styles for .clicked parent */
+.clicked .time-block .group-hover\:block {
+    display: block;
+}
+
+.clicked .time-block .group-hover\:hidden {
+    display: none;
+}
+
+/* New styles for .parent-clicked parent */
+.clicked .agents {
+    display: block;
+}
+
+.clicked .periods {
+    display: none;
+}
+
+.transition-expand {
+  transition: width 0.5s ease-in-out;
 }

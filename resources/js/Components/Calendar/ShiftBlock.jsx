@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { getNextColor } from '../../Utils/Color.jsx';
@@ -23,7 +23,8 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
   const endDate = new Date();
   endDate.setHours(endHour, endMinute);
 
-  const colorClass = getNextColor();
+  // Memoize the color assignment to ensure consistency
+  const colorClass = useMemo(() => getNextColor(), []);
 
   // Check for multiple unique shiftstart and shiftend times
   const uniqueShifts = new Set(shifts.map(shift => `${shift.shiftstart}-${shift.shiftend}`));
@@ -42,7 +43,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
   return (
     <li
       key={`${date}-${shiftKey}`}
-      className={`relative mt-px flex ${enableScale ? 'time-block-scale' : ''} duration-300 ease-in-out transform transition-all time-block max-w-96`}
+      className={`relative mt-px flex ${enableScale ? 'time-block-scale' : ''} duration-300 ease-in-out transform transition-all time-block mx-1`}
       style={{
         gridRow: `${startRow} / span ${spanRows}`,
         gridColumn: `${colIndex + 1} / span 1`,
@@ -55,7 +56,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
         href="#"
         className={`group absolute inset-1 flex flex-col overflow-y-auto rounded-lg p-2 text-xs border leading-5 ${colorClass} transition-all duration-300 ease-in-out`}
       >
-        <p className={`order-1 font-semibold ${isMultipleShiftPeriods || shifts.length > 3 ? 'group-hover:hidden' : ''}`}>
+        <p className={`order-1 font-semibold ${isMultipleShiftPeriods || shifts.length > 3 ? 'group-hover:hidden periods' : ''}`}>
           {isMultipleShiftPeriods || shifts.length > 3 ? `${shifts.length} shifts in this period` : (
             <ul className="ml-4 list-disc">
               {shifts.map((shift, index) => (
@@ -71,7 +72,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
           </time>
         </p>
         {(isMultipleShiftPeriods || shifts.length > 3) && (
-          <div className="hidden group-hover:block">
+          <div className="group-hover:block agents">
             {Object.entries(agentsByShiftPeriod).map(([period, agents], index) => {
               const [periodStart, periodEnd] = period.split('-').map(Number);
               const periodStartDate = new Date();
@@ -107,6 +108,7 @@ ShiftBlock.propTypes = {
   colIndex: PropTypes.number.isRequired,
   handleMouseEnter: PropTypes.func.isRequired,
   handleMouseLeave: PropTypes.func.isRequired,
+  handleOnClick: PropTypes.func.isRequired,
   enableScale: PropTypes.bool,
 };
 
