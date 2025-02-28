@@ -2,14 +2,22 @@
     z-index: 30;
 }
 
+.time-block-scale {
+    transition: transform 5s ease-in-out;
+}
+
 .time-block-scale:hover {
     transform: scale(1.025);
+}
+
+.time-block {
+    transition: filter 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .clicked {
     z-index: 30;
     transform: scale(1.025);
-    filter: none;
+    transition: transform 0.3s ease-in-out;
 }
 
 .clicked a {
@@ -19,6 +27,7 @@
 }
 
 .clicked_contrast .time-block:not(.clicked) {
+    transition: filter 0.75s ease-in-out;
     filter: brightness(90%);
 }
 
@@ -75,34 +84,13 @@
     display: none;
 }
 
-.transition-expand {
-  transition: width 0.5s ease-in-out;
+.fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
-::view-transition-old() {
-    animation: none;
-}
-::view-transition-new() {
-    animation: none;
-}
-
-/* ::view-transition-old(calendar-header),
-::view-transition-new(calendar-header) {
-    animation-duration: 5s;
-} */
-
-::view-transition-old(calendar-header),
-::view-transition-new(calendar-header) {
-    /* Prevent the default animation,
-    so both views remain opacity:1 throughout the transition */
-    animation-duration: 5s;
-    /* Use normal blending,
-    so the new view sits on top and obscures the old view */
-    mix-blend-mode: normal;
-}
-
-
-
-.calendar-header {
-    view-transition-name: calendar-header;
+.fade-up.show {
+    opacity: 1;
+    transform: translateY(0);
 }

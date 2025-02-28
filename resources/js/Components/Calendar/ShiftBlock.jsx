@@ -43,7 +43,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
   return (
     <li
       key={`${date}-${shiftKey}`}
-      className={`relative mt-px flex ${enableScale ? 'time-block-scale' : ''} duration-300 ease-in-out transform transition-all time-block mx-1`}
+      className={`relative mt-px flex ${enableScale ? 'time-block-scale' : ''} duration-300 ease-in-out transform transition-all time-block mx-auto w-full max-w-[40rem]`}
       style={{
         gridRow: `${startRow} / span ${spanRows}`,
         gridColumn: `${colIndex + 1} / span 1`,
@@ -54,7 +54,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
     >
       <a
         href="#"
-        className={`group absolute inset-1 flex flex-col overflow-y-auto rounded-lg p-2 text-xs border leading-5 ${colorClass} transition-all duration-300 ease-in-out`}
+        className={`group absolute inset-1 mx-1 flex flex-col overflow-y-auto rounded-lg p-2 text-xs border leading-5 ${colorClass} transition-all duration-300 ease-in-out`}
       >
         <p className={`order-1 font-semibold ${isMultipleShiftPeriods || shifts.length > 3 ? 'group-hover:hidden periods' : ''}`}>
           {isMultipleShiftPeriods || shifts.length > 3 ? `${shifts.length} shifts in this period` : (

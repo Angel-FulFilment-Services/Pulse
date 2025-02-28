@@ -13,13 +13,13 @@ export default function CycleControl(props) {
       <div className="flex items-center">
         <button
           type="button"
-          className="flex items-center justify-center w-full min-w-6 bg-white py-1.5 h-9 text-left text-gray-500 hover:text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-l-md"
+          className="flex items-center justify-center w-full min-w-9 max-w-9 bg-white py-1.5 h-9 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-l-md"
           onClick={onPrevious}
         >
           <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="relative w-full">
-          <div className="relative w-full cursor-default select-none bg-white py-1.5 px-2 text-left text-gray-900 shadow-sm focus:outline-none sm:text-sm sm:leading-6 middle-ring">
+          <div className="relative text-center w-full cursor-default select-none bg-white py-1.5 px-2 text-gray-900 shadow-sm focus:outline-none sm:text-sm sm:leading-6 middle-ring">
             <span className={`block truncate ${!currentValue && "text-gray-400"}`}>
               {currentValue ? currentValue : placeholder}
             </span>
@@ -27,7 +27,7 @@ export default function CycleControl(props) {
         </div>
         <button
           type="button"
-          className="flex items-center justify-center w-full min-w-6 bg-white py-1.5 h-9 text-left text-gray-500 hover:text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-r-md"
+          className="flex items-center justify-center w-full min-w-9  max-w-9 bg-white py-1.5 h-9 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-r-md"
           onClick={onNext}
         >
           <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />

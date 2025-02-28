@@ -34,6 +34,10 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
     ? `${format(currentDate, 'EEEE')}`
     : '';
 
+  const cycleControlDate = currentView === 'Day'
+    ? format(currentDate, 'MMM dd, yyyy')
+    : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd, yyyy')}`;
+
   return (
     <div className="w-full flex flex-row justify-between">
       <div className="w-full">
@@ -64,10 +68,10 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
           />
         </div>
 
-        <div className="w-52">
+        <div className="w-56">
           <CycleControl
               id="timeframe-cycle"
-              currentValue={`${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd, yyyy')}`}
+              currentValue={cycleControlDate}
               onNext={handleNextTimeframe}
               onPrevious={handlePreviousTimeframe}
           />
