@@ -8,9 +8,14 @@
 //     'bg-orange-100 text-orange-500 border-orange-800/20',
 //   ];
 
+// const colors = [
+//   'bg-orange-100 text-orange-500 border border-orange-300',
+//   'bg-gray-100 text-gray-500 border border-gray-300',
+// ];
+
 const colors = [
-  'bg-orange-100 text-orange-500 border-orange-300',
-  'bg-gray-100 text-gray-500 border-gray-300',
+  'bg-orange-100 text-orange-600',
+  'bg-gray-100 text-gray-500',
 ];
   
 let colorIndex = 0;

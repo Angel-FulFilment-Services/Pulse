@@ -78,9 +78,25 @@ export default function CalendarView({ setView, viewType }) {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(true);
   const [groupedShifts, setGroupedShifts] = useState({});
   const [slideFrom, setSlideFrom] = useState('right');
+
+  useEffect(() => {
+    const handleResize = () => {
+        if (window.innerWidth <= 768 && viewType === 'Week') {
+          container.current.scrollTo({ top: 0, behavior: 'smooth' });
+          setIsTransitioning(true);
+          setGroupedShifts({});
+          setView('Day');
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+        window.removeEventListener('resize', handleResize);
+    };
+  }, [viewType]);
+
 
   const startDate = viewType === 'Week' 
     ? format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd') 
@@ -89,23 +105,24 @@ export default function CalendarView({ setView, viewType }) {
     ? format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd') 
     : format(endOfDay(currentDate), 'yyyy-MM-dd');
 
-  // const shifts = useFetchShifts(startDate, endDate);
   const { shifts, isLoading } = useFetchShifts(startDate, endDate);
-
 
   useEffect(() => {
     setGroupedShifts(groupShifts(shifts));
+    if(shifts.length){
+      setIsTransitioning(false);
+    }
   }, [shifts]);
 
-  useEffect(() => {
-    const currentMinute = new Date().getHours() * 60;
-    if (currentMinute >= 480 && currentMinute <= 1320) {
-      container.current.scrollTop =
-        ((container.current.scrollHeight - containerNav.current.offsetHeight - containerOffset.current.offsetHeight) *
-          (currentMinute - 480)) /
-        840;
-    }
-  }, []);
+  // useEffect(() => {
+  //   const currentMinute = new Date().getHours() * 60;
+  //   if (currentMinute >= 480 && currentMinute <= 1320) {
+  //     container.current.scrollTop =
+  //       ((container.current.scrollHeight - containerNav.current.offsetHeight - containerOffset.current.offsetHeight) *
+  //         (currentMinute - 480)) /
+  //       840;
+  //   }
+  // }, []);
 
   useEffect(() => {
     if (!isDrawerOpen) {
@@ -118,10 +135,12 @@ export default function CalendarView({ setView, viewType }) {
   }, [isDrawerOpen]);
 
   const handlePreviousTimeframe = () => {
+    setIsTransitioning(true);
     setCurrentDate(viewType === 'Week' ? subWeeks(currentDate, 1) : subDays(currentDate, 1));
   };
 
   const handleNextTimeframe = () => {
+    setIsTransitioning(true);
     setCurrentDate(viewType === 'Week' ? addWeeks(currentDate, 1) : addDays(currentDate, 1));
   };
 
@@ -198,11 +217,7 @@ export default function CalendarView({ setView, viewType }) {
       setTimeout(() => {
         setGroupedShifts({});
         setView(view);
-        setIsTransitioning(false);
       }, 300); // Adjust the timeout duration as needed
-    } else {
-      container.current.scrollTo({ top: 0, behavior: 'smooth' });
-      setView(view);
     }
   };
 
@@ -384,20 +399,23 @@ export default function CalendarView({ setView, viewType }) {
 
               {/* Events */}
               <ol
-                className={`col-start-1 load col-end-2 row-start-1 grid grid-cols-1 ${viewType === 'Week' ? 'sm:grid-cols-7' : ''} sm:pr-8 fade-up ${!isTransitioning && 'show'}`}
+                className={`col-start-1 col-end-2 row-start-1 grid grid-cols-1 ${viewType === 'Week' ? 'sm:grid-cols-7' : ''} sm:pr-8 fade ${!isTransitioning && 'show'}`}
                 style={{ gridTemplateRows: '1.75rem repeat(58, minmax(1.75rem, 1fr)) auto', zIndex: 10, position: 'relative' }}
               >
                 {Object.entries(groupedShifts)
                 .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
-                .map(([date, shiftsByTime], colIndex) => {
+                .map(([date, shiftsByTime]) => {
                   return Object.entries(shiftsByTime).map(([key, shifts]) => {
+                    const day = new Date(date).getDay();
+                    const colIndex = (day === 0) ? 6 : day - 1
                     return (
                         <ShiftBlock
+                          key={`${date}-${key}`}
                           date={date}
                           shiftKey={key}
                           shifts={shifts}
                           colIndex={viewType === 'Week' ? colIndex : 0}
-                          handleOnClick={(event) => handleBlockClick(event, colIndex)}
+                          handleOnClick={(event) => handleBlockClick(event, (viewType === 'Week' ? colIndex : 0))}
                           handleMouseEnter={handleMouseEnter}
                           handleMouseLeave={handleMouseLeave}
                           enableScale={true}

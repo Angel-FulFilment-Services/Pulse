@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { getNextColor } from '../../Utils/Color.jsx';
 
-function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handleMouseLeave, handleOnClick, enableScale }) {
+function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handleMouseLeave, handleOnClick, enableScale, isTransitioning }) {
   const [start, end] = shiftKey.split('-').map(Number);
 
   const startHour = Math.floor(start / 100);
@@ -54,9 +54,9 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
     >
       <a
         href="#"
-        className={`group absolute inset-1 mx-1 flex flex-col overflow-y-auto rounded-lg p-2 text-xs border leading-5 ${colorClass} transition-all duration-300 ease-in-out`}
+        className={`group absolute inset-1 mx-1 flex flex-col overflow-y-auto rounded-lg p-2 text-xs leading-5 ${colorClass} transition-all duration-300 ease-in-out`}
       >
-        <p className={`order-1 font-semibold ${isMultipleShiftPeriods || shifts.length > 3 ? 'group-hover:hidden periods' : ''}`}>
+        <div className={`order-1 font-semibold ${isMultipleShiftPeriods || shifts.length > 3 ? 'group-hover:hidden periods' : ''}`}>
           {isMultipleShiftPeriods || shifts.length > 3 ? `${shifts.length} shifts in this period` : (
             <ul className="ml-4 list-disc">
               {shifts.map((shift, index) => (
@@ -64,7 +64,7 @@ function ShiftBlock({ date, shiftKey, shifts, colIndex, handleMouseEnter, handle
               ))}
             </ul>
           )}
-        </p>
+        </div>
         <p className="">
           <time dateTime={start}>
             {isMultipleShiftPeriods ? 'Between ' : ''}

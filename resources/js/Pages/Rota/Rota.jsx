@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import InformationDialog from '../../Components/Account/MissingInformationDialog.jsx';
 import CalendarView from '../../Components/Calendar/CalendarView.jsx';
 import MonthView from '../../Components/Calendar/MonthView.jsx';
+import ListView from '../../Components/Calendar/ListView.jsx';
 
 import { BarsArrowUpIcon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 
 const Rota = ({ token }) => {
 
-    const [currentView, setCurrentView] = useState('Week');
+    const [currentView, setCurrentView] = useState((window.innerWidth <= 768 ? 'Day' : 'Week'));    
 
     const renderView = () => {
       switch (currentView) {
@@ -16,6 +17,8 @@ const Rota = ({ token }) => {
           return <CalendarView setView={setCurrentView} viewType={currentView} />;
         case 'Month':
           return <MonthView setView={setCurrentView} />;
+        case 'List':
+          return <ListView setView={setCurrentView} viewType={currentView} />;
         default:
           return <CalendarView setView={setCurrentView} viewType="Week" />;
       }

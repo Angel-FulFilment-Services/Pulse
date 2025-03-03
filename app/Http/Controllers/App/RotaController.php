@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Rota\Shift;
 use Schema;
+use Log;
 
 class RotaController extends Controller
 {

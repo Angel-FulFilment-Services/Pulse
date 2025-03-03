@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { Menu, Transition } from '@headlessui/react';
 import SelectControl from '../Controls/SelectControl';
@@ -11,11 +11,39 @@ function classNames(...classes) {
 }
 
 export default function MenuComponent({ currentView, setView, handleNextTimeframe, handlePreviousTimeframe, currentDate }) {
-  const views = [
+  const [views, setViews] = useState([
     { id: 'day', value: 'Day', displayValue: 'Day view' },
     { id: 'week', value: 'Week', displayValue: 'Week view' },
-    { id: 'month', value: 'Month', displayValue: 'Month view' },
-  ];
+    { id: 'list', value: 'List', displayValue: 'List view' },
+  ]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setViews((prevViews) => prevViews.filter(view => view.value !== 'Week'));
+      } else {
+        setViews((prevViews) => {
+          if (!prevViews.some(view => view.value === 'Week')) {
+            const newViews = [...prevViews];
+            newViews.splice(1, 0, { id: 'week', value: 'Week', displayValue: 'Week view' });
+            return newViews;
+          }
+          return prevViews;
+        });
+      }
+    };
+
+    // Check window size on initial load
+    handleResize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleSelectChange = (selected) => {
     setView(selected.value);
@@ -39,7 +67,7 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
     : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd, yyyy')}`;
 
   return (
-    <div className="w-full flex flex-row justify-between">
+    <div className="w-full flex sm:flex-row justify-between gap-x-2">
       <div className="w-full">
         <h1 className="text-base font-semibold leading-6 text-gray-900">
           <time dateTime={format(currentDate, 'yyyy-MM-dd')} className="sm:hidden">
@@ -55,10 +83,13 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
         {currentView === 'Week' && (
           <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
         )}
+        {currentView === 'List' && (
+          <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
+        )}
       </div>
 
-      <div className="flex flex-row items-center justify-end w-full gap-x-2">
-        <div className="w-36">
+      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end w-full gap-y-2 sm:gap-x-2">
+        <div className="w-56 sm:w-36">
           <SelectControl
             id="view-select"
             items={views}
