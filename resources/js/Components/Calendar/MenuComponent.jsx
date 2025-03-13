@@ -54,15 +54,15 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
   const day = format(currentDate, 'd');
   const ordinalSuffix = getOrdinalSuffix(day);
 
-  const formattedDate = currentView === 'Day'
+  const formattedDate = (currentView === 'Day' || currentView === 'List')
     ? `${format(currentDate, 'MMMM')} ${day}${ordinalSuffix}, ${format(currentDate, 'yyyy')}`
     : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')} ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))}${format(startOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')} ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))}${format(endOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')}`;
 
-  const formattedDay = currentView === 'Day'
+  const formattedDay = (currentView === 'Day' || currentView === 'List')
     ? `${format(currentDate, 'EEEE')}`
     : '';
 
-  const cycleControlDate = currentView === 'Day'
+  const cycleControlDate = (currentView === 'Day' || currentView === 'List')
     ? format(currentDate, 'MMM dd, yyyy')
     : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd, yyyy')}`;
 
@@ -77,13 +77,10 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
             {formattedDate}
           </time>
         </h1>
-        {currentView === 'Day' && (
+        {(currentView === 'Day' || currentView === 'List') && (
           <p className="mt-1 text-sm text-gray-500">{formattedDay}</p>
         )}
         {currentView === 'Week' && (
-          <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
-        )}
-        {currentView === 'List' && (
           <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
         )}
       </div>

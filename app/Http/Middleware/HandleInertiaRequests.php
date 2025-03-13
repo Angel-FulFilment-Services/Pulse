@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
                 ? $request->user()->only('id', 'name', 'profile_photo')
                 : null,
             'employee' => fn () => $request->user()
-                ? Employee::find($request->user()->id)->only('complete')
+                ? Employee::where('user_id', $request->user()->id)->first()->only('complete')
                 : null,
         ]);
     }

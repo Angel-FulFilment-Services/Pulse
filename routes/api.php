@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\App\RotaController;
+use App\Http\Controllers\App\AccountController;
+use App\Http\Controllers\App\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,4 +22,14 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/rota/shifts', [RotaController::class, 'shifts']);
+Route::get('/rota/shifts', [RotaController::class, 'shifts'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1');
+
+Route::get('/rota/timesheets', [RotaController::class, 'timesheets'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1');
+
+Route::get('/users/active_states', [UserController::class, 'activeStates'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1');

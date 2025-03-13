@@ -14,7 +14,9 @@ class Employee extends Model
      *
      * @var array<int, string>
      */
-    protected $table = 'employees';
+    protected $table = 'hr_details';
+
+    protected $connection = 'wings_data';
 
     protected $fillable = [
         'user_id',
