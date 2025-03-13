@@ -11,7 +11,7 @@ import ComboInput from '../Forms/ComboInput.jsx';
 import MaskedInput from '../Forms/MaskedInput.jsx';
 import PostcodeInput from '../Forms/PostcodeInput.jsx';
 
-import {validateEmail, validateRequired} from '../../Utils/validation.jsx';
+import {validateEmail, validateRequired} from '../../Utils/Validation.jsx';
 // import Sanitiser from '../Utils/Sanitiser.jsx';
 
 export default function AccountFormPage1({data, handleChange, errors, setError, clearError}) {
