@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
-import { ActiveStateProvider } from './Components/context/ActiveStateContext';
+import { ActiveStateProvider } from './Components/Context/ActiveStateContext';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 import NavBar from './Components/Navigation/NavBar.jsx';

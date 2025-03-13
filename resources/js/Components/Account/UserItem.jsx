@@ -1,6 +1,6 @@
 import { UserIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
-import { useUserStates } from '../context/ActiveStateContext';
+import { useUserStates } from '../Context/ActiveStateContext';
 
 export default function UserItem({ userId, size = 'large' }) {
   const sizeClasses = {
