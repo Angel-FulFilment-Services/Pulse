@@ -18,9 +18,9 @@ import {
 } from '@heroicons/react/24/outline'
 
 let navigation = [
-  { name: 'Dashboard', href: '#', icon: HomeIcon, current: window.location.pathname.startsWith('/ ') },
-  { name: 'My Details', href: '/my-details', icon: UsersIcon, current: window.location.pathname.startsWith('/my-details') },
-  { name: 'Rota', href: '#', icon: CalendarIcon, current: window.location.pathname.startsWith('/calendar') },
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: window.location.pathname.startsWith('/dashboard') },
+  { name: 'My Details', href: '/my-details/entry/about-you', icon: UsersIcon, current: window.location.pathname.startsWith('/my-details') },
+  { name: 'Rota', href: '/rota', icon: CalendarIcon, current: window.location.pathname.startsWith('/rota') },
 //   { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
   { name: 'Reports', href: '#', icon: ChartPieIcon, current: window.location.pathname.startsWith('/reports') },
 ]

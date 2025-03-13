@@ -51,11 +51,11 @@ export default function AccountHeader({ auth, employee }) {
                         </div>
                         <div className="mt-1 flex items-center text-xs text-gray-500">
                           <CurrencyPoundIcon className="mr-1 w-[1.35rem] h-[1.35rem] flex-shrink-0 text-gray-300" aria-hidden="true" />
-                          <NumericFormat value={employee.pay_rate.toFixed(2)} displayType={'text'} thousandSeparator={true} prefix={'£'} />
+                          <NumericFormat value={employee.pay_rate ? employee.pay_rate.toFixed(2) : 0 } displayType={'text'} thousandSeparator={true} prefix={'£'} />
                         </div>
                         <div className="mt-1 flex items-center text-xs text-gray-500">
                           <CalendarIcon className="mr-1 h-5 w-6 flex-shrink-0 text-gray-300" aria-hidden="true" />
-                          Started on {format(new Date(employee.startdate), 'MMMM do yyyy')}
+                          Started on {employee.startdate ? format(new Date(employee.startdate), 'MMMM do yyyy') : "N/A"}
                         </div>
                       </div>
                   </h1>

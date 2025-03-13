@@ -17,7 +17,7 @@ class AccountController extends Controller
     }
 
     public function index($page){
-        $employee = Employee::find(auth()->user()->id);
+        $employee = Employee::where('user_id',auth()->user()->id)->first();
 
         switch ($page) {
             case 'medical-conditions':

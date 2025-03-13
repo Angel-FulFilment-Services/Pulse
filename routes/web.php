@@ -54,8 +54,8 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 */
 
 //Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 /*
 |-----------------------
@@ -64,8 +64,8 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 */
 
 //Dashboard
-Route::get('/rota', [RotaController::class, 'index'])->name('rota');
-Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
+Route::get('/rota', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
+Route::get('/rota/administration', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
 
 /*
 |-----------------------
@@ -74,6 +74,6 @@ Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota
 */
 
 // HR Details
-Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->name('employee');
-Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->name('employee');
-Route::get('/my-details', [AccountController::class, 'index'])->name('employee');
+Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
+Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->middleware(['auth'])->name('employee');
+Route::get('/my-details', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
