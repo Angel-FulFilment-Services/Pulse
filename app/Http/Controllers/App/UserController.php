@@ -23,6 +23,7 @@ class UserController extends Controller
         $users = Employee::leftJoin('apex_data.timesheet_today as tt', 'hr_details.hr_id', '=', 'tt.hr_id')
             ->select('hr_details.hr_id', 'hr_details.user_id', 'hr_details.profile_photo', 'tt.off_time', DB::raw('MAX(tt.on_time) as latest_on_time'))
             ->groupBy('hr_details.hr_id', 'hr_details.profile_photo', 'tt.off_time')
+            ->orderBy('tt.unq_id', 'asc')
             ->get();
 
         $userStates = [];
@@ -31,7 +32,7 @@ class UserController extends Controller
             $lastActiveAt = null;
 
             if ($user->latest_on_time) {
-                $lastActiveAt = $user->off_time ? $user->off_time : Carbon::now();
+                $lastActiveAt = $user->off_time ? $user->off_time : Date("Y-m-d H:i:s");
             }
 
             $userStates[$user->hr_id] = [
