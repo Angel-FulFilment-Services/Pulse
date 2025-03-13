@@ -54,7 +54,7 @@ export default function UserItem({ userId, size = 'large' }) {
           />
         ) : (
           <UserIcon
-            className={`w-[75%] h-[75%] text-gray-300`}
+            className={`w-[80%] h-[80%] text-gray-300`}
             aria-hidden="true"
           />
         )}

@@ -3,20 +3,9 @@ import { ArrowDownCircleIcon, ArrowPathIcon, ArrowUpCircleIcon } from '@heroicon
 import useFetchShifts from './useFetchShifts';
 import useFetchTimesheets from './useFetchTimesheets';
 import MenuComponent from './MenuComponent';
-import UserItem from '../Account/UserItem';
+import UserItemFull from '../Account/UserItemFull';
 import ShiftProgressBar from './ShiftProgressBar';
 import { format, startOfDay, endOfDay, subDays, addDays, differenceInMinutes, isSameDay } from 'date-fns';
-
-const statuses = {
-  attended: 'text-green-700 bg-green-50 ring-green-600/20',
-  upcoming: 'text-gray-600 bg-gray-50 ring-gray-500/10',
-  late: 'text-orange-700 bg-orange-50 ring-orange-600/10',
-  absent: 'text-red-700 bg-red-50 ring-red-600/10',
-};
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ');
-}
 
 function groupShifts(shifts) {
   const grouped = {};
@@ -67,56 +56,6 @@ export default function ListView({ setView, viewType }) {
     setCurrentDate(addDays(currentDate, 1));
   };
 
-  const getStatus = (shift, timesheets) => {
-    const shiftStartDate = new Date(shift.shiftdate);
-    shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
-
-    const now = new Date();
-
-    if (shiftStartDate > now) {
-      const minutesUntilShift = differenceInMinutes(shiftStartDate, now);
-      const hoursUntilShift = Math.floor(minutesUntilShift / 60);
-      const remainingMinutes = minutesUntilShift % 60;
-
-      const dueInMessage = hoursUntilShift > 0
-        ? `Due in ${hoursUntilShift} hours and ${remainingMinutes} minutes`
-        : remainingMinutes > 0
-        ? `Due in ${remainingMinutes} minutes`
-        : 'Due now';
-
-      return {
-        status: isSameDay(shiftStartDate, now) ? dueInMessage : 'Upcoming',
-        color: statuses.upcoming,
-      };
-    }
-
-    const earliestTimesheet = timesheets
-      .filter((timesheet) => timesheet.hr_id === shift.hr_id)
-      .sort((a, b) => new Date(a.on_time) - new Date(b.on_time))[0];
-
-    if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) > 60) {
-      return { status: 'Absent', color: statuses.absent };
-    }
-
-    if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) <= 60 ) {
-      return { status: 'Late', color: statuses.late };
-    }
-
-    const onTime = new Date(earliestTimesheet.on_time);
-
-    if (onTime <= shiftStartDate) {
-      return { status: 'Attended', color: statuses.attended };
-    }
-
-    const minutesLate = differenceInMinutes(onTime, shiftStartDate);
-
-    if (minutesLate <= 60) {
-      return { status: 'Late', color: statuses.late };
-    }
-
-    return { status: 'Absent', color: statuses.absent };
-  };
-
   return (
     <div className="flex h-full flex-col">
       <header className="flex flex-none items-center justify-end border-b border-gray-200 gap-x-2 px-6 py-4">
@@ -161,28 +100,10 @@ export default function ListView({ setView, viewType }) {
                                 </th>
                               </tr>
                               {shifts.map((shift) => {
-                                const { status, color } = getStatus(shift, timesheets);
-
                                 return (
                                   <tr key={shift.id}>
                                     <td className="relative py-2 pr-6 w-96">
-                                      <div className="flex gap-x-6">
-                                        <UserItem userId={shift.hr_id} size="large" />
-                                        <div className="flex-auto">
-                                          <div className="flex items-start gap-x-3">
-                                            <div className="text-sm font-medium leading-6 text-gray-900">{shift.agent}</div>
-                                            <div
-                                              className={classNames(
-                                                color,
-                                                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                                              )}
-                                            >
-                                              {status}
-                                            </div>
-                                          </div>
-                                          <div className="mt-0 text-xs leading-5 text-gray-500">{shift.job_title}</div>
-                                        </div>
-                                      </div>
+                                      <UserItemFull agent={{ hr_id: shift.hr_id, agent: shift.agent, job_title: shift.job_title }} shift={shift} timesheets={timesheets} />
                                       <div className="absolute bottom-0 right-full h-px w-screen bg-gray-100" />
                                       <div className="absolute bottom-0 left-0 h-px w-screen bg-gray-100" />
                                     </td>
