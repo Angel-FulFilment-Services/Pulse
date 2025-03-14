@@ -102,7 +102,7 @@ export default function ListView({ setView, viewType }) {
                               {shifts.map((shift) => {
                                 return (
                                   <tr key={shift.id}>
-                                    <td className="relative py-2 pr-6 w-96">
+                                    <td className="relative py-2 pr-6 w-1/3">
                                       <UserItemFull agent={{ hr_id: shift.hr_id, agent: shift.agent, job_title: shift.job_title }} shift={shift} timesheets={timesheets} />
                                       <div className="absolute bottom-0 right-full h-px w-screen bg-gray-100" />
                                       <div className="absolute bottom-0 left-0 h-px w-screen bg-gray-100" />
