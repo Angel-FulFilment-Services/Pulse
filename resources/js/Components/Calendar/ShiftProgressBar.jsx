@@ -16,7 +16,6 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
             "Training": 'text-blue-700 bg-blue-300 ring-blue-600/70',
             "HR Meetings": 'text-blue-700 bg-blue-300 ring-blue-600/70',
             "Other": 'text-blue-700 bg-blue-300 ring-blue-600/70',
-            "Warehouse": 'text-blue-700 bg-blue-300 ring-blue-600/70',
         },
         "detail": {
             "PBX Import": 'text-orange-400 bg-orange-100 ring-orange-600/30',
@@ -26,8 +25,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
             "Lateness": "text-red-400 bg-red-100 ring-red-600/30",
             "Training": 'text-blue-500 bg-blue-100 ring-blue-600/30',
             "HR Meetings": 'text-blue-500 bg-blue-100 ring-blue-600/30',
-            "Other": 'text-blue-500 bg-blue-100 ring-blue-600/70',
-            "Warehouse": 'text-blue-500 bg-blue-100 ring-blue-600/30',
+            "Other": 'text-blue-500 bg-blue-100 ring-blue-600/30',
         }
     }
 
