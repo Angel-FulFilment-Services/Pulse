@@ -17,6 +17,9 @@ const getStatus = (shift, timesheets) => {
   const shiftStartDate = new Date(shift.shiftdate);
   shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
 
+  const shiftEndDate = new Date(shift.shiftdate);
+  shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
+
   const now = new Date();
 
   if (shiftStartDate > now) {
@@ -38,6 +41,16 @@ const getStatus = (shift, timesheets) => {
 
   const earliestTimesheet = timesheets
     .filter((timesheet) => timesheet.hr_id === shift.hr_id)
+    .filter((timesheet) => {
+      const onTime = new Date(timesheet.on_time);
+      const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+
+      // Filter timesheets to include only those entries that fall within an hour before the shift start and an hour after the shift end
+      return (
+        (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+      );
+    })
     .sort((a, b) => new Date(a.on_time) - new Date(b.on_time))[0];
 
   if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) > 60) {

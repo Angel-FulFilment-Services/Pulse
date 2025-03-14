@@ -31,6 +31,9 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   useEffect(() => {
     if (isOpen) {
       initializePopper();
+      if (popperElement.current) {
+        popperElement.current.focus();
+      }
     }
 
     return () => {
@@ -64,7 +67,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
       {isOpen && (
         <div
           ref={popperElement}
-          className={`z-30 bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 ${ width }`}
+          className={`z-50 bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 ${ width }`}
         >
           {content}
         </div>

@@ -5,7 +5,32 @@ import { ClockIcon } from '@heroicons/react/24/outline';
 
 const ShiftProgressBar = ({ shift, timesheets }) => {
     const blockRefs = useRef([]); // Array of refs for each block
-  
+    
+    const categories = {
+        "time block": {
+            "PBX Import": 'text-orange-700 bg-orange-200 ring-orange-600/50',
+            "Warehouse": 'text-orange-700 bg-orange-200 ring-orange-600/500',
+            "Reinstated": 'text-orange-700 bg-orange-200 ring-orange-600/500',
+            "TSA Dedicated Agent": 'text-orange-700 bg-orange-200 ring-orange-600/500',
+            "Lateness": "text-red-700 bg-red-300 ring-red-600/50",
+            "Training": 'text-blue-700 bg-blue-300 ring-blue-600/70',
+            "HR Meetings": 'text-blue-700 bg-blue-300 ring-blue-600/70',
+            "Other": 'text-blue-700 bg-blue-300 ring-blue-600/70',
+            "Warehouse": 'text-blue-700 bg-blue-300 ring-blue-600/70',
+        },
+        "detail": {
+            "PBX Import": 'text-orange-400 bg-orange-100 ring-orange-600/30',
+            "Warehouse": 'text-orange-400 bg-orange-100 ring-orange-600/30',
+            "Reinstated": 'text-orange-400 bg-orange-100 ring-orange-600/30',
+            "TSA Dedicated Agent": 'text-orange-400 bg-orange-100 ring-orange-600/30',
+            "Lateness": "text-red-400 bg-red-100 ring-red-600/30",
+            "Training": 'text-blue-500 bg-blue-100 ring-blue-600/30',
+            "HR Meetings": 'text-blue-500 bg-blue-100 ring-blue-600/30',
+            "Other": 'text-blue-500 bg-blue-100 ring-blue-600/70',
+            "Warehouse": 'text-blue-500 bg-blue-100 ring-blue-600/30',
+        }
+    }
+
     const calculateTimeBlocks = (shift, timesheets) => {
       const shiftStartDate = new Date(shift.shiftdate);
       shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
@@ -18,6 +43,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
       let totalActualMinutes = 0;
   
       const blocks = timesheets
+        .filter((timesheet) => timesheet.hr_id === shift.hr_id)
         .filter((timesheet) => {
           const onTime = new Date(timesheet.on_time);
           const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
@@ -28,7 +54,6 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
             (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
           );
         })
-        .filter((timesheet) => timesheet.hr_id === shift.hr_id)
         .map((timesheet) => {
           const onTime = new Date(timesheet.on_time);
           const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
@@ -50,7 +75,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
   
           return {
             category: timesheet.category,
-            color: blockMinutes <= 60 ? 'text-orange-700 bg-orange-200 ring-orange-600/50' : 'text-green-700 bg-green-300 ring-green-600/70',
+            color: categories["time block"][timesheet.category],
             width: `${blockPercentage}%`,
             left: `${offsetPercentage}%`,
             start: timesheet.on_time,
@@ -65,6 +90,16 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
       // Check if the earliest on_time is after the shiftStartDate
       const earliestOnTime = timesheets
         .filter((timesheet) => timesheet.hr_id === shift.hr_id)
+        .filter((timesheet) => {
+            const onTime = new Date(timesheet.on_time);
+            const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+    
+            // Filter timesheets to include only those entries that fall within an hour before the shift start and an hour after the shift end
+            return (
+              (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
+              (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+            );
+        })
         .map((timesheet) => new Date(timesheet.on_time))
         .sort((a, b) => a - b)[0];
   
@@ -75,7 +110,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
         if (latePercentage > 2.5) {
           blocks.unshift({
             category: "Lateness",
-            color: 'text-red-700 bg-red-300 ring-red-600/50',
+            color: categories["time block"]['Lateness'],
             width: `${latePercentage}%`,
             left: '0%',
             start: shiftStartDate,
@@ -143,7 +178,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
     // Calculate worked percentage
     const workedPercentage = (totalActualMinutes / (totalShiftMinutes - breakMinutes)) * 100;
 
-    return workedPercentage > 0 ? workedPercentage.toFixed() : 0; // Return percentage with 2 decimal places
+    return workedPercentage > 0 ? Math.floor(workedPercentage) : 0; // Return percentage with 2 decimal places
   };
 
   const workedPercentage = calculateWorkedPercentage(shift, timesheets);
@@ -180,7 +215,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
               content={
                 <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
                     <div className="relative flex gap-x-2 justify-start items-center rounded-lg w-full h-full pb-1">
-                        <div className="flex flex-none items-center justify-center rounded-lg p-2 w-8 h-8 text-orange-500 bg-orange-100 ring-orange-600/20 ring-2">
+                        <div className={`flex flex-none items-center justify-center rounded-lg p-2 w-8 h-8 ${categories["detail"][block.category]} ring-2`}>
                             <ClockIcon aria-hidden="true" className="size-6 flex-shrink-0"/>
                         </div>
                         <div className="flex flex-col">
