@@ -92,8 +92,8 @@ export default function ListView({ setView, viewType }) {
 
                           return (
                             <Fragment key={key}>
-                              <tr className="text-sm leading-6 text-gray-900 sticky top-0">
-                                <th scope="colgroup" colSpan={3} className="relative isolate py-2 font-semibold">
+                              <tr className="text-sm leading-6 text-gray-900">
+                                <th scope="colgroup" colSpan={3} className="relative py-2 font-semibold">
                                   {`${format(startDate, 'h:mm a').toLowerCase()} - ${format(endDate, 'h:mm a').toLowerCase()}`}
                                   <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 shadow-sm" />
                                   <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 shadow-sm" />

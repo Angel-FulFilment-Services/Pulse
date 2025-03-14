@@ -19,6 +19,7 @@
         "@inertiajs/inertia-react": "^0.8.1",
         "@inertiajs/react": "^1.0.14",
         "@lottiefiles/react-lottie-player": "^3.5.3",
+        "@popperjs/core": "^2.11.8",
         "@vitejs/plugin-react": "^4.2.1",
         "date-fns": "^4.1.0",
         "dayjs": "^1.11.10",

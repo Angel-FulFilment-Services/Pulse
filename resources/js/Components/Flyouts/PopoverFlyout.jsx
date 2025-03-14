@@ -1,30 +1,74 @@
-import { Fragment } from 'react'
-import { Popover, Transition } from '@headlessui/react'
-import { ChevronDownIcon } from '@heroicons/react/20/solid'
+import { useState, useRef, useEffect } from 'react';
+import { createPopper } from '@popperjs/core';
 
-export default function Example() {
+export default function PopoverFlyout({ placement = 'top', width = 'auto', className = '', style = {}, children, content }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const referenceElement = useRef(null);
+  const popperElement = useRef(null);
+  const popperInstance = useRef(null);
+
+  // Initialize or Update Popper.js
+  const initializePopper = () => {
+    if (referenceElement.current && popperElement.current) {
+      if (popperInstance.current) {
+        popperInstance.current.destroy(); // Destroy the existing instance
+      }
+
+      popperInstance.current = createPopper(referenceElement.current, popperElement.current, {
+        placement, // Use the dynamic placement prop
+        modifiers: [
+          {
+            name: 'offset',
+            options: {
+              offset: [0, 5], // Adjust the offset (horizontal, vertical)
+            },
+          },
+        ],
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      initializePopper();
+    }
+
+    return () => {
+      if (popperInstance.current) {
+        popperInstance.current.destroy();
+        popperInstance.current = null;
+      }
+    };
+  }, [isOpen, placement]); // Reinitialize Popper.js when `isOpen` or `placement` changes
+
+  const handleMouseEnter = () => {
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsOpen(false);
+  };
+
   return (
-    <Popover className="relative">
-      <Popover.Button className="inline-flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900">
-        <span>Solutions</span>
-        <ChevronDownIcon className="h-5 w-5" aria-hidden="true" />
-      </Popover.Button>
+    <div
+      ref={referenceElement}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`${className}`}
+      style={style}
+    >
+      {/* Trigger Element */}
+      {children}
 
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-200"
-        enterFrom="opacity-0 translate-y-1"
-        enterTo="opacity-100 translate-y-0"
-        leave="transition ease-in duration-150"
-        leaveFrom="opacity-100 translate-y-0"
-        leaveTo="opacity-0 translate-y-1"
-      >
-        <Popover.Panel className="absolute left-1/2 z-10 mt-5 flex w-screen max-w-max -translate-x-1/2 px-4">
-          <div className="w-screen max-w-sm flex-auto rounded-3xl bg-white p-4 text-sm leading-6 shadow-lg ring-1 ring-gray-900/5">
-
-          </div>
-        </Popover.Panel>
-      </Transition>
-    </Popover>
-  )
+      {/* Popover Content */}
+      {isOpen && (
+        <div
+          ref={popperElement}
+          className={`z-30 bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 ${ width }`}
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
 }
