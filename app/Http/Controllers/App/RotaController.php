@@ -27,8 +27,8 @@ class RotaController extends Controller
 
         // Fetch shifts for the date range
         $shifts = Shift::whereBetween('shiftdate', [$startDate, $endDate])
-        ->leftJoin("wings_data.hr_details", 'shifts.hr_id', '=', 'hr_details.hr_id')
-        ->select("shifts.*", "hr_details.job_title")
+        ->leftJoin("wings_data.hr_details", 'shifts2.hr_id', '=', 'hr_details.hr_id')
+        ->select("shifts2.*", "hr_details.job_title")
         ->get();
 
         return response()->json($shifts);

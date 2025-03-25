@@ -36,6 +36,7 @@ createInertiaApp({
       default:
         page.default.layout = (page) => (
           <ActiveStateProvider>
+            <ToastContainer />
             <NavBar page={page} />
           </ActiveStateProvider>
         );

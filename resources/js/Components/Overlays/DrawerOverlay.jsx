@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-export default function DrawerOverlay({ isOpen, onClose, title, children, hasBackdrop, slideFrom = 'right' }) {
+export default function DrawerOverlay({ isOpen, onClose, title, subTitle, children, hasBackdrop, slideFrom = 'right' }) {
   const slideInClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
   const slideOutClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
 
@@ -19,7 +19,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, children, hasBac
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500/75 transition-opacity" />
+            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" />
           </Transition.Child>
         )}
 
@@ -39,9 +39,14 @@ export default function DrawerOverlay({ isOpen, onClose, title, children, hasBac
                   <div className="flex h-full flex-col overflow-y-auto bg-white py-6 shadow-xl">
                     <div className="px-4 sm:px-6">
                       <div className="flex items-start justify-between">
-                        <Dialog.Title className="text-base font-semibold leading-6 text-gray-900">
-                          {title}
-                        </Dialog.Title>
+                        <div>
+                          <Dialog.Title className="text-base font-semibold leading-6 text-gray-900">
+                            {title}
+                          </Dialog.Title>
+                          <Dialog.Title className="text-sm text-gray-500">
+                            {subTitle}
+                          </Dialog.Title>
+                        </div>
                         <div className="ml-3 flex h-7 items-center">
                           <button
                             type="button"

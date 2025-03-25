@@ -3,8 +3,29 @@ import { format, differenceInMinutes } from 'date-fns';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 import { ClockIcon } from '@heroicons/react/24/outline';
 
-const ShiftProgressBar = ({ shift, timesheets }) => {
-    const blockRefs = useRef([]); // Array of refs for each block
+const SkeletonLoader = ({ className }) => (
+    <div className={`animate-pulse bg-gray-100 ${className}`} />
+);
+  
+const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
+    if (isLoading) {
+        // Render skeleton loader when loading
+        return (
+            <div className="flex flex-col gap-y-1 w-full items-end justify-end">
+            <div className="flex items-end justify-between pt-0 w-full">
+                <div className="flex flex-row md:flex-col xl:flex-row w-full">
+                <SkeletonLoader className="h-4 w-1/3 rounded-lg" />
+                </div>
+                <div className="flex flex-row gap-x-1 w-full justify-end">
+                <SkeletonLoader className="h-4 w-8/12 rounded-lg" />
+                </div>
+            </div>
+            <div className="w-full h-5 rounded-full flex flex-row items-center">
+                <SkeletonLoader className="h-5 w-full rounded-full" />
+            </div>
+            </div>
+        );
+    }
     
     const categories = {
         "time block": {
@@ -209,7 +230,7 @@ const ShiftProgressBar = ({ shift, timesheets }) => {
               style={{ width: block.width, left: block.left }}
               className={`h-5 ${index === 0 ? 'rounded-l-xl' : 'rounded-l'} ${
                 index === timeBlocks.length - 1 ? 'rounded-r-xl' : 'rounded-r'
-              } ${block.color} ring-1 ring-inset hover:contrast-125 cursor-pointer absolute overflow-visible`}
+              } ${block.color} ring-1 ring-inset hover:contrast-125 cursor-pointer absolute overflow-visible z-0 hover:z-50`}
               content={
                 <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
                     <div className="relative flex gap-x-2 justify-start items-center rounded-lg w-full h-full pb-1">

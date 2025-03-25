@@ -12,7 +12,7 @@ class Shift extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $table = 'shifts';
+    protected $table = 'shifts2';
     protected $connection = 'halo_rota';
 
     /**

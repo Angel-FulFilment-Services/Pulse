@@ -1,4 +1,4 @@
-import { UserIcon } from '@heroicons/react/24/solid';
+import { UserIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
 import { useUserStates } from '../Context/ActiveStateContext';
 
@@ -45,7 +45,10 @@ export default function UserItem({ userId, size = 'large' }) {
 
   return (
     <>
-      <span className={`relative flex flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass}`}>
+      <span className={`relative flex flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass} group`}>
+        <div className={`group-hover:flex hidden z-10 absolute top-0 left-0 inset-0 items-center justify-center bg-gray-200 bg-opacity-35 rounded-full group-hover:cursor-pointer transition-all ease-in-out`}>
+            <ArrowsPointingOutIcon className="w-5 h-5 text-gray-800"/>
+        </div>
         {profilePhoto ? (
           <img
             src={`/images/profile/${profilePhoto}`}
@@ -58,7 +61,7 @@ export default function UserItem({ userId, size = 'large' }) {
             aria-hidden="true"
           />
         )}
-        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white">
+        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-20">
           <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
         </span>
       </span>

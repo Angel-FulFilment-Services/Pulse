@@ -14,6 +14,7 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@floating-ui/react-dom": "^2.1.2",
         "@headlessui/react": "^1.7.18",
         "@heroicons/react": "^2.1.1",
         "@inertiajs/inertia-react": "^0.8.1",

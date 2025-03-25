@@ -7,68 +7,11 @@ import { startOfWeek, endOfWeek, format, addWeeks, subWeeks, addDays, isSameDay,
 import ShiftBlock from './ShiftBlock';
 import DrawerOverlay from '../Overlays/DrawerOverlay';
 import { ThreeDots } from 'react-loader-spinner'
+import { groupShifts } from '../../Utils/Rota';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
-
-const groupShifts = (shifts) => {
-  const grouped = {};
-
-  shifts.forEach((shift) => {
-    const date = format(new Date(shift.shiftdate), 'yyyy-MM-dd');
-    const key = `${shift.shiftstart}-${shift.shiftend}`;
-    if (!grouped[date]) {
-      grouped[date] = {};
-    }
-    if (!grouped[date][key]) {
-      grouped[date][key] = [];
-    }
-    grouped[date][key].push(shift);
-  });
-
-  // Merge shifts that fall within the widest time range
-  Object.keys(grouped).forEach((date) => {
-    const shiftsByTime = grouped[date];
-    const mergedShifts = {};
-
-    const timeKeys = Object.keys(shiftsByTime).sort((a, b) => {
-      const [startA, endA] = a.split('-').map(Number);
-      const [startB, endB] = b.split('-').map(Number);
-      return startA - startB || endB - endA;
-    });
-
-    let currentKey = null;
-    let currentShifts = [];
-
-    timeKeys.forEach((key) => {
-      const [start, end] = key.split('-').map(Number);
-
-      if (!currentKey) {
-        currentKey = key;
-        currentShifts = shiftsByTime[key];
-      } else {
-        const [currentStart, currentEnd] = currentKey.split('-').map(Number);
-
-        if (start >= currentStart && end <= currentEnd) {
-          currentShifts = currentShifts.concat(shiftsByTime[key]);
-        } else {
-          mergedShifts[currentKey] = currentShifts;
-          currentKey = key;
-          currentShifts = shiftsByTime[key];
-        }
-      }
-    });
-
-    if (currentKey) {
-      mergedShifts[currentKey] = currentShifts;
-    }
-
-    grouped[date] = mergedShifts;
-  });
-
-  return grouped;
-};
 
 export default function CalendarView({ setView, viewType }) {
   const container = useRef(null);
@@ -108,7 +51,7 @@ export default function CalendarView({ setView, viewType }) {
   const { shifts, isLoading } = useFetchShifts(startDate, endDate);
 
   useEffect(() => {
-    setGroupedShifts(groupShifts(shifts));
+    setGroupedShifts(groupShifts(shifts, true));
     if(shifts.length){
       setIsTransitioning(false);
     }
