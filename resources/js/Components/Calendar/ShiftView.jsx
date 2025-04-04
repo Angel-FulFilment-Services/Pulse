@@ -44,7 +44,7 @@ export default function ShiftView({ selectedShift }) {
     )} from ${startTime} to ${endTime}.`;
 
     try {
-      await sendSMS('Angel', '07788236380', message); // Call the generic sendSMS function
+      await sendSMS('Angel', '07515881715', message); // Call the generic sendSMS function
     } catch (error) {
       console.error('Error sending shift reminder:', error);
     } finally {
@@ -56,7 +56,7 @@ export default function ShiftView({ selectedShift }) {
     setSendingButtons((prev) => ({ ...prev, [buttonKey]: true })); // Set the specific button to "sending"
 
     try {
-      await sendSMS('Angel', '07788236380', message); // Call the generic sendSMS function
+      await sendSMS('Angel', '07515881715', message); // Call the generic sendSMS function
     } catch (error) {
       console.error('Error sending shift reminder:', error);
     } finally {

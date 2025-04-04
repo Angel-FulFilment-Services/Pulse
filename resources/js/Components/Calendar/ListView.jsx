@@ -63,8 +63,8 @@ export default function ListView({ setView, viewType }) {
       const updatedShift = shifts.find((shift) => shift.unq_id === selectedShift.shift.unq_id);
   
       // Find the updated timesheets and events for the selected shift
-      const updatedTimesheets = timesheets.filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id);
-      const updatedEvents = events.filter((event) => event.shift_id === selectedShift.shift.unq_id);
+      const updatedTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == selectedShift.shift.hr_id);
+      const updatedEvents = events.filter((event) => event.shift_id == selectedShift.shift.unq_id);
   
       // Update the selectedShift state with the latest data
       setSelectedShift({
@@ -166,8 +166,8 @@ export default function ListView({ setView, viewType }) {
                                     </tr>
                                     {shifts.map((shift) => {
                                       const isLoaded = cumulativeIndex < loadedItems;
-                                      const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id === shift.hr_id);
-                                      const relevantEvents = events.filter((event) => event.hr_id === shift.hr_id);
+                                      const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == shift.hr_id);
+                                      const relevantEvents = events.filter((event) => event.hr_id == shift.hr_id);
 
                                       cumulativeIndex++; // Increment the cumulative index for each shift
                                       return (
