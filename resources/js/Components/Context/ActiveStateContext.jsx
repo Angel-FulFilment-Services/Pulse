@@ -9,7 +9,8 @@ export const ActiveStateProvider = ({ children }) => {
   useEffect(() => {
     const fetchUserStates = async () => {
       try {
-        const response = await axios.get('/api/users/active_states');
+        const response = await axios.get('/users/active-states');
+
         setUserStates(response.data);
       } catch (error) {
         console.error('Error fetching user states:', error);

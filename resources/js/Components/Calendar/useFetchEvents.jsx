@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const useFetchTimesheets = (startDate, endDate) => {
-  const [timesheets, setTimesheets] = useState([]);
+const useFetchEvents = (startDate, endDate) => {
+  const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
   const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
 
-  const fetchTimesheets = async (controller) => {
+  const fetchEvents = async (controller) => {
     let loadingTimeout;
 
     try {
@@ -15,14 +15,14 @@ const useFetchTimesheets = (startDate, endDate) => {
         setIsLoading(true);
       }, 3000);
 
-      const response = await axios.get('/rota/timesheets', {
+      const response = await axios.get('/rota/events', {
         params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate },
         signal: controller.signal, // Attach the AbortController signal
       });
 
       clearTimeout(loadingTimeout);
       setIsLoading(false);
-      setTimesheets(response.data);
+      setEvents(response.data);
     } catch (error) {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
@@ -31,7 +31,7 @@ const useFetchTimesheets = (startDate, endDate) => {
       if (axios.isCancel(error)) {
         console.log('Fetch aborted');
       } else {
-        console.error('Error fetching timesheets:', error);
+        console.error('Error fetching events:', error);
       }
     }
   };
@@ -44,13 +44,13 @@ const useFetchTimesheets = (startDate, endDate) => {
   useEffect(() => {
     const controller = new AbortController(); // Create a new AbortController for each fetch
 
-    // Debounce the fetchTimesheets call
+    // Debounce the fetchEvents call
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
 
     debounceTimeout.current = setTimeout(() => {
-      fetchTimesheets(controller);
+      fetchEvents(controller);
     }, 300); // Debounce delay of 300ms
 
     // Cleanup function
@@ -61,23 +61,23 @@ const useFetchTimesheets = (startDate, endDate) => {
   }, [startDate, endDate]); // Re-run when startDate or endDate changes
 
   useEffect(() => {
-    // Listen for the custom "refreshTimesheets" event
+    // Listen for the custom "refreshEvents" event
     const handleRefresh = () => {
       const controller = new AbortController();
-      fetchTimesheets(controller);
+      fetchEvents(controller);
     };
-    window.addEventListener('refreshTimesheets', handleRefresh);
+    window.addEventListener('refreshEvents', handleRefresh);
 
     return () => {
-      window.removeEventListener('refreshTimesheets', handleRefresh); // Clean up listener
+      window.removeEventListener('refreshEvents', handleRefresh); // Clean up listener
     };
   }, []);
 
   useEffect(() => {
-    // Fetch timesheets every 60 seconds
+    // Fetch events every 60 seconds
     const intervalId = setInterval(() => {
       const controller = new AbortController();
-      fetchTimesheets(controller);
+      fetchEvents(controller);
     }, 60000); // 60-second interval
 
     return () => {
@@ -85,7 +85,7 @@ const useFetchTimesheets = (startDate, endDate) => {
     };
   }, [startDate, endDate]); // Re-run when startDate or endDate changes
 
-  return { timesheets, isLoading };
+  return { events, isLoading };
 };
 
-export default useFetchTimesheets;
+export default useFetchEvents;

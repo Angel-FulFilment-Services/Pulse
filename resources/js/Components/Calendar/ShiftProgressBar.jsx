@@ -1,4 +1,4 @@
-import { React, useRef } from 'react';
+import { React, memo } from 'react';
 import { format, differenceInMinutes } from 'date-fns';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 import { ClockIcon } from '@heroicons/react/24/outline';
@@ -7,7 +7,7 @@ const SkeletonLoader = ({ className }) => (
     <div className={`animate-pulse bg-gray-100 ${className}`} />
 );
   
-const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
+const ShiftProgressBar = ({ shift, timesheets, events, isLoading = false }) => {
     if (isLoading) {
         // Render skeleton loader when loading
         return (
@@ -29,28 +29,46 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
     
     const categories = {
         "time block": {
-            "PBX Import": 'text-orange-700 bg-orange-200 ring-orange-600/50',
-            "Warehouse": 'text-orange-700 bg-orange-200 ring-orange-600/500',
-            "Reinstated": 'text-orange-700 bg-orange-200 ring-orange-600/500',
-            "TSA Dedicated Agent": 'text-orange-700 bg-orange-200 ring-orange-600/500',
-            "Lateness": "text-red-700 bg-red-300 ring-red-600/50",
-            "Training": 'text-blue-700 bg-blue-300 ring-blue-600/70',
-            "HR Meetings": 'text-blue-700 bg-blue-300 ring-blue-600/70',
-            "Other": 'text-blue-700 bg-blue-300 ring-blue-600/70',
+            "PBX Import": 'text-orange-700 bg-orange-200 ring-orange-600/50 ring-1 ring-inset hover:bg-orange-100',
+            "Break": 'text-green-700 bg-green-200/75 ring-green-600/50 ring-1 ring-inset hover:bg-green-100',
+            "Warehouse": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
+            "Reinstated": 'text-orange-700 bg-orange-200 ring-orange-600/500 ring-1 ring-inset hover:bg-orange-100',
+            "TSA Dedicated Agent": 'text-orange-700 bg-orange-200 ring-orange-600/500 ring-1 ring-inset hover:bg-orange-100',
+            "Lateness": "text-red-700 bg-red-300 ring-red-600/50 ring-1 ring-inset hover:bg-red-200",
+            "Training": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
+            "HR Meetings": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
+            "Other": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
+            "Reduced": 'text-blue-700 bg-blue-100 border-dashed border-2 border-blue-600/50 hover:bg-blue-50',
+            "AWOL": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
+            "Sick": "text-yellow-700 bg-yellow-100 border-dashed border-2 border-yellow-600/50 hover:bg-yellow-50",
         },
         "detail": {
-            "PBX Import": 'text-orange-400 bg-orange-100 ring-orange-600/30',
-            "Warehouse": 'text-orange-400 bg-orange-100 ring-orange-600/30',
-            "Reinstated": 'text-orange-400 bg-orange-100 ring-orange-600/30',
-            "TSA Dedicated Agent": 'text-orange-400 bg-orange-100 ring-orange-600/30',
-            "Lateness": "text-red-400 bg-red-100 ring-red-600/30",
-            "Training": 'text-blue-500 bg-blue-100 ring-blue-600/30',
-            "HR Meetings": 'text-blue-500 bg-blue-100 ring-blue-600/30',
-            "Other": 'text-blue-500 bg-blue-100 ring-blue-600/30',
+            "PBX Import": 'text-orange-700 bg-orange-50 ring-orange-600/30',
+            "Break": 'text-green-700 bg-green-50 ring-green-600/30',
+            "Warehouse": 'text-blue-700 bg-blue-50 ring-blue-600/30',
+            "Reinstated": 'text-orange-700 bg-orange-50 ring-orange-600/30',
+            "TSA Dedicated Agent": 'text-orange-700 bg-orange-50 ring-orange-600/30',
+            "Lateness": "text-red-700 bg-red-50 ring-red-600/30",
+            "Training": 'text-blue-700 bg-blue-50 ring-blue-600/30',
+            "Reduced": 'text-blue-700 bg-blue-50 ring-blue-600/30',
+            "HR Meetings": 'text-blue-700 bg-blue-50 ring-blue-600/30',
+            "Other": 'text-blue-700 bg-blue-50 ring-blue-600/30',
+            "AWOL": "text-red-700 bg-red-50 ring-red-600/30",
+            "Sick": "text-yellow-600 bg-yellow-50 ring-yellow-600/30",
         }
     }
 
-    const calculateTimeBlocks = (shift, timesheets) => {
+    const calculateReductionMinutes = (events = []) => {
+      return events
+        .filter((event) => event.category === 'Reduced')
+        .reduce((total, event) => {
+          const onTime = new Date(event.on_time);
+          const offTime = event.off_time ? new Date(event.off_time) : new Date();
+          return total + differenceInMinutes(offTime, onTime);
+        }, 0);
+    };
+
+    const calculateTimeBlocks = (shift, timesheets, events) => {
       const shiftStartDate = new Date(shift.shiftdate);
       shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
   
@@ -61,27 +79,38 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
   
       let totalActualMinutes = 0;
   
-      const blocks = timesheets
-        .filter((timesheet) => timesheet.hr_id === shift.hr_id)
-        .filter((timesheet) => {
-          const onTime = new Date(timesheet.on_time);
-          const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+      // Calculate total reduction minutes
+      const reductionMinutes = calculateReductionMinutes(events);
+
+      // Merge timesheets and events
+      const combinedData = [
+        ...(timesheets || []).map((record) => ({ ...record, origin: 'timesheets' })),
+        ...(events || []).map((record) => ({ ...record, origin: 'events' })),
+      ];
+      
+      const blocks = combinedData
+        .filter((record) => {
+          const onTime = new Date(record.on_time);
+          const offTime = record.off_time ? new Date(record.off_time) : new Date();
   
-          // Filter timesheets to include only those entries that fall within an hour before the shift start and an hour after the shift end
+          // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
           return (
             (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
             (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
           );
         })
-        .map((timesheet) => {
-          const onTime = new Date(timesheet.on_time);
-          const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+        .map((record) => {
+          const onTime = new Date(record.on_time);
+          const offTime = record.off_time ? new Date(record.off_time) : new Date();
   
           const start = Math.max(shiftStartDate, onTime);
           const end = Math.min(shiftEndDate, offTime);
   
           const blockMinutes = differenceInMinutes(end, start);
-          totalActualMinutes += differenceInMinutes(offTime, onTime);
+          
+          if (record.origin === 'timesheets') {
+            totalActualMinutes += differenceInMinutes(offTime, onTime);
+          }
   
           const blockPercentage = (blockMinutes / totalShiftMinutes) * 100;
   
@@ -93,33 +122,33 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
           const offsetPercentage = (offsetMinutes / totalShiftMinutes) * 100;
   
           return {
-            category: timesheet.category,
-            color: categories["time block"][timesheet.category],
+            category: record.category,
+            color: categories["time block"][record.category],
             width: `${blockPercentage}%`,
             left: `${offsetPercentage}%`,
-            start: timesheet.on_time,
-            end: timesheet.off_time,
-            started: new Date(timesheet.on_time).toLocaleTimeString('en-GB', { hour12: false }),
-            ended: new Date(timesheet.off_time).toLocaleTimeString('en-GB', { hour12: false }),
+            start: record.on_time,
+            end: record.off_time,
+            started: new Date(record.on_time).toLocaleTimeString('en-GB', { hour12: false }),
+            ended: new Date(record.off_time).toLocaleTimeString('en-GB', { hour12: false }),
           };
         })
         .filter(Boolean) // Remove null values
         .sort((a, b) => parseFloat(a.left) - parseFloat(b.left)); // Order by the lowest left value to the highest
   
       // Check if the earliest on_time is after the shiftStartDate
-      const earliestOnTime = timesheets
-        .filter((timesheet) => timesheet.hr_id === shift.hr_id)
-        .filter((timesheet) => {
-            const onTime = new Date(timesheet.on_time);
-            const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+      const earliestOnTime = combinedData
+        .filter((record) => record.hr_id === shift.hr_id)
+        .filter((record) => {
+            const onTime = new Date(record.on_time);
+            const offTime = record.off_time ? new Date(record.off_time) : new Date();
     
-            // Filter timesheets to include only those entries that fall within an hour before the shift start and an hour after the shift end
+            // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
             return (
               (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
               (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
             );
         })
-        .map((timesheet) => new Date(timesheet.on_time))
+        .map((record) => new Date(record.on_time))
         .sort((a, b) => a - b)[0];
   
       if (earliestOnTime && earliestOnTime > shiftStartDate) {
@@ -140,10 +169,10 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
         }
       }
   
-      return { blocks, totalActualMinutes, earliestOnTime };
+      return { blocks, totalActualMinutes, earliestOnTime, reductionMinutes };
     };
   
-  const { blocks: timeBlocks, totalActualMinutes, earliestOnTime } = calculateTimeBlocks(shift, timesheets);
+  const { blocks: timeBlocks, totalActualMinutes, earliestOnTime, reductionMinutes } = calculateTimeBlocks(shift, timesheets, events);
 
   const shiftStartDate = new Date(shift.shiftdate);
   shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
@@ -155,13 +184,7 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
 
   const formattedActualHours = `${String(Math.floor(totalActualMinutes / 60)).padStart(2, '0')}:${String(totalActualMinutes % 60).padStart(2, '0')}`;
 
-  let breakMinutes = 0;
-  if (scheduledMinutes > 240 && scheduledMinutes <= 420) {
-    breakMinutes = 30;
-  } else if (scheduledMinutes > 420) {
-    breakMinutes = 60;
-  }
-  const formattedScheduledHours = `${String(Math.floor((scheduledMinutes - breakMinutes) / 60)).padStart(2, '0')}:${String((scheduledMinutes - breakMinutes) % 60).padStart(2, '0')}`;
+  const formattedScheduledHours = `${String(Math.floor((scheduledMinutes - reductionMinutes) / 60)).padStart(2, '0')}:${String((scheduledMinutes - reductionMinutes) % 60).padStart(2, '0')}`;
 
   const formatTimeDifference = (start, end) => {
     const totalMinutes = differenceInMinutes(end, start);
@@ -183,24 +206,16 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
     return formattedTime.trim()
   };
 
-  const calculateWorkedPercentage = (shift, timesheets) => {
-    const totalShiftMinutes = differenceInMinutes(shiftEndDate, shiftStartDate);
-
-    // Calculate break time
-    let breakMinutes = 0;
-    if (totalShiftMinutes > 240 && totalShiftMinutes <= 420) {
-      breakMinutes = 30;
-    } else if (totalShiftMinutes > 420) {
-      breakMinutes = 60;
-    }
+  const calculateWorkedPercentage = (shift, timesheets, reductionMinutes) => {
+    const totalShiftMinutes = differenceInMinutes(shiftEndDate, shiftStartDate) - reductionMinutes;
 
     // Calculate worked percentage
-    const workedPercentage = (totalActualMinutes / (totalShiftMinutes - breakMinutes)) * 100;
+    const workedPercentage = (totalActualMinutes / (totalShiftMinutes)) * 100;
 
     return workedPercentage > 0 ? Math.floor(workedPercentage) : 0; // Return percentage with 2 decimal places
   };
 
-  const workedPercentage = calculateWorkedPercentage(shift, timesheets);
+  const workedPercentage = calculateWorkedPercentage(shift, timesheets, reductionMinutes );
 
   const shiftStartDisplayTime = earliestOnTime ? earliestOnTime : shiftStartDate;
   const shiftStarted = earliestOnTime ? true : false;
@@ -214,10 +229,16 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
           </p>
         </div>
         <div className="flex flex-row gap-x-1">
+        { !shift.unallocated && (
           <p className="focus:outline-none leading-4 text-gray-500 text-xs">Scheduled Hours: {formattedScheduledHours}</p>
+        )}
           <p className="focus:outline-none leading-4 text-gray-500 text-xs">Actual: {formattedActualHours}</p>
-          <p className="focus:outline-none leading-4 text-gray-500 text-xs">-</p>
-          <p className="focus:outline-none leading-4 text-gray-900 text-xs">{workedPercentage}%</p>
+        { !shift.unallocated && (
+          <>
+            <p className="focus:outline-none leading-4 text-gray-500 text-xs">-</p>
+            <p className="focus:outline-none leading-4 text-gray-900 text-xs">{workedPercentage}%</p>
+          </>
+        )}
         </div>
       </div>
       <div className="w-full h-5 bg-gray-200 rounded-full flex flex-row items-center">
@@ -230,11 +251,11 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
               style={{ width: block.width, left: block.left }}
               className={`h-5 ${index === 0 ? 'rounded-l-xl' : 'rounded-l'} ${
                 index === timeBlocks.length - 1 ? 'rounded-r-xl' : 'rounded-r'
-              } ${block.color} ring-1 ring-inset hover:contrast-125 cursor-pointer absolute overflow-visible z-0 hover:z-50`}
+              } ${block.color} cursor-pointer absolute overflow-visible z-0 hover:z-50`}
               content={
                 <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
                     <div className="relative flex gap-x-2 justify-start items-center rounded-lg w-full h-full pb-1">
-                        <div className={`flex flex-none items-center justify-center rounded-lg p-2 w-8 h-8 ${categories["detail"][block.category]} ring-2`}>
+                        <div className={`flex flex-none items-center justify-center rounded-lg p-2 w-8 h-8 ${categories["detail"][block.category]} ring-1`}>
                             <ClockIcon aria-hidden="true" className="size-6 flex-shrink-0"/>
                         </div>
                         <div className="flex flex-col">
@@ -260,4 +281,4 @@ const ShiftProgressBar = ({ shift, timesheets, isLoading = false }) => {
   );
 };
 
-export default ShiftProgressBar;
+export default memo(ShiftProgressBar);

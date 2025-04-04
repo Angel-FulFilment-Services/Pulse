@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Auth
@@ -14,6 +15,9 @@ use App\Http\Controllers\App\RotaController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
+use App\Http\Controllers\App\UserController;
+
+use App\Helper\T2SMS;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +70,11 @@ Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->na
 //Dashboard
 Route::get('/rota', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
+Route::get('/rota/shifts', [RotaController::class, 'shifts']);
+Route::get('/rota/timesheets', [RotaController::class, 'timesheets']);
+Route::get('/rota/events', [RotaController::class, 'events']);
+Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
+Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 
 /*
 |-----------------------
@@ -77,3 +86,18 @@ Route::get('/rota/administration', [RotaController::class, 'index'])->middleware
 Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
 Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->middleware(['auth'])->name('employee');
 Route::get('/my-details', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
+
+Route::get('/users/active-states', [UserController::class, 'activeStates']);
+
+Route::post('/t2/send_sms', function (Request $request) {
+
+    $validated = $request->validate([
+        'from' => 'required|string',
+        'to' => 'required|string',
+        'message' => 'required|string',
+    ]);
+
+    $response = T2SMS::sendSms($validated['from'], $validated['to'], $validated['message']);
+
+    return response()->json(['status' => $response], 200);
+});

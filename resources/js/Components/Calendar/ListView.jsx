@@ -1,20 +1,18 @@
-import { Fragment, useEffect, useState, useRef } from 'react';
-import { ArrowDownCircleIcon, ArrowPathIcon, ArrowUpCircleIcon } from '@heroicons/react/20/solid';
-import { BellIcon, ChatBubbleOvalLeftIcon, CheckIcon, FlagIcon } from '@heroicons/react/20/solid';
+import { Fragment, useEffect, useState, useMemo, useRef } from 'react';
 import useFetchShifts from './useFetchShifts';
 import useFetchTimesheets from './useFetchTimesheets';
+import useFetchEvents from './useFetchEvents';
 import MenuComponent from './MenuComponent';
 import UserItemFull from '../Account/UserItemFull';
 import ShiftProgressBar from './ShiftProgressBar';
 import DrawerOverlay from '../Overlays/DrawerOverlay';
 import './CalendarStyles.css';
-import { format, startOfDay, endOfDay, subDays, addDays, differenceInMinutes, isSameDay } from 'date-fns';
-import {getStatus, groupShifts} from '../../Utils/Rota';
-import { sendSMS } from '../../Utils/SMS'; // Assuming you have the sendSMS function in Utils/SMS
+import { format, startOfDay, endOfDay, subDays, addDays, set } from 'date-fns';
+import { groupShifts } from '../../Utils/Rota';
 import ShiftView from './ShiftView';
+import { useUserStates } from '../Context/ActiveStateContext';
 
 export default function ListView({ setView, viewType }) {
-  const [groupedShifts, setGroupedShifts] = useState({});
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -27,29 +25,55 @@ export default function ListView({ setView, viewType }) {
 
   const { shifts, isLoading } = useFetchShifts(startDate, endDate);
   const { timesheets } = useFetchTimesheets(startDate, endDate);
+  const { events } = useFetchEvents(startDate, endDate);
 
+  const userStates = useUserStates();
+  const groupedShifts = useMemo(() => {
+    return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, userStates);
+  }, [shifts, timesheets]);
+  
   useEffect(() => {
-    setGroupedShifts(groupShifts(shifts));
     if (shifts.length) {
       setIsTransitioning(false);
       setLoadedItems(0); // Reset loaded items
     }
   }, [shifts]);
-
+  
   useEffect(() => {
     if (!isLoading && shifts.length && timesheets.length) {
-      const interval = setInterval(() => {
+      let frameId;
+      const updateLoadedItems = () => {
         setLoadedItems((prev) => {
-          if (prev >= shifts.length) {
-            clearInterval(interval);
+          if (prev >= (shifts.length + groupedShifts[startDate]?.unallocated?.length || 0)) {
+            cancelAnimationFrame(frameId);
             return prev;
           }
           return prev + 1;
         });
-      }, 100); // Load one item every 200ms
-      return () => clearInterval(interval);
+        frameId = requestAnimationFrame(updateLoadedItems);
+      };
+      frameId = requestAnimationFrame(updateLoadedItems);
+      return () => cancelAnimationFrame(frameId);
     }
-  }, [isLoading, shifts, timesheets]);
+  }, [isLoading, groupedShifts]);
+
+  useEffect(() => {
+    if (selectedShift) {
+      // Find the updated shift data
+      const updatedShift = shifts.find((shift) => shift.unq_id === selectedShift.shift.unq_id);
+  
+      // Find the updated timesheets and events for the selected shift
+      const updatedTimesheets = timesheets.filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id);
+      const updatedEvents = events.filter((event) => event.shift_id === selectedShift.shift.unq_id);
+  
+      // Update the selectedShift state with the latest data
+      setSelectedShift({
+        shift: updatedShift || selectedShift.shift, // Fallback to the current shift if not found
+        timesheets: updatedTimesheets,
+        events: updatedEvents,
+      });
+    }
+  }, [shifts, timesheets, events]);
 
   const handlePreviousTimeframe = () => {
     setIsTransitioning(true);
@@ -82,7 +106,7 @@ export default function ListView({ setView, viewType }) {
                 <table className="w-full text-left">
                   <tbody className="relative overflow-y-auto">
                     {isLoading
-                      ? Array.from({ length: 2 }).map((_, headerIndex) => (
+                      ? Array.from({ length: 3 }).map((_, headerIndex) => (
                           <Fragment key={`header-${headerIndex}`}>
                             {/* Header Row */}
                             <tr className="text-sm leading-6 text-gray-900">
@@ -116,32 +140,35 @@ export default function ListView({ setView, viewType }) {
                         ))
                       : (() => {
                           let cumulativeIndex = 0; // Track the cumulative index across all grouped shifts
-                          return Object.entries(groupedShifts).map(([date, shiftsByTime]) => (
+
+                          return Object.entries(groupedShifts)
+                          .map(([date, shiftsByTime]) => (
                             <Fragment key={date}>
-                              {Object.entries(shiftsByTime).map(([key, shifts]) => {
-                                const [start, end] = key.split('-').map(Number);
-                                const startHour = Math.floor(start / 100);
-                                const startMinute = start % 100;
-                                const endHour = Math.floor(end / 100);
-                                const endMinute = end % 100;
+                              {Object.entries(shiftsByTime)
+                              .sort(([keyA], [keyB]) => parseInt(keyA, 10) - parseInt(keyB, 10))
+                              .map(([key, shifts]) => {
+                                const startHour = parseInt(key.slice(0, 2), 10); // Extract hour
+                                const startMinute = parseInt(key.slice(2, 4), 10); // Extract minute
 
                                 const startDate = new Date();
-                                startDate.setHours(startHour, startMinute);
-
-                                const endDate = new Date();
-                                endDate.setHours(endHour, endMinute);
+                                startDate.setHours(startHour, startMinute, 0, 0); // Set hours and minutes
 
                                 return (
                                   <Fragment key={key}>
                                     <tr className="text-sm leading-6 text-gray-900">
                                       <th scope="colgroup" colSpan={3} className="relative py-2 font-semibold">
-                                        {`${format(startDate, 'h:mm a').toLowerCase()} - ${format(endDate, 'h:mm a').toLowerCase()}`}
+                                        {isNaN(startDate.getTime())
+                                        ? key.charAt(0).toUpperCase() + key.slice(1)
+                                        : `Starting: ${format(startDate, 'h:mm a').toLowerCase()}`}
                                         <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 shadow-sm" />
                                         <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 shadow-sm" />
                                       </th>
                                     </tr>
                                     {shifts.map((shift) => {
                                       const isLoaded = cumulativeIndex < loadedItems;
+                                      const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id === shift.hr_id);
+                                      const relevantEvents = events.filter((event) => event.hr_id === shift.hr_id);
+
                                       cumulativeIndex++; // Increment the cumulative index for each shift
                                       return (
                                         <tr
@@ -153,17 +180,18 @@ export default function ListView({ setView, viewType }) {
                                               agent={{
                                                 hr_id: shift.hr_id,
                                                 agent: shift.agent,
-                                                job_title: shift.job_title,
                                               }}
                                               shift={shift}
-                                              timesheets={timesheets}
+                                              timesheets={relevantTimesheets}
+                                              events={relevantEvents}
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
                                           <td className="hidden py-4 sm:table-cell pr-6">
                                             <ShiftProgressBar
                                               shift={shift}
-                                              timesheets={timesheets}
+                                              timesheets={relevantTimesheets}
+                                              events={relevantEvents}
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
@@ -177,18 +205,16 @@ export default function ListView({ setView, viewType }) {
                                               <div className="flex justify-end">
                                                 <a
                                                   onClick={() => {
-                                                    const relevantTimesheets = timesheets.filter(
-                                                      (timesheet) => timesheet.hr_id === shift.hr_id
-                                                    );
-                                                    setSelectedShift({ shift, timesheets: relevantTimesheets });
+                                                    setSelectedShift({
+                                                      shift,
+                                                      timesheets: relevantTimesheets, // Use precomputed timesheets
+                                                      events: relevantEvents, // Use precomputed events
+                                                    });
                                                     setIsDrawerOpen(true);
                                                   }}
                                                   className="text-sm font-medium leading-6 text-orange-600 hover:text-orange-500 cursor-pointer"
                                                 >
                                                   View<span className="hidden sm:inline"> shift</span>
-                                                  <span className="sr-only">
-                                                    , shift #{shift.hr_id}, {shift.agent}
-                                                  </span>
                                                 </a>
                                               </div>
                                             )}

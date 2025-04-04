@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
  */
 export async function sendSMS(from, to, message) {
   return toast.promise(
-    axios.post('/api/t2/send_sms', {
+    axios.post('/t2/send_sms', {
       from,
       to,
       message,

@@ -438,7 +438,7 @@ export const validateEmail = (email, options = {}) => {
 
 /**
  * Validates if the value is not empty.
- * @param {string} value - The value to validate.
+ * @param {null|string} value - The value to validate.
  * @param {string} fieldName - The name of the field being validated.
  * @param {object} options - Additional options for validation.
  * @returns {object|string} - Error object or empty string if valid.
@@ -456,7 +456,7 @@ export const validateRequired = (value, fieldName, options = {}) => {
         }
     }
     
-    if (validator.isEmpty(value, validatorOptions)) {
+    if (value === null || value === undefined || validator.isEmpty(value, validatorOptions)) {
         const error = { message: customMessage || `${fieldName} is required`, code: errorCode || 'REQUIRED_FIELD' };
         if (logErrors) logError(fieldName, error);
         return error;

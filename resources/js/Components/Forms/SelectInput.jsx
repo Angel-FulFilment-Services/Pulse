@@ -1,19 +1,20 @@
 import { Fragment, useState } from 'react'
 import PropTypes from 'prop-types';
 import { Listbox, Transition } from '@headlessui/react'
-import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
+import { CheckIcon, ChevronUpDownIcon, ExclamationCircleIcon } from '@heroicons/react/20/solid'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
 
 export default function SelectInput(props) {
-  const { id, label, currentState, items, onSelectChange, placeholder } = props;
+  const { id, label, currentState, items, onSelectChange, onBlur, placeholder, error, clearErrors } = props;
   
   const [selected, setSelected] = useState((currentState && items.find(item => item.value === currentState)));
 
   const handleSelectChange = (event) => {
     onSelectChange([{id: id, value: event.value}]);
+    if (clearErrors) clearErrors();
   }
 
   return (
@@ -22,12 +23,16 @@ export default function SelectInput(props) {
         <>
           <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900">{label}</Listbox.Label>
           <div className="relative mt-2">
-            <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6">
-              <span className={`block truncate ${(typeof selected == "undefined" || !selected.value) && "text-gray-400"}`}>{typeof selected !== "undefined" && selected.value ? selected.value : `${placeholder}`}</span>
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </span>
-            </Listbox.Button>
+              <Listbox.Button className={`relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6`}>
+                <span className={`block truncate ${(typeof selected == "undefined" || !selected.value) && "text-gray-400"}`}>{typeof selected !== "undefined" && selected.value ? selected.value : `${placeholder}`}</span>
+                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                {error ? 
+                  <ExclamationCircleIcon className="absolute right-2 top-1/2 transform w-5 h-5 text-red-600 -translate-y-1/2 pointer-events-none" />
+                  :
+                  <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                }
+                </span>
+              </Listbox.Button>
 
             <Transition
               show={open}
@@ -69,6 +74,7 @@ export default function SelectInput(props) {
                 ))}
               </Listbox.Options>
             </Transition>
+            {error && <div className="text-red-600 text-sm pt-2">{error.message}</div>}
           </div>
         </>
       )}

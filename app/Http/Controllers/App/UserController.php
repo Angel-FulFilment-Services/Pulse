@@ -21,8 +21,9 @@ class UserController extends Controller
     public function activeStates(Request $request){
         // Fetch employees with their latest timesheet record
         $users = Employee::leftJoin('apex_data.timesheet_today as tt', 'hr_details.hr_id', '=', 'tt.hr_id')
-            ->select('hr_details.hr_id', 'hr_details.user_id', 'hr_details.profile_photo', 'tt.off_time', DB::raw('MAX(tt.on_time) as latest_on_time'))
-            ->groupBy('hr_details.hr_id', 'hr_details.profile_photo', 'tt.off_time')
+            ->leftJoin('wings_config.users', 'hr_details.user_id', '=', 'users.id')
+            ->select('hr_details.hr_id', 'hr_details.user_id', 'hr_details.profile_photo', 'tt.off_time', DB::raw('MAX(tt.on_time) as latest_on_time'), 'users.name', 'hr_details.job_title')
+            ->groupBy('hr_details.hr_id', 'tt.off_time')
             ->orderBy('tt.unq_id', 'asc')
             ->get();
 
@@ -36,6 +37,8 @@ class UserController extends Controller
             }
 
             $userStates[$user->hr_id] = [
+                'name' => $user->name,
+                'job_title' => $user->job_title,
                 'profile_photo' => $user->profile_photo,
                 'last_active_at' => $lastActiveAt,
             ];

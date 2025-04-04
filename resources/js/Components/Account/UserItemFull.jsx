@@ -1,6 +1,7 @@
-import React from 'react';
+import { React, memo } from 'react';
 import UserItem from './UserItem';
 import { getStatus } from '../../Utils/Rota'; // Import the external getStatus function
+import { useUserStates } from '../Context/ActiveStateContext';
 
 const sizeClasses = { 
   'extra-small': 'h-6 w-6',
@@ -18,8 +19,11 @@ const SkeletonLoader = ({ className }) => (
   <div className={`animate-pulse bg-gray-100 ${className}`} />
 );
 
-const UserItemFull = ({ agent, shift = null, timesheets = null, iconSize = "large", isLoading = false }) => {
+const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false }) => {
   const selectedSizeClass = sizeClasses[iconSize] || sizeClasses['medium'];
+  const userStates = useUserStates();
+  const userState = agent?.hr_id ? userStates[agent.hr_id] : null;
+  const jobTitle = userState ? userState.job_title : null;
 
   if (isLoading) {
     // Render skeleton loader when loading
@@ -35,7 +39,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, iconSize = "larg
   }
 
   // Use the imported getStatus function
-  const { status, color } = shift && timesheets ? getStatus(shift, timesheets) : { status: null, color: null };
+  const { status, color } = shift && timesheets ? getStatus(shift, timesheets, events) : { status: null, color: null };
 
   return (
     <div className="flex gap-x-6">
@@ -54,10 +58,10 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, iconSize = "larg
             </div>
           )}
         </div>
-        <div className="mt-0 text-xs leading-5 text-gray-500">{agent.job_title}</div>
+        <div className="mt-0 text-xs leading-5 text-gray-500">{jobTitle}</div>
       </div>
     </div>
   );
 };
 
-export default UserItemFull;
+export default memo(UserItemFull);

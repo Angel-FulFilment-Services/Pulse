@@ -1,12 +1,19 @@
 import { differenceInMinutes, isSameDay, format } from 'date-fns';
 
-export function getStatus(shift, timesheets) {
+export function getStatus(shift, timesheets, events) {
   const statuses = {
     attended: 'text-green-700 bg-green-50 ring-green-600/20',
     upcoming: 'text-gray-600 bg-gray-50 ring-gray-500/10',
     late: 'text-orange-700 bg-orange-50 ring-orange-600/10',
     absent: 'text-red-700 bg-red-50 ring-red-600/10',
+    awol: 'text-red-700 bg-red-50 ring-red-600/10',
+    sick: 'text-yellow-600 bg-yellow-50 ring-yellow-600/10',
+    flagged: 'text-blue-700 bg-blue-50 ring-blue-600/20',
   };
+
+  if(shift.unallocated) {
+    return { status: 'Surplus', color: statuses.flagged };
+  }
 
   const shiftStartDate = new Date(shift.shiftdate);
   shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
@@ -15,6 +22,20 @@ export function getStatus(shift, timesheets) {
   shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
 
   const now = new Date();
+
+  // Check for events and use the latest event's type for the status
+  if (events && events.length > 0) {
+    const latestEvent = events
+      .filter((event) => event.shift_id === shift.unq_id) // Ensure events pertain to the current shift
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; // Get the latest event by `created_at`
+
+    if (latestEvent) {
+      return {
+        status: latestEvent.category, // Use the event type as the status
+        color: statuses[latestEvent.category.toLowerCase()] || statuses.flagged, // Map to a color or default to flagged
+      };
+    }
+  }
 
   if (shiftStartDate > now) {
     const minutesUntilShift = differenceInMinutes(shiftStartDate, now);
@@ -68,7 +89,7 @@ export function getStatus(shift, timesheets) {
   return { status: 'Absent', color: statuses.absent };
 }
 
-export function groupShifts(shifts, merge = false) {
+export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift.shiftstart}-${shift.shiftend}`, timesheets = {}, userStates = {}) {
   const grouped = {};
 
   // Sort shifts by shiftstart
@@ -76,7 +97,8 @@ export function groupShifts(shifts, merge = false) {
 
   shifts.forEach((shift) => {
     const date = format(new Date(shift.shiftdate), 'yyyy-MM-dd');
-    const key = `${shift.shiftstart}-${shift.shiftend}`;
+    const key = groupBy(shift); // Use the custom grouping property or default
+
     if (!grouped[date]) {
       grouped[date] = {};
     }
@@ -125,6 +147,53 @@ export function groupShifts(shifts, merge = false) {
       }
 
       grouped[date] = mergedShifts;
+    });
+  }
+
+  // Add unallocated shifts logic here if timesheets is passed
+  if (timesheets.length > 0) {
+    const unallocatedRecords = timesheets.filter((record) => {
+      return !shifts.some((shift) => shift.hr_id === record.hr_id);
+    });
+
+    const unallocatedByHrId = unallocatedRecords.reduce((acc, record) => {
+      if (!acc[record.hr_id]) {
+        acc[record.hr_id] = [];
+      }
+      acc[record.hr_id].push(record);
+      return acc;
+    }, {});
+
+    Object.keys(grouped).forEach((date) => {
+      const unallocated = Object.entries(unallocatedByHrId).map(([hr_id, records]) => {
+        const earliestOnTime = records
+          .filter((record) => record.on_time)
+          .map((record) => new Date(record.on_time))
+          .reduce((min, current) => (current < min ? current : min), new Date());
+
+        const latestOffTime = records
+          .filter((record) => record.off_time)
+          .map((record) => new Date(record.off_time))
+          .reduce((max, current) => (current > max ? current : max), new Date(0));
+
+        return {
+          id: records[0]?.urn || records[0]?.unq_id || records?.id,
+          hr_id,
+          shiftdate: date,
+          shiftstart: format(earliestOnTime, 'HHmm'),
+          shiftend: format(latestOffTime, 'HHmm'),
+          agent: userStates[hr_id]?.name || 'Unallocated Agent',
+          job_title: userStates[hr_id]?.job_title || 'Unallocated Job',
+          unallocated: true,
+        };
+      });
+
+      if (unallocated.length) {
+        if (!grouped[date]['unallocated']) {
+          grouped[date]['unallocated'] = [];
+        }
+        grouped[date]['unallocated'] = unallocated;
+      }
     });
   }
 

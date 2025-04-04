@@ -6,11 +6,14 @@ import { getStatus } from '../../Utils/Rota';
 import { sendSMS } from '../../Utils/SMS';
 import ClickedFlyout from '../Flyouts/ClickedFlyout';
 import { validateRequired, validateIsLength, validateAscii } from '../../Utils/Validation';
+import ShiftInformation from './ShiftInformation';
+import FlagShift from './FlagShift';
 import { toast } from 'react-toastify';
 
 export default function ShiftView({ selectedShift }) {
   const [sendingButtons, setSendingButtons] = useState({}); // Track sending status for each button
   const [message, setMessage] = useState(''); // State to track the textarea value
+  const [showFlagShift, setShowFlagShift] = useState(false); // State to toggle between components
 
   if (!selectedShift) {
     return <p className="p-4">No shift selected.</p>;
@@ -66,7 +69,7 @@ export default function ShiftView({ selectedShift }) {
       <div className="flex flex-col gap-y-4 divide-y divide-gray-200">
         <div className="rounded-xl bg-gray-50 h-8 flex flex-row">
           <button
-            className={`w-1/4 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 ${
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 ${
               sendingButtons['shift-reminder']
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'hover:bg-gray-100 text-gray-400 hover:text-gray-500 cursor-pointer'
@@ -116,7 +119,7 @@ export default function ShiftView({ selectedShift }) {
               )}
             width="w-72"
             placement="bottom"
-            className={`w-1/4 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 ${
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 z-50 ${
                 sendingButtons['custom-sms']
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'hover:bg-gray-100 text-gray-400 hover:text-gray-500 cursor-pointer'
@@ -174,203 +177,23 @@ export default function ShiftView({ selectedShift }) {
             }}
           />
 
-          <button className="w-1/4 justify-center items-center flex h-full ring-1 ring-inset ring-green-300 bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 cursor-pointer">
-            <CheckIcon className="w-5 h-5"></CheckIcon>
+          <button
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 ${showFlagShift ? "bg-red-100 text-red-700" : "hover:bg-red-100 bg-red-50 text-red-600 hover:text-red-700"} cursor-pointer rounded-r-xl`}
+            onClick={() => setShowFlagShift(true)} // Show the FlagShift component
+          >
+            <FlagIcon className="w-5 h-5"></FlagIcon>
           </button>
-            <ClickedFlyout
-            icon={<FlagIcon className="w-5 h-5"></FlagIcon>}
-            width="w-28"
-            placement="bottom"
-            className={`w-1/4 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 hover:bg-red-100 bg-red-50 text-red-600 hover:text-red-700 cursor-pointer rounded-r-xl`}
-            content={(handleSubmit) => (
-              <div className="w-full mx-auto py-2 flex flex-col space-y-2 divide-y divide-gray-300 hover:text-gray-400 cursor-auto">
-                <div className="w-full flex justify-center items-center">
-                    <ul className="divide-y divide-gray-200 w-full flex flex-col items-center">
-                        <li className ={`hover:bg-gray-50 bg-white text-gray-900 hover:font-semibold font-normal block truncate relative cursor-pointer select-none py-1 pl-3 pr-9`}>
-                            Sick
-                        </li>
-                        <li className ={`hover:bg-gray-50 bg-white text-gray-900 hover:font-semibold font-normal block truncate relative cursor-pointer select-none py-1 pl-3 pr-9`}>
-                            Sick
-                        </li>
-                        <li className ={`hover:bg-gray-50 bg-white text-gray-900 hover:font-semibold font-normal block truncate relative cursor-pointer select-none py-1 pl-3 pr-9`}>
-                            Sick
-                        </li>
-                        <li className ={`hover:bg-gray-50 bg-white text-gray-900 hover:font-semibold font-normal block truncate relative cursor-pointer select-none py-1 pl-3 pr-9`}>
-                            Sick
-                        </li>
-                    </ul>
-                </div>
-              </div>
-            )}
-            onSubmit={(message, buttonKey) => {
-              // Validate the message
+        </div>
 
-              // If validation passes, send the SMS
-              sendCustomSMS(message, buttonKey);
-              setMessage(''); // Clear the message after sending
-            }}
+        {/* Toggle between ShiftInformation and FlagShift */}
+        {showFlagShift ? (
+          <FlagShift
+            selectedShift={selectedShift}
+            onCancel={() => setShowFlagShift(false)} // Hide the FlagShift component
           />
-        </div>
-
-        <h3 className="font-medium text-sm text-gray-900 pt-4">Shift</h3>
-        <dl className="divide-y divide-gray-200 border-b border-t border-gray-200 pt-2">
-          {/* Status */}
-          <div className="flex justify-between items-center py-1.5 text-sm font-medium">
-            <dt className="text-gray-500">Status</dt>
-            <dd className={(() => {
-              const { color } = getStatus(selectedShift.shift, selectedShift.timesheets);
-              return `p-1 px-2 rounded-lg ring-1 text-xs ${color}`;
-            })()}>
-              {(() => {
-                const { status } = getStatus(selectedShift.shift, selectedShift.timesheets);
-                return status;
-              })()}
-            </dd>
-          </div>
-
-          {/* Shift Start */}
-          <div className="flex justify-between items-center py-2 text-sm font-medium">
-            <dt className="text-gray-500">Scheduled Shift Start</dt>
-            <dd className="text-gray-900">
-              {(() => {
-                const startHour = Math.floor(selectedShift.shift.shiftstart / 100);
-                const startMinute = selectedShift.shift.shiftstart % 100;
-                const startDate = new Date();
-                startDate.setHours(startHour, startMinute);
-                return format(startDate, 'h:mm a');
-              })()}
-            </dd>
-          </div>
-
-          {/* Shift End */}
-          <div className="flex justify-between items-center py-2 text-sm font-medium">
-            <dt className="text-gray-500">Scheduled Shift End</dt>
-            <dd className="text-gray-900">
-              {(() => {
-                const endHour = Math.floor(selectedShift.shift.shiftend / 100);
-                const endMinute = selectedShift.shift.shiftend % 100;
-                const endDate = new Date();
-                endDate.setHours(endHour, endMinute);
-                return format(endDate, 'h:mm a');
-              })()}
-            </dd>
-          </div>
-
-          {/* Actual Time Started */}
-          <div className="flex justify-between items-center py-2 text-sm font-medium">
-            <dt className="text-gray-500">Actual Time Started</dt>
-            <dd className="text-gray-900">
-              {(() => {
-                const shiftStartDate = new Date(selectedShift.shift.shiftdate);
-                shiftStartDate.setHours(
-                  Math.floor(selectedShift.shift.shiftstart / 100),
-                  selectedShift.shift.shiftstart % 100
-                );
-
-                const earliestOnTime = selectedShift.timesheets
-                  .filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id)
-                  .map((timesheet) => new Date(timesheet.on_time))
-                  .sort((a, b) => a - b)[0];
-
-                return earliestOnTime
-                  ? format(earliestOnTime, 'h:mm a')
-                  : format(shiftStartDate, 'h:mm a');
-              })()}
-            </dd>
-          </div>
-
-          {/* Scheduled Hours */}
-          <div className="flex justify-between py-2 text-sm font-medium">
-            <dt className="text-gray-500">Scheduled Hours</dt>
-            <dd className="text-gray-900">
-              {(() => {
-                const shiftStartDate = new Date(selectedShift.shift.shiftdate);
-                shiftStartDate.setHours(
-                  Math.floor(selectedShift.shift.shiftstart / 100),
-                  selectedShift.shift.shiftstart % 100
-                );
-
-                const shiftEndDate = new Date(selectedShift.shift.shiftdate);
-                shiftEndDate.setHours(
-                  Math.floor(selectedShift.shift.shiftend / 100),
-                  selectedShift.shift.shiftend % 100
-                );
-
-                const scheduledMinutes = differenceInMinutes(shiftEndDate, shiftStartDate);
-                let breakMinutes = 0;
-                if (scheduledMinutes > 240 && scheduledMinutes <= 420) {
-                  breakMinutes = 30;
-                } else if (scheduledMinutes > 420) {
-                  breakMinutes = 60;
-                }
-
-                const formattedScheduledHours = `${String(
-                  Math.floor((scheduledMinutes - breakMinutes) / 60)
-                ).padStart(2, '0')}:${String((scheduledMinutes - breakMinutes) % 60).padStart(2, '0')}`;
-
-                return formattedScheduledHours;
-              })()}
-            </dd>
-          </div>
-
-          {/* Worked Hours */}
-          <div className="flex justify-between py-2 text-sm font-medium">
-            <dt className="text-gray-500">Worked Hours</dt>
-            <dd className="text-gray-900">
-              {(() => {
-                const totalActualMinutes = selectedShift.timesheets
-                  .filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id)
-                  .reduce((total, timesheet) => {
-                    const onTime = new Date(timesheet.on_time);
-                    const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
-                    return total + differenceInMinutes(offTime, onTime);
-                  }, 0);
-
-                const formattedActualHours = `${String(
-                  Math.floor(totalActualMinutes / 60)
-                ).padStart(2, '0')}:${String(totalActualMinutes % 60).padStart(2, '0')}`;
-
-                return formattedActualHours;
-              })()}
-            </dd>
-          </div>
-        </dl>
-
-        <h3 className="pt-4 font-medium text-sm text-gray-900">Events</h3>
-        <div className="w-full">
-          <div className="pt-2">
-            {selectedShift?.timesheets?.length > 0 ? (
-              <SimpleList
-                headers={['Started', 'Ended', 'Category', 'Duration']}
-                data={selectedShift.timesheets.map((timesheet) => {
-                  const eventStarted = timesheet.on_time
-                    ? format(new Date(timesheet.on_time), 'h:mm a')
-                    : '-';
-                  const eventEnded = timesheet.off_time
-                    ? format(new Date(timesheet.off_time), 'h:mm a')
-                    : '-';
-                  const duration = timesheet.off_time
-                    ? `${Math.floor(
-                        differenceInMinutes(new Date(timesheet.off_time), new Date(timesheet.on_time)) / 60
-                      )}h ${differenceInMinutes(
-                        new Date(timesheet.off_time),
-                        new Date(timesheet.on_time)
-                      ) % 60}m`
-                    : '-';
-
-                  return {
-                    started: eventStarted,
-                    ended: eventEnded,
-                    category: timesheet.category || 'N/A',
-                    duration: duration,
-                  };
-                })}
-              />
-            ) : (
-              <p className="py-2 text-sm text-gray-500">No timesheet events available.</p>
-            )}
-          </div>
-        </div>
+        ) : (
+          <ShiftInformation selectedShift={selectedShift} />
+        )}
       </div>
     </div>
   );

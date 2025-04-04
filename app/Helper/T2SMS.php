@@ -34,8 +34,6 @@ class T2SMS
         // Build the correctly formatted T2 URL with passed parameters.
         $url = self::buildURL($from, $to, $encodedMessage);
 
-        Log::info($url);
-
         // Make the HTTP GET request and send the SMS message.
         $response = Http::get($url);
 

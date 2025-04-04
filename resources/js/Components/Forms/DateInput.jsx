@@ -1,14 +1,15 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState } from 'react';
 import Datepicker from "react-tailwindcss-datepicker"; 
 
 export default function DateInput(props) {
-  const { startDateId, endDateId, label, autoComplete, placeholder, annotation, dateRange, minDate, maxDate, currentState, onDateChange } = props;
+  const { startDateId, endDateId, label, autoComplete, placeholder, annotation, dateRange, minDate, maxDate, currentState, onDateChange, onBlur, error, clearErrors } = props;
   
   const handleDateChange = (event) => {   
     onDateChange([{id: startDateId, value: event.startDate}]);
     if (dateRange) {
       onDateChange([{id: endDateId, value: event.endDate}]);
     }
+    if (clearErrors) clearErrors(); // Clear errors when a valid date is selected
   }
 
   return (
@@ -20,13 +21,13 @@ export default function DateInput(props) {
         }
       </label>
       <div className="mt-2">
-          <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md cursor-pointer`}>
+          <div className={`flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md cursor-pointer`}>
             <Datepicker
               readOnly={true}
               id={startDateId}
               displayFormat="DD/MM/YYYY"
               primaryColor={"orange"} 
-              inputClassName={`border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none cursor-pointer`}
+              inputClassName={`border-0 bg-transparent py-1.5 pl-3 ${error ? "text-red-800" : "text-gray-900"} placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none cursor-pointer`}
               minDate={minDate} 
               maxDate={maxDate} 
               placeholder={placeholder}
@@ -34,9 +35,10 @@ export default function DateInput(props) {
               asSingle={!dateRange} 
               value={currentState} 
               onChange={handleDateChange} 
+              onBlur={ e => { if(onBlur) onBlur([id]);}}
             /> 
           </div>
-          {/* {errors.email && <div className="text-red-600 text-sm pt-1">{errors.email}</div>} */}
+          {error && <div className="text-red-600 text-sm pt-2">{error.message}</div>}
       </div>
     </div>
   );
