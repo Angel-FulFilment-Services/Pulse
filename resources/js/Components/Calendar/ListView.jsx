@@ -39,12 +39,12 @@ export default function ListView({ setView, viewType }) {
     }
   }, [shifts]);
   
-  useEffect(() => {
-    if (!isLoading && shifts.length && timesheets.length) {
+  useEffect(() => {    
+    if (!isLoading && !isTransitioning && shifts.length) {
       let frameId;
       const updateLoadedItems = () => {
         setLoadedItems((prev) => {
-          if (prev >= (shifts.length + groupedShifts[startDate]?.unallocated?.length || 0)) {
+          if (prev >= (shifts.length + groupedShifts[startDate]?.unallocated?.length)) {
             cancelAnimationFrame(frameId);
             return prev;
           }
