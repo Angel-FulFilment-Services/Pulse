@@ -40,7 +40,7 @@ export default function ListView({ setView, viewType }) {
   }, [shifts]);
   
   useEffect(() => {    
-    if (!isLoading && !isTransitioning && shifts.length) {
+    if (!isLoading && shifts.length) {
       let frameId;
       const updateLoadedItems = () => {
         setLoadedItems((prev) => {
@@ -109,7 +109,7 @@ export default function ListView({ setView, viewType }) {
                       ? Array.from({ length: 3 }).map((_, headerIndex) => (
                           <Fragment key={`header-${headerIndex}`}>
                             {/* Header Row */}
-                            <tr className="text-sm leading-6 text-gray-900">
+                            <tr key={`row-${headerIndex}`} className="text-sm leading-6 text-gray-900">
                               <th scope="colgroup" colSpan={3} className="relative py-3 font-semibold">
                                 <div className={`animate-pulse flex flex-col justify-center h-full w-full`}>
                                     <div className="h-4 bg-gray-200 rounded-lg w-28"></div>
@@ -155,7 +155,7 @@ export default function ListView({ setView, viewType }) {
 
                                 return (
                                   <Fragment key={key}>
-                                    <tr className="text-sm leading-6 text-gray-900">
+                                    <tr key={`row-${key}`} className="text-sm leading-6 text-gray-900">
                                       <th scope="colgroup" colSpan={3} className="relative py-2 font-semibold">
                                         {isNaN(startDate.getTime())
                                         ? key.charAt(0).toUpperCase() + key.slice(1)
