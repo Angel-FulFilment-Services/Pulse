@@ -77,13 +77,13 @@ export default function UserFlyoutLayout({hrId}) {
       {renderTabContent()}
 
       <div className="border-t border-gray-50">
-        <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 py-2 px-2">
+        <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 py-3 px-3">
           <input
             type="text"
             className="bg-white w-full h-9 rounded-full ring-1 focus:ring-2 ring-gray-200 focus:ring-orange-500 flex items-center justify-between py-1 outline-none px-4 pr-20 text-gray-700"
             placeholder="Compose your message..."
           />
-          <div className="absolute h-7 w-16 right-3 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full ring-1 ring-gray-200 flex justify-center items-center p-1">
+          <div className="absolute h-7 w-16 right-4 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full ring-1 ring-gray-200 flex justify-center items-center p-1">
             <PaperAirplaneIcon className="w-5 h-5 pl-0.5 text-gray-400"></PaperAirplaneIcon>
           </div>
         </div>
