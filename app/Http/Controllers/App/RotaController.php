@@ -27,10 +27,14 @@ class RotaController extends Controller
     public function shifts(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
 
         // Fetch shifts for the date range
         $shifts = Shift::whereBetween('shiftdate', [$startDate, $endDate])
         ->select("shifts2.*")
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('shifts2.hr_id', $hrId);
+        })
         ->groupBy('hr_id','shiftdate','shiftstart','shiftend')
         ->get();
 
@@ -40,12 +44,16 @@ class RotaController extends Controller
     public function timesheets(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
 
         // Fetch timesheet_today records for the date range
         if((date('Y-m-d') >= $startDate) && (date('Y-m-d') <= $endDate)){
             $timesheetToday = DB::table('apex_data.timesheet_today')
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereNotIn('category', ['Holiday'])
+                ->when($hrId, function ($query) use ($hrId) {
+                    return $query->where('hr_id', $hrId);
+                })
                 ->get()
                 ->map(function ($record) {
                     if (is_null($record->off_time)) {
@@ -59,6 +67,9 @@ class RotaController extends Controller
         $timesheetMaster = DB::table('apex_data.timesheet_master')
             ->whereNotIn('category', ['Holiday'])
             ->whereBetween('date', [$startDate, $endDate])
+            ->when($hrId, function ($query) use ($hrId) {
+                return $query->where('hr_id', $hrId);
+            })
             ->get();
 
         // Merge timesheet_today and timesheet_master records
@@ -67,6 +78,9 @@ class RotaController extends Controller
         // Fetch breaksheet records for the date range        
         $breaksheetMaster = DB::table('apex_data.breaksheet_master')
         ->whereBetween('date', [$startDate, $endDate])
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_id', $hrId);
+        })
         ->get();
 
         // Merge breaksheet records with timesheets
@@ -78,9 +92,14 @@ class RotaController extends Controller
     public function events(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
 
         // Fetch event records for the date range
-        $events = Event::whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->get();
+        $events = Event::whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_id', $hrId);
+        })
+        ->get();
 
         return response()->json($events);
     }

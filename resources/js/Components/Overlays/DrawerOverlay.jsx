@@ -25,7 +25,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
 
         <div className="fixed inset-0 overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
-            <div className={`pointer-events-none fixed inset-y-0 ${slideFrom}-0 flex max-w-full mt-16 lg:mt-0 ${slideFrom === 'left' ? 'pr-10 ml-0 lg:ml-72' : 'pl-10'}`}>
+            <div className={`pointer-events-none fixed inset-y-0 ${slideFrom}-0 flex max-w-full mt-16 lg:mt-0 ${slideFrom === 'left' ? 'pr-10 ml-0 lg:ml-72' : 'pl-0 sm:pl-10'}`}>
               <Transition.Child
                 as={Fragment}
                 enter="transform transition ease-in-out duration-500 sm:duration-700"

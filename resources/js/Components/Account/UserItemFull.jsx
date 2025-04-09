@@ -2,6 +2,7 @@ import { React, memo } from 'react';
 import UserItem from './UserItem';
 import { getStatus } from '../../Utils/Rota'; // Import the external getStatus function
 import { useUserStates } from '../Context/ActiveStateContext';
+import { format } from 'date-fns';
 
 const sizeClasses = { 
   'extra-small': 'h-6 w-6',
@@ -38,27 +39,27 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
     );
   }
 
-  // Use the imported getStatus function
-  const { status, color } = shift && timesheets ? getStatus(shift, timesheets, events) : { status: null, color: null };
+  const { status, color, due, end } = shift && timesheets ? getStatus(shift, timesheets, events) : { status: null, color: null };
 
   return (
     <div className="flex gap-x-6">
-      <UserItem userId={agent.hr_id} size={iconSize} />
+      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} />
       <div className="flex-auto">
-        <div className="flex items-start gap-x-3">
-          <div className="text-sm font-medium leading-6 text-gray-900">{agent.agent}</div>
+        <div className="pb-0.5 flex items-start gap-x-3">
+          <div className="text-sm font-medium text-nowrap leading-6 text-gray-900 w-max">{agent.agent}</div>
           {shift && timesheets && (
             <div
               className={classNames(
                 color,
-                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
+                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset text-nowrap',
               )}
             >
               {status}
             </div>
           )}
         </div>
-        <div className="mt-0 text-xs leading-5 text-gray-500">{jobTitle}</div>
+        <div className="pt-0.5 flex items-center gap-x-2 text-xs leading-5 text-gray-500"> {jobTitle} {jobTitle ? <div class="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span></div>
+        {/* <div className="mt-0 text-xs leading-5 text-gray-500"> {jobTitle} <span>- Due: 09:00am </span></div> */}
       </div>
     </div>
   );

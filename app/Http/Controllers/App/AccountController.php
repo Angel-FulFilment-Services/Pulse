@@ -51,6 +51,14 @@ class AccountController extends Controller
         // }       
     }
 
+    public function information(Request $request){
+        $hrId = $request->query('hr_id');
+
+        $employee = Employee::where('hr_id', $hrId)->leftJoin('wings_config.users', 'hr_details.user_id', '=', 'users.id')->first();
+
+        return response()->json($employee);
+    }
+
     public function saveData(Request $request, $page){
         $employee = Employee::find(auth()->user()->id);
         $employee->update($request->all());

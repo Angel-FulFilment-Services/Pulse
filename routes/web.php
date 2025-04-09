@@ -87,6 +87,8 @@ Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->mid
 Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->middleware(['auth'])->name('employee');
 Route::get('/my-details', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
 
+Route::get('/employee/information', [AccountController::class, 'information'])->middleware(['auth']);
+
 Route::get('/users/active-states', [UserController::class, 'activeStates']);
 
 Route::post('/t2/send_sms', function (Request $request) {

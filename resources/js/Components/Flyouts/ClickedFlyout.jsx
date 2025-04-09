@@ -5,6 +5,7 @@ import './PopoverFlyoutStyles.css';
 export default function ClickedFlyout({
   placement = 'top',
   width = 'auto',
+  height = 'auto',
   className = '',
   style = {},
   children,
@@ -31,12 +32,14 @@ export default function ClickedFlyout({
           placement: placement,
           middleware: [offset(10), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
         }).then(({ x, y, placement, middlewareData }) => {
+
           Object.assign(popperElement.current.style, {
             left: `${x}px`,
             top: `${y}px`,
           });
 
           const { x: arrowX, y: arrowY } = middlewareData.arrow;
+          const { x: shiftX, y: shiftY } = middlewareData.shift;
 
           const staticSide = {
             top: 'bottom',
@@ -46,8 +49,8 @@ export default function ClickedFlyout({
           }[placement.split('-')[0]];
 
           Object.assign(arrowElement.current.style, {
-            left: arrowX != null ? `${arrowX}px` : '',
-            top: arrowY != null ? `${arrowY}px` : '',
+            left: arrowX != null ? `${arrowX - shiftX}px` : '',
+            top: arrowY != null ? `${arrowY - shiftY}px` : '',
             right: '',
             bottom: '',
             [staticSide]: '-4px',
@@ -81,6 +84,28 @@ export default function ClickedFlyout({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          setIsOpen(false);
+          if (onClose) onClose(); // Trigger the onClose callback
+        }
+      },
+      { threshold: 0.1 } // Trigger when at least 10% of the element is visible
+    );
+
+    if (referenceElement.current) {
+      observer.observe(referenceElement.current);
+    }
+
+    return () => {
+      if (referenceElement.current) {
+        observer.unobserve(referenceElement.current);
+      }
+    };
+  }, [onClose]);
 
   const handleClick = (event) => {
     // Prevent closing when clicking inside the popperElement
@@ -120,10 +145,18 @@ export default function ClickedFlyout({
             top: y ?? '',
             left: x ?? '',
           }}
-          className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width}`}
+          className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width} ${height}`}
         >
           {content(handleSubmit)} {/* Pass handleSubmit to the content */}
-          <div ref={arrowElement} className="arrow" />
+          <div 
+            ref={arrowElement} 
+            className="arrow" 
+            style={{
+              position: 'absolute',
+              left: middlewareData.arrow?.x,
+              top: middlewareData.arrow?.y,
+            }}
+          />
         </div>
       )}
     </div>

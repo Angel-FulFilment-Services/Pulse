@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { format, differenceInMinutes } from 'date-fns';
 import { BellIcon, ChatBubbleOvalLeftIcon, CheckIcon, FlagIcon } from '@heroicons/react/20/solid';
-import SimpleList from '../Lists/SimpleList';
-import { getStatus } from '../../Utils/Rota';
 import { sendSMS } from '../../Utils/SMS';
 import ClickedFlyout from '../Flyouts/ClickedFlyout';
 import { validateRequired, validateIsLength, validateAscii } from '../../Utils/Validation';

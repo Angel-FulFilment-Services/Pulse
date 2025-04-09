@@ -3,7 +3,7 @@ import SelectInput from '../Forms/SelectInput';
 import DateInput from '../Forms/DateInput';
 import TextAreaInput from '../Forms/TextAreaInput';
 import TimeInput from '../Forms/TimeInput'; // Import the new TimeInput component
-import { validateRequired, validateIsAlpha } from '../../Utils/Validation';
+import { validateRequired, validateMatches } from '../../Utils/Validation';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import { toast } from 'react-toastify';
 
@@ -95,9 +95,9 @@ export default function FlagShift({ selectedShift, onCancel }) {
     ],
     notes: [
       (value) =>
-        validateIsAlpha(value, {
-          customMessage: 'Notes must contain only valid characters.',
-          condition: () => value.trim() !== '',
+        validateMatches(value, /^[a-zA-Z0-9\s.,'"\-()!?;:@#&%]*$/, null, {
+          customMessage: 'Notes must contain only valid characters (letters, numbers, and common symbols).',
+          condition: () => value.trim() !== '', // Only validate if the field is not empty
         }),
     ],
   };

@@ -88,7 +88,7 @@ export default function ListView({ setView, viewType }) {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col pb-16 sm:pb-0">
       <header className="flex flex-none items-center justify-end border-b border-gray-200 gap-x-2 px-6 py-4">
         <MenuComponent
           currentView={viewType.charAt(0).toUpperCase() + viewType.slice(1)}
@@ -122,7 +122,7 @@ export default function ListView({ setView, viewType }) {
                             {/* Sub-Rows */}
                             {Array.from({ length: 5 }).map((_, subRowIndex) => (
                               <tr key={`subrow-${headerIndex}-${subRowIndex}`}>
-                                <td className="relative py-2 pr-6 w-1/3">
+                                <td className="relative py-2 pr-6 w-4/5 sm:w-1/3">
                                   <UserItemFull isLoading={true} />
                                 </td>
                                 <td className="hidden py-4 sm:table-cell pr-6">
@@ -175,7 +175,7 @@ export default function ListView({ setView, viewType }) {
                                           key={shift.id} // Apply fade-in class dynamically
                                           className={`${isLoaded ? 'fade-in' : ''}`}
                                         >
-                                          <td className="relative py-2 pr-6 w-1/3">
+                                          <td className="relative py-2 pr-6 w-4/5 sm:w-1/3">
                                             <UserItemFull
                                               agent={{
                                                 hr_id: shift.hr_id,

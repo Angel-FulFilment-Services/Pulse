@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const useFetchEvents = (startDate, endDate) => {
+const useFetchEvents = (startDate, endDate, hrId = null) => {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
@@ -16,7 +16,7 @@ const useFetchEvents = (startDate, endDate) => {
       }, 3000);
 
       const response = await axios.get('/rota/events', {
-        params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate },
+        params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate, hr_id: hrId },
         signal: controller.signal, // Attach the AbortController signal
       });
 

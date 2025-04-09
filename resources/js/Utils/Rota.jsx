@@ -11,15 +11,15 @@ export function getStatus(shift, timesheets, events) {
     flagged: 'text-blue-700 bg-blue-50 ring-blue-600/20',
   };
 
-  if(shift.unallocated) {
-    return { status: 'Surplus', color: statuses.flagged };
-  }
-
   const shiftStartDate = new Date(shift.shiftdate);
   shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
 
   const shiftEndDate = new Date(shift.shiftdate);
   shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
+
+  if(shift.unallocated) {
+    return { status: 'Surplus', color: statuses.flagged, due: shiftStartDate, end: shiftEndDate };
+  }
 
   const now = new Date();
 
@@ -33,6 +33,8 @@ export function getStatus(shift, timesheets, events) {
       return {
         status: latestEvent.category, // Use the event type as the status
         color: statuses[latestEvent.category.toLowerCase()] || statuses.flagged, // Map to a color or default to flagged
+        due: shiftStartDate,
+        end: shiftEndDate
       };
     }
   }
@@ -51,6 +53,8 @@ export function getStatus(shift, timesheets, events) {
     return {
       status: isSameDay(shiftStartDate, now) ? dueInMessage : 'Upcoming',
       color: statuses.upcoming,
+      due: shiftStartDate,
+      end: shiftEndDate
     };
   }
 
@@ -69,24 +73,24 @@ export function getStatus(shift, timesheets, events) {
     .sort((a, b) => new Date(a.on_time) - new Date(b.on_time))[0];
 
   if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) > 60) {
-    return { status: 'Absent', color: statuses.absent };
+    return { status: 'Absent', color: statuses.absent, due: shiftStartDate, end: shiftEndDate };
   }
 
   if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) <= 60) {
-    return { status: 'Late', color: statuses.late };
+    return { status: 'Late', color: statuses.late, due: shiftStartDate, end: shiftEndDate };
   }
 
   const onTime = new Date(earliestTimesheet.on_time);
 
   if (onTime <= shiftStartDate) {
-    return { status: 'Attended', color: statuses.attended };
+    return { status: 'Attended', color: statuses.attended, due: shiftStartDate, end: shiftEndDate };
   }
 
   if (earliestTimesheet) {
-    return { status: 'Late', color: statuses.late };
+    return { status: 'Late', color: statuses.late, due: shiftStartDate, end: shiftEndDate };
   }
 
-  return { status: 'Absent', color: statuses.absent };
+  return { status: 'Absent', color: statuses.absent, due: shiftStartDate, end: shiftEndDate };
 }
 
 export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift.shiftstart}-${shift.shiftend}`, timesheets = {}, userStates = {}) {

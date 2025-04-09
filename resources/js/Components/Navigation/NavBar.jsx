@@ -143,7 +143,7 @@ export default function NavBar({ page }) {
         </div>
         
         {/* Collapsed Topbar Component */}
-        <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
+        <div className="relative w-full top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
           <button type="button" className="-m-2.5 p-2.5 text-gray-700 lg:hidden" onClick={() => setSidebarOpen(true)}>
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
@@ -159,7 +159,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 h-screen">
+        <main className="lg:pl-72 bg-gray-50 h-screen overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

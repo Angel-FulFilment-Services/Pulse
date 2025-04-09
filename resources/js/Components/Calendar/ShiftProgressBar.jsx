@@ -120,7 +120,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, isLoading = false }) => {
   
           const offsetMinutes = differenceInMinutes(start, shiftStartDate);
           const offsetPercentage = (offsetMinutes / totalShiftMinutes) * 100;
-  
+
           return {
             category: record.category,
             color: categories["time block"][record.category],
@@ -251,7 +251,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, isLoading = false }) => {
               style={{ width: block.width, left: block.left }}
               className={`h-5 ${index === 0 ? 'rounded-l-xl' : 'rounded-l'} ${
                 index === timeBlocks.length - 1 ? 'rounded-r-xl' : 'rounded-r'
-              } ${block.color} cursor-pointer absolute overflow-visible z-0 hover:z-50`}
+              } ${block.color} cursor-pointer absolute overflow-visible z-0 hover:z-40`}
               content={
                 <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
                     <div className="relative flex gap-x-2 justify-start items-center rounded-lg w-full h-full pb-1">

@@ -1,9 +1,11 @@
 import { UserIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
 import { useUserStates } from '../Context/ActiveStateContext';
+import ClickedFlyout from '../Flyouts/ClickedFlyout';
 import React, { memo, useMemo } from 'react';
+import UserFlyoutLayout from './UserFlyoutLayout';
 
-const UserItem = ({ userId, size = 'large' }) => {
+const UserItem = ({ userId, size = 'large', agent }) => {
   const sizeClasses = {
     "icon": {
       'extra-small': 'h-6 w-6',
@@ -49,12 +51,22 @@ const UserItem = ({ userId, size = 'large' }) => {
 
   return (
     <>
-      <span className={`relative flex flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass} group`}>
-        <div
-          className={`group-hover:flex hidden z-10 absolute top-0 left-0 inset-0 items-center justify-center bg-gray-200 bg-opacity-35 rounded-full group-hover:cursor-pointer transition-all ease-in-out`}
+      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass}`}>
+        <ClickedFlyout
+            height="h-min"
+            width="w-min-full"
+            placement="right"
+            className={`w-full h-full justify-center items-center flex absolute rounded-full z-50`}
+            onClose={() => null} // Clear the message when the flyout closes
+            content={(handleSubmit) => <UserFlyoutLayout hrId={userId} />}
         >
-          <ArrowsPointingOutIcon className="w-5 h-5 text-gray-800" />
-        </div>
+          <div
+            className={`flex z-20 absolute top-0 left-0 inset-0 items-center justify-center bg-none hover:bg-gray-800 hover:bg-opacity-50 rounded-full cursor-pointer transition-all ease-in-out group`}
+          >
+            <ArrowsPointingOutIcon className="w-5 h-5 text-gray-100 group-hover:block hidden" />
+          </div>
+        </ClickedFlyout>
+
         {profilePhoto ? (
           <img
             src={`/images/profile/${profilePhoto}`}
@@ -64,7 +76,7 @@ const UserItem = ({ userId, size = 'large' }) => {
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300`} aria-hidden="true" />
         )}
-        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-20">
+        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-50">
           <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
         </span>
       </span>
