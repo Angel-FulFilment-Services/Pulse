@@ -12,7 +12,7 @@ const SkeletonLoader = ({ className }) => (
     <div className={`animate-pulse bg-gray-100 ${className}`} />
 );
   
-const ShiftProgressBar = ({ shift, timesheets, events, calls, isLoading = false }) => {
+const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = false }) => {
     if (isLoading) {
         // Render skeleton loader when loading
         return (
@@ -84,6 +84,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, isLoading = false 
   
       let totalActualMinutes = 0;
       let totalLoggedOnSeconds = 0;
+      let totalAdditionalSeconds = 0;
   
       // Calculate total reduction minutes
       const reductionMinutes = calculateReductionMinutes(events);
@@ -119,6 +120,10 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, isLoading = false 
 
             if(record.category === 'PBX Import') {
               totalLoggedOnSeconds += differenceInSeconds(offTime, onTime);
+            }
+
+            if(["HR Meetings", "Warehouse", "Training", "Other"].includes(record.category)) {
+              totalAdditionalSeconds += differenceInSeconds(offTime, onTime);
             }
           }
   
@@ -179,10 +184,10 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, isLoading = false 
         }
       }
   
-      return { blocks, totalActualMinutes, totalLoggedOnSeconds, earliestOnTime, reductionMinutes };
+      return { blocks, totalActualMinutes, totalLoggedOnSeconds, totalAdditionalSeconds, earliestOnTime, reductionMinutes };
     };
   
-  const { blocks: timeBlocks, totalActualMinutes, totalLoggedOnSeconds, earliestOnTime, reductionMinutes } = calculateTimeBlocks(shift, timesheets, events);
+  const { blocks: timeBlocks, totalActualMinutes, totalLoggedOnSeconds, totalAdditionalSeconds, earliestOnTime, reductionMinutes } = calculateTimeBlocks(shift, timesheets, events);
 
   const shiftStartDate = new Date(shift.shiftdate);
   shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
@@ -239,7 +244,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, isLoading = false 
     );
   }).reduce((total, call) => total + Number(call.time || 0), 0);
 
-  const utilisationPercentage = totalLoggedOnSeconds ? Math.round((totalCallTime / totalLoggedOnSeconds) * 100) : 0;
+  const utilisationPercentage = totalLoggedOnSeconds ? Math.round(((totalCallTime + (rank ? totalAdditionalSeconds : 0)) / totalLoggedOnSeconds) * 100) : 0;
 
   const targets = useUtilisationTargets();
   const colour = utilisationPercentage > targets?.utilisation

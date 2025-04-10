@@ -173,6 +173,7 @@ export default function ListView({ setView, viewType }) {
                                       const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == shift.hr_id);
                                       const relevantEvents = events.filter((event) => event.hr_id == shift.hr_id);
                                       const relevantCalls = calls.filter((event) => event.hr_id == shift.hr_id);
+                                      const rank = userStates[shift.hr_id]?.rank || null;
 
                                       cumulativeIndex++; // Increment the cumulative index for each shift
                                       return (
@@ -198,6 +199,7 @@ export default function ListView({ setView, viewType }) {
                                               timesheets={relevantTimesheets}
                                               events={relevantEvents}
                                               calls={relevantCalls}
+                                              rank={rank}
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>

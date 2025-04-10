@@ -112,7 +112,6 @@ class RotaController extends Controller
         $calls = DB::connection("apex_data")
         ->table("apex_data")
         ->whereBetween('date', [$startDate, $endDate])
-        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out'])
         ->where(function($query){
             $query->where('apex_data.answered','=','1');
             $query->orWhere('apex_data.type','<>','Queue');
@@ -122,6 +121,17 @@ class RotaController extends Controller
         })
         ->select('apex_data.hr_id', 'apex_data.date_time', DB::raw('apex_data.ring_time + apex_data.calltime as time'))
         ->get();
+
+        $callMonitoring = DB::table('call_monitoring.cm_log')
+        ->leftJoin('wings_data.hr_details', 'cm_log.user_id', '=', 'hr_details.user_id')
+        ->whereBetween('started_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_details.hr_id', $hrId);
+        })
+        ->select('hr_details.hr_id', 'cm_log.started_at as date_time', DB::raw('TIMESTAMPDIFF(SECOND, cm_log.started_at, cm_log.ended_at) as time'))
+        ->get();
+
+        $calls = isset($callMonitoring) ? $calls->merge($callMonitoring) : $calls;
 
         return response()->json($calls);
     }
