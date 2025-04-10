@@ -240,7 +240,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
 
     // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
     return (
-      (time >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && time <= shiftEndDate)
+      (time >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && time <= shiftEndDate) && ( record.ddi != '6111' || rank )
     );
   }).reduce((total, call) => total + Number(call.time || 0), 0);
 
