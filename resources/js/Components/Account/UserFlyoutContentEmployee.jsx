@@ -17,7 +17,7 @@ export default function UserFlyoutContentEmployee({ hrId }) {
     <div className="px-4 py-3 h-full flex flex-col justify-start items-start divide-y divide-gray-200">
       <div className="flex flex-col gap-y-1 pb-2 justify-between w-full">
         <h3 className="text-base font-semibold text-gray-900">Employee Information</h3>
-        <p className="max-w-2xl text-sm text-gray-500">Basic employee Information and contact details.</p>
+        <p className="max-w-2xl text-sm text-gray-500">Basic employee information and contact details.</p>
       </div>
       <div className="w-full h-full pt-2 pb-2 flex flex-col gap-y-4 justify-between items-start">
           <div className="w-full h-full grid grid-cols-3 space-4 space-y-2 justify-between items-center">
@@ -60,7 +60,7 @@ export default function UserFlyoutContentEmployee({ hrId }) {
       </div>
       <div className="flex flex-col gap-y-1 py-2 justify-between w-full">
         <h3 className="text-base font-semibold text-gray-900">Next of Kin</h3>
-        <p className="max-w-2xl text-sm text-gray-500">Next of Kin Information and contact details.</p>
+        <p className="max-w-2xl text-sm text-gray-500">Next of Kin information and contact details.</p>
       </div>
       <div className="w-full h-full pt-2 pb-2 flex flex-col gap-y-4 justify-between items-start">
           <div className="w-full h-full grid grid-cols-3 space-4 space-y-3 justify-between items-center">

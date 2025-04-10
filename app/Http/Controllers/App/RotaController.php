@@ -104,6 +104,28 @@ class RotaController extends Controller
         return response()->json($events);
     }
 
+    public function calls(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
+
+        $calls = DB::connection("apex_data")
+        ->table("apex_data")
+        ->whereBetween('date', [$startDate, $endDate])
+        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out'])
+        ->where(function($query){
+            $query->where('apex_data.answered','=','1');
+            $query->orWhere('apex_data.type','<>','Queue');
+        })
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_id', $hrId);
+        })
+        ->select('apex_data.hr_id', 'apex_data.date_time', DB::raw('apex_data.ring_time + apex_data.calltime as time'))
+        ->get();
+
+        return response()->json($calls);
+    }
+
     public function saveEvent(Request $request)
     {
     // Define validation rules

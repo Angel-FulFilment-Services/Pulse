@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState, useMemo, useRef } from 'react';
 import useFetchShifts from './useFetchShifts';
 import useFetchTimesheets from './useFetchTimesheets';
 import useFetchEvents from './useFetchEvents';
+import useFetchCalls from './useFetchCalls';
 import MenuComponent from './MenuComponent';
 import UserItemFull from '../Account/UserItemFull';
 import ShiftProgressBar from './ShiftProgressBar';
@@ -11,6 +12,7 @@ import { format, startOfDay, endOfDay, subDays, addDays, set } from 'date-fns';
 import { groupShifts } from '../../Utils/Rota';
 import ShiftView from './ShiftView';
 import { useUserStates } from '../Context/ActiveStateContext';
+import { UtilisationTargetsProvider } from '../Context/UtilisationTargetsContext.jsx';
 
 export default function ListView({ setView, viewType }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -26,6 +28,7 @@ export default function ListView({ setView, viewType }) {
   const { shifts, isLoading } = useFetchShifts(startDate, endDate);
   const { timesheets } = useFetchTimesheets(startDate, endDate);
   const { events } = useFetchEvents(startDate, endDate);
+  const { calls } = useFetchCalls(startDate, endDate);
 
   const userStates = useUserStates();
   const groupedShifts = useMemo(() => {
@@ -88,7 +91,8 @@ export default function ListView({ setView, viewType }) {
   };
 
   return (
-    <div className="flex h-full flex-col pb-16 sm:pb-0">
+    <UtilisationTargetsProvider>
+      <div className="flex h-full flex-col pb-16 sm:pb-0">
       <header className="flex flex-none items-center justify-end border-b border-gray-200 gap-x-2 px-6 py-4">
         <MenuComponent
           currentView={viewType.charAt(0).toUpperCase() + viewType.slice(1)}
@@ -168,6 +172,7 @@ export default function ListView({ setView, viewType }) {
                                       const isLoaded = cumulativeIndex < loadedItems;
                                       const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == shift.hr_id);
                                       const relevantEvents = events.filter((event) => event.hr_id == shift.hr_id);
+                                      const relevantCalls = calls.filter((event) => event.hr_id == shift.hr_id);
 
                                       cumulativeIndex++; // Increment the cumulative index for each shift
                                       return (
@@ -187,11 +192,12 @@ export default function ListView({ setView, viewType }) {
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
-                                          <td className="hidden py-4 sm:table-cell pr-6">
+                                          <td className="hidden py-2 sm:table-cell pr-6">
                                             <ShiftProgressBar
                                               shift={shift}
                                               timesheets={relevantTimesheets}
                                               events={relevantEvents}
+                                              calls={relevantCalls}
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
@@ -270,6 +276,7 @@ export default function ListView({ setView, viewType }) {
           selectedShift={selectedShift}
         />
       </DrawerOverlay>
-    </div>
+      </div>
+    </UtilisationTargetsProvider>
   );
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\ResetController;
 // App
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\RotaController;
+use App\Http\Controllers\App\ReportingController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -73,8 +74,16 @@ Route::get('/rota/administration', [RotaController::class, 'index'])->middleware
 Route::get('/rota/shifts', [RotaController::class, 'shifts']);
 Route::get('/rota/timesheets', [RotaController::class, 'timesheets']);
 Route::get('/rota/events', [RotaController::class, 'events']);
+Route::get('/rota/calls', [RotaController::class, 'calls']);
 Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
 Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
+
+/*
+|-----------------------
+| Reporting
+|-----------------------
+*/
+Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->middleware(['auth']);
 
 /*
 |-----------------------

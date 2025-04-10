@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useFetchShifts from '../Calendar/useFetchShifts';
 import useFetchTimesheets from '../Calendar/useFetchTimesheets';
 import useFetchEvents from '../Calendar/useFetchEvents';
+import useFetchCalls from '../Calendar/useFetchCalls';
 import { format, startOfDay, endOfDay, subDays, differenceInMinutes } from 'date-fns';
 import ShiftProgressBar from '../Calendar/ShiftProgressBar';
 import DateInput from '../Forms/DateInput.jsx';
@@ -15,6 +16,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
   const { shifts, isLoading } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
   const { events } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
+  const { calls } = useFetchCalls(dateRange.startDate, dateRange.endDate, hrId);
 
   useEffect(() => {
     if (shifts.length > 0 && timesheets.length) {
@@ -119,6 +121,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
                           shift={shift}
                           timesheets={timesheets}
                           events={events}
+                          calls={calls}
                           isLoading={isTransitioning}
                         />
                       </div>
@@ -128,12 +131,12 @@ export default function UserFlyoutContentShifts({ hrId }) {
               );
             })}
       </div>
-      <div className="mx-auto pt-2 flex flex-row w-full justify-between">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white w-1/3">
+      <div className="mx-auto pt-2 grid grid-cols-5 w-full justify-between">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white w-full">
           <div className="text-sm font-medium leading-6 text-gray-600">Hours Scheduled</div>
           <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
             { isTransitioning ? 
-              <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-48"></div>
+              <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
             :
               <span>
                 {Math.floor(totalShiftMinutes / 60) > 0 && `${Math.floor(totalShiftMinutes / 60)} hours`}
@@ -143,12 +146,12 @@ export default function UserFlyoutContentShifts({ hrId }) {
             }
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-1/3">
+        <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-0 bg-white w-full">
           <div className="flex flex-col justify-center items-start">
             <div className="text-sm font-medium leading-6 text-gray-600">Hours Worked</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-48"></div>
+                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
                   {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
@@ -159,12 +162,46 @@ export default function UserFlyoutContentShifts({ hrId }) {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white w-1/3">
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
+          <div className="flex flex-col justify-center items-start">
+            <div className="text-sm font-medium leading-6 text-gray-600">Potential Earnings</div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
+              { isTransitioning ? 
+                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+              :
+                <span>
+                  {Math.floor(totalShiftMinutes / 60) > 0 &&
+                  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+                    Math.floor(totalShiftMinutes / 60) * 12.21
+                  )}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
+          <div className="flex flex-col justify-center items-start">
+            <div className="text-sm font-medium leading-6 text-gray-600">Actual Earnings</div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
+              { isTransitioning ? 
+                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+              :
+                <span>
+                  {Math.floor(totalActualMinutes / 60) > 0 &&
+                  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+                    Math.floor(totalActualMinutes / 60) * 12.21
+                  )}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white w-full">
           <div className="flex flex-col justify-center items-center">
             <div className="text-sm font-medium leading-6 text-gray-600">Percentage Worked</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-12"></div>
+                <div className="bg-gray-100 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
                 :
                 `${workedPercentage}%`
               }
