@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useFloating, offset, arrow, autoUpdate, computePosition, flip, shift } from '@floating-ui/react-dom';
+import {FloatingOverlay} from '@floating-ui/react';
 import './PopoverFlyoutStyles.css';
 
 export default function ClickedFlyout({
   placement = 'top',
   width = 'auto',
   height = 'auto',
+  overlay = false,
   className = '',
   style = {},
   children,
@@ -138,26 +140,60 @@ export default function ClickedFlyout({
 
       {/* Popover Content */}
       {isOpen && (
-        <div
-          ref={popperElement}
-          style={{
-            position: strategy,
-            top: y ?? '',
-            left: x ?? '',
-          }}
-          className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width} ${height}`}
-        >
-          {content(handleSubmit)} {/* Pass handleSubmit to the content */}
-          <div 
-            ref={arrowElement} 
-            className="arrow" 
-            style={{
-              position: 'absolute',
-              left: middlewareData.arrow?.x,
-              top: middlewareData.arrow?.y,
-            }}
-          />
-        </div>
+        <>
+          {overlay ? (
+            <FloatingOverlay
+              style={{
+                zIndex: 999,
+                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <div
+                ref={popperElement}
+                style={{
+                  position: strategy,
+                  top: y ?? '',
+                  left: x ?? '',
+                  zIndex: 1000,
+                }}
+                className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width} ${height}`}
+              >
+                {content(handleSubmit)} {/* Pass handleSubmit to the content */}
+                <div 
+                  ref={arrowElement} 
+                  className="arrow" 
+                  style={{
+                    position: 'absolute',
+                    left: middlewareData.arrow?.x,
+                    top: middlewareData.arrow?.y,
+                  }}
+                />
+              </div>
+            </FloatingOverlay>
+          ) : (
+            <div
+              ref={popperElement}
+              style={{
+                position: strategy,
+                top: y ?? '',
+                left: x ?? '',
+                zIndex: 1000,
+              }}
+              className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width} ${height}`}
+            >
+              {content(handleSubmit)} {/* Pass handleSubmit to the content */}
+              <div 
+                ref={arrowElement} 
+                className="arrow" 
+                style={{
+                  position: 'absolute',
+                  left: middlewareData.arrow?.x,
+                  top: middlewareData.arrow?.y,
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

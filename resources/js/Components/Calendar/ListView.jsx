@@ -129,7 +129,7 @@ export default function ListView({ setView, viewType }) {
                                 <td className="relative py-2 pr-6 w-4/5 sm:w-1/3">
                                   <UserItemFull isLoading={true} />
                                 </td>
-                                <td className="hidden py-4 sm:table-cell pr-6">
+                                <td className="hidden py-2 sm:table-cell pr-6">
                                   <ShiftProgressBar isLoading={true} />
                                 </td>
                                 <td className="py-2 text-right w-20">

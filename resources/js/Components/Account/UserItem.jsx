@@ -56,7 +56,8 @@ const UserItem = ({ userId, size = 'large', agent }) => {
             height="h-min"
             width="w-min-full"
             placement="right"
-            className={`w-full h-full justify-center items-center flex absolute rounded-full z-50`}
+            overlay={true}
+            className={`w-full h-full justify-center items-center flex absolute rounded-full`}
             onClose={() => null} // Clear the message when the flyout closes
             content={(handleSubmit) => <UserFlyoutLayout hrId={userId} />}
         >

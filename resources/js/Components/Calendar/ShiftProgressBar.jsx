@@ -16,18 +16,23 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
     if (isLoading) {
         // Render skeleton loader when loading
         return (
-            <div className="flex flex-col gap-y-1 w-full items-end justify-end">
-            <div className="flex items-end justify-between pt-0 w-full">
-                <div className="flex flex-row md:flex-col xl:flex-row w-full">
-                <SkeletonLoader className="h-4 w-1/3 rounded-lg" />
+            <div className="flex flex-row items-center justify-center gap-x-4">
+              <div className="flex flex-col gap-y-1 w-full items-end justify-end">
+                <div className="flex items-end justify-between pt-0 w-full">
+                    <div className="flex flex-row md:flex-col xl:flex-row w-full">
+                    <SkeletonLoader className="h-4 w-1/3 rounded-lg" />
+                    </div>
+                    <div className="flex flex-row gap-x-1 w-full justify-end">
+                    <SkeletonLoader className="h-4 w-8/12 rounded-lg" />
+                    </div>
                 </div>
-                <div className="flex flex-row gap-x-1 w-full justify-end">
-                <SkeletonLoader className="h-4 w-8/12 rounded-lg" />
+                <div className="w-full h-5 rounded-full flex flex-row items-center">
+                    <SkeletonLoader className="h-5 w-full rounded-full" />
                 </div>
-            </div>
-            <div className="w-full h-5 rounded-full flex flex-row items-center">
-                <SkeletonLoader className="h-5 w-full rounded-full" />
-            </div>
+              </div>
+              <div className="rounded-full">
+                    <SkeletonLoader className="h-12 w-12 rounded-full" />
+                </div>
             </div>
         );
     }
@@ -281,6 +286,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
         display: false, // Disable legend
       },
     },
+    animation: utilisationPercentage ? true : false,
     events: [],
     maintainAspectRatio: false, // Allow resizing
     responsive: true,

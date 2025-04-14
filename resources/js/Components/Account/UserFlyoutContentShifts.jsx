@@ -83,7 +83,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
         {isTransitioning
           ? Array.from({ length: 5 }).map((_, subRowIndex) => (
               <ul className="flex flex-col pb-2" key={subRowIndex}>
-                <li className="py-2">
+                <li className="py-1">
                   <div className="flex flex-row w-full justify-between">
                     <div className="flex flex-col w-1/4 gap-y-1 justify-center">
                       <div className="bg-gray-100 animate-pulse rounded-full w-20 h-4"></div>
@@ -105,7 +105,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
 
               return (
                 <ul className="flex flex-col pb-2" key={shift.id}>
-                  <li className="py-2">
+                  <li className="py-1">
                     <div className="flex flex-row w-full justify-between">
                       <div className="flex flex-col w-1/4 justify-center">
                         <h4 className="font-medium text-xs text-gray-700">

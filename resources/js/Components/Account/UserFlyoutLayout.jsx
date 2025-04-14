@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { CalendarIcon, ChartBarIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
+import { CalendarIcon, CalendarDaysIcon, ChartBarIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
+import UserFlyoutContentEvents from './UserFlyoutContentEvents';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -9,9 +10,10 @@ function classNames(...classes) {
 
 const tabs = [
     { id: 'shifts', name: 'Shifts', icon: CalendarIcon, current: true },
+    { id: 'events', name: 'Events', icon: CalendarDaysIcon, current: false },
     // { id: 'performance', name: 'Performance', icon: ChartBarIcon, current: false },
-    { id: 'employee', name: 'Employee', icon: UserIcon, current: false },
     // { id: 'meetings', name: 'Meetings', icon: UsersIcon, current: false },
+    { id: 'employee', name: 'Employee', icon: UserIcon, current: false },
 ]
 
 export default function UserFlyoutLayout({hrId}) {
@@ -29,6 +31,8 @@ export default function UserFlyoutLayout({hrId}) {
         return <div className="p-4">Performance content goes here.</div>;
       case 'employee':
         return <UserFlyoutContentEmployee hrId={hrId} />;
+      case 'events':
+        return <UserFlyoutContentEvents hrId={hrId} />;
       case 'meetings':
         return <div className="p-4">Meetings content goes here.</div>;
       default:
@@ -37,7 +41,7 @@ export default function UserFlyoutLayout({hrId}) {
   };
 
   return (
-    <div className="w-full min-h-96 mx-auto flex flex-col justify-between divide-gray-300 cursor-auto">
+    <div className="xl:min-w-[55rem] 2xl:min-w-[70rem] min-h-96 flex flex-col justify-between divide-gray-300 cursor-auto">
       <div className="">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (
@@ -47,8 +51,8 @@ export default function UserFlyoutLayout({hrId}) {
               className={classNames(
                 activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
                 tabIdx === 0 ? 'rounded-tl-lg' : '',
-                tabIdx === 4 ? 'rounded-tr-lg' : '',
-                'group relative min-w-0 flex-1 overflow-hidden bg-gray-50 py-3 px-4 text-center text-sm font-medium cursor-pointer hover:bg-gray-100 focus:z-10 w-[30rem]'
+                tabIdx === 2 ? 'rounded-tr-lg' : '',
+                'group relative min-w-0 flex-1 overflow-hidden bg-gray-50 py-3 px-4 text-center text-sm font-medium cursor-pointer hover:bg-gray-100 focus:z-10 w-full'
               )}
               aria-current={activeTab === tab.id ? 'page' : undefined}
             >
