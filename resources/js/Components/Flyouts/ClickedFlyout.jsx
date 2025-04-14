@@ -145,8 +145,11 @@ export default function ClickedFlyout({
             <FloatingOverlay
               style={{
                 zIndex: 999,
-                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                webkitTransform: "translate3d(0, 0, 0)",
+                transform: "translate3d(0, 0, 0)",
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
               }}
+              className="bg-red-600"
             >
               <div
                 ref={popperElement}
@@ -154,7 +157,6 @@ export default function ClickedFlyout({
                   position: strategy,
                   top: y ?? '',
                   left: x ?? '',
-                  zIndex: 1000,
                 }}
                 className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width} ${height}`}
               >
