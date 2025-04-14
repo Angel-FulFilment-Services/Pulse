@@ -6,10 +6,6 @@ import CycleControl from '../Controls/CycleControl';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { getOrdinalSuffix } from '../../Utils/Date';
 
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ');
-}
-
 export default function MenuComponent({ currentView, setView, handleNextTimeframe, handlePreviousTimeframe, currentDate }) {
   const [views, setViews] = useState([
     { id: 'day', value: 'Day', displayValue: 'Day view' },

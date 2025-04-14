@@ -93,7 +93,7 @@ export function getStatus(shift, timesheets, events) {
   return { status: 'Absent', color: statuses.absent, due: shiftStartDate, end: shiftEndDate };
 }
 
-export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift.shiftstart}-${shift.shiftend}`, timesheets = {}, userStates = {}) {
+export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift.shiftstart}-${shift.shiftend}`, timesheets = {}, events = {}, userStates = {}, filters = {}) {
   const grouped = {};
 
   // Sort shifts by shiftstart
@@ -197,6 +197,40 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
           grouped[date]['unallocated'] = [];
         }
         grouped[date]['unallocated'] = unallocated;
+      }
+    });
+  }
+
+  if (filters && filters.length > 0) {
+    Object.keys(grouped).forEach((date) => {
+      const shiftsByTime = grouped[date];
+      Object.keys(shiftsByTime).forEach((key) => {
+        shiftsByTime[key] = shiftsByTime[key].filter((shift) => {
+          return filters.every((filter) => {
+            // Get the checked filter options
+            const activeOptions = filter.options.filter((option) => option.checked);
+  
+            // If no options are checked, skip this filter
+            if (activeOptions.length === 0) return true;
+  
+            // Evaluate the filter's expression for each active option
+            return activeOptions.some((option) =>
+              filter.expression(shift, userStates, timesheets, events)(option.value)
+            );
+          });
+        });
+      });
+
+      // Remove time groups with zero-length shifts
+      Object.keys(shiftsByTime).forEach((key) => {
+        if (shiftsByTime[key].length === 0) {
+          delete shiftsByTime[key];
+        }
+      });
+
+      // Remove the date group if it has no time groups left
+      if (Object.keys(shiftsByTime).length === 0) {
+        delete grouped[date];
       }
     });
   }
