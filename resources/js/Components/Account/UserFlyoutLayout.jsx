@@ -41,7 +41,7 @@ export default function UserFlyoutLayout({hrId}) {
   };
 
   return (
-    <div className="xl:min-w-[55rem] 2xl:min-w-[70rem] min-h-96 flex flex-col justify-between divide-gray-300 cursor-auto">
+    <div className="xl:min-w-[55rem] 2xl:min-w-[70rem] max-w-[70rem] min-h-96 flex flex-col justify-between divide-gray-300 cursor-auto">
       <div className="">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (
