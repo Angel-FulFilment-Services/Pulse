@@ -15,33 +15,39 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   });
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && referenceElement.current && popperElement.current) {
       const cleanup = autoUpdate(referenceElement.current, popperElement.current, () => {
+        if (!popperElement.current) return;
         computePosition(referenceElement.current, popperElement.current, {
           placement: placement,
-          middleware: [offset(5), flip(), arrow({ element: arrowElement.current }), shift({padding: 5})],
-        }).then(({x, y, placement, middlewareData}) => {
+          middleware: [offset(5), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
+        }).then(({ x, y, placement, middlewareData }) => {
+          if (!popperElement.current) return;
+
           Object.assign(popperElement.current.style, {
             left: `${x}px`,
             top: `${y}px`,
+            visibility: 'visible',
           });
-
-          const {x: arrowX, y: arrowY} = middlewareData.arrow;
- 
+  
+          const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+  
           const staticSide = {
             top: 'bottom',
             right: 'left',
             bottom: 'top',
             left: 'right',
           }[placement.split('-')[0]];
-         
-          Object.assign(arrowElement.current.style, {
-            left: arrowX != null ? `${arrowX}px` : '',
-            top: arrowY != null ? `${arrowY}px` : '',
-            right: '',
-            bottom: '',
-            [staticSide]: '-4px',
-          });
+  
+          if (arrowElement.current) {
+            Object.assign(arrowElement.current.style, {
+              left: arrowX != null ? `${arrowX}px` : '',
+              top: arrowY != null ? `${arrowY}px` : '',
+              right: '',
+              bottom: '',
+              [staticSide]: '-4px',
+            });
+          }
         });
       });
       
@@ -50,6 +56,41 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   }, [isOpen, update]);
 
   const handleMouseEnter = () => {
+    if (referenceElement.current && popperElement.current) {
+      // Precompute the position before opening
+      const { x, y, middlewareData, placement } = computePosition(referenceElement.current, popperElement.current, {
+        placement: placement,
+        middleware: [offset(5), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
+      });
+
+      // Apply the calculated position
+      Object.assign(popperElement.current.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+        position: strategy,
+        visibility: 'visible',
+      });
+
+      const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+      const staticSide = {
+        top: 'bottom',
+        right: 'left',
+        bottom: 'top',
+        left: 'right',
+      }[placement.split('-')[0]];
+
+      if (arrowElement.current) {
+        Object.assign(arrowElement.current.style, {
+          left: arrowX != null ? `${arrowX}px` : '',
+          top: arrowY != null ? `${arrowY}px` : '',
+          right: '',
+          bottom: '',
+          [staticSide]: '-4px',
+        });
+      }
+    }
+
+    // Open the popover after positioning
     setIsOpen(true);
   };
 
@@ -76,6 +117,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
             position: strategy,
             top: y ?? '',
             left: x ?? '',
+            zIndex: 9999,
           }}
           className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width}`}
         >
