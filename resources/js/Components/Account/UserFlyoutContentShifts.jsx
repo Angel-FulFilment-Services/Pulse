@@ -13,13 +13,13 @@ export default function UserFlyoutContentShifts({ hrId }) {
 
   const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
 
-  const { shifts, isLoading } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
-  const { timesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
-  const { events } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
-  const { calls } = useFetchCalls(dateRange.startDate, dateRange.endDate, hrId);
+  const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
+  const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
+  const { events, isLoading: isLoadingEvents, isLoaded: isLoadedEvents } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
+  const { calls, isLoading: isLoadingCalls, isLoaded: isLoadedCalls } = useFetchCalls(dateRange.startDate, dateRange.endDate, hrId);
 
   useEffect(() => {
-    if (shifts.length > 0 && timesheets.length) {
+    if (isLoadedShifts && isLoadedTimesheets) {
       setIsTransitioning(false);
     }
   }, [shifts, timesheets]);
@@ -79,7 +79,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate max-h-[25rem] overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
+      <div className={`w-full h-full min-h-96 pt-2 isolate max-h-[25rem] overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
         {isTransitioning
           ? Array.from({ length: 5 }).map((_, subRowIndex) => (
               <ul className="flex flex-col pb-2" key={subRowIndex}>

@@ -4,11 +4,13 @@ import axios from 'axios';
 const useFetchEvents = (startDate, endDate, hrId = null) => {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
   const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
 
   const fetchEvents = async (controller) => {
     let loadingTimeout;
+    setIsLoaded(false);
 
     try {
       loadingTimeout = setTimeout(() => {
@@ -23,9 +25,11 @@ const useFetchEvents = (startDate, endDate, hrId = null) => {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
       setEvents(response.data);
+      setIsLoaded(true);
     } catch (error) {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
+      setIsLoaded(false);
 
       // Ignore abort errors
       if (axios.isCancel(error)) {
@@ -85,7 +89,7 @@ const useFetchEvents = (startDate, endDate, hrId = null) => {
     };
   }, [startDate, endDate]); // Re-run when startDate or endDate changes
 
-  return { events, isLoading };
+  return { events, isLoading, isLoaded };
 };
 
 export default useFetchEvents;

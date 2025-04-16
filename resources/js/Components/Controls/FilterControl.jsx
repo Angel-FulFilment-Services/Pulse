@@ -2,12 +2,19 @@ import { Fragment, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Popover, Transition } from '@headlessui/react'
 import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import TextInput from '../../Components/Forms/TextInput';
 
 export default function FilterControl(props) {
+  let [ search, setSearch ] = useState('');
   const { onFilterChange, clearFilters, filters } = props;
   
   const handleFilterChange = (event) => {
     onFilterChange({ id: event.target.name, value: event.target.value, checked: event.target.checked });
+  };
+
+  const handleSearchChange = (event) => {
+    setSearch(event[0].value);
   };
 
   const activeFilters = filters
@@ -22,7 +29,7 @@ export default function FilterControl(props) {
   return (
     <div className="flex justify-end 2xl:justify-between w-full">
       <div className="2xl:w-full flex justify-start items-center ">
-        <h3 className="text-sm font-medium text-gray-500">
+        <h3 className="text-sm font-medium text-gray-500 pointer-events-none">
           Filters
         </h3>
 
@@ -45,6 +52,14 @@ export default function FilterControl(props) {
                 </button>
               </span>
             ))}
+            {activeFilters.length === 0 &&
+              (<span
+                key="filters"
+                className="items-center pl-2.5 pr-2 text-sm text-gray-400"
+              >
+                <span className="pointer-events-none">No filters active . . .</span>
+              </span>)
+            }
           </div>
           {
             activeFilters.length > 0 && (
@@ -86,10 +101,19 @@ export default function FilterControl(props) {
                 leave="transition ease-in duration-75"
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
+                afterLeave={() => setSearch('')}
               >
                 <Popover.Panel className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white p-4 shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none">
-                  <form className="space-y-4">
-                    {section.options.map((option, optionIdx) => (
+                  {section.options.length > 10 && (
+                    <>
+                      <div className="pb-2 -mx-1 border-b border-gray-300">
+                          <TextInput label={null} Icon={MagnifyingGlassIcon} autoComplete={false} onTextChange={handleSearchChange} placeholder="Search"/>
+                      </div>
+                      <div className="mt-4 w-full"></div>
+                    </>
+                  )}
+                  <form className="space-y-4 max-h-96 overflow-y-auto">
+                    {section.options.filter((option) => !search || option.label.toLowerCase().includes(search.toLowerCase())).map((option, optionIdx) => (
                       <div key={option.value} className="flex items-center">
                         <input
                           id={`filter-${section.id}-${optionIdx}`}
@@ -108,6 +132,11 @@ export default function FilterControl(props) {
                         </label>
                       </div>
                     ))}
+                    {section.options.filter((option) => !search || option.label.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                      <div className="flex items-center justify-center text-sm text-gray-600">
+                        <span>No results found . . .</span>
+                      </div>
+                    )}
                   </form>
                 </Popover.Panel>
               </Transition>

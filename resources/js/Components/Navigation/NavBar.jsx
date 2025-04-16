@@ -1,4 +1,5 @@
-import { React, Fragment, useState } from 'react'
+import { React, Fragment, useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react'
 import Logo from '../Branding/Logo.jsx';
 import NavItem from './NavItem.jsx';
@@ -17,20 +18,36 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
-let navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: window.location.pathname.startsWith('/dashboard') },
-  { name: 'My Details', href: '/my-details/entry/about-you', icon: UsersIcon, current: window.location.pathname.startsWith('/my-details') },
-  { name: 'Rota', href: '/rota', icon: CalendarIcon, current: window.location.pathname.startsWith('/rota') },
-//   { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
-  { name: 'Reports', href: '#', icon: ChartPieIcon, current: window.location.pathname.startsWith('/reports') },
-]
 const teams = [
-  { name: 'All Agents', href: '#', initial: 'A', current: false },
-  { name: 'Outbound Team', href: '#', initial: 'O', current: false },
+  // { name: 'All Agents', href: '#', initial: 'A', current: false },
+  // { name: 'Outbound Team', href: '#', initial: 'O', current: false },
 ]
 
 export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  const navigation = useMemo(() => [
+    // { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: window.location.pathname.startsWith('/dashboard') },
+    // { name: 'My Details', href: '/my-details/entry/about-you', icon: UsersIcon, current: window.location.pathname.startsWith('/my-details') },
+    { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.includes('rota') },
+    { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.includes('reporting') },
+    //   { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
+  ], [location.pathname]);
+
+  useEffect(() => {
+    const handleRouteChange = (event) => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    // Listen for Inertia route changes
+    router.on('navigate', handleRouteChange);
+
+    // return () => {
+    //   // Clean up the event listener
+    //   router.off('navigate', handleRouteChange);
+    // };
+  }, []);
 
   return (
     <>

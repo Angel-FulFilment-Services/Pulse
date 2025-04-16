@@ -26,10 +26,10 @@ export default function ListView({ setView, viewType }) {
   const startDate = format(startOfDay(currentDate), 'yyyy-MM-dd');
   const endDate = format(endOfDay(currentDate), 'yyyy-MM-dd');
 
-  const { shifts, isLoading } = useFetchShifts(startDate, endDate);
-  const { timesheets } = useFetchTimesheets(startDate, endDate);
-  const { events } = useFetchEvents(startDate, endDate);
-  const { calls } = useFetchCalls(startDate, endDate);
+  const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(startDate, endDate);
+  const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(startDate, endDate);
+  const { events, isLoading: isLoadingEvents, isLoaded: isLoadedEvents } = useFetchEvents(startDate, endDate);
+  const { calls, isLoading: isLoadingCalls, isLoaded: isLoadedCalls } = useFetchCalls(startDate, endDate);
 
   const [filters, setFilters] = useState(() => {
     const userStates = useUserStates();
@@ -77,30 +77,6 @@ export default function ListView({ setView, viewType }) {
     return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters);
   }, [shifts, timesheets, filters]);
   
-  const handleFilterChange = (filter) => {
-    const updatedFilters = filters.map((section) => {
-      if (section.id === filter.id) {
-        return {
-          ...section,
-          options: section.options.map((option) =>
-            option.value === filter.value ? { ...option, checked: filter.checked } : option
-          ),
-        };
-      }
-      return section;
-    });
-    // Update the filters state or perform any necessary actions with the updated filters
-    setFilters(updatedFilters);
-  }
-
-  const clearFilters = () => {
-    const updatedFilters = filters.map((section) => ({
-      ...section,
-      options: section.options.map((option) => ({ ...option, checked: false })),
-    }));
-    setFilters(updatedFilters);
-  };
-
   useEffect(() => {
     if (shifts.length) {
       setIsTransitioning(false);
@@ -109,7 +85,7 @@ export default function ListView({ setView, viewType }) {
   }, [shifts]);
   
   useEffect(() => {    
-    if (!isLoading && groupedShifts[startDate]) {
+    if (isLoadedShifts && isLoadedTimesheets && isLoadedEvents && groupedShifts[startDate]) {
       let frameId;
       const updateLoadedItems = () => {
         setLoadedItems((prev) => {
@@ -124,7 +100,7 @@ export default function ListView({ setView, viewType }) {
       frameId = requestAnimationFrame(updateLoadedItems);
       return () => cancelAnimationFrame(frameId);
     }
-  }, [isLoading, groupedShifts]);
+  }, [isLoadedShifts, isLoadedTimesheets, isLoadedEvents, groupedShifts]);
 
   useEffect(() => {
     if (selectedShift) {
@@ -156,6 +132,30 @@ export default function ListView({ setView, viewType }) {
     container.current.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleFilterChange = (filter) => {
+    const updatedFilters = filters.map((section) => {
+      if (section.id === filter.id) {
+        return {
+          ...section,
+          options: section.options.map((option) =>
+            option.value === filter.value ? { ...option, checked: filter.checked } : option
+          ),
+        };
+      }
+      return section;
+    });
+    // Update the filters state or perform any necessary actions with the updated filters
+    setFilters(updatedFilters);
+  }
+
+  const clearFilters = () => {
+    const updatedFilters = filters.map((section) => ({
+      ...section,
+      options: section.options.map((option) => ({ ...option, checked: false })),
+    }));
+    setFilters(updatedFilters);
+  };
+
   return (
     <UtilisationTargetsProvider>
       <div className="flex h-full flex-col pb-16 sm:pb-0">
@@ -178,7 +178,7 @@ export default function ListView({ setView, viewType }) {
               <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
                 <table className="w-full text-left">
                   <tbody className="relative overflow-y-auto">
-                    {isLoading ? (
+                    {(isLoadingShifts || isLoadingTimesheets || isLoadingEvents || isTransitioning) ? (
                       Array.from({ length: 3 }).map((_, headerIndex) => (
                         <Fragment key={`header-${headerIndex}`}>
                           {/* Loading Skeleton */}

@@ -4,11 +4,13 @@ import axios from 'axios';
 const useFetchCalls = (startDate, endDate, hrId = null) => {
   const [calls, setCalls] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
   const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
 
   const fetchCalls = async (controller) => {
     let loadingTimeout;
+    setIsLoaded(false);
 
     try {
       loadingTimeout = setTimeout(() => {
@@ -23,9 +25,11 @@ const useFetchCalls = (startDate, endDate, hrId = null) => {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
       setCalls(response.data);
+      setIsLoaded(true);
     } catch (error) {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
+      setIsLoaded(false);
 
       // Ignore abort errors
       if (axios.isCancel(error)) {
@@ -72,7 +76,7 @@ const useFetchCalls = (startDate, endDate, hrId = null) => {
     };
   }, [startDate, endDate]); // Re-run when startDate or endDate changes
 
-  return { calls, isLoading };
+  return { calls, isLoading, isLoaded };
 };
 
 export default useFetchCalls;

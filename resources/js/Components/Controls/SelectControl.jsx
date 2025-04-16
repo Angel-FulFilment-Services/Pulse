@@ -10,7 +10,7 @@ function classNames(...classes) {
 export default function SelectInput(props) {
   const { id, items, onSelectChange, placeholder, defaultSelected, label } = props;
   
-  const [selected, setSelected] = useState(defaultSelected || items[0]);
+  const [selected, setSelected] = useState(defaultSelected || '');
 
   useEffect(() => {
     if (defaultSelected) {

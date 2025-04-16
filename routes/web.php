@@ -36,6 +36,7 @@ use App\Helper\T2SMS;
 | Authorisation
 |-----------------------
 */
+
 // Login
 Route::get('/login', [LoginController::class, 'index'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -47,7 +48,6 @@ Route::post('/activate/token={token}', [ActivationController::class, 'activate']
 // // Forgot Password
 Route::get('/forgot', [ForgotController::class, 'index'])->name('forgot');
 Route::post('/forgot', [ForgotController::class, 'password_reset'])->name('password_reset');
-
 // // Reset Password
 Route::get('/reset', [ResetController::class, 'index'])->name('reset')->middleware('signed');;
 Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_password');
@@ -58,9 +58,8 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 |-----------------------
 */
 
-//Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
-Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+// Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 /*
 |-----------------------
@@ -68,7 +67,7 @@ Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->na
 |-----------------------
 */
 
-//Dashboard
+Route::get('/', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
 Route::get('/rota', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
 Route::get('/rota/shifts', [RotaController::class, 'shifts']);
@@ -83,6 +82,11 @@ Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 | Reporting
 |-----------------------
 */
+
+Route::get('/reporting', [ReportingController::class, 'index'])->middleware(['auth'])->name('reporting');
+
+Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])->middleware(['auth']);
+
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->middleware(['auth']);
 
 /*

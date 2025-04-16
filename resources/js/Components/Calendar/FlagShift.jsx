@@ -30,6 +30,7 @@ export default function FlagShift({ selectedShift, onCancel }) {
 
   const flagOptions = [
     { id: 'sick', value: 'Sick' },
+    { id: 'absent', value: 'Absent' },
     { id: 'awol', value: 'AWOL' },
     { id: 'reduced', value: 'Reduced' },
   ];

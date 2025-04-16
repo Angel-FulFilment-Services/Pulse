@@ -4,10 +4,12 @@ import axios from 'axios';
 const useFetchShifts = (startDate, endDate, hrId = null) => {
   const [shifts, setShifts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
 
   const fetchShifts = async (controller) => {
     let loadingTimeout;
+    setIsLoaded(false);
 
     try {
       loadingTimeout = setTimeout(() => {
@@ -22,9 +24,11 @@ const useFetchShifts = (startDate, endDate, hrId = null) => {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
       setShifts(response.data);
+      setIsLoaded(true);
     } catch (error) {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
+      setIsLoaded(false);
 
       // Ignore abort errors
       if (axios.isCancel(error)) {
@@ -54,7 +58,7 @@ const useFetchShifts = (startDate, endDate, hrId = null) => {
     };
   }, [startDate, endDate]); // Re-run when startDate or endDate changes
 
-  return { shifts, isLoading };
+  return { shifts, isLoading, isLoaded };
 };
 
 export default useFetchShifts;

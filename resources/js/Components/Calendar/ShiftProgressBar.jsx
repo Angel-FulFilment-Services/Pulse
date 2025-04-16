@@ -50,6 +50,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
             "Other": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
             "Reduced": 'text-blue-700 bg-blue-100 border-dashed border-2 border-blue-600/50 hover:bg-blue-50',
             "AWOL": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
+            "Absent": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
             "Sick": "text-yellow-700 bg-yellow-100 border-dashed border-2 border-yellow-600/50 hover:bg-yellow-50",
         },
         "detail": {
@@ -64,6 +65,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
             "HR Meetings": 'text-blue-700 bg-blue-50 ring-blue-600/30',
             "Other": 'text-blue-700 bg-blue-50 ring-blue-600/30',
             "AWOL": "text-red-700 bg-red-50 ring-red-600/30",
+            "Absent": "text-red-700 bg-red-50 ring-red-600/30",
             "Sick": "text-yellow-600 bg-yellow-50 ring-yellow-600/30",
         }
     }
