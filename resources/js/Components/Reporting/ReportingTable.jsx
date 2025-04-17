@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid';
+import { ChevronDownIcon, ChevronUpIcon, ChartPieIcon } from '@heroicons/react/20/solid';
+import ButtonControl from '../../Components/Controls/ButtonControl';
 
 function applyFilters(data, filters = []) {
   // If no filters are provided, return the original data
@@ -23,8 +24,10 @@ function applyFilters(data, filters = []) {
   });
 }
 
-export default function ReportingTable({ structure, filters, data }) {
+export default function ReportingTable({ parameters, structure, filters, data }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // State to track sorting configuration
+
+  console.log(parameters);
 
   // Apply filters to the data
   const filteredData = useMemo(() => {
@@ -74,10 +77,10 @@ export default function ReportingTable({ structure, filters, data }) {
   };
 
   return (
-    <div className="flex flex-col flex-grow h-[48rem] overflow-y-auto overflow-x-hidden">
+    <div className="flex flex-col flex-grow h-[42rem] overflow-y-auto overflow-x-hidden">
       <div className="-mx-4 sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full align-middle px-6">
-          <table className="min-w-full divide-y divide-gray-300 border-separate border-spacing-0">
+          <table id="data-table" className="min-w-full divide-y divide-gray-300 border-separate border-spacing-0">
             {/* Table Header */}
             <thead>
               <tr className="sticky top-0 z-10 bg-white">
@@ -86,10 +89,15 @@ export default function ReportingTable({ structure, filters, data }) {
                     <th
                       key={column.id}
                       scope="col"
-                      className="py-3.5 px-3 text-sm font-semibold cursor-pointer text-gray-900 border-collapse border-b border-gray-300"
+                      className="py-3.5 px-3 text-sm font-semibold cursor-pointer text-gray-900 border-b border-gray-300 relative group"
                       onClick={() => handleSort(column)}
                     >
-                      <div className={`${column.headerClass || ''}`}>
+                      {parameters.targetAllowColumn && (
+                            <div className="absolute top-0 left-0 w-6 h-full">
+                              <ButtonControl id={`${column.id}"target_icon"`} Icon={ChartPieIcon} customClass="flex flex-shrink-0 items-center justify-center w-full min-w-6 max-w-6 bg-white py-1.5 h-6 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-md group-hover:flex hidden" preventBubble={true} iconClass="w-4 h-4 text-gray-400 flex-shrink-0"/>
+                            </div>
+                        )}
+                      <div className={`${column.headerClass || ''} whitespace-nowrap`}>
                         <div>
                           {column.label}
                           {column.headerAnnotation && (
@@ -136,6 +144,55 @@ export default function ReportingTable({ structure, filters, data }) {
                   )}
                 </tr>
               ))}
+
+                {/* Totals Row */}
+                {parameters.total && (
+                  <tr className="bg-white sticky bottom-0 font-semibold">
+                    {structure.map((column, colIndex) =>
+                      column.visible !== false ? (
+                        <td
+                          key={colIndex}
+                          className="whitespace-nowrap px-3 py-2 text-sm text-gray-900 border-t border-gray-300"
+                        >
+                          <div className={`${column.cellClass || ''}`}>
+                            {(() => {
+                              if (column.dataType === 'integer' || column.dataType === 'float') {
+                                if (column.suffix === '%' && column.numeratorId && column.denominatorId) {
+                                  // Calculate weighted average for percentage columns
+                                  const totalNumerator = sortedData.reduce(
+                                    (sum, row) => sum + (parseFloat(row[column.numeratorId]) || 0),
+                                    0
+                                  );
+                                  const totalDenominator = sortedData.reduce(
+                                    (sum, row) => sum + (parseFloat(row[column.denominatorId]) || 0),
+                                    0
+                                  );
+                                  const weightedAverage = totalDenominator
+                                    ? ((totalNumerator / totalDenominator) * 100).toFixed(2)
+                                    : 0;
+                                  return `${column.format(weightedAverage)}%`;
+                                } else {
+                                  // Sum numeric columns
+                                  return column.format(
+                                    sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0)
+                                  );
+                                }
+                              } else if (column.dataType === 'string') {
+                                // Leave string columns empty or provide a label
+                                return colIndex === 0 ? 'Total' : '';
+                              } else if (column.dataType === 'date') {
+                                // Leave date columns empty
+                                return '';
+                              } else {
+                                return ''; // Default case for unsupported data types
+                              }
+                            })()}
+                          </div>
+                        </td>
+                      ) : null
+                    )}
+                  </tr>
+                )}
             </tbody>
           </table>
         </div>

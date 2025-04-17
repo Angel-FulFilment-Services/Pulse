@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use DB;
+use Str;
 use Log;
 
 class ReportingController extends Controller
@@ -23,6 +24,20 @@ class ReportingController extends Controller
     public function attendenceReport(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+
+
+        // $lateness = DB::table(function ($query) use ($startDate, $endDate) {
+        //     $query->select('hr_id', 'date', DB::raw('MIN(on_time) AS earliest_on_time'))
+        //         ->from('apex_data.timesheet_master')
+        //         ->whereBetween('date', [$startDate, $endDate])
+        //         ->groupBy('hr_id', 'date')
+        //     ->unionAll(
+        //         DB::table('apex_data.timesheet_today')
+        //             ->select('hr_id', 'date', DB::raw('MIN(on_time) AS earliest_on_time'))
+        //             ->whereBetween('date', [$startDate, $endDate])
+        //             ->groupBy('hr_id', 'date')
+        //     );
+        // }, 'earliest_timesheet');
 
         // Fetch shifts for the date range
         $data = DB::connection('halo_rota')
@@ -65,6 +80,14 @@ class ReportingController extends Controller
                     ->on('shifts.shiftdate', '=', 'events.date');
             }
         )
+        // ->leftJoinSub(
+        //     Str::replaceArray('?', $lateness->getBindings(), $lateness->toSql()),
+        //     'earliest_timesheet',
+        //     function ($join) {
+        //         $join->on('shifts.hr_id', '=', 'earliest_timesheet.hr_id')
+        //             ->on('shifts.shiftdate', '=', 'earliest_timesheet.date');
+        //     }
+        // )
         ->whereBetween('shifts.shiftdate', [$startDate, $endDate])
         ->select(DB::raw("
             shifts.agent,
@@ -107,25 +130,20 @@ class ReportingController extends Controller
 
         // SUM(
         //     IF(
-        //         (
-        //             SELECT MIN(timesheet.on_time)
-        //             FROM (
-        //                 SELECT * FROM apex_data.timesheet_master
-        //                 UNION ALL
-        //                 SELECT * FROM apex_data.timesheet_today
-        //             ) AS timesheet
-        //             WHERE timesheet.hr_id = shifts.hr_id
-        //             AND timesheet.date = shifts.shiftdate
-        //             AND timesheet.on_time >= DATE_SUB(STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'), INTERVAL 1 HOUR)
-        //             AND timesheet.on_time <= STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
-        //             AND timesheet.off_time >= STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i')
-        //             AND timesheet.off_time <= DATE_ADD(STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i'), INTERVAL 1 HOUR)
-        //         ) > STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+        //         earliest_timesheet.earliest_on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
         //         1,
         //         0
-        //     )
-        // ) AS shifts_late
-
+        //         )
+        //     ) AS shifts_late,
+        // (
+        //     SUM(
+        //         IF(
+        //             earliest_timesheet.earliest_on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+        //             1,
+        //             0
+        //         )
+        //     ) / COUNT(shifts.shiftdate)
+        // ) * 100 AS late_percentage
 
         $targets = [];
 

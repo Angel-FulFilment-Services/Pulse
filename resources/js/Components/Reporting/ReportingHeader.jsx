@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SelectControl from '../../Components/Controls/SelectControl';
+import ButtonControl from '../../Components/Controls/ButtonControl';
+import PopoverFlyout from '../../Components/Flyouts/PopoverFlyout';
 import DateInput from '../../Components/Forms/DateInput';
+import { ArrowPathIcon, Cog8ToothIcon, CogIcon } from '@heroicons/react/24/outline'
+import { RiFileExcel2Line } from "@remixicon/react";
+import LastUpdated from './ReportLastUpdated';
+import { toWords } from 'number-to-words';
 
-export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabClick, handleDateChange, report, handleReportChange, reports }) {
+export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabClick, handleDateChange, report, handleReportChange, handleReportRegenerate, handleReportToExcel, handleTogglePolling, isPolling, lastUpdated, reports }) {
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
+  }
+
+  function formatPollingInterval(milliseconds) {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+  
+    const minutesText = minutes === 1 ? 'minute' : `${toWords(minutes)} minute${minutes > 1 ? 's' : ''}`;
+    const secondsText = seconds === 1 ? 'second' : `${toWords(seconds)} second${seconds > 1 ? 's' : ''}`;
+  
+    if (minutes > 0 && seconds > 0) {
+      return `Every ${minutes === 1 ? 'minute' : minutesText} and ${secondsText}`;
+    } else if (minutes > 0) {
+      return `Every ${minutes === 1 ? 'minute' : minutesText}`;
+    } else {
+      return `Every ${seconds === 1 ? 'second' : secondsText}`;
+    }
   }
 
   return (
@@ -46,15 +69,49 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
         <div className="absolute inset-x-0 bottom-0 h-px bg-gray-900/5" />
       </div>
       <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
-        <div className="max-w-56 w-full">
-          {reports.length &&
-            <SelectControl
-              id="view-select"
-              items={reports}
-              onSelectChange={handleReportChange}
-              placeholder={`Select Report`}
-            />
-          }
+        <div className="w-full flex items-center gap-x-2">
+          <div className="max-w-56 w-full relative">
+            {reports.length &&
+              <>
+                <SelectControl
+                  id="view-select"
+                  items={reports}
+                  onSelectChange={handleReportChange}
+                  placeholder={`Select Report`}
+                />
+                {isPolling &&
+                  <div className="absolute top-[-0.200rem] right-[-0.200rem] w-2.5 h-2.5 rounded-full">
+                    <PopoverFlyout
+                      placement='top'
+                      className=""
+                      content={
+                        <div className="w-full mx-auto p-2 flex flex-col cursor-default">
+                            <p className="whitespace-nowrap text-xs pb-1.5 border-b border-gray-300 text-gray-800">This report is automatically refreshed {formatPollingInterval(report?.parameters?.polling).toLowerCase()}. </p>
+                            <LastUpdated lastUpdated={lastUpdated} />
+                            <div>
+                              <p className="whitespace-nowrap text-left text-xs pt-1.5 text-orange-600 underline w-full">Click Icon to Disable </p>
+                            </div>
+                        </div>
+                      }>
+                        <div className="absolute w-2.5 h-2.5 rounded-full bg-green-200"></div>
+                        <div onClick={handleTogglePolling(true)} className="absolute w-2.5 h-2.5 rounded-full bg-green-500 hover:grayscale-[50%] hover:animate-none cursor-pointer animate-pulse"></div>
+                      </PopoverFlyout>
+                  </div>
+                }
+              </>
+            }
+          </div>
+          <div className="flex gap-x-2">
+            {Object.values(report).length ? 
+              <ButtonControl id="refresh_button" Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/> : null
+            }
+            {Object.values(report).length ? 
+              <ButtonControl id="refresh_button" Icon={Cog8ToothIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/> : null
+            }
+            {Object.values(report).length ? 
+              <ButtonControl id="refresh_button" Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-orange-500 hover:text-orange-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/> : null
+            }
+          </div>
         </div>
         <div className="max-w-56 w-full">
           <DateInput 
