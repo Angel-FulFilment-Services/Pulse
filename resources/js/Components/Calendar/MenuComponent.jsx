@@ -51,16 +51,16 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
   const ordinalSuffix = getOrdinalSuffix(day);
 
   const formattedDate = (currentView === 'Day' || currentView === 'List')
-    ? `${format(currentDate, 'MMMM')} ${day}${ordinalSuffix}, ${format(currentDate, 'yyyy')}`
-    : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')} ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))}${format(startOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')} ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))}${format(endOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')}`;
+    ? `${day}${ordinalSuffix} ${format(currentDate, 'MMMM')}, ${format(currentDate, 'yyyy')}`
+    : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))} ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')}${format(startOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd')}${getOrdinalSuffix(format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd'))} ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMMM')}${format(endOfWeek(currentDate, { weekStartsOn: 1 }), ', yyyy')}`;
 
   const formattedDay = (currentView === 'Day' || currentView === 'List')
     ? `${format(currentDate, 'EEEE')}`
     : '';
 
   const cycleControlDate = (currentView === 'Day' || currentView === 'List')
-    ? format(currentDate, 'MMM dd, yyyy')
-    : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM dd, yyyy')}`;
+    ? format(currentDate, 'dd MMM, yyyy')
+    : `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'dd MMM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'dd MMM, yyyy')}`;
 
   return (
     <div className="w-full flex sm:flex-row justify-between gap-x-2">

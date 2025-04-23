@@ -55,7 +55,7 @@ export default function AccountHeader({ auth, employee }) {
                         </div>
                         <div className="mt-1 flex items-center text-xs text-gray-500">
                           <CalendarIcon className="mr-1 h-5 w-6 flex-shrink-0 text-gray-300" aria-hidden="true" />
-                          Started on {employee.startdate ? format(new Date(employee.startdate), 'MMMM do yyyy') : "N/A"}
+                          Started on {employee.startdate ? format(new Date(employee.startdate), 'do MMMM yyyy') : "N/A"}
                         </div>
                       </div>
                   </h1>

@@ -1,26 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import useFetchEvents from '../Calendar/useFetchEvents';
-import { format, startOfDay, endOfDay, subDays, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 import ShiftProgressBar from '../Calendar/ShiftProgressBar';
 import DateInput from '../Forms/DateInput.jsx';
 import SimpleList from '../Lists/SimpleList';
 
-export default function UserFlyoutContentEvents({ hrId }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRange }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
-
-  const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
 
   const { events } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
 
   useEffect(() => {
     setIsTransitioning(false);
   }, [events]);
-
-  const handleDateChange = (item) => {   
-    setDateRange({startDate: item[0].value, endDate: item[1].value});
-    setIsTransitioning(true);
-  }
 
   return (
     <div className="px-4 py-3 h-full min-h-96 flex flex-col justify-start items-start divide-y divide-gray-200">
@@ -29,12 +21,12 @@ export default function UserFlyoutContentEvents({ hrId }) {
           <h3 className="text-base font-semibold text-gray-900">Events</h3>
           <p className="max-w-2xl text-sm text-gray-500">
             Events for the period of{' '}
-            {format(new Date(dateRange.startDate), 'MMMM dd, yyyy')} -{' '}
-            {format(new Date(dateRange.endDate), 'MMMM dd, yyyy')}
+            {format(new Date(dateRange.startDate), 'dd MMMM, yyyy')} -{' '}
+            {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
           </p>
         </div>
         <div className="w-56">
-          <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
+          <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
       <div className={`w-full h-full pt-2 isolate max-h-[25rem] overflow-auto ${events.length > 6 ? "pr-2" : ""}`}>
@@ -59,7 +51,7 @@ export default function UserFlyoutContentEvents({ hrId }) {
               // Merge timesheets and events
               const data = events.map((record) => ({
                 date: record.on_time
-                ? format(new Date(record.created_at), 'MMMM dd, yyyy h:mm a')
+                ? format(new Date(record.date), 'dd MMMM, yyyy')
                 : '-',
                 started: record.on_time
                   ? format(new Date(record.on_time), 'h:mm a')
@@ -69,6 +61,7 @@ export default function UserFlyoutContentEvents({ hrId }) {
                   : '-',
                 category: record.category || record.type || 'N/A', // Use 'category' or 'type' for the record
                 on_time: record.on_time, // Include on_time for sorting
+                notes: record.notes,
                 duration: record.off_time
                   ? `${Math.floor(
                       differenceInMinutes(
@@ -79,7 +72,11 @@ export default function UserFlyoutContentEvents({ hrId }) {
                       new Date(record.off_time),
                       new Date(record.on_time)
                     ) % 60}m`
-                  : '-'
+                  : '-',
+                logged: record.created_at
+                ? format(new Date(record.created_at), 'dd MMMM, yyyy h:mm a')
+                : '-',
+                loggedby: record.logged_by,
               }));
   
               // Sort the merged array by on_time
@@ -87,6 +84,8 @@ export default function UserFlyoutContentEvents({ hrId }) {
                 (a, b) => new Date(a.on_time) - new Date(b.on_time)
               );
   
+              console.log(sortedData);
+
               return sortedData.length > 0 ? (
                 <SimpleList
                 headers={[
@@ -94,7 +93,10 @@ export default function UserFlyoutContentEvents({ hrId }) {
                   { label: 'Started', visible: true },
                   { label: 'Ended', visible: true },
                   { label: 'Category', visible: true },
+                  { label: 'Notes', visible: true },
                   { label: 'Duration', visible: true },
+                  { label: 'Logged', visibile: true },
+                  { label: 'Logged By', visibile: true },
                 ]}
                   data={sortedData}
                 />

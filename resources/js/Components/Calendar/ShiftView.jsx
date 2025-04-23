@@ -38,7 +38,7 @@ export default function ShiftView({ selectedShift }) {
 
     const message = `Reminder: You have a shift scheduled on ${format(
       new Date(shift.shiftdate),
-      'MMMM d, yyyy'
+      'd MMMM, yyyy'
     )} from ${startTime} to ${endTime}.`;
 
     try {

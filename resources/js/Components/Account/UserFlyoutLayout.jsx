@@ -3,6 +3,7 @@ import { CalendarIcon, CalendarDaysIcon, ChartBarIcon, UserIcon, UsersIcon, Pape
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
+import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -18,6 +19,13 @@ const tabs = [
 
 export default function UserFlyoutLayout({hrId}) {
   const [activeTab, setActiveTab] = useState('shifts');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
+
+  const handleDateChange = (item) => {   
+    setDateRange({startDate: item[0].value, endDate: item[1].value});
+    setIsTransitioning(true);
+  }
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
@@ -26,13 +34,13 @@ export default function UserFlyoutLayout({hrId}) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'shifts':
-        return <UserFlyoutContentShifts hrId={hrId} />;
+        return <UserFlyoutContentShifts hrId={hrId} handleDateChange={handleDateChange} dateRange={dateRange} />;
       case 'performance':
         return <div className="p-4">Performance content goes here.</div>;
       case 'employee':
         return <UserFlyoutContentEmployee hrId={hrId} />;
       case 'events':
-        return <UserFlyoutContentEvents hrId={hrId} />;
+        return <UserFlyoutContentEvents hrId={hrId} handleDateChange={handleDateChange} dateRange={dateRange}  />;
       case 'meetings':
         return <div className="p-4">Meetings content goes here.</div>;
       default:

@@ -31,7 +31,7 @@ export default function UserFlyoutContentEmployee({ hrId }) {
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Started</div>
-              { isTransitioning ? <p class="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.start_date ? format(employee.start_date, "MMMM d, y" ) : "-"} </p>}
+              { isTransitioning ? <p class="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.start_date ? format(employee.start_date, "d MMMM, y" ) : "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Mobile Phone</div>
@@ -42,8 +42,12 @@ export default function UserFlyoutContentEmployee({ hrId }) {
               { isTransitioning ? <p class="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_phone ?? "-"} </p>}
             </div>
             <div>
-              <div className="text-sm text-gray-600 font-medium">Email</div>
+              <div className="text-sm text-gray-600 font-medium">Email <span className="text-xs text-gray-400">(Work)</span></div>
               { isTransitioning ? <p class="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.email ?? "-"} </p>}
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 font-medium">Email <span className="text-xs text-gray-400">(Personal)</span></div>
+              { isTransitioning ? <p class="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_email ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Address</div>

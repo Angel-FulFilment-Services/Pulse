@@ -51,6 +51,7 @@ class RotaController extends Controller
             $timesheetToday = DB::table('apex_data.timesheet_today')
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereNotIn('category', ['Holiday'])
+                ->where('hr_id', '<>', '9999')
                 ->when($hrId, function ($query) use ($hrId) {
                     return $query->where('hr_id', $hrId);
                 })
@@ -66,6 +67,7 @@ class RotaController extends Controller
         // Fetch timesheet_master records for the date range
         $timesheetMaster = DB::table('apex_data.timesheet_master')
             ->whereNotIn('category', ['Holiday'])
+            ->where('hr_id', '<>', '9999')
             ->whereBetween('date', [$startDate, $endDate])
             ->when($hrId, function ($query) use ($hrId) {
                 return $query->where('hr_id', $hrId);
@@ -96,8 +98,11 @@ class RotaController extends Controller
 
         // Fetch event records for the date range
         $events = Event::whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select('events.*')
         ->when($hrId, function ($query) use ($hrId) {
-            return $query->where('hr_id', $hrId);
+            return $query->where('events.hr_id', $hrId)
+            ->leftJoin('wings_config.users', 'users.id', '=', 'events.created_by_user_id')
+            ->addSelect('users.name as logged_by');
         })
         ->get();
 

@@ -3,15 +3,12 @@ import useFetchShifts from '../Calendar/useFetchShifts';
 import useFetchTimesheets from '../Calendar/useFetchTimesheets';
 import useFetchEvents from '../Calendar/useFetchEvents';
 import useFetchCalls from '../Calendar/useFetchCalls';
-import { format, startOfDay, endOfDay, subDays, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 import ShiftProgressBar from '../Calendar/ShiftProgressBar';
 import DateInput from '../Forms/DateInput.jsx';
 
-export default function UserFlyoutContentShifts({ hrId }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRange }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
-
-  const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
 
   const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
@@ -23,11 +20,6 @@ export default function UserFlyoutContentShifts({ hrId }) {
       setIsTransitioning(false);
     }
   }, [shifts, timesheets]);
-
-  const handleDateChange = (item) => {   
-    setDateRange({startDate: item[0].value, endDate: item[1].value});
-    setIsTransitioning(true);
-  }
 
   const calculateReductionMinutes = (events = []) => {
     return events
@@ -71,12 +63,12 @@ export default function UserFlyoutContentShifts({ hrId }) {
         <div className="gap-y-1 flex flex-col">
           <h3 className="text-base font-semibold text-gray-900">Shifts</h3>
           <p className="max-w-2xl text-sm text-gray-500">
-            {format(new Date(dateRange.startDate), 'MMMM dd, yyyy')} -{' '}
-            {format(new Date(dateRange.endDate), 'MMMM dd, yyyy')}
+            {format(new Date(dateRange.startDate), 'dd MMMM, yyyy')} -{' '}
+            {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
           </p>
         </div>
         <div className="w-56">
-          <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
+          <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
       <div className={`w-full h-full min-h-96 pt-2 isolate max-h-[25rem] overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
@@ -109,7 +101,7 @@ export default function UserFlyoutContentShifts({ hrId }) {
                     <div className="flex flex-row w-full justify-between">
                       <div className="flex flex-col w-1/4 justify-center">
                         <h4 className="font-medium text-xs text-gray-700">
-                          {format(new Date(shift.shiftdate), 'MMMM dd, yyyy')}
+                          {format(new Date(shift.shiftdate), 'dd MMMM, yyyy')}
                         </h4>
                         <p className="text-xs text-gray-500">
                           {format(shiftStartDate, 'h:mm a').toLowerCase()} -{' '}

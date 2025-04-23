@@ -28,7 +28,7 @@ class Employee extends Model
     protected $casts = [
         'contact_mobile_phone' => EncryptedWithCustomKey::class,
         'contact_home_phone' => EncryptedWithCustomKey::class,
-        'contact_email' => EncryptedWithCustomKey::class,
+        'contact_home_email' => EncryptedWithCustomKey::class,
         'dob' => EncryptedWithCustomKey::class,
         'title' => EncryptedWithCustomKey::class,
         'firstname' => EncryptedWithCustomKey::class,
