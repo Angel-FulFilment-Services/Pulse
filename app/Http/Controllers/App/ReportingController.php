@@ -145,9 +145,37 @@ class ReportingController extends Controller
         //     ) / COUNT(shifts.shiftdate)
         // ) * 100 AS late_percentage
 
-        $targets = [];
+        $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Attendence Report')->value('targets');
+                
+        return response()->json(['data' => $data, 'targets' => json_decode($targets, true)]);
+    }
 
-        return response()->json($data);
+    public function setTargets(Request $request){       
+        
+        $report = $request->report;
+        if (is_null($report) || !is_array($report)) {
+            Log::debug('1');
+            return response()->json(['status' => 'error', 'message' => 'Invalid report format.'], 400);
+        }
+
+        $targets = $request->targets;
+        if (!is_array($targets) || !count($targets) > 0) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid targets format.'], 400);
+        }
+
+        try {
+            DB::connection('wings_config')
+                ->table('reports')
+                ->where('client','ANGL')
+                ->where('campaign', $report['label'])
+                ->update(['targets' => json_encode($targets)]);
+            return response()->json(['status' => 'success', 'message' => 'Targets updated successfully.']);
+        } catch(\Throwable $e){
+            Log::error('Error updating targets: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Failed to update targets.'], 500);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'No targets provided.'], 400);
     }
 
     public function utilisationTargets(Request $request){

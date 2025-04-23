@@ -7,6 +7,8 @@ import ReportingTable from '../../Components/Reporting/ReportingTable.jsx';
 import FilterControl from '../../Components/Controls/FilterControl.jsx';
 import '../../Components/Reporting/ReportingStyles.css';
 import {exportTableToExcel} from '../../Utils/Exports.jsx'
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const Reporting = () => {
     const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
@@ -14,12 +16,15 @@ const Reporting = () => {
     const [reports, setReports] = useState([]);
     const [report, setReport] = useState([]);
     const [reportData, setReportData] = useState([]);
+    const [targets, setTargets] = useState([]);
     const [filters, setFilters] = useState([]);
     const [reportError, setReportError] = useState(false);
-    const [pollingDisabled, setPollingDisabled] = useState(false);
+    const [isPolling, setIsPolling] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const pollingIntervalRef = useRef(null);
+    const hasChangesRef = useRef(false);
     const tableRef = useRef(null);
 
     const tabs = [
@@ -61,23 +66,77 @@ const Reporting = () => {
         setFilters(updatedFilters);
     }
 
+    const handleTargetChange = (target) => {
+
+        const updatedTargets = targets.map((t) => {
+            if (t.id === target.id) {
+                // Update the specific key in the target property
+                if(target.key == "targetDirection"){
+                    return {
+                        ...t,
+                        targetDirection: target.target, // Update the targetDirection directly
+                    };
+                }
+
+                if(target.key == "high" || target.key == "low"){
+                    return {
+                        ...t,
+                        target: {
+                            ...t.target,
+                            [target.key]: target.target, // Dynamically update the key (e.g., "high" or "low")
+                        },
+                    };
+                }
+            }
+            return t; // Return the target unchanged if no match
+        });
+        
+        const hasChanges = JSON.stringify(updatedTargets) !== JSON.stringify(targets);
+        if (hasChanges) {
+            hasChangesRef.current = true; // Update the ref value
+        }
+
+        setTargets(updatedTargets); // Update the state with the modified targets
+    }
+
     const regenerateReport = () => {
         setReportData([]);
         setReportError(false);
         if (Object.values(report).length && dateRange.startDate && dateRange.endDate) {
-            generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report);
+            generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
         }
     };
 
-    const generateReport = async (dateRange, report) => {
+    const generateReport = async (dateRange, report, updateTargets = true) => {
         try {
-            const reportData = await report.generate({ dateRange, report });
+            const reports = await report.generate({ dateRange, report });
+            const reportData = reports.data;
+            if(updateTargets) {
+                generateTargets(reports.targets);
+            }
             setLastUpdated(new Date());
             setReportData(reportData);
             setReportError(false);
         } catch (error) {
             console.error('Error generating report:', error);
             setReportError(true);
+        }
+    };
+
+    const generateTargets = (targets) => {
+        if (report && report.parameters && report.parameters.structure) {
+            const newTargets = report.parameters.structure.map((structure) => {
+                // Find a matching target in the targets array
+                const matchingTarget = targets ? targets.find((target) => target.id === structure.id) : null;
+    
+                return {
+                    id: structure.id,
+                    target: matchingTarget ? matchingTarget.target : structure.target,
+                    targetDirection: structure.targetDirection,
+                };
+            });
+    
+            setTargets(newTargets);
         }
     };
 
@@ -89,17 +148,77 @@ const Reporting = () => {
         pollingIntervalRef.current = setInterval(() => {
             if (Object.values(report).length && dateRange.startDate && dateRange.endDate) {
                 setReportError(false);
-                generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report);
+                generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
             }
         }, interval);
+
+        setIsPolling(true);
     };
 
     const stopPolling = () => {
         if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
+            setIsPolling(false);
         }
     };
+
+    const togglePolling = () => {
+        if (isPolling) {
+            stopPolling();
+        } else {
+            startPolling(report.parameters.polling);
+        }
+    }
+
+    const toggleEditing = async () => {
+        if (isEditing) {
+            // If exiting editing mode and there are changes, save the targets
+            if (hasChangesRef.current) {
+                try {
+                    const response = await axios.post('/reporting/reports/targets/set', { targets: targets, report: report });
+                    if (response.status === 200) {
+                        toast.success('Targets updated successfully!', {
+                            position: 'top-center',
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: false,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'light',
+                        });
+                        hasChangesRef.current = false;
+                    } else {
+                        toast.error('Failed to update targets. Please try again.', {
+                            position: 'top-center',
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: false,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'light',
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating targets:', error);
+                    toast.error('An error occurred while updating targets.', {
+                        position: 'top-center',
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: false,
+                        draggable: true,
+                        progress: undefined,
+                        theme: 'light',
+                    });
+                }
+            }
+        }
+
+        setIsEditing(!isEditing);
+    }
 
     const clearFilters = () => {
         const updatedFilters = filters.map((section) => ({
@@ -182,9 +301,10 @@ const Reporting = () => {
                     handleReportChange={handleReportChange}
                     handleReportToExcel={() => exportTableToExcel(tableRef.current, `${report.label} - ${new Date(dateRange.startDate).toLocaleDateString('en-GB')} - ${new Date(dateRange.endDate).toLocaleDateString('en-GB')} .xlsx`)}
                     handleReportRegenerate={regenerateReport}
-                    handleTogglePolling={setPollingDisabled}
-                    isPolling={pollingIntervalRef.current !== null}
-                    isPollingDisabled={pollingDisabled}
+                    handleTogglePolling={togglePolling}
+                    handleReportEdit={toggleEditing}
+                    isPolling={isPolling}
+                    isEditing={isEditing}
                     lastUpdated={lastUpdated}
                 />
             </div>
@@ -219,7 +339,7 @@ const Reporting = () => {
                 </div>
             ) : (
                 <div ref={tableRef} className="px-6 py-2 h-full">
-                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }}  structure={report.parameters.structure} filters={filters} data={reportData} />
+                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }} structure={report.parameters.structure} filters={filters} data={reportData} targets={targets} editing={isEditing} handleTargetChange={handleTargetChange} />
                 </div>
             )}
         </div>

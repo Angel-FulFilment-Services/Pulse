@@ -87,6 +87,8 @@ Route::get('/reporting', [ReportingController::class, 'index'])->middleware(['au
 
 Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])->middleware(['auth']);
 
+Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->middleware(['auth']);
+
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->middleware(['auth']);
 
 /*

@@ -119,7 +119,7 @@ class RotaController extends Controller
         ->when($hrId, function ($query) use ($hrId) {
             return $query->where('hr_id', $hrId);
         })
-        ->select('apex_data.hr_id', 'apex_data.date_time', 'apex_data.ddi', DB::raw('apex_data.ring_time + apex_data.calltime as time'))
+        ->select('apex_data.hr_id', 'apex_data.date_time', 'apex_data.ddi', DB::raw('IF(apex_data.type <> "Queue", apex_data.ring_time + apex_data.calltime, apex_data.calltime) as time'))
         ->get();
 
         $callMonitoring = DB::table('call_monitoring.cm_log')

@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDownIcon, ChevronUpIcon, ChartPieIcon } from '@heroicons/react/20/solid';
+import { ChevronDownIcon, ChevronUpIcon, ChevronUpDownIcon, ChartPieIcon } from '@heroicons/react/20/solid';
+import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import ButtonControl from '../../Components/Controls/ButtonControl';
+import PopoverControl from '../../Components/Controls/PopoverControl';
+import SelectControl from '../../Components/Controls/SelectControl';
+import NumberInput from '../../Components/Forms/NumberInput';
+import ReportingTargets from './ReportingTargets';
 
 function applyFilters(data, filters = []) {
   // If no filters are provided, return the original data
@@ -24,10 +29,8 @@ function applyFilters(data, filters = []) {
   });
 }
 
-export default function ReportingTable({ parameters, structure, filters, data }) {
+export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // State to track sorting configuration
-
-  console.log(parameters);
 
   // Apply filters to the data
   const filteredData = useMemo(() => {
@@ -76,6 +79,42 @@ export default function ReportingTable({ parameters, structure, filters, data })
     setSortConfig({ key: id, direction: newDirection });
   };
 
+  const getCellColour = (column, row) => {
+    // Find the target with the matching column ID
+    const target = targets.find((t) => t.id === column.id);
+
+    if (target.target) {
+      // If the target has a key prop, find the matching key value
+      if (target.key) {
+        const keyValue = row[target.key]; // Get the key value from the row
+        const keyTarget = target.values.find((v) => v.keyValue === keyValue); // Find the matching key value in the target
+
+        if (keyTarget) {
+          // Use the high and low values from the keyTarget
+          const { high, low } = keyTarget;
+          const cellValue = parseFloat(row[column.id]);
+
+          if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800'; // High value
+          if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800'; // Low value
+          if(low || high) {
+            return 'bg-yellow-100 text-yellow-800'; // Between high and low
+          }
+        }
+      } else {
+        // Use the high and low values directly from the target
+        const { high, low } = target.target;
+        const cellValue = parseFloat(row[column.id]);
+        if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800'; // High value
+        if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800'; // Low value
+        if(low || high) {
+          return 'bg-yellow-100 text-yellow-700'; // Between high and low
+        }
+      }
+    }
+
+    return ''; // Default color if no target is found
+  };
+
   return (
     <div className="flex flex-col flex-grow h-[42rem] overflow-y-auto overflow-x-hidden">
       <div className="-mx-4 sm:-mx-6 lg:-mx-8">
@@ -89,14 +128,9 @@ export default function ReportingTable({ parameters, structure, filters, data })
                     <th
                       key={column.id}
                       scope="col"
-                      className="py-3.5 px-3 text-sm font-semibold cursor-pointer text-gray-900 border-b border-gray-300 relative group"
-                      onClick={() => handleSort(column)}
+                      className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 relative ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
+                      onClick={() => {if(!editing) handleSort(column)}}
                     >
-                      {parameters.targetAllowColumn && (
-                            <div className="absolute top-0 left-0 w-6 h-full">
-                              <ButtonControl id={`${column.id}"target_icon"`} Icon={ChartPieIcon} customClass="flex flex-shrink-0 items-center justify-center w-full min-w-6 max-w-6 bg-white py-1.5 h-6 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-md group-hover:flex hidden" preventBubble={true} iconClass="w-4 h-4 text-gray-400 flex-shrink-0"/>
-                            </div>
-                        )}
                       <div className={`${column.headerClass || ''} whitespace-nowrap`}>
                         <div>
                           {column.label}
@@ -107,14 +141,21 @@ export default function ReportingTable({ parameters, structure, filters, data })
                           )}
                         </div>
                         {sortConfig.key === column.id && (
-                          <span className="flex-shrink-0 bg-orange-500 text-white h-5 w-5 rounded flex items-center justify-center">
-                            {sortConfig.direction === 'asc' ? (
-                              <ChevronUpIcon className="w-5 h-5" />
-                            ) : (
-                              <ChevronDownIcon className="w-5 h-5" />
-                            )}
+                          <span className="flex-shrink-0 text-orange-500 h-5 w-5 flex items-center justify-center">
+                              <ChevronUpDownIcon className="w-5 h-5" />
                           </span>
                         )}
+                        {(editing && parameters.targetAllowColumn && column.allowTarget) ? (
+                          <span className="">
+                            <PopoverControl
+                              icon={<ChevronDownIcon className="w-5 h-5 flex-shrink-0" />}
+                              buttonClass={`flex-shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-500 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer focus:outline-none`}
+                              content ={(
+                                <ReportingTargets column={column} targets={targets} handleTargetChange={handleTargetChange}/>
+                              )}
+                              />
+                          </span>
+                        ) : null}
                       </div>
                     </th>
                   ) : null
@@ -130,7 +171,7 @@ export default function ReportingTable({ parameters, structure, filters, data })
                     column.visible !== false ? (
                       <td
                         key={column.id}
-                        className="whitespace-nowrap px-3 py-2 text-sm"
+                        className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)}`}
                       >
                         <div className={`${column.cellClass || ''}`}>
                           {column.prefix || ''}

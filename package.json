@@ -16,7 +16,7 @@
     "dependencies": {
         "@floating-ui/react": "^0.27.7",
         "@floating-ui/react-dom": "^2.1.2",
-        "@headlessui/react": "^1.7.18",
+        "@headlessui/react": "^2.2.2",
         "@heroicons/react": "^2.1.1",
         "@inertiajs/inertia-react": "^0.8.1",
         "@inertiajs/react": "^1.0.14",

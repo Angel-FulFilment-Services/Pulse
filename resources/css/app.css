@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        overflow: auto !important;
+        padding: 0 !important;
+    }
+}

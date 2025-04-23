@@ -8,7 +8,7 @@ function classNames(...classes) {
 }
 
 export default function SelectInput(props) {
-  const { id, items, onSelectChange, placeholder, defaultSelected, label } = props;
+  const { id, items, onSelectChange, placeholder, defaultSelected, label, width = "w-full" } = props;
   
   const [selected, setSelected] = useState(defaultSelected || '');
 
@@ -29,7 +29,7 @@ export default function SelectInput(props) {
         <div className="w-full">
           {label ? <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 mb-2">{label}</Listbox.Label> : null}
           <div className="relative w-full">
-            <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6">
+            <Listbox.Button className={`relative cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 ${width}`}>
               <span className={`block truncate ${!selected.value && "text-gray-400"}`}>
                 {selected.displayValue ? selected.displayValue : placeholder}
               </span>
