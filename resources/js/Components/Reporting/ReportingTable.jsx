@@ -116,127 +116,125 @@ export default function ReportingTable({ parameters, structure, filters, data, t
   };
 
   return (
-    <div className="flex flex-col flex-grow h-[42rem] overflow-y-auto overflow-x-hidden">
-      <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-        <div className="inline-block min-w-full align-middle px-6">
-          <table id="data-table" className="min-w-full divide-y divide-gray-300 border-separate border-spacing-0">
-            {/* Table Header */}
-            <thead>
-              <tr className="sticky top-0 z-10 bg-white">
-                {structure.map((column) =>
-                  column.visible !== false ? (
-                    <th
-                      key={column.id}
-                      scope="col"
-                      className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 relative ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
-                      onClick={() => {if(!editing) handleSort(column)}}
-                    >
-                      <div className={`${column.headerClass || ''} whitespace-nowrap`}>
-                        <div>
-                          {column.label}
-                          {column.headerAnnotation && (
-                            <span className="text-gray-500 text-xs font-normal ml-1">
-                              {column.headerAnnotation}
-                            </span>
-                          )}
-                        </div>
-                        {sortConfig.key === column.id && (
-                          <span className="flex-shrink-0 text-orange-500 h-5 w-5 flex items-center justify-center">
-                              <ChevronUpDownIcon className="w-5 h-5" />
+    <div className="flex flex-col h-[calc(100vh-15rem)] overflow-y-auto overflow-x-hidden">
+      <div className="min-w-full align-middle">
+        <table id="data-table" className="min-w-full divide-y divide-gray-300 border-separate border-spacing-0">
+          {/* Table Header */}
+          <thead>
+            <tr className="sticky top-0 z-10 bg-white">
+              {structure.map((column) =>
+                column.visible !== false ? (
+                  <th
+                    key={column.id}
+                    scope="col"
+                    className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 relative ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
+                    onClick={() => {if(!editing) handleSort(column)}}
+                  >
+                    <div className={`${column.headerClass || ''} whitespace-nowrap`}>
+                      <div>
+                        {column.label}
+                        {column.headerAnnotation && (
+                          <span className="text-gray-500 text-xs font-normal ml-1">
+                            {column.headerAnnotation}
                           </span>
                         )}
-                        {(editing && parameters.targetAllowColumn && column.allowTarget) ? (
-                          <span className="">
-                            <PopoverControl
-                              icon={<ChevronDownIcon className="w-5 h-5 flex-shrink-0" />}
-                              buttonClass={`flex-shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-500 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer focus:outline-none`}
-                              content ={(
-                                <ReportingTargets column={column} targets={targets} handleTargetChange={handleTargetChange}/>
-                              )}
-                              />
-                          </span>
-                        ) : null}
                       </div>
-                    </th>
+                      {sortConfig.key === column.id && (
+                        <span className="flex-shrink-0 text-orange-500 h-5 w-5 flex items-center justify-center">
+                            <ChevronUpDownIcon className="w-5 h-5" />
+                        </span>
+                      )}
+                      {(editing && parameters.targetAllowColumn && column.allowTarget) ? (
+                        <span className="">
+                          <PopoverControl
+                            icon={<ChevronDownIcon className="w-5 h-5 flex-shrink-0" />}
+                            buttonClass={`flex-shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-500 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer focus:outline-none`}
+                            content ={(
+                              <ReportingTargets column={column} targets={targets} handleTargetChange={handleTargetChange}/>
+                            )}
+                            />
+                        </span>
+                      ) : null}
+                    </div>
+                  </th>
+                ) : null
+              )}
+            </tr>
+          </thead>
+
+          {/* Table Body */}
+          <tbody className="bg-white">
+            {sortedData.map((row, rowIndex) => (
+              <tr key={rowIndex} className="even:bg-gray-50">
+                {structure.map((column) =>
+                  column.visible !== false ? (
+                    <td
+                      key={column.id}
+                      className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)}`}
+                    >
+                      <div className={`${column.cellClass || ''}`}>
+                        {column.prefix || ''}
+                        {column.format
+                          ? column.format(row[column.id])
+                          : row[column.id]}
+                        {column.suffix || ''}
+                      </div>
+                    </td>
                   ) : null
                 )}
               </tr>
-            </thead>
+            ))}
 
-            {/* Table Body */}
-            <tbody className="bg-white">
-              {sortedData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="even:bg-gray-50">
-                  {structure.map((column) =>
+              {/* Totals Row */}
+              {parameters.total && (
+                <tr className="bg-white sticky bottom-0 font-semibold">
+                  {structure.map((column, colIndex) =>
                     column.visible !== false ? (
                       <td
-                        key={column.id}
-                        className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)}`}
+                        key={colIndex}
+                        className="whitespace-nowrap px-3 py-2 text-sm text-gray-900 border-t bg-white border-gray-300"
                       >
                         <div className={`${column.cellClass || ''}`}>
-                          {column.prefix || ''}
-                          {column.format
-                            ? column.format(row[column.id])
-                            : row[column.id]}
-                          {column.suffix || ''}
+                          {(() => {
+                            if (column.dataType === 'integer' || column.dataType === 'float') {
+                              if (column.suffix === '%' && column.numeratorId && column.denominatorId) {
+                                // Calculate weighted average for percentage columns
+                                const totalNumerator = sortedData.reduce(
+                                  (sum, row) => sum + (parseFloat(row[column.numeratorId]) || 0),
+                                  0
+                                );
+                                const totalDenominator = sortedData.reduce(
+                                  (sum, row) => sum + (parseFloat(row[column.denominatorId]) || 0),
+                                  0
+                                );
+                                const weightedAverage = totalDenominator
+                                  ? ((totalNumerator / totalDenominator) * 100).toFixed(2)
+                                  : 0;
+                                return `${column.format(weightedAverage)}%`;
+                              } else {
+                                // Sum numeric columns
+                                return column.format(
+                                  sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0)
+                                );
+                              }
+                            } else if (column.dataType === 'string') {
+                              // Leave string columns empty or provide a label
+                              return colIndex === 0 ? 'Total' : '';
+                            } else if (column.dataType === 'date') {
+                              // Leave date columns empty
+                              return '';
+                            } else {
+                              return ''; // Default case for unsupported data types
+                            }
+                          })()}
                         </div>
                       </td>
                     ) : null
                   )}
                 </tr>
-              ))}
-
-                {/* Totals Row */}
-                {parameters.total && (
-                  <tr className="bg-white sticky bottom-0 font-semibold">
-                    {structure.map((column, colIndex) =>
-                      column.visible !== false ? (
-                        <td
-                          key={colIndex}
-                          className="whitespace-nowrap px-3 py-2 text-sm text-gray-900 border-t border-gray-300"
-                        >
-                          <div className={`${column.cellClass || ''}`}>
-                            {(() => {
-                              if (column.dataType === 'integer' || column.dataType === 'float') {
-                                if (column.suffix === '%' && column.numeratorId && column.denominatorId) {
-                                  // Calculate weighted average for percentage columns
-                                  const totalNumerator = sortedData.reduce(
-                                    (sum, row) => sum + (parseFloat(row[column.numeratorId]) || 0),
-                                    0
-                                  );
-                                  const totalDenominator = sortedData.reduce(
-                                    (sum, row) => sum + (parseFloat(row[column.denominatorId]) || 0),
-                                    0
-                                  );
-                                  const weightedAverage = totalDenominator
-                                    ? ((totalNumerator / totalDenominator) * 100).toFixed(2)
-                                    : 0;
-                                  return `${column.format(weightedAverage)}%`;
-                                } else {
-                                  // Sum numeric columns
-                                  return column.format(
-                                    sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0)
-                                  );
-                                }
-                              } else if (column.dataType === 'string') {
-                                // Leave string columns empty or provide a label
-                                return colIndex === 0 ? 'Total' : '';
-                              } else if (column.dataType === 'date') {
-                                // Leave date columns empty
-                                return '';
-                              } else {
-                                return ''; // Default case for unsupported data types
-                              }
-                            })()}
-                          </div>
-                        </td>
-                      ) : null
-                    )}
-                  </tr>
-                )}
-            </tbody>
-          </table>
-        </div>
+              )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

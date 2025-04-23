@@ -38,7 +38,7 @@ export default function ReportingTargets({ column, targets, handleTargetChange }
             <NumberInput id={null} prefix={"£"} placeholder={"0"} currentState={target?.target?.high} onTextChange={(value) => handleTargetChange({id: column.id, key: "high", target: value[0].value})} width="w-36" autoComplete={"false"}/>
             :
             column.suffix == '%' ?
-              <NumberInput id={null} suffix={"%"} placeholder={"0"} currentState={target?.target?.high} onTextChange={(value) => handleTargetChange({id: column.id, key: "high", target: value[0].value})} width="w-36" autoComplete={"false"}/>
+              <NumberInput id={null} suffix={"%"} high={100} low={0} placeholder={"0"} currentState={target?.target?.high} onTextChange={(value) => handleTargetChange({id: column.id, key: "high", target: value[0].value})} width="w-36" autoComplete={"false"}/>
             :
               <NumberInput id={null} placeholder={"0"} currentState={target?.target?.high} onTextChange={(value) => handleTargetChange({id: column.id, key: "high", target: value[0].value})} width="w-36" autoComplete={"false"}/>
           }
@@ -55,7 +55,7 @@ export default function ReportingTargets({ column, targets, handleTargetChange }
             <NumberInput id={null} prefix={"£"} placeholder={"0"} currentState={target?.target?.low} onTextChange={(value) => handleTargetChange({id: column.id, key: "low", target: value[0].value})} width="w-36" autoComplete={"false"}/>
             :
             column.suffix == '%' ?
-              <NumberInput id={null} suffix={"%"} placeholder={"0"} currentState={target?.target?.low} onTextChange={(value) => handleTargetChange({id: column.id, key: "low", target: value[0].value})} width="w-36" autoComplete={"false"}/>
+              <NumberInput id={null} suffix={"%"} high={100} low={0} placeholder={"0"} currentState={target?.target?.low} onTextChange={(value) => handleTargetChange({id: column.id, key: "low", target: value[0].value})} width="w-36" autoComplete={"false"}/>
             :
               <NumberInput id={null} placeholder={"0"} currentState={target?.target?.low} onTextChange={(value) => handleTargetChange({id: column.id, key: "low", target: value[0].value})} width="w-36" autoComplete={"false"}/>
           }

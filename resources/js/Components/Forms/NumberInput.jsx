@@ -10,14 +10,16 @@ export default function NumberInput(props) {
     currentState,
     spellCheck,
     Icon,
-    prefix, 
-    suffix, 
+    prefix,
+    suffix,
     iconPosition,
     width,
     onTextChange,
     onBlur,
     error,
     clearErrors,
+    high, // Maximum allowed value
+    low,  // Minimum allowed value
   } = props;
 
   const formatNumber = (value) => {
@@ -28,8 +30,19 @@ export default function NumberInput(props) {
   };
 
   const handleTextChange = (event) => {
+    let rawValue = String(event.target.value).replace(/[^0-9.]/g, ''); // Allow only numbers and a single decimal point
 
-    const rawValue = String(event.target.value).replace(/[^0-9.]/g, ''); // Allow only numbers and a single decimal point
+    // Restrict the value based on the high and low properties
+    if (rawValue) {
+      const numericValue = parseFloat(rawValue);
+      if ((high !== undefined || high !== null) && numericValue > high) {
+        rawValue = String(high); // Restrict to the maximum value
+      }
+      if ((low !== undefined || low !== null) && numericValue < low) {
+        rawValue = String(low); // Restrict to the minimum value
+      }
+    }
+
     const formattedValue = formatNumber(rawValue); // Format the value with commas
     onTextChange([{ id: id, value: rawValue }]); // Pass the raw value (unformatted) to the parent
     if (clearErrors) clearErrors();
@@ -69,7 +82,9 @@ export default function NumberInput(props) {
             }}
             id={id}
             autoComplete={autoComplete}
-            className={`block flex-1 border-0 bg-transparent py-1.5 ${prefix || iconPosition == "left" ? "pl-5" : "pl-3"} pr-5 ${
+            className={`block flex-1 border-0 bg-transparent py-1.5 ${
+              prefix || iconPosition == 'left' ? 'pl-5' : 'pl-3'
+            } pr-5 ${
               error ? 'text-red-800' : 'text-gray-900'
             } placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none ${width}`}
             placeholder={placeholder}
