@@ -31,16 +31,51 @@ class ReportingController extends Controller
         ->leftJoin('wings_config.users', 'users.id', 'hr.user_id')
         ->leftJoinSub(
             DB::table('halo_rota.shifts2 as shifts')
-                ->select('hr_id',
-                DB::raw('
-                    SUM(TIMESTAMPDIFF(
-                        MINUTE,
-                        STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
-                        STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")
-                    )) as shift_duration_hours,
-                    COUNT(shifts.shiftdate) AS shifts_scheduled
-                '))
-                ->whereBetween('shiftdate', [$startDate, $endDate])
+                ->select(
+                    'shifts.hr_id',
+                    DB::raw('
+                        SUM(TIMESTAMPDIFF(
+                            MINUTE,
+                            STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                            STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                        )) as shift_duration_hours,
+                        COUNT(shifts.shiftdate) AS shifts_scheduled,
+                        SUM(
+                            CASE
+                                WHEN earliest_timesheet.on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i")
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS late_count
+                    ')
+                )
+                ->leftJoinSub(
+                    DB::table('apex_data.timesheet_master')
+                        ->select(
+                            'timesheet_master.hr_id',
+                            'date AS shiftdate',
+                            DB::raw('MIN(on_time) AS on_time')
+                        )
+                        ->whereRaw('on_time IS NOT NULL')
+                        ->whereBetween('timesheet_master.date', [$startDate, $endDate])
+                        ->groupBy('timesheet_master.hr_id', 'timesheet_master.date'),
+                    'earliest_timesheet',
+                    function ($join) {
+                        $join->on('shifts.hr_id', '=', 'earliest_timesheet.hr_id')
+                             ->on('shifts.shiftdate', '=', 'earliest_timesheet.shiftdate')
+                             ->where(function ($query) {
+                                $query->where(function ($subQuery) {
+                                    // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                                    $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), on_time)'), [-60, 0]);
+                                })
+                                ->orWhere(function ($subQuery) {
+                                    // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                                    $subQuery->whereRaw('on_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                                });
+                            });
+                    }
+                )
+                ->whereBetween('shifts.shiftdate', [$startDate, $endDate])
                 ->groupBy('hr_id'),
             'shifts',
             function ($join) {
@@ -63,13 +98,24 @@ class ReportingController extends Controller
                 )
                 ->leftJoinSub(
                     DB::table('halo_rota.shifts2 as shifts')
-                        ->select('hr_id', 'shiftdate')
+                        ->select('hr_id', 'shiftdate', 'shiftstart', 'shiftend')
                         ->whereBetween('shiftdate', [$startDate, $endDate])
-                        ->groupBy('hr_id', 'shiftdate'),
+                        ->groupBy('hr_id', 'shiftdate', 'shiftstart', 'shiftend'),
                     'shifts',
                     function ($join) {
                         $join->on('apex_data.timesheet_master.hr_id', '=', 'shifts.hr_id')
-                             ->on('apex_data.timesheet_master.date', '=', 'shifts.shiftdate');
+                        ->where(function ($query) {
+                            $query->where(function ($subQuery) {
+                                // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                                $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), on_time)'), [-60, 0])
+                                         ->orWhereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i"), off_time)'), [0, 60]);
+                            })
+                            ->orWhere(function ($subQuery) {
+                                // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                                $subQuery->whereRaw('on_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")')
+                                         ->orWhereRaw('off_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                            });
+                        });
                     }
                 )
                 ->whereBetween('date', [$startDate, $endDate])
@@ -150,6 +196,8 @@ class ReportingController extends Controller
                     )
                 ) * 100, 0
             ) AS worked_percentage,
+            IFNULL(SUM(shifts.late_count), 0) AS shifts_late,
+            IFNULL((SUM(shifts.late_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS late_percentage,
             IFNULL(SUM(events.sick_count), 0) AS shifts_sick,
             IFNULL((SUM(events.sick_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS sick_percentage,
             IFNULL(SUM(events.awol_count), 0) AS shifts_awol,

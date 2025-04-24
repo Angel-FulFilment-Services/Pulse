@@ -41,7 +41,7 @@ const rotaReportsConfig = [
           },
           {
             id: "shift_duration_hours",
-            label: "Hours Scheduled To Work",
+            label: "Hours Scheduled",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -261,6 +261,30 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "late_percentage",
+            label: "Shifts Late",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "%",
+            numeratorId: "shifts_late",
+            denominatorId: "shifts_scheduled",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(%)",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return parseFloat(value).toFixed(0); // Convert to float and round to two decimal places
+              }
+              return value; // Return the value as is if it's not a number
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
