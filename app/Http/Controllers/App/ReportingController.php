@@ -25,28 +25,169 @@ class ReportingController extends Controller
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
+        // Fetch shifts for the date range
+        $data = DB::connection('wings_data')
+        ->table('hr_details as hr')
+        ->leftJoin('wings_config.users', 'users.id', 'hr.user_id')
+        ->leftJoinSub(
+            DB::table('halo_rota.shifts2 as shifts')
+                ->select('hr_id',
+                DB::raw('
+                    SUM(TIMESTAMPDIFF(
+                        MINUTE,
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                    )) as shift_duration_hours,
+                    COUNT(shifts.shiftdate) AS shifts_scheduled
+                '))
+                ->whereBetween('shiftdate', [$startDate, $endDate])
+                ->groupBy('hr_id'),
+            'shifts',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'shifts.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.timesheet_master')
+                ->select(
+                    'timesheet_master.hr_id',
+                    DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_master'),
+                    DB::raw('
+                        SUM(
+                            CASE
+                                WHEN shifts.hr_id IS NULL THEN TIMESTAMPDIFF(MINUTE, on_time, off_time)
+                                ELSE 0
+                            END
+                        ) AS surplus_minutes_master
+                    ')
+                )
+                ->leftJoinSub(
+                    DB::table('halo_rota.shifts2 as shifts')
+                        ->select('hr_id', 'shiftdate')
+                        ->whereBetween('shiftdate', [$startDate, $endDate])
+                        ->groupBy('hr_id', 'shiftdate'),
+                    'shifts',
+                    function ($join) {
+                        $join->on('apex_data.timesheet_master.hr_id', '=', 'shifts.hr_id')
+                             ->on('apex_data.timesheet_master.date', '=', 'shifts.shiftdate');
+                    }
+                )
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('hr_id'),
+            'timesheet_master',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'timesheet_master.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.timesheet_today')
+                ->select(
+                    'timesheet_today.hr_id',
+                    DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_today'),
+                    DB::raw('
+                        SUM(
+                            CASE
+                                WHEN shifts.hr_id IS NULL THEN TIMESTAMPDIFF(MINUTE, on_time, off_time)
+                                ELSE 0
+                            END
+                        ) AS surplus_minutes_today
+                    ')
+                )
+                ->leftJoinSub(
+                    DB::table('halo_rota.shifts2 as shifts')
+                        ->select('hr_id', 'shiftdate')
+                        ->whereBetween('shiftdate', [$startDate, $endDate])
+                        ->groupBy('hr_id', 'shiftdate'),
+                    'shifts',
+                    function ($join) {
+                        $join->on('apex_data.timesheet_today.hr_id', '=', 'shifts.hr_id')
+                             ->on('apex_data.timesheet_today.date', '=', 'shifts.shiftdate');
+                    }
+                )
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('hr_id'),
+            'timesheet_today',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'timesheet_today.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.events')
+                ->select('hr_id', 
+                    DB::raw('SUM(IF(category = "Reduced", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS reduced_minutes'),
+                    DB::raw('SUM(IF(category = "Sick", 1, 0)) AS sick_count'),
+                    DB::raw('SUM(IF(category = "AWOL", 1, 0)) AS awol_count'),
+                    DB::raw('SUM(IF(category = "Absent", 1, 0)) AS absent_count')
+                )
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('hr_id'),
+            'events',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'events.hr_id');
+            }
+        )
+        ->select(DB::raw("
+            users.name AS agent,
+            IFNULL(SUM(shifts.shifts_scheduled), 0) AS shifts_scheduled,
+            (
+                IFNULL(SUM(shifts.shift_duration_hours), 0) +
+                (IFNULL(SUM(timesheet_master.surplus_minutes_master), 0) + IFNULL(SUM(timesheet_today.surplus_minutes_today), 0)) -
+                IFNULL(SUM(events.reduced_minutes), 0)
+            ) / 60 AS shift_duration_hours,
+            (
+                IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+            ) / 60 AS worked_duration_hours,
+            IFNULL(
+                (
+                    (
+                        IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
+                        IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+                    ) /
+                    (
+                        IFNULL(SUM(shifts.shift_duration_hours), 0) -
+                        IFNULL(SUM(events.reduced_minutes), 0)
+                    )
+                ) * 100, 0
+            ) AS worked_percentage,
+            IFNULL(SUM(events.sick_count), 0) AS shifts_sick,
+            IFNULL((SUM(events.sick_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS sick_percentage,
+            IFNULL(SUM(events.awol_count), 0) AS shifts_awol,
+            IFNULL((SUM(events.awol_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS awol_percentage,
+            IFNULL(SUM(events.absent_count), 0) AS shifts_absent,
+            IFNULL((SUM(events.absent_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS absent_percentage
+        "))
+        ->where('shifts.shifts_scheduled', '>', 0)
+        ->orWhere(function ($query) {
+            $query->where('timesheet_master.worked_minutes_master', '>', 0)
+            ->orWhere('timesheet_today.worked_minutes_today', '>', 0);
+        })
+        ->groupBy('hr.hr_id')
+        ->orderBy('agent')
+        ->get();
 
-        // $lateness = DB::table(function ($query) use ($startDate, $endDate) {
-        //     $query->select('hr_id', 'date', DB::raw('MIN(on_time) AS earliest_on_time'))
-        //         ->from('apex_data.timesheet_master')
-        //         ->whereBetween('date', [$startDate, $endDate])
-        //         ->groupBy('hr_id', 'date')
-        //     ->unionAll(
-        //         DB::table('apex_data.timesheet_today')
-        //             ->select('hr_id', 'date', DB::raw('MIN(on_time) AS earliest_on_time'))
-        //             ->whereBetween('date', [$startDate, $endDate])
-        //             ->groupBy('hr_id', 'date')
-        //     );
-        // }, 'earliest_timesheet');
+        $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Attendence Report')->value('targets');
+                
+        return response()->json(['data' => $data, 'targets' => json_decode($targets, true)]);
+    }
+
+    public function hoursComparisonReport(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
 
         // Fetch shifts for the date range
         $data = DB::connection('halo_rota')
         ->table('shifts2 as shifts')
+        ->leftJoin('wings_data.hr_details', 'shifts.hr_id', '=', 'hr_details.hr_id')
         ->leftJoinSub(
             DB::table('apex_data.timesheet_master')
-                ->select('hr_id', 'date', DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_master'))
+                ->select('timesheet_master.hr_id', 'date', DB::raw('
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_worked_minutes_master,
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS management_worked_minutes_master
+                '))
+                ->leftJoin('wings_data.hr_details', 'timesheet_master.hr_id', '=', 'hr_details.hr_id')
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id', 'date'),
+                ->groupBy('timesheet_master.hr_id', 'date'),
             'timesheet_master',
             function ($join) {
                 $join->on('shifts.hr_id', '=', 'timesheet_master.hr_id')
@@ -55,9 +196,13 @@ class ReportingController extends Controller
         )
         ->leftJoinSub(
             DB::table('apex_data.timesheet_today')
-                ->select('hr_id', 'date', DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_today'))
+                ->select('timesheet_today.hr_id', 'date', DB::raw('
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(MINUTE, on_time, IFNULL(off_time, NOW())), 0)) AS agent_worked_minutes_today,
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(MINUTE, on_time, IFNULL(off_time, NOW())), 0)) AS management_worked_minutes_today
+                '))
+                ->leftJoin('wings_data.hr_details', 'timesheet_today.hr_id', '=', 'hr_details.hr_id')
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id', 'date'),
+                ->groupBy('timesheet_today.hr_id', 'date'),
             'timesheet_today',
             function ($join) {
                 $join->on('shifts.hr_id', '=', 'timesheet_today.hr_id')
@@ -65,87 +210,158 @@ class ReportingController extends Controller
             }
         )
         ->leftJoinSub(
-            DB::table('apex_data.events')
-                ->select('hr_id', 'date', 
-                    DB::raw('SUM(IF(category = "Reduced", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS reduced_minutes'),
-                    DB::raw('SUM(IF(category = "Sick", 1, 0)) AS sick_count'),
-                    DB::raw('SUM(IF(category = "AWOL", 1, 0)) AS awol_count'),
-                    DB::raw('SUM(IF(category = "Absent", 1, 0)) AS absent_count')
-                )
+            DB::table('apex_data.apex_data')
+                ->select('apex_data.hr_id', 'date', DB::raw('
+                    SUM(IF(apex_data.type <> "Queue", apex_data.ring_time + apex_data.calltime, apex_data.calltime)) as time
+                '))
+                ->leftJoin('wings_data.hr_details', 'apex_data.hr_id', '=', 'hr_details.hr_id')
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id', 'date'),
+                ->where(function($query){
+                    $query->where('apex_data.answered','=','1');
+                    $query->orWhere('apex_data.type','<>','Queue');
+                })
+                ->groupBy('apex_data.hr_id', 'date'),
+            'apex_data',
+            function ($join) {
+                $join->on('shifts.hr_id', '=', 'apex_data.hr_id')
+                    ->on('shifts.shiftdate', '=', 'apex_data.date');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.events')
+                ->select('events.hr_id', 'date', 
+                    DB::raw('SUM(IF(category = "Reduced" AND (hr_details.rank IS NULL OR hr_details.rank = ""), TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_reduced_minutes'),
+                    DB::raw('SUM(IF(category = "Sick" AND (hr_details.rank IS NULL OR hr_details.rank = ""), TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_sick_minutes'),
+                    DB::raw('SUM(IF(category = "AWOL" AND (hr_details.rank IS NULL OR hr_details.rank = ""), TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_awol_minutes'),
+                    DB::raw('SUM(IF(category = "Absent" AND (hr_details.rank IS NULL OR hr_details.rank = ""), TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_absent_minutes'),
+                )
+                ->leftJoin('wings_data.hr_details', 'events.hr_id', '=', 'hr_details.hr_id')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('events.hr_id', 'date'),
             'events',
             function ($join) {
                 $join->on('shifts.hr_id', '=', 'events.hr_id')
                     ->on('shifts.shiftdate', '=', 'events.date');
             }
         )
-        // ->leftJoinSub(
-        //     Str::replaceArray('?', $lateness->getBindings(), $lateness->toSql()),
-        //     'earliest_timesheet',
-        //     function ($join) {
-        //         $join->on('shifts.hr_id', '=', 'earliest_timesheet.hr_id')
-        //             ->on('shifts.shiftdate', '=', 'earliest_timesheet.date');
-        //     }
-        // )
         ->whereBetween('shifts.shiftdate', [$startDate, $endDate])
         ->select(DB::raw("
-            shifts.agent,
-            COUNT(shifts.shiftdate) AS shifts_scheduled,
+            shifts.shiftdate as shift_date,
             (
-                SUM(TIMESTAMPDIFF(
+                SUM(IF(hr_details.rank IS NULL OR hr_details.rank = '', TIMESTAMPDIFF(
                     MINUTE,
                     STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
                     STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
-                )) -
-                IFNULL(SUM(events.reduced_minutes), 0)
-            ) / 60 AS shift_duration_hours,
+                ), 0))
+            ) / 60 AS agent_shift_duration_hours,
             (
-                IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
-                IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
-            ) / 60 AS worked_duration_hours,
+                SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != '', TIMESTAMPDIFF(
+                    MINUTE,
+                    STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+                    STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
+                ), 0))
+            ) / 60 AS management_shift_duration_hours,
+            (
+                IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+            ) / 60 AS agent_worked_duration_hours,
+            (
+                IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+            ) AS agent_worked_duration_seconds,
+            (
+                IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+            ) / 60 AS management_worked_duration_hours,
             (
                 (
-                    IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
-                    IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
-                ) /
+                    IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                ) / 60 
+            ) -
+            (
                 (
-                    SUM(TIMESTAMPDIFF(
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = '', TIMESTAMPDIFF(
                         MINUTE,
                         STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
                         STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
-                    )) -
-                    IFNULL(SUM(events.reduced_minutes), 0)
-                )
-            ) * 100 AS worked_percentage,
-            IFNULL(SUM(events.sick_count), 0) AS shifts_sick,
-            IFNULL(SUM(events.sick_count), 0) / COUNT(shifts.shiftdate) * 100 AS sick_percentage,
-            IFNULL(SUM(events.awol_count), 0) AS shifts_awol,
-            IFNULL(SUM(events.awol_count), 0) / COUNT(shifts.shiftdate) * 100 AS awol_percentage,
-            IFNULL(SUM(events.absent_count), 0) AS shifts_absent,
-            IFNULL(SUM(events.absent_count), 0) / COUNT(shifts.shiftdate) * 100 AS absent_percentage
+                    ), 0))
+                ) / 60
+            ) as agent_difference,
+            (
+                (
+                    IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
+                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+                ) / 60 
+            ) -
+            (
+                (
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != '', TIMESTAMPDIFF(
+                        MINUTE,
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
+                    ), 0))
+                ) / 60
+            ) as management_difference,
+            (
+                (
+                    IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                ) / 60 
+            ) /
+            (
+                (
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = '', TIMESTAMPDIFF(
+                        MINUTE,
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
+                    ), 0))
+                ) / 60
+            ) * 100 as agent_worked_percentage,
+            (
+                (
+                    IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
+                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+                ) / 60 
+            ) /
+            (
+                (
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != '', TIMESTAMPDIFF(
+                        MINUTE,
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
+                        STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftend, 4, '0')), '%Y-%m-%d %H%i')
+                    ), 0))
+                ) / 60
+            ) * 100 as management_worked_percentage,
+            (
+                IFNULL(SUM(events.agent_sick_minutes), 0)
+            ) / 60 as agent_sick_hours,
+            (
+                IFNULL(SUM(events.agent_awol_minutes), 0) +
+                IFNULL(SUM(events.agent_absent_minutes), 0)
+            ) / 60 as agent_awol_hours,
+            (
+                IFNULL(SUM(apex_data.time), 0)
+            ) / 60 as minutes,
+            IFNULL(
+                (
+                    (
+                        (
+                            IFNULL(SUM(apex_data.time), 0)
+                        ) / 60
+                    ) /
+                    (
+                        (
+                            IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                            IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                        )
+                    ) 
+                ) * 100, 0) as utilisation
         "))
-        ->groupBy('shifts.hr_id', 'shifts.agent')
+        ->groupBy('shifts.shiftdate')
         ->get();
 
-        // SUM(
-        //     IF(
-        //         earliest_timesheet.earliest_on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
-        //         1,
-        //         0
-        //         )
-        //     ) AS shifts_late,
-        // (
-        //     SUM(
-        //         IF(
-        //             earliest_timesheet.earliest_on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, ' ', LPAD(shifts.shiftstart, 4, '0')), '%Y-%m-%d %H%i'),
-        //             1,
-        //             0
-        //         )
-        //     ) / COUNT(shifts.shiftdate)
-        // ) * 100 AS late_percentage
-
-        $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Attendence Report')->value('targets');
+        $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Hours Comparison Report')->value('targets');
                 
         return response()->json(['data' => $data, 'targets' => json_decode($targets, true)]);
     }

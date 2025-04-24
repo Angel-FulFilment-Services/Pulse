@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDownIcon, ChevronUpIcon, ChevronUpDownIcon, ChartPieIcon } from '@heroicons/react/20/solid';
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import ButtonControl from '../../Components/Controls/ButtonControl';
@@ -31,6 +31,44 @@ function applyFilters(data, filters = []) {
 
 export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // State to track sorting configuration
+  const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
+
+  useEffect(() => {
+    const headerElement = document.getElementById('reporting_header');
+    const mediaQuery = window.matchMedia('(min-width: 1024px)'); // Tailwind's `lg` breakpoint
+
+    const updateTableHeight = () => {
+      if (!headerElement) return;
+
+      const headerHeight = headerElement.getBoundingClientRect().height;
+
+      if (mediaQuery.matches) {
+        // Screen width is `lg` or larger
+        setTableHeight(`calc(100vh - ${headerHeight + 20}px)`);
+      } else {
+        // Screen width is below `lg`
+        setTableHeight(`calc(100vh - ${headerHeight + 85}px)`);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateTableHeight();
+    });
+
+    if (headerElement) {
+      resizeObserver.observe(headerElement); // Start observing the header element
+    }
+
+    mediaQuery.addEventListener('change', updateTableHeight); // Listen for screen width changes
+
+    // Initial calculation
+    updateTableHeight();
+
+    return () => {
+      resizeObserver.disconnect(); // Cleanup observer on component unmount
+      mediaQuery.removeEventListener('change', updateTableHeight); // Remove event listener
+    };
+  }, []);
 
   // Apply filters to the data
   const filteredData = useMemo(() => {
@@ -83,7 +121,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     // Find the target with the matching column ID
     const target = targets.find((t) => t.id === column.id);
 
-    if (target.target) {
+    if (target?.target) {
       // If the target has a key prop, find the matching key value
       if (target.key) {
         const keyValue = row[target.key]; // Get the key value from the row
@@ -116,18 +154,25 @@ export default function ReportingTable({ parameters, structure, filters, data, t
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-15rem)] overflow-y-auto overflow-x-hidden">
+    <div className={`flex flex-col`} style={{ height: tableHeight, overflowY: 'auto', marginTop: '0.5rem' }}>
       <div className="min-w-full align-middle">
         <table id="data-table" className="min-w-full divide-y divide-gray-300 border-separate border-spacing-0">
           {/* Table Header */}
           <thead>
-            <tr className="sticky top-0 z-10 bg-white">
+            {parameters.headerGrouping ? 
+              <tr className="sticky top-0 z-10 bg-white">
+                {parameters.headerGroups.map((column) =>
+                  <th key={column.label} colSpan={column.colSpan} scope="col" className={`${column.headerClass}`}>{column.label}</th>
+                )}
+              </tr>
+            : null}
+            <tr className={`sticky ${parameters.headerGrouping ? "top-10" : "top-0"} z-10 bg-white`}>
               {structure.map((column) =>
                 column.visible !== false ? (
                   <th
                     key={column.id}
                     scope="col"
-                    className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 relative ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
+                    className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 relative ${column.thClass} ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
                     onClick={() => {if(!editing) handleSort(column)}}
                   >
                     <div className={`${column.headerClass || ''} whitespace-nowrap`}>
@@ -170,7 +215,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                   column.visible !== false ? (
                     <td
                       key={column.id}
-                      className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)}`}
+                      className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)} ${column.tdClass}`}
                     >
                       <div className={`${column.cellClass || ''}`}>
                         {column.prefix || ''}
@@ -192,7 +237,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                     column.visible !== false ? (
                       <td
                         key={colIndex}
-                        className="whitespace-nowrap px-3 py-2 text-sm text-gray-900 border-t bg-white border-gray-300"
+                        className={`whitespace-nowrap px-3 py-2 text-sm text-gray-900 border-t bg-white border-gray-300 ${column.tdClass}`}
                       >
                         <div className={`${column.cellClass || ''}`}>
                           {(() => {
@@ -221,8 +266,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                               // Leave string columns empty or provide a label
                               return colIndex === 0 ? 'Total' : '';
                             } else if (column.dataType === 'date') {
-                              // Leave date columns empty
-                              return '';
+                              return colIndex === 0 ? 'Total' : '';
                             } else {
                               return ''; // Default case for unsupported data types
                             }

@@ -38,6 +38,7 @@ const Reporting = () => {
     };
 
     const handleReportChange = (report) => {
+        setReportData([]);
         setReportError(false);
         setReport(rotaReportsConfig.find((r) => r.id === report.value));
     };
@@ -289,30 +290,32 @@ const Reporting = () => {
 
     return (
         <div className="w-full flex flex-col h-screen bg-white">
-            <div className="z-30">
-                <ReportingHeader
-                    dateRange={dateRange}
-                    tabs={tabs}
-                    activeTab={activeTab}
-                    handleTabClick={handleTabClick}
-                    handleDateChange={handleDateChange}
-                    reports={reports}
-                    report={report}
-                    handleReportChange={handleReportChange}
-                    handleReportToExcel={() => exportTableToExcel(tableRef.current, `${report.label} - ${new Date(dateRange.startDate).toLocaleDateString('en-GB')} - ${new Date(dateRange.endDate).toLocaleDateString('en-GB')} .xlsx`)}
-                    handleReportRegenerate={regenerateReport}
-                    handleTogglePolling={togglePolling}
-                    handleReportEdit={toggleEditing}
-                    isPolling={isPolling}
-                    isEditing={isEditing}
-                    lastUpdated={lastUpdated}
-                />
+            <div id="reporting_header" className="z-30">
+                <div className="z-30">
+                    <ReportingHeader
+                        dateRange={dateRange}
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        handleTabClick={handleTabClick}
+                        handleDateChange={handleDateChange}
+                        reports={reports}
+                        report={report}
+                        handleReportChange={handleReportChange}
+                        handleReportToExcel={() => exportTableToExcel(tableRef.current, `${report.label} - ${new Date(dateRange.startDate).toLocaleDateString('en-GB')} - ${new Date(dateRange.endDate).toLocaleDateString('en-GB')} .xlsx`)}
+                        handleReportRegenerate={regenerateReport}
+                        handleTogglePolling={togglePolling}
+                        handleReportEdit={toggleEditing}
+                        isPolling={isPolling}
+                        isEditing={isEditing}
+                        lastUpdated={lastUpdated}
+                    />
+                </div>
+                { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 shadow-sm slide-down z-20">
+                        <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
+                    </div>
+                }
             </div>
-            { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
-                 <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 shadow-sm slide-down z-20">
-                     <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
-                 </div>
-             }
             {reportError ? (
                 <div className="flex flex-col items-center justify-center py-56 -my-14 w-full">
                     <ExclamationCircleIcon className="w-12 h-12 text-red-500" />

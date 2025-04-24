@@ -86,6 +86,7 @@ Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 Route::get('/reporting', [ReportingController::class, 'index'])->middleware(['auth'])->name('reporting');
 
 Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])->middleware(['auth']);
+Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport'])->middleware(['auth']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->middleware(['auth']);
 
