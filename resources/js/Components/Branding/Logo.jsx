@@ -4,7 +4,7 @@ export default function Logo() {
     const pathRef = useRef(null);
 
     return (
-        <div className="flex flex-row shrink-0 justify-center items-center gap-2">
+        <div className="flex flex-row shrink-0 justify-center items-center gap-3">
             <div className="flex flex-col shrink-0 justify-center items-center h-16 w-16">
                 {/* Donut SVG */}
                 <svg
@@ -30,7 +30,7 @@ export default function Logo() {
                         r="16"
                         fill="none"
                         stroke="url(#orange-gradient)" // Apply the gradient
-                        strokeWidth="7"
+                        strokeWidth="8"
                         className=""
                     />
                 </svg>
@@ -74,7 +74,7 @@ export default function Logo() {
                     </g>
                 </svg>
             </div>
-            <h2 className="font-bold text-gray-600 leading-7 text-2xl">Pulse</h2>
+            <h2 className="font-bold text-gray-600 leading-7 text-3xl">Pulse</h2>
         </div>
     );
 }
