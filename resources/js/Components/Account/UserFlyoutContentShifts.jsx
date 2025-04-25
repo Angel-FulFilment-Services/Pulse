@@ -71,7 +71,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRa
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full min-h-96 pt-2 isolate max-h-[25rem] overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
+      <div className={`w-full h-full min-h-96 pt-2 isolate overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
         {isTransitioning
           ? Array.from({ length: 5 }).map((_, subRowIndex) => (
               <ul className="flex flex-col pb-2" key={subRowIndex}>

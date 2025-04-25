@@ -15,7 +15,7 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
   }, [events]);
 
   return (
-    <div className="px-4 py-3 h-full min-h-96 flex flex-col justify-start items-start divide-y divide-gray-200">
+    <div className="px-4 py-3 h-full flex flex-col justify-start items-start divide-y divide-gray-200">
       <div className="flex gap-x-2 items-center pb-2 justify-between w-full">
         <div className="gap-y-1 flex flex-col">
           <h3 className="text-base font-semibold text-gray-900">Events</h3>

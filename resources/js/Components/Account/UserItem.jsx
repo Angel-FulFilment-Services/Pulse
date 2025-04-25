@@ -1,11 +1,11 @@
 import { UserIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
 import { useUserStates } from '../Context/ActiveStateContext';
-import ClickedFlyout from '../Flyouts/ClickedFlyout';
+import ClickedModal from '../Modals/ClickedModal';
 import React, { memo, useMemo } from 'react';
 import UserFlyoutLayout from './UserFlyoutLayout';
 
-const UserItem = ({ userId, size = 'large', agent }) => {
+const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
   const sizeClasses = {
     "icon": {
       'extra-small': 'h-6 w-6',
@@ -52,21 +52,20 @@ const UserItem = ({ userId, size = 'large', agent }) => {
   return (
     <>
       <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass}`}>
-        <ClickedFlyout
-            height="h-min"
-            width="w-min-full"
-            placement="right"
+        {allowClickInto && (<ClickedModal
             overlay={true}
+            size={"xl"}
             className={`w-full h-full justify-center items-center flex absolute rounded-full`}
             onClose={() => null} // Clear the message when the flyout closes
-            content={(handleSubmit) => <UserFlyoutLayout hrId={userId} />}
+            content={(handleSubmit, handleClose) => <UserFlyoutLayout hrId={userId} handleClose={handleClose}
+          />}
         >
           <div
             className={`flex z-20 absolute top-0 left-0 inset-0 items-center justify-center bg-none hover:bg-gray-800 hover:bg-opacity-50 rounded-full cursor-pointer transition-all ease-in-out group`}
           >
             <ArrowsPointingOutIcon className="w-5 h-5 text-gray-100 group-hover:block hidden" />
           </div>
-        </ClickedFlyout>
+        </ClickedModal>)}
 
         {profilePhoto ? (
           <img

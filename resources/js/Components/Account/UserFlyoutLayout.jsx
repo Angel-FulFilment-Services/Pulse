@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { CalendarIcon, CalendarDaysIcon, ChartBarIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
+import React, { useState, useMemo } from 'react';
+import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+import UserItemFull from '../Account/UserItemFull';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -17,7 +18,7 @@ const tabs = [
     { id: 'employee', name: 'Employee', icon: UserIcon, current: false },
 ]
 
-export default function UserFlyoutLayout({hrId}) {
+export default function UserFlyoutLayout({hrId, handleClose}) {
   const [activeTab, setActiveTab] = useState('shifts');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
@@ -49,7 +50,7 @@ export default function UserFlyoutLayout({hrId}) {
   };
 
   return (
-    <div className="xl:min-w-[55rem] 2xl:min-w-[70rem] max-w-[70rem] min-h-96 flex flex-col justify-between divide-gray-300 cursor-auto">
+    <div className="h-full w-full flex flex-col justify-between divide-gray-300 cursor-auto">      
       <div className="">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (
@@ -84,6 +85,29 @@ export default function UserFlyoutLayout({hrId}) {
             </a>
           ))}
         </nav>
+      </div>
+      
+      <div className="w-full px-4">
+        <div className="flex items-center justify-between py-4 w-full border-b border-gray-200">
+          <div className="">
+            <UserItemFull 
+              agent={{hr_id: hrId}} 
+              allowClickInto={false} 
+              iconSize='extra-large'
+              headingClass={"text-base font-semibold text-gray-900"}
+              subHeadingClass={"text-sm text-gray-500"}
+            />
+          </div>
+          <div className="z-10">
+            <button
+              type="button"
+              className="relative rounded-xl text-gray-500 hover:text-gray-600 focus:outline-none"
+              onClick={handleClose}
+            >
+              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {renderTabContent()}

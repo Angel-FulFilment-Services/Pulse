@@ -20,7 +20,7 @@ const SkeletonLoader = ({ className }) => (
   <div className={`animate-pulse bg-gray-100 ${className}`} />
 );
 
-const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false }) => {
+const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, headingClass = null, subHeadingClass = null}) => {
   const selectedSizeClass = sizeClasses[iconSize] || sizeClasses['medium'];
   const userStates = useUserStates();
   const userState = agent?.hr_id ? userStates[agent.hr_id] : null;
@@ -43,10 +43,10 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
 
   return (
     <div className="flex gap-x-6">
-      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} />
+      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} />
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
-          <div className="text-sm font-medium text-nowrap leading-6 text-gray-900 w-max">{agent.agent}</div>
+          <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900"} text-nowrap leading-6 w-max`}>{agent.agent || userState.name}</div>
           {shift && timesheets && (
             <div
               className={classNames(
@@ -58,7 +58,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
             </div>
           )}
         </div>
-        <div className="pt-0.5 flex items-center gap-x-2 text-xs leading-5 text-gray-500"> {jobTitle} {jobTitle ? <div class="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span></div>
+        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500"} pt-0.5 flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
         {/* <div className="mt-0 text-xs leading-5 text-gray-500"> {jobTitle} <span>- Due: 09:00am </span></div> */}
       </div>
     </div>
