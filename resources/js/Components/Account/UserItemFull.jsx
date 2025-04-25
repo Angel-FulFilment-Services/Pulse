@@ -58,7 +58,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
             </div>
           )}
         </div>
-        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500"} pt-0.5 flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
+        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500"} ${shift ? "pt-0.5" : null} flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
         {/* <div className="mt-0 text-xs leading-5 text-gray-500"> {jobTitle} <span>- Due: 09:00am </span></div> */}
       </div>
     </div>

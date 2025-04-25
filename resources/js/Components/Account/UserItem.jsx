@@ -4,6 +4,7 @@ import { useUserStates } from '../Context/ActiveStateContext';
 import ClickedModal from '../Modals/ClickedModal';
 import React, { memo, useMemo } from 'react';
 import UserFlyoutLayout from './UserFlyoutLayout';
+import PopoverFlyout from '../Flyouts/PopoverFlyout';
 
 const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
   const sizeClasses = {
@@ -76,9 +77,27 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300`} aria-hidden="true" />
         )}
-        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-50">
-          <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
-        </span>
+      <PopoverFlyout
+        placement='top'
+        className=""
+        placementOffset={-4}
+        content={
+          <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">
+              {
+                activeIndicatorColor === 'bg-green-500' ? (
+                  <p className="text-sm">Active</p>
+                ) : activeIndicatorColor === 'bg-yellow-500' ? (
+                  <p className="text-sm">Active {Math.floor(differenceInMinutes(new Date(), new Date(lastActiveAt)))} minutes ago</p>
+                ) : (
+                  <p className="text-sm">Inactive</p>
+                )
+              }
+          </div>
+        }>
+          <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-50">
+            <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
+          </span>
+        </PopoverFlyout>
       </span>
     </>
   );

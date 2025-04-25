@@ -37,6 +37,7 @@ class UserController extends Controller
             }
 
             $userStates[$user->hr_id] = [
+                'user_id' => $user->user_id,
                 'name' => $user->name,
                 'job_title' => $user->job_title,
                 'profile_photo' => $user->profile_photo,

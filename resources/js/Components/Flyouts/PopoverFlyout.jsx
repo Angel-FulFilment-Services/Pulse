@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useFloating, offset, arrow, autoUpdate, computePosition, flip, shift } from '@floating-ui/react-dom';
 import './PopoverFlyoutStyles.css';
 
-export default function PopoverFlyout({ placement = 'top', width = 'auto', className = '', style = {}, children, content }) {
+export default function PopoverFlyout({ placement = 'top', width = 'auto', className = '', placementOffset = 5, style = {}, children, content }) {
   const [isOpen, setIsOpen] = useState(false);
   const referenceElement = useRef(null);
   const popperElement = useRef(null);
@@ -11,7 +11,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   const { x, y, strategy, middlewareData, update } = useFloating({
     placement: placement,
     strategy: 'absolute',
-    middleware: [offset(5), arrow({ element: arrowElement }), flip()], // Increased offset value
+    middleware: [offset(placementOffset), arrow({ element: arrowElement }), flip()], // Increased offset value
   });
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
         if (!popperElement.current) return;
         computePosition(referenceElement.current, popperElement.current, {
           placement: placement,
-          middleware: [offset(5), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
+          middleware: [offset(placementOffset), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
         }).then(({ x, y, placement, middlewareData }) => {
           if (!popperElement.current) return;
 
@@ -60,7 +60,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
       // Precompute the position before opening
       const { x, y, middlewareData, placement } = computePosition(referenceElement.current, popperElement.current, {
         placement: placement,
-        middleware: [offset(5), flip(), arrow({ element: arrowElement.current }), shift({ padding: 5 })],
+        middleware: [offset(placementOffset), flip(), arrow({ element: arrowElement.current }), shift({ padding: placementOffset })],
       });
 
       // Apply the calculated position

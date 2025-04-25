@@ -1,53 +1,52 @@
-import React, { useRef } from 'react';
+import React, { useId } from 'react';
 
 export default function Logo() {
-    const pathRef = useRef(null);
+    const uniqueId = useId(); // Generate a unique ID for each instance of the Logo component
 
     return (
-        <div className="flex flex-row shrink-0 justify-center items-center gap-3">
-            <div className="flex flex-col shrink-0 justify-center items-center">
+        <div className="flex flex-row shrink-0 justify-center items-center gap-x-2">
+            <div className="flex flex-col justify-center items-center min-w-16 min-h-16">
                 {/* Donut SVG */}
                 <svg
-                    viewBox="-4 -4 48 48"
-                    className="z-10 w-16 h-16"
+                    viewBox="0 0 40 40"
+                    className="z-10 w-14 h-14 block ring-4 ring-orange-50 rounded-full shadow-lg"
                 >
                     <defs>
-                        <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id={`orange-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="rgb(253, 186, 116)" /> {/* Tailwind orange-300 */}
                             <stop offset="100%" stopColor="rgb(249, 115, 22)" /> {/* Tailwind orange-500 */}
                         </linearGradient>
 
                         {/* Define the clipping path */}
-                        <clipPath id="donut-clip">
-                            <circle cx="20" cy="20" r="23.4" /> {/* Inner radius of the donut */}
+                        <clipPath id={`donut-clip-${uniqueId}`}>
+                            <circle cx="20" cy="20" r="24" /> {/* Inner radius of the donut */}
                         </clipPath>
                     </defs>
                     <circle
                         cx="20"
                         cy="20"
-                        r="18.4"
+                        r="19"
                         fill="none"
-                        stroke="url(#orange-gradient)" // Apply the gradient
-                        strokeWidth="10"
-                        className=""
+                        stroke={`url(#orange-gradient-${uniqueId})`} // Use the unique gradient ID
+                        strokeWidth="15"
                     />
                 </svg>
+
+                <div className="absolute w-10 h-10 rounded-full flex items-center justify-center bg-orange-50" />
 
                 {/* Inner Line SVG */}
                 <svg
                     viewBox="0 0 40 40" /* Adjusted viewBox to match the line's length */
-                    className="overflow-visible absolute w-8 h-8 mt-0.5"
+                    className="overflow-visible block shrink-0 absolute w-7 h-7 mt-0.5"
                 >
                     <defs>
-                        <linearGradient id="orange-gradient-line" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id={`orange-gradient-line-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="rgb(253, 186, 116)" />
                             <stop offset="100%" stopColor="rgb(249, 115, 22)" />
                         </linearGradient>
                     </defs>
-                    {/*  */}
-                    <g clipPath="url(#donut-clip)"> {/* Group with clipping applied */}
+                    <g clipPath={`url(#donut-clip-${uniqueId})`}> {/* Use the unique clipPath ID */}
                         <path
-                            ref={pathRef} // Attach the ref to the path
                             d="
                                 M0,20 
                                 L58,20 
@@ -61,10 +60,11 @@ export default function Logo() {
                                 L98,20
                             "
                             fill="none"
-                            stroke="url(#orange-gradient-line)" // Apply the gradient
+                            stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
                             strokeWidth={3.5}
                             strokeLinecap="round"
                             strokeLinejoin="round"
+                            shapeRendering="geometricPrecision"
                             className="ekg-path"
                         />
                     </g>
