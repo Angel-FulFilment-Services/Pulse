@@ -50,8 +50,8 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
   };
 
   return (
-    <div className="h-full w-full flex flex-col justify-between divide-gray-300 cursor-auto">      
-      <div className="">
+    <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr,auto] justify-between divide-gray-300 cursor-auto overflow-hidden">
+      <div className="h-auto">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (
             <a
@@ -86,7 +86,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
           ))}
         </nav>
       </div>
-      
+
       <div className="w-full px-4">
         <div className="flex items-center justify-between py-4 w-full border-b border-gray-200">
           <div className="">
@@ -110,7 +110,9 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
         </div>
       </div>
 
-      {renderTabContent()}
+      <div className="w-full px-4 overflow-auto">
+        {renderTabContent()}
+      </div>
 
       <div className="border-t border-gray-50">
         <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 py-3 px-3">

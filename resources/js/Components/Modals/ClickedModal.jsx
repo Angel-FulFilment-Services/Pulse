@@ -106,22 +106,30 @@ export default function ClickedModal({
                 zIndex: 999,
                 backgroundColor: 'rgba(0, 0, 0, 0.4)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                flexDirection: "row"
               }}
             >
+              <div className="hidden lg:flex lg:flex-col min-w-72 w-72 h-20"></div>
               <div
-                ref={popperElement}
                 style={{
-                  width: sizeClasses[size]?.width, // Dynamically set width
-                  height: sizeClasses[size]?.height, // Dynamically set height
+                  width:"100%",
+                  height:"100%",
+                  postion:"relative",
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ml-0 mt-16 lg:mt-0 lg:ml-72 ring-gray-900/5`}
               >
-                {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
+                <div 
+                  ref={popperElement} 
+                  style={{
+                    width: sizeClasses[size]?.width, // Dynamically set width
+                    height: sizeClasses[size]?.height, // Dynamically set height
+                  }} 
+                  className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink`}
+                >
+                  {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
+                </div>
               </div>
             </FloatingOverlay>
           ) : (
