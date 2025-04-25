@@ -36,7 +36,7 @@ export default function Logo() {
                 {/* Inner Line SVG */}
                 <svg
                     viewBox="0 0 40 40" /* Adjusted viewBox to match the line's length */
-                    className="overflow-visible absolute w-8 h-8"
+                    className="overflow-visible absolute w-8 h-8 mt-0.5"
                 >
                     <defs>
                         <linearGradient id="orange-gradient-line" x1="0%" y1="0%" x2="100%" y2="100%">
