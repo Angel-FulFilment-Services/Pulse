@@ -10,13 +10,35 @@
 }
 
 .ekg-path {
-    stroke-dasharray: 300;
+    transform: translateX(-50px);
     stroke-dashoffset: 300;
-    animation: ekg-draw 2s linear infinite;
+    stroke-dasharray: 300;
+    opacity: 1;
+    animation: ekg-draw 5s linear infinite;
 }
 
 @keyframes ekg-draw {
-    to {
+    
+    0% {
+        opacity: 0;
+        stroke-dashoffset: 300;
+    }
+    10% {
+        opacity: 1;
+    }
+    30% {
+        opacity: 1;
         stroke-dashoffset: 0;
+    }
+
+    70% {   
+        stroke-dashoffset: 0;   
+    }
+    75% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        stroke-dashoffset: -300;
     }
 }
