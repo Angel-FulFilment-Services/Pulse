@@ -5,13 +5,11 @@ export default function Logo() {
 
     return (
         <div className="flex flex-row shrink-0 justify-center items-center gap-3">
-            <div className="flex flex-col shrink-0 justify-center items-center h-16 w-16">
+            <div className="flex flex-col shrink-0 justify-center items-center">
                 {/* Donut SVG */}
                 <svg
-                    viewBox="0 0 40 40"
-                    width="65"
-                    height="65"
-                    className="z-10"
+                    viewBox="-4 -4 48 48"
+                    className="z-10 w-16 h-16"
                 >
                     <defs>
                         <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -27,10 +25,10 @@ export default function Logo() {
                     <circle
                         cx="20"
                         cy="20"
-                        r="16"
+                        r="18.4"
                         fill="none"
                         stroke="url(#orange-gradient)" // Apply the gradient
-                        strokeWidth="8"
+                        strokeWidth="10"
                         className=""
                     />
                 </svg>
@@ -38,9 +36,7 @@ export default function Logo() {
                 {/* Inner Line SVG */}
                 <svg
                     viewBox="0 0 40 40" /* Adjusted viewBox to match the line's length */
-                    width="35"
-                    height="35"
-                    className="overflow-visible absolute"
+                    className="overflow-visible absolute w-8 h-8"
                 >
                     <defs>
                         <linearGradient id="orange-gradient-line" x1="0%" y1="0%" x2="100%" y2="100%">
