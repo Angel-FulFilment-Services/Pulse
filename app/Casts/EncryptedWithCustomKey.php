@@ -29,16 +29,29 @@ class EncryptedWithCustomKey implements CastsAttributes
         if ($value === null) {
             return null;
         }
-
-        // Decrypt using AES-128-CBC
-        $encryptedData = hex2bin($value); // Convert the stored value from hexadecimal to binary
-
-        return openssl_decrypt(
-            $encryptedData,
-            'AES-128-CBC',
-            $this->encryptionKey,
-            OPENSSL_RAW_DATA
-        );
+    
+        try {
+            // Extract the IV and encrypted data from the stored value
+            $encryptedData = hex2bin($value);
+    
+            // Decrypt the data
+            $decryptedData = openssl_decrypt(
+                $encryptedData,
+                'AES-128-ECB',
+                $this->encryptionKey,
+                OPENSSL_RAW_DATA,
+            );
+    
+            if ($decryptedData === false) {
+                throw new Exception('Decryption failed.');
+            }
+    
+            return $decryptedData;
+        } catch (Exception $e) {
+            // Log the error for debugging
+            \Log::error('Decryption error: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -60,7 +73,7 @@ class EncryptedWithCustomKey implements CastsAttributes
         $iv = random_bytes(16); // Generate a random 16-byte IV
         $encryptedData = openssl_encrypt(
             $value,
-            'AES-128-CBC',
+            'AES-128-ECB',
             $this->encryptionKey,
             0,
             $iv

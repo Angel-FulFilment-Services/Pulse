@@ -52,6 +52,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
             "AWOL": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
             "Absent": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
             "Sick": "text-yellow-700 bg-yellow-100 border-dashed border-2 border-yellow-600/50 hover:bg-yellow-50",
+            "Gap": "text-gray-700 bg-gray-100/50 border-dashed border-2 border-gray-400/25 hover:bg-gray-50",
         },
         "detail": {
             "PBX Import": 'text-orange-700 bg-orange-50 ring-orange-600/30',
@@ -67,6 +68,7 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
             "AWOL": "text-red-700 bg-red-50 ring-red-600/30",
             "Absent": "text-red-700 bg-red-50 ring-red-600/30",
             "Sick": "text-yellow-600 bg-yellow-50 ring-yellow-600/30",
+            "Gap": "text-gray-500 bg-gray-50 ring-gray-600/30"
         }
     }
 
@@ -172,12 +174,12 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
         })
         .map((record) => new Date(record.on_time))
         .sort((a, b) => a - b)[0];
-  
+        
       if (earliestOnTime && earliestOnTime > shiftStartDate) {
         const lateMinutes = differenceInMinutes(earliestOnTime, shiftStartDate);
         const latePercentage = (lateMinutes / totalShiftMinutes) * 100;
   
-        if (latePercentage > 2.5) {
+        if (latePercentage > 1) {
           blocks.unshift({
             category: "Lateness",
             color: categories["time block"]['Lateness'],
@@ -190,8 +192,35 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
           });
         }
       }
+      // Add gaps between blocks
+      const gapBlocks = [];
+      for (let i = 0; i < blocks.length - 1; i++) {
+        const currentBlockEnd = new Date(blocks[i].end);
+        const nextBlockStart = new Date(blocks[i + 1].start);
+
+        if (currentBlockEnd < nextBlockStart) {
+          const gapMinutes = differenceInMinutes(nextBlockStart, currentBlockEnd);
+          const gapPercentage = (gapMinutes / totalShiftMinutes) * 100;
+
+          if( gapPercentage > 1){
+            gapBlocks.push({
+              category: 'Gap',
+              color: categories['time block']['Gap'], // Use a neutral color for gaps
+              width: `${gapPercentage}%`,
+              left: `${(differenceInMinutes(currentBlockEnd, shiftStartDate) / totalShiftMinutes) * 100}%`,
+              start: currentBlockEnd,
+              end: nextBlockStart,
+              started: currentBlockEnd.toLocaleTimeString('en-GB', { hour12: false }),
+              ended: nextBlockStart.toLocaleTimeString('en-GB', { hour12: false }),
+            });
+          }
+        }
+      }
+
+      // Merge gap blocks with existing blocks
+      const allBlocks = [...blocks, ...gapBlocks].sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
   
-      return { blocks, totalActualMinutes, totalLoggedOnSeconds, totalAdditionalSeconds, earliestOnTime, reductionMinutes };
+      return { blocks: allBlocks, totalActualMinutes, totalLoggedOnSeconds, totalAdditionalSeconds, earliestOnTime, reductionMinutes };
     };
   
   const { blocks: timeBlocks, totalActualMinutes, totalLoggedOnSeconds, totalAdditionalSeconds, earliestOnTime, reductionMinutes } = calculateTimeBlocks(shift, timesheets, events);

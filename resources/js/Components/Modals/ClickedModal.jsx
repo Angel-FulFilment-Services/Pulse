@@ -20,12 +20,12 @@ export default function ClickedModal({
   const arrowElement = useRef(null);
 
   const sizeClasses = {
-    xs: { width: '50rem', height: '25rem' }, 
-    sm: { width: '60rem', height: '30rem' }, 
-    md: { width: '70rem', height: '40rem' }, 
-    lg: { width: '80rem', height: '50rem' }, 
-    xl: { width: '90rem', height: '60rem' }, 
-    "2xl": { width: '95rem', height: '65rem' },
+    xs: { width: '40%', height: '50%' }, 
+    sm: { width: '50%', height: '60%' }, 
+    md: { width: '60%', height: '70%' }, 
+    lg: { width: '70%', height: '80%' }, 
+    xl: { width: '80%', height: '90%' }, 
+    "2xl": { width: '90%', height: '100%' },
   };
 
   const { x, y, strategy, middlewareData, context, update } = useFloating({
@@ -119,7 +119,7 @@ export default function ClickedModal({
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ml-0 lg:ml-72 ring-gray-900/5`}
+                className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ml-0 mt-16 lg:mt-0 lg:ml-72 ring-gray-900/5`}
               >
                 {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
               </div>
