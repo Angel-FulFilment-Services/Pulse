@@ -11,7 +11,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   const { x, y, strategy, middlewareData, update } = useFloating({
     placement: placement,
     strategy: 'absolute',
-    middleware: [offset(placementOffset), arrow({ element: arrowElement }), flip()], // Increased offset value
+    middleware: [offset(placementOffset), arrow({ element: arrowElement }), flip(), shift()], // Increased offset value
   });
 
   useEffect(() => {
@@ -30,7 +30,8 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
             visibility: 'visible',
           });
   
-          const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+          const { x: arrowX, y: arrowY } = middlewareData.arrow;
+          const { x: shiftX, y: shiftY } = middlewareData.shift;
   
           const staticSide = {
             top: 'bottom',
@@ -41,8 +42,8 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   
           if (arrowElement.current) {
             Object.assign(arrowElement.current.style, {
-              left: arrowX != null ? `${arrowX}px` : '',
-              top: arrowY != null ? `${arrowY}px` : '',
+              left: arrowX != null ? `${arrowX - shiftX}px` : '',
+              top: arrowY != null ? `${arrowY - shiftY}px` : '',
               right: '',
               bottom: '',
               [staticSide]: '-4px',

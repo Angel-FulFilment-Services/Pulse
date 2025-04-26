@@ -1,10 +1,14 @@
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 
 export default function TextInput(props) {
-  const { id, label, autoComplete, placeholder, annotation, currentState, spellCheck, Icon, onTextChange, onBlur, error, clearErrors } = props;
+  const { id, label, autoComplete, placeholder, annotation, currentState, spellCheck, Icon, onTextChange, returnRaw, onBlur, error, clearErrors } = props;
   
   const handleTextChange = (event) => {
-    onTextChange([{id: id, value: event.value}]);
+    if (returnRaw) {
+      onTextChange(event.value);
+    }else{
+      onTextChange([{id: id, value: event.value}]);
+    }
     if (clearErrors) clearErrors();
   }
 

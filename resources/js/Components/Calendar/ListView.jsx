@@ -16,6 +16,7 @@ import { useUserStates } from '../Context/ActiveStateContext';
 import { UtilisationTargetsProvider } from '../Context/UtilisationTargetsContext.jsx';
 
 export default function ListView({ setView, viewType }) {
+  const [search, setSearch] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -74,8 +75,8 @@ export default function ListView({ setView, viewType }) {
   
   const userStates = useUserStates();
   const groupedShifts = useMemo(() => {
-    return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters);
-  }, [shifts, timesheets, filters]);
+    return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters, search);
+  }, [shifts, timesheets, filters, search]);
   
   useEffect(() => {
     if (shifts.length) {
@@ -163,6 +164,8 @@ export default function ListView({ setView, viewType }) {
         <MenuComponent
           currentView={viewType.charAt(0).toUpperCase() + viewType.slice(1)}
           setView={setView}
+          search={search}
+          setSearch={setSearch}
           currentDate={currentDate}
           handleNextTimeframe={handleNextTimeframe}
           handlePreviousTimeframe={handlePreviousTimeframe}

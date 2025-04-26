@@ -1,12 +1,15 @@
 import { Fragment, useState, useEffect } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Menu, Transition } from '@headlessui/react';
 import SelectControl from '../Controls/SelectControl';
+import TextInput from '../Forms/TextInput';
 import CycleControl from '../Controls/CycleControl';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { getOrdinalSuffix } from '../../Utils/Date';
+import { set } from 'lodash';
 
-export default function MenuComponent({ currentView, setView, handleNextTimeframe, handlePreviousTimeframe, currentDate }) {
+export default function MenuComponent({ currentView, setView, search, setSearch, handleNextTimeframe, handlePreviousTimeframe, currentDate }) {
   const [views, setViews] = useState([
     { id: 'day', value: 'Day', displayValue: 'Day view' },
     { id: 'week', value: 'Week', displayValue: 'Week view' },
@@ -43,6 +46,8 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
 
   const handleSelectChange = (selected) => {
     setView(selected.value);
+    if( search )
+      setSearch('');
   };
 
   const defaultSelected = views.find(view => view.value.toLowerCase() === currentView.toLowerCase());
@@ -82,6 +87,19 @@ export default function MenuComponent({ currentView, setView, handleNextTimefram
       </div>
 
       <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end w-full gap-y-2 sm:gap-x-2">
+        { setSearch ? 
+          <div className="w-56 bg-white rounded-md">
+            <TextInput
+              id="view-select"
+              Icon={MagnifyingGlassIcon}
+              onTextChange={setSearch}
+              placeholder={`Search Employees`}
+              currentState={search}
+              returnRaw={true}
+            />
+          </div> : null
+        }
+
         <div className="w-56 sm:w-36">
           <SelectControl
             id="view-select"

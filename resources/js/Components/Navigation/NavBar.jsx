@@ -1,11 +1,13 @@
 import { React, Fragment, useState, useMemo, useEffect } from 'react'
+import { usePage } from '@inertiajs/react'
 import { useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react'
 import Logo from '../Branding/Logo.jsx';
 import NavItem from './NavItem.jsx';
 import NavTeamItem from './NavTeamItem.jsx';
-import NavUserItem from './NavUserItem.jsx';
 import { router } from '@inertiajs/react'
+import UserItemSelf from '../Account/UserItemSelf';
+import UserItem from '../Account/UserItem';
 
 import {
   Bars3Icon,
@@ -18,14 +20,15 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
-const teams = [
-  // { name: 'All Agents', href: '#', initial: 'A', current: false },
-  // { name: 'Outbound Team', href: '#', initial: 'O', current: false },
-]
-
 export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const { employee } = usePage().props;
+
+  const teams = [
+    { name: 'All Staff', href: '#', initial: 'A', current: false },
+    { name: employee?.job_title + "s", href: '#', initial: employee?.job_title.charAt(0).toUpperCase(), current: false },
+  ]
 
   const navigation = useMemo(() => [
     // { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: window.location.pathname.startsWith('/dashboard') },
@@ -152,7 +155,12 @@ export default function NavBar({ page }) {
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
-                  <NavUserItem></NavUserItem>
+                  <a
+                    href="#"
+                    className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50"
+                  >
+                    <UserItemSelf></UserItemSelf>
+                  </a>
                 </li>
               </ul>
             </nav>
@@ -168,11 +176,7 @@ export default function NavBar({ page }) {
           <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">Dashboard</div>
           <a href="#">
             <span className="sr-only">Your profile</span>
-            <img
-              className="h-8 w-8 rounded-full bg-gray-50"
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-              alt=""
-            />
+            <UserItem userId={employee.hr_id} size={"small"} allowClickInto={false} />
           </a>
         </div>
 

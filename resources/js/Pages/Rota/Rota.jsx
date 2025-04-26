@@ -4,7 +4,6 @@ import MonthView from '../../Components/Calendar/MonthView.jsx';
 import ListView from '../../Components/Calendar/ListView.jsx';
 
 const Rota = ({ token }) => {
-
     const [currentView, setCurrentView] = useState('List');    
 
     const renderView = () => {
