@@ -50,7 +50,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
   };
 
   return (
-    <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr,auto] justify-between divide-gray-300 cursor-auto overflow-hidden">
+    <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr] justify-between divide-gray-300 cursor-auto overflow-hidden">
       <div className="h-auto">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (
@@ -114,7 +114,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
         {renderTabContent()}
       </div>
 
-      <div className="border-t border-gray-50">
+      {/* <div className="border-t border-gray-50">
         <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 py-3 px-3">
           <input
             type="text"
@@ -125,7 +125,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
             <PaperAirplaneIcon className="w-5 h-5 pl-0.5 text-gray-400"></PaperAirplaneIcon>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
