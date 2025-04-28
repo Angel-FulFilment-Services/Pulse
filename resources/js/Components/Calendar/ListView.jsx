@@ -8,12 +8,13 @@ import FilterControl from '../Controls/FilterControl';
 import UserItemFull from '../Account/UserItemFull';
 import ShiftProgressBar from './ShiftProgressBar';
 import DrawerOverlay from '../Overlays/DrawerOverlay';
+import ShiftView from './ShiftView';
 import './CalendarStyles.css';
 import { format, startOfDay, endOfDay, subDays, addDays, set } from 'date-fns';
 import { groupShifts, getStatus } from '../../Utils/Rota';
-import ShiftView from './ShiftView';
 import { useUserStates } from '../Context/ActiveStateContext';
 import { UtilisationTargetsProvider } from '../Context/UtilisationTargetsContext.jsx';
+import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 
 export default function ListView({ setView, viewType }) {
   const [search, setSearch] = useState('');
@@ -205,8 +206,7 @@ export default function ListView({ setView, viewType }) {
                               </td>
                               <td className="py-2 text-right w-20">
                                 <div className={`animate-pulse flex flex-col items-end rounded h-10 w-1/2 ml-auto`}>
-                                  <div className="h-4 bg-gray-100 rounded-lg w-14 mb-2"></div>
-                                  <div className="h-4 bg-gray-100 rounded-lg w-14"></div>
+                                  <div className="h-4 bg-gray-100 rounded-lg w-20"></div>
                                 </div>
                               </td>
                             </tr>
@@ -283,12 +283,11 @@ export default function ListView({ setView, viewType }) {
                                           </td>
                                           <td className="py-2 text-right w-20">
                                             {!isLoaded || isTransitioning ? (
-                                              <div className={`animate-pulse flex flex-col items-end rounded h-10 w-1/2 ml-auto`}>
-                                                <div className="h-4 bg-gray-100 rounded-lg w-14 mb-2"></div>
-                                                <div className="h-4 bg-gray-100 rounded-lg w-14"></div>
+                                              <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
+                                                <div className="h-4 bg-gray-100 rounded-lg w-20"></div>
                                               </div>
                                             ) : (
-                                              <div className="flex justify-end">
+                                              <div className="flex justify-end gap-x-4">
                                                 <a
                                                   onClick={() => {
                                                     setSelectedShift({
@@ -302,9 +301,19 @@ export default function ListView({ setView, viewType }) {
                                                 >
                                                   View<span className="hidden sm:inline"> shift</span>
                                                 </a>
+                                                  { relevantEvents.find(event => event.requires_action) ?
+                                                    <div className="w-6 h-6 flex items-center justify-center absolute -mr-12">
+                                                      <div className="w-6 h-6 z-10 relative">
+                                                        <div className="w-4 h-4 bg-white rounded-full my-1 mx-1 absolute"> </div>
+                                                        <ExclamationCircleIcon className="w-6 h-6 text-red-400 rounded-full ring-inset absolute"></ExclamationCircleIcon>
+                                                      </div>
+                                                      <div className="bg-red-200 rounded-full flex items-center justify-center animate-pulse -z-10 absolute w-6 h-6"></div>
+                                                    </div>
+                                                    : null
+                                                  }
                                               </div>
                                             )}
-                                          </td>
+                                          </td>  
                                         </tr>
                                       );
                                     })}

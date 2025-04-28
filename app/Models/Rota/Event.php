@@ -30,6 +30,7 @@ class Event extends Authenticatable
         'off_time',
         'category',
         'notes',
+        'requires_action',
     ];
 
     /**

@@ -387,7 +387,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
 
   // Check if the earliest on_time is after the shiftStartDate
   const earliestOnTime = combinedData
-    .filter((record) => record.hr_id === shift.hr_id)
+    .filter((record) => record.hr_id === shift.hr_id && record.category == "PBX Import")
     .filter((record) => {
         const onTime = new Date(record.on_time);
         const offTime = record.off_time ? new Date(record.off_time) : new Date();

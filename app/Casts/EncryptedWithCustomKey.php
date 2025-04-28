@@ -69,17 +69,10 @@ class EncryptedWithCustomKey implements CastsAttributes
             return null;
         }
 
-        // Encrypt using AES-128-CBC
-        $iv = random_bytes(16); // Generate a random 16-byte IV
-        $encryptedData = openssl_encrypt(
-            $value,
-            'AES-128-ECB',
-            $this->encryptionKey,
-            0,
-            $iv
-        );
+        // Encrypt using AES-128-ECB
+        $encryptedData = openssl_encrypt($value, 'AES-128-ECB', $this->encryptionKey, OPENSSL_RAW_DATA);
 
-        // Prepend the IV to the encrypted data and convert to a hexadecimal string
-        return bin2hex($iv) . bin2hex($encryptedData);
+        // Convert to a hexadecimal string
+        return bin2hex($encryptedData);
     }
 }
