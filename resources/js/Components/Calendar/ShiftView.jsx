@@ -232,7 +232,7 @@ export default function ShiftView({ selectedShift }) {
           <FlagShift
             selectedShift={selectedShift}
             selectedEvent={selectedEvent}
-            onCancel={() => setShowFlagShift(false)} // Hide the FlagShift component
+            onCancel={() => {setShowFlagShift(false); setSelectedEvent(null);}} // Hide the FlagShift component
           />
         ) : (
           <ShiftInformation selectedShift={selectedShift} selectedEvent={selectedEvent} setShowFlagShift={setShowFlagShift} setSelectedEvent={setSelectedEvent} />

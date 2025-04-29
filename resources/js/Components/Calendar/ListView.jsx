@@ -1,4 +1,9 @@
 import { Fragment, useEffect, useState, useMemo, useRef } from 'react';
+import { format, startOfDay, endOfDay, subDays, addDays, set } from 'date-fns';
+import { groupShifts, getStatus } from '../../Utils/Rota';
+import { useUserStates } from '../Context/ActiveStateContext';
+import { UtilisationTargetsProvider } from '../Context/UtilisationTargetsContext.jsx';
+import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 import useFetchShifts from './useFetchShifts';
 import useFetchTimesheets from './useFetchTimesheets';
 import useFetchEvents from './useFetchEvents';
@@ -10,11 +15,7 @@ import ShiftProgressBar from './ShiftProgressBar';
 import DrawerOverlay from '../Overlays/DrawerOverlay';
 import ShiftView from './ShiftView';
 import './CalendarStyles.css';
-import { format, startOfDay, endOfDay, subDays, addDays, set } from 'date-fns';
-import { groupShifts, getStatus } from '../../Utils/Rota';
-import { useUserStates } from '../Context/ActiveStateContext';
-import { UtilisationTargetsProvider } from '../Context/UtilisationTargetsContext.jsx';
-import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
+
 
 export default function ListView({ setView, viewType }) {
   const [search, setSearch] = useState('');
@@ -34,8 +35,6 @@ export default function ListView({ setView, viewType }) {
   const { calls, isLoading: isLoadingCalls, isLoaded: isLoadedCalls } = useFetchCalls(startDate, endDate);
 
   const [filters, setFilters] = useState(() => {
-    const userStates = useUserStates();
-
     return [
       {
         id: 'job_title',
@@ -44,15 +43,13 @@ export default function ListView({ setView, viewType }) {
           const user = userStates[shift.hr_id];
           return user?.job_title === filterValue;
         },
-        options: Array.from(
-          new Set(Object.values(userStates).map((user) => user.job_title).filter(Boolean))
-        )
-          .sort((a, b) => a.localeCompare(b))
-          .map((jobTitle) => ({
-            value: jobTitle,
-            label: jobTitle,
-            checked: false,
-          })),
+        options: [
+          {value: 'Team Manager', label: 'Team Manager', checked: false},
+          {value: 'Duty Manager', label: 'Duty Manager', checked: false},
+          {value: 'Contact Centre Agent', label: 'Contact Centre Agent', checked: false},
+          {value: 'Housekeeping', label: 'Housekeeping', checked: false},
+          {value: 'Quality Control Officer', label: 'Quality Control Officer', checked: false}
+        ]
       },
       {
         id: 'status',
@@ -64,7 +61,7 @@ export default function ListView({ setView, viewType }) {
         options: [
           { value: 'Absent', label: 'Absent', checked: false },
           { value: 'Attended', label: 'Attended', checked: false },
-          { value: 'Awol', label: 'Awol', checked: false },
+          { value: 'AWOL', label: 'AWOL', checked: false },
           { value: 'Late', label: 'Late', checked: false },
           { value: 'Reduced', label: 'Reduced', checked: false },
           { value: 'Sick', label: 'Sick', checked: false },

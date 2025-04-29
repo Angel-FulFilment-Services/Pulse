@@ -264,13 +264,13 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                   </button>
                   <button
                     type="button"
-                    className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                    className="bg-red-50 w-7 h-7 ring-1 ring-red-200 rounded-md hover:bg-red-100 flex justify-center items-center"
                     onClick={() => {
                       setSelectedEvent(record);
                       setIsDialogOpen(true);
                     }}
                   >
-                    <TrashIcon className="w-5 h-5 inline-block text-red-500" />
+                    <TrashIcon className="w-5 h-5 inline-block text-red-600" />
                   </button>
                 </div>
               ) : null,

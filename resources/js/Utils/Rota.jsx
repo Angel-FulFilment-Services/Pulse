@@ -220,10 +220,13 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
   
             // If no options are checked, skip this filter
             if (activeOptions.length === 0) return true;
-  
+            
+            const relevantTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == shift.hr_id);
+            const relevantEvents = events.filter((event) => event.hr_id == shift.hr_id);
+
             // Evaluate the filter's expression for each active option
             return activeOptions.some((option) =>
-              filter.expression(shift, userStates, timesheets, events)(option.value)
+              filter.expression(shift, userStates, relevantTimesheets, relevantEvents)(option.value)
             );
           });
         });
