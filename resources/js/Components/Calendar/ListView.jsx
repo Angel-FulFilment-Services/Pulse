@@ -121,7 +121,8 @@ export default function ListView({ setView, viewType }) {
         const eventOff = new Date(event.off_time);
         return (
           eventOn >= shiftStart &&
-          eventOff <= shiftEnd
+          eventOff <= shiftEnd &&
+          event.hr_id == selectedShift.shift.hr_id
         );
       });
   
