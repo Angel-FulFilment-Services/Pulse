@@ -22,11 +22,11 @@ class T2SMS
         }
 
         // Check the status of T2 servers.
-        $status = self::checkT2Status();
-        if(!$status){
-            Log::info($status);
-            return $status;
-        }
+        // $status = self::checkT2Status();
+        // if(!$status){
+        //     Log::info($status);
+        //     return $status;
+        // }
 
         // Enocode the message into URL format and strip the message of unwanted characters.
         $encodedMessage = self::encodeMessage($message);

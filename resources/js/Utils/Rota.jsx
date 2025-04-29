@@ -27,7 +27,7 @@ export function getStatus(shift, timesheets, events) {
   if (events && events.length > 0) {
     const latestEvent = events
       .filter((event) => {
-        if (!event.on_time || !event.off_time) return false;
+        if (!event.on_time || !event.off_time || event.category === 'Note') return false;
         const eventOn = new Date(event.on_time);
         const eventOff = new Date(event.off_time);
         return (
@@ -335,7 +335,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
   // Merge timesheets and events
   const combinedData = [
     ...(timesheets || []).map((record) => ({ ...record, origin: 'timesheets' })),
-    ...(events || []).map((record) => ({ ...record, origin: 'events' })),
+    ...(events || []).filter((event) => event.category !== 'Note').map((record) => ({ ...record, origin: 'events' })),
   ];
   
   const blocks = combinedData

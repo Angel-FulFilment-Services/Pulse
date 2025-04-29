@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-export default function DrawerOverlay({ isOpen, onClose, title, subTitle, children, hasBackdrop, slideFrom = 'right' }) {
+export default function DrawerOverlay({ isOpen, onClose, title, subTitle, children, hasBackdrop, slideFrom = 'right', width = 'md' }) {
   const slideInClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
   const slideOutClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
 
@@ -35,7 +35,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
                 leaveFrom="translate-x-0"
                 leaveTo={slideOutClasses}
               >
-                <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
+                <Dialog.Panel className={`pointer-events-auto w-screen max-w-${width}`}>
                   <div className="flex h-full flex-col overflow-y-auto bg-white py-6 shadow-xl">
                     <div className="px-4 sm:px-6">
                       <div className="flex items-start justify-between">

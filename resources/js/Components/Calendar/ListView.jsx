@@ -111,20 +111,7 @@ export default function ListView({ setView, viewType }) {
   
       // Find the updated timesheets and events for the selected shift
       const updatedTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == selectedShift.shift.hr_id);
-      const updatedEvents = events.filter((event) => {
-        if (!event.on_time || !event.off_time) return false;
-        const shiftStart = new Date(selectedShift.shift.shiftdate);
-        shiftStart.setHours(Math.floor(selectedShift.shift.shiftstart / 100), selectedShift.shift.shiftstart % 100, 0, 0);
-        const shiftEnd = new Date(selectedShift.shift.shiftdate);
-        shiftEnd.setHours(Math.floor(selectedShift.shift.shiftend / 100), selectedShift.shift.shiftend % 100, 0, 0);
-        const eventOn = new Date(event.on_time);
-        const eventOff = new Date(event.off_time);
-        return (
-          eventOn >= shiftStart &&
-          eventOff <= shiftEnd &&
-          event.hr_id == selectedShift.shift.hr_id
-        );
-      });
+      const updatedEvents = events.filter((event) => event.hr_id == selectedShift.shift.hr_id);
   
       // Update the selectedShift state with the latest data
       setSelectedShift({
@@ -218,7 +205,7 @@ export default function ListView({ setView, viewType }) {
                                 <ShiftProgressBar isLoading={true} />
                               </td>
                               <td className="py-2 text-right w-20">
-                                <div className={`animate-pulse flex flex-col items-end rounded h-10 w-1/2 ml-auto`}>
+                                <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
                                   <div className="h-4 bg-gray-100 rounded-lg w-20"></div>
                                 </div>
                               </td>
@@ -356,6 +343,7 @@ export default function ListView({ setView, viewType }) {
             ? "Upcoming Shift"
             : "Previous Shift"
         }
+        width="lg"
         subTitle={
           selectedShift
             ? (() => {

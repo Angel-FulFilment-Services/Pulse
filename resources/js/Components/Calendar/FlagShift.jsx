@@ -7,16 +7,18 @@ import { validateRequired, validateMatches } from '../../Utils/Validation';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import { toast } from 'react-toastify';
 
-export default function FlagShift({ selectedShift, onCancel }) {
+export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
+
   const [formData, setFormData] = useState({
-    hrID: selectedShift.shift.hr_id,
-    flagType: '',
+    eventID: selectedEvent?.id ? selectedEvent.id : null,
+    hrID: selectedEvent?.hr_id ? selectedEvent.hr_id : selectedShift.shift.hr_id,
+    flagType: selectedEvent?.category ? selectedEvent.category : '',
     requiresAction: '',
     meetingDate: '',
     meetingTime: { hour: '', minute: '' },
     startTime: { hour: '', minute: '' },
     endTime: { hour: '', minute: '' },
-    notes: '',
+    notes: selectedEvent?.notes ? selectedEvent.notes : '',
     date: selectedShift.shift.shiftdate,
     shiftID: selectedShift.shift.unq_id,
   });
@@ -24,6 +26,7 @@ export default function FlagShift({ selectedShift, onCancel }) {
   const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [shiftStart, setShiftStart] = useState('');
   const [shiftEnd, setShiftEnd] = useState('');
@@ -33,26 +36,80 @@ export default function FlagShift({ selectedShift, onCancel }) {
     { id: 'absent', value: 'Absent' },
     { id: 'awol', value: 'AWOL' },
     { id: 'reduced', value: 'Reduced' },
+    { id: 'note', value: 'Note' },
   ];
 
   // Set default time and shift boundaries from selectedShift
   useEffect(() => {
-    if (selectedShift.shift?.shiftstart && selectedShift.shift?.shiftend) {
-      const startHour = selectedShift.shift.shiftstart.slice(0, 2);
-      const startMinute = selectedShift.shift.shiftstart.slice(2, 4);
-      const endHour = selectedShift.shift.shiftend.slice(0, 2);
-      const endMinute = selectedShift.shift.shiftend.slice(2, 4);
+    let startHour, startMinute, endHour, endMinute;
+    let shiftStartHour, shiftStartMinute, shiftEndHour, shiftEndMinute;
+  
+    if (selectedEvent && selectedEvent.on_time && selectedEvent.off_time) {
+      const onTime = new Date(selectedEvent.on_time);
+      const offTime = new Date(selectedEvent.off_time);
+  
+      startHour = String(onTime.getHours()).padStart(2, '0');
+      startMinute = String(onTime.getMinutes()).padStart(2, '0');
+      endHour = String(offTime.getHours()).padStart(2, '0');
+      endMinute = String(offTime.getMinutes()).padStart(2, '0');
 
-      setShiftStart(`${startHour}:${startMinute}`);
-      setShiftEnd(`${endHour}:${endMinute}`);
+      setIsUpdating(true);
+    } else if (selectedShift.shift?.shiftstart && selectedShift.shift?.shiftend) {
+      startHour = selectedShift.shift.shiftstart.slice(0, 2);
+      startMinute = selectedShift.shift.shiftstart.slice(2, 4);
+      endHour = selectedShift.shift.shiftend.slice(0, 2);
+      endMinute = selectedShift.shift.shiftend.slice(2, 4);
+    }
+  
+    if (startHour && startMinute && endHour && endMinute) {
+      shiftStartHour = selectedShift.shift.shiftstart.slice(0, 2);
+      shiftStartMinute = selectedShift.shift.shiftstart.slice(2, 4);
+      shiftEndHour = selectedShift.shift.shiftend.slice(0, 2);
+      shiftEndMinute = selectedShift.shift.shiftend.slice(2, 4);
 
+      setShiftStart(`${shiftStartHour}:${shiftStartMinute}`);
+      setShiftEnd(`${shiftEndHour}:${shiftEndMinute}`);
+      
       setFormData((prev) => ({
         ...prev,
-        startTime: { hour: startHour.padStart(2, '0'), minute: startMinute.padStart(2, '0') },
-        endTime: { hour: endHour.padStart(2, '0'), minute: endMinute.padStart(2, '0') },
+        startTime: { hour: startHour, minute: startMinute },
+        endTime: { hour: endHour, minute: endMinute },
       }));
     }
-  }, [selectedShift]);
+  }, [selectedShift, selectedEvent]);
+
+
+  useEffect(() => {
+    let startHour, startMinute, endHour, endMinute;
+    if (formData.flagType === 'Note') {
+      startHour = selectedShift.shift.shiftstart.slice(0, 2);
+      startMinute = selectedShift.shift.shiftstart.slice(2, 4);
+      endHour = selectedShift.shift.shiftstart.slice(0, 2);
+      endMinute = selectedShift.shift.shiftstart.slice(2, 4);
+    }else{
+      if (selectedEvent && selectedEvent.on_time && selectedEvent.off_time) {
+        const onTime = new Date(selectedEvent.on_time);
+        const offTime = new Date(selectedEvent.off_time);
+    
+        startHour = String(onTime.getHours()).padStart(2, '0');
+        startMinute = String(onTime.getMinutes()).padStart(2, '0');
+        endHour = String(offTime.getHours()).padStart(2, '0');
+        endMinute = String(offTime.getMinutes()).padStart(2, '0');
+      } else if (selectedShift.shift?.shiftstart && selectedShift.shift?.shiftend) {
+        startHour = selectedShift.shift.shiftstart.slice(0, 2);
+        startMinute = selectedShift.shift.shiftstart.slice(2, 4);
+        endHour = selectedShift.shift.shiftend.slice(0, 2);
+        endMinute = selectedShift.shift.shiftend.slice(2, 4);
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      startTime: { hour: startHour, minute: startMinute },
+      endTime: { hour: endHour, minute: endMinute },
+    }));
+
+  }, [formData])
 
   // Validation rules for each field
   const validationRules = {
@@ -144,33 +201,38 @@ export default function FlagShift({ selectedShift, onCancel }) {
     // Validate all fields
     const isValid = validate(['flagType', 'requiresAction', 'meetingDate', 'meetingTime', 'time', 'notes']);
     if (!isValid) return;
-  
-    // Check for overlap with timesheets or events
-    const startTime = new Date(
-      `${formData.date} ${formData.startTime.hour.padStart(2, '0')}:${formData.startTime.minute.padStart(2, '0')}:00`
-    );
-    const endTime = new Date(
-      `${formData.date} ${formData.endTime.hour.padStart(2, '0')}:${formData.endTime.minute.padStart(2, '0')}:00`
-    );
+    
+    if(formData.flagType !== 'Note'){
+      // Check for overlap with timesheets or events when creating a new event
+      const startTime = new Date(
+        `${formData.date} ${formData.startTime.hour.padStart(2, '0')}:${formData.startTime.minute.padStart(2, '0')}:00`
+      );
+      const endTime = new Date(
+        `${formData.date} ${formData.endTime.hour.padStart(2, '0')}:${formData.endTime.minute.padStart(2, '0')}:00`
+      );
 
-    const hasOverlap = [...(selectedShift.timesheets || []), ...(selectedShift.events || [])].some((item) => {
-      const itemStart = new Date(item.on_time);
-      const itemEnd = new Date(item.off_time || selectedShift.shift.shiftend); // Use itemStart if off_time is not available
-      return startTime < itemEnd && endTime > itemStart; // Check for overlap
-    });
-
-    if (hasOverlap) {
-      toast.error('The selected start and end times overlap with existing events, please select another.', {
-        position: 'top-center',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
+      const hasOverlap = [
+        ...(selectedShift.timesheets || []),
+        ...(selectedShift.events || []).filter(ev => !selectedEvent || ev.id !== selectedEvent.id)
+      ].some((item) => {
+        const itemStart = new Date(item.on_time);
+        const itemEnd = new Date(item.off_time || selectedShift.shift.shiftend);
+        return startTime < itemEnd && endTime > itemStart;
       });
-      return; // Cancel submission
+
+      if (hasOverlap) {
+        toast.error('The selected start and end times overlap with existing events, please select another.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+        return; // Cancel submission
+      }
     }
 
     // Set processing state
@@ -210,7 +272,7 @@ export default function FlagShift({ selectedShift, onCancel }) {
       setIsProcessing(false);
       setIsSuccess(true);
 
-      toast.success('Shift has been flagged successfully!', {
+      toast.success(isUpdating ? 'Event has been updated successfully!' : 'Shift has been flagged successfully!', {
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -228,12 +290,13 @@ export default function FlagShift({ selectedShift, onCancel }) {
       // Wait 3 seconds before triggering onCancel
       setTimeout(() => {
         setIsSuccess(false);
+        setIsUpdating(false);
         onCancel();
       }, 1000);
     } catch (error) {
       console.error(error);
       if (error.message !== 'Validation failed') {
-        toast.error('Shift could not be flagged. Please try again.', {
+        toast.error(isUpdating ? 'Event could not be updated, Please try again.' : 'Shift could not be flagged. Please try again.', {
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -265,27 +328,31 @@ export default function FlagShift({ selectedShift, onCancel }) {
           error={errors.flagType}
         />
 
-        {/* Start Time */}
-        <TimeInput
-          id="time"
-          label="Start Time"
-          startTime={shiftStart}
-          endTime={shiftEnd}
-          currentState={formData.startTime}
-          onTimeChange={(value) => handleChange('startTime', value)}
-          error={errors.startTime}
-        />
+        {formData.flagType !== 'Note' && (
+          <>
+            {/* Start Time */}
+            <TimeInput
+              id="time"
+              label="Start Time"
+              startTime={shiftStart}
+              endTime={shiftEnd}
+              currentState={formData.startTime}
+              onTimeChange={(value) => handleChange('startTime', value)}
+              error={errors.startTime}
+            />
 
-        {/* End Time */}
-        <TimeInput
-          id="time"
-          label="End Time"
-          startTime={shiftStart}
-          endTime={shiftEnd}
-          currentState={formData.endTime}
-          onTimeChange={(value) => handleChange('endTime', value)}
-          error={errors.endTime}
-        />
+            {/* End Time */}
+            <TimeInput
+              id="time"
+              label="End Time"
+              startTime={shiftStart}
+              endTime={shiftEnd}
+              currentState={formData.endTime}
+              onTimeChange={(value) => handleChange('endTime', value)}
+              error={errors.endTime}
+            />
+          </>
+        )}
 
         {/* Requires Action
         <SelectInput

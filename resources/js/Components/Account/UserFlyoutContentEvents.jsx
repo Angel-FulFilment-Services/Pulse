@@ -53,12 +53,12 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
                 date: record.on_time
                 ? format(new Date(record.date), 'dd MMMM, yyyy')
                 : '-',
-                started: record.on_time
+                started: record.on_time && record.category !== 'Note'
                   ? format(new Date(record.on_time), 'h:mm a')
-                  : '-',
-                ended: record.off_time
+                  : '',
+                ended: record.off_time && record.category !== 'Note'
                   ? format(new Date(record.off_time), 'h:mm a')
-                  : '-',
+                  : '',
                 category: record.category || record.type || 'N/A', // Use 'category' or 'type' for the record
                 on_time: record.on_time, // Include on_time for sorting
                 notes: record.notes,

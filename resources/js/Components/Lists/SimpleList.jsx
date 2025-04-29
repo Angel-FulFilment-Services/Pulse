@@ -28,7 +28,9 @@ export default function SimpleList({ headers, data }) {
                         key={colIndex}
                         className="whitespace-nowrap px-3 py-2 text-sm text-gray-900"
                       >
-                        {row[header.label.toLowerCase().replace( /\s/g, '')] || row[header.label]}
+                        <div className={`${header.className || ''}`}>
+                          {row[header.label.toLowerCase().replace( /\s/g, '')] || row[header.label]}
+                        </div>
                       </td>
                     ))}
                   </tr>

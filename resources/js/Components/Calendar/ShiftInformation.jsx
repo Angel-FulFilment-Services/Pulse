@@ -4,10 +4,20 @@ import SimpleList from '../Lists/SimpleList';
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog';
 import { getStatus } from '../../Utils/Rota';
 import { toast } from 'react-toastify'; // Import toast for notifications
+import { TrashIcon, ExclamationCircleIcon  } from '@heroicons/react/20/solid';
+import { PencilIcon } from '@heroicons/react/24/solid';
 
-export default function ShiftInformation({ selectedShift }) {
+export default function ShiftInformation({ selectedShift, selectedEvent, setShowFlagShift, setSelectedEvent }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState(null);
+
+  const shiftStartDate = new Date(selectedShift.shift.shiftdate);
+  shiftStartDate.setHours(Math.floor(selectedShift.shift.shiftstart / 100), selectedShift.shift.shiftstart % 100);
+  
+  const shiftEndDate = new Date(selectedShift.shift.shiftdate);
+  shiftEndDate.setHours(Math.floor(selectedShift.shift.shiftend / 100), selectedShift.shift.shiftend % 100);
+  
+  const bufferStart = new Date(shiftStartDate.getTime() - 30 * 60 * 1000); // 30 min before shift start
+  const bufferEnd = new Date(shiftEndDate.getTime() + 30 * 60 * 1000);     // 30 min after shift end
 
   const handleRemoveEvent = async () => {
     try {
@@ -19,7 +29,7 @@ export default function ShiftInformation({ selectedShift }) {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrfToken, // Include CSRF token in the headers
         },
-        body: JSON.stringify({ eventId: selectedEventId }), // Pass the event ID in the request body
+        body: JSON.stringify({ eventId: selectedEvent.id }), // Pass the event ID in the request body
       });
 
       if (!response.ok) {
@@ -202,13 +212,23 @@ export default function ShiftInformation({ selectedShift }) {
           {(() => {
             // Merge timesheets and events
             const mergedData = [
-              ...(selectedShift?.timesheets || []).map((record) => ({
+              ...(selectedShift?.timesheets || []).filter(record => {
+                if (!record.on_time || !record.off_time) return false;
+                const onTime = new Date(record.on_time);
+                const offTime = new Date(record.off_time);
+                return onTime >= bufferStart && offTime <= bufferEnd;
+              }).map((record) => ({
                 ...record,
-                origin: 'timesheets', // Add origin for timesheets
+                origin: 'timesheets',
               })),
-              ...(selectedShift?.events || []).map((record) => ({
+              ...(selectedShift?.events || []).filter(record => {
+                if (!record.on_time || !record.off_time) return false;
+                const onTime = new Date(record.on_time);
+                const offTime = new Date(record.off_time);
+                return onTime >= bufferStart && offTime <= bufferEnd;
+              }).map((record) => ({
                 ...record,
-                origin: 'events', // Add origin for events
+                origin: 'events',
               })),
             ].map((record) => ({
               started: record.on_time
@@ -231,16 +251,28 @@ export default function ShiftInformation({ selectedShift }) {
                   ) % 60}m`
                 : '-',
               action: record.origin === 'events' ? (
-                <button
-                  type="button"
-                  className="text-orange-600 hover:text-orange-500 font-medium"
-                  onClick={() => {
-                    setSelectedEventId(record.id);
-                    setIsDialogOpen(true);
-                  }}
-                >
-                  Remove
-                </button>
+                <div className="flex gap-x-1">
+                  <button
+                    type="button"
+                    className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                    onClick={() => {
+                      setSelectedEvent(record);
+                      setShowFlagShift(true);
+                    }}
+                  >
+                    <PencilIcon className="w-5 h-5 inline-block text-gray-500" />
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                    onClick={() => {
+                      setSelectedEvent(record);
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <TrashIcon className="w-5 h-5 inline-block text-red-500" />
+                  </button>
+                </div>
               ) : null,
             }));
 
@@ -256,7 +288,7 @@ export default function ShiftInformation({ selectedShift }) {
                 { label: 'Ended', visible: true },
                 { label: 'Category', visible: true },
                 { label: 'Duration', visible: true },
-                { label: 'Action', visible: false },
+                { label: 'Action', visible: false, className: "flex flex-row justify-end w-full" },
               ]}
                 data={sortedData}
               />

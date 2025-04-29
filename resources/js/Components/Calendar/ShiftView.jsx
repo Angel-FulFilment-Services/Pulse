@@ -13,6 +13,7 @@ export default function ShiftView({ selectedShift }) {
   const [sendingButtons, setSendingButtons] = useState({}); // Track sending status for each button
   const [message, setMessage] = useState(''); // State to track the textarea value
   const [showFlagShift, setShowFlagShift] = useState(false); // State to toggle between components
+  const [selectedEvent, setSelectedEvent] = useState(null); // State to track selected event
 
   if (!selectedShift) {
     return <p className="p-4">No shift selected.</p>;
@@ -230,10 +231,11 @@ export default function ShiftView({ selectedShift }) {
         {showFlagShift ? (
           <FlagShift
             selectedShift={selectedShift}
+            selectedEvent={selectedEvent}
             onCancel={() => setShowFlagShift(false)} // Hide the FlagShift component
           />
         ) : (
-          <ShiftInformation selectedShift={selectedShift} />
+          <ShiftInformation selectedShift={selectedShift} selectedEvent={selectedEvent} setShowFlagShift={setShowFlagShift} setSelectedEvent={setSelectedEvent} />
         )}
       </div>
     </div>

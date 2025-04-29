@@ -176,45 +176,60 @@ class RotaController extends Controller
         try {
             $request->validate($rules, $messages);
 
-            // Add conditional validation for meetingTime if requiresAction is true
-            if ($request->requiresAction) {
-                $request->validate([
-                    'meetingDate' => 'required|date',
-                    'meetingTime.hour' => 'required|string|regex:/^\d{2}$/',
-                    'meetingTime.minute' => 'required|string|regex:/^\d{2}$/',
-                ], [
-                    'meetingDate.required' => 'Meeting date is required when action is required.',
-                    'meetingTime.hour.required' => 'Meeting hour is required when action is required.',
-                    'meetingTime.minute.required' => 'Meeting minute is required when action is required.',
-                ]);
-            }
+            // // Add conditional validation for meetingTime if requiresAction is true
+            // if ($request->requiresAction) {
+            //     $request->validate([
+            //         'meetingDate' => 'required|date',
+            //         'meetingTime.hour' => 'required|string|regex:/^\d{2}$/',
+            //         'meetingTime.minute' => 'required|string|regex:/^\d{2}$/',
+            //     ], [
+            //         'meetingDate.required' => 'Meeting date is required when action is required.',
+            //         'meetingTime.hour.required' => 'Meeting hour is required when action is required.',
+            //         'meetingTime.minute.required' => 'Meeting minute is required when action is required.',
+            //     ]);
+            // }
 
             $user = Employee::where('hr_id', '=', $request->hrID)->first();
 
-            // Process the validated data
-            Event::create([
-                'hr_id' => $request->hrID,
-                // 'shift_id' => $request->shiftID,
-                'user_id' => $user->user_id,
-                'created_by_user_id' => auth()->user()->id,
-                'date' => date("Y-m-d", strtotime($request->date)),
-                'on_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00',
-                'off_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00',
-                'category' => $request->flagType,
-                'notes' => $request->notes,
-            ]);
 
-            if ($request->requiresAction) {
-                Meeting::create([
+            // Process the validated data
+            if ($request->eventID){
+                Event::find($request->eventID)->update([
                     'hr_id' => $request->hrID,
-                    'user_id' => $user->user_id,
                     // 'shift_id' => $request->shiftID,
+                    'user_id' => $user->user_id,
                     'created_by_user_id' => auth()->user()->id,
-                    'title' => 'Absence Action Required',
-                    'description' => 'Action required for absence event on ' . date('Y-m-d', strtotime($request->date)),
-                    'meeting_datetime' => date("Y-m-d", strtotime($request->meetingDate)) . ' ' . $request->meetingTime['hour'] . ':' . $request->meetingTime['minute'] . ':00',
+                    'date' => date("Y-m-d", strtotime($request->date)),
+                    'on_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00',
+                    'off_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00',
+                    'category' => $request->flagType,
+                    'notes' => $request->notes,
+                ]);
+            }else{
+                Event::create([
+                    'hr_id' => $request->hrID,
+                    // 'shift_id' => $request->shiftID,
+                    'user_id' => $user->user_id,
+                    'created_by_user_id' => auth()->user()->id,
+                    'date' => date("Y-m-d", strtotime($request->date)),
+                    'on_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00',
+                    'off_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00',
+                    'category' => $request->flagType,
+                    'notes' => $request->notes,
                 ]);
             }
+
+            // if ($request->requiresAction) {
+            //     Meeting::create([
+            //         'hr_id' => $request->hrID,
+            //         'user_id' => $user->user_id,
+            //         // 'shift_id' => $request->shiftID,
+            //         'created_by_user_id' => auth()->user()->id,
+            //         'title' => 'Absence Action Required',
+            //         'description' => 'Action required for absence event on ' . date('Y-m-d', strtotime($request->date)),
+            //         'meeting_datetime' => date("Y-m-d", strtotime($request->meetingDate)) . ' ' . $request->meetingTime['hour'] . ':' . $request->meetingTime['minute'] . ':00',
+            //     ]);
+            // }
 
             return response()->json(['message' => 'Event saved successfully!'], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
