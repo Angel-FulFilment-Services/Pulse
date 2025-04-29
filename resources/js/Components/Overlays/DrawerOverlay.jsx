@@ -6,6 +6,19 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
   const slideInClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
   const slideOutClasses = slideFrom === 'left' ? '-translate-x-full' : 'translate-x-full';
 
+  const widthClasses = {
+    sm: 'max-w-sm',
+    md: 'sm:max-w-md',
+    lg: 'sm:max-w-lg',
+    xl: 'sm:max-w-xl',
+    "2xl": 'sm:max-w-2xl',
+    "3xl": 'sm:max-w-3xl',
+    "4xl": 'sm:max-w-4xl',
+    "5xl": 'sm:max-w-5xl',
+    "6xl": 'sm:max-w-6xl',
+    "7xl": 'sm:max-w-full'
+  }
+
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>
@@ -35,7 +48,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
                 leaveFrom="translate-x-0"
                 leaveTo={slideOutClasses}
               >
-                <Dialog.Panel className={`pointer-events-auto w-screen max-w-${width}`}>
+                <Dialog.Panel className={`pointer-events-auto w-screen ${widthClasses[width]}`}>
                   <div className="flex h-full flex-col overflow-y-auto bg-white py-6 shadow-xl">
                     <div className="px-4 sm:px-6">
                       <div className="flex items-start justify-between">
