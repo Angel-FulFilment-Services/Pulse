@@ -231,15 +231,15 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                 origin: 'events',
               })),
             ].map((record) => ({
-              started: record.on_time
+              started: record.on_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                 ? format(new Date(record.on_time), 'h:mm a')
-                : '-',
-              ended: record.off_time
+                : '',
+              ended: record.off_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                 ? format(new Date(record.off_time), 'h:mm a')
-                : '-',
+                : '',
               category: record.category || record.type || 'N/A', // Use 'category' or 'type' for the record
               on_time: record.on_time, // Include on_time for sorting
-              duration: record.off_time
+              duration: record.off_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                 ? `${Math.floor(
                     differenceInMinutes(
                       new Date(record.off_time),
@@ -249,8 +249,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                     new Date(record.off_time),
                     new Date(record.on_time)
                   ) % 60}m`
-                : '-',
-              action: record.origin === 'events' ? (
+                : '',
+              action: record.origin === 'events' && record.category !== 'SMS Sent' ? (
                 <div className="flex gap-x-1">
                   <button
                     type="button"

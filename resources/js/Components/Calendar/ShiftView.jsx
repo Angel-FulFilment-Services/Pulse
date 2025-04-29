@@ -48,6 +48,33 @@ export default function ShiftView({ selectedShift }) {
 
     try {
       await sendSMS('Angel', employee.contact_mobile_phone, message); // Call the generic sendSMS function
+
+      let startHour, startMinute, endHour, endMinute;
+
+      startHour = selectedShift.shift.shiftstart.slice(0, 2);
+      startMinute = selectedShift.shift.shiftstart.slice(2, 4);
+
+      // Create a new SMS event.
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const payload = {
+        hrID: selectedShift.shift.hr_id,
+        flagType: 'SMS Sent',
+        startTime: { hour: startHour, minute: startMinute },
+        endTime: { hour: startHour, minute: startMinute },
+        notes: message,
+        date: selectedShift.shift.shiftdate,
+        shiftID: selectedShift.shift.unq_id,
+      }
+
+      const response = await fetch('/rota/save-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken, // Include the CSRF token
+        },
+        body: JSON.stringify(payload),
+      });
+
     } catch (error) {
       console.error('Error sending shift reminder:', error);
     } finally {

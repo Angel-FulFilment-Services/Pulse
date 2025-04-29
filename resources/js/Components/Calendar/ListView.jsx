@@ -175,7 +175,7 @@ export default function ListView({ setView, viewType }) {
       <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white transition-all duration-500 ease-in-out items-center">
         <div className="flex max-w-full flex-none flex-col sm:max-w-none w-full md:max-w-full">
           <div className="overflow-hidden">
-            <div className="mx-auto max-w-7xl xl:max-w-none w-4/5 px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl xl:max-w-none lg:w-4/5 px-4 sm:px-6 lg:px-8">
               <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
                 <table className="w-full text-left">
                   <tbody className="relative overflow-y-auto">

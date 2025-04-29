@@ -53,16 +53,16 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
                 date: record.on_time
                 ? format(new Date(record.date), 'dd MMMM, yyyy')
                 : '-',
-                started: record.on_time && record.category !== 'Note'
+                started: record.on_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                   ? format(new Date(record.on_time), 'h:mm a')
                   : '',
-                ended: record.off_time && record.category !== 'Note'
+                ended: record.off_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                   ? format(new Date(record.off_time), 'h:mm a')
                   : '',
                 category: record.category || record.type || 'N/A', // Use 'category' or 'type' for the record
                 on_time: record.on_time, // Include on_time for sorting
                 notes: record.notes,
-                duration: record.off_time
+                duration: record.off_time && record.category !== 'Note' && record.category !== 'SMS Sent'
                   ? `${Math.floor(
                       differenceInMinutes(
                         new Date(record.off_time),
@@ -72,7 +72,7 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
                       new Date(record.off_time),
                       new Date(record.on_time)
                     ) % 60}m`
-                  : '-',
+                  : '',
                 logged: record.created_at
                 ? format(new Date(record.created_at), 'dd MMMM, yyyy h:mm a')
                 : '-',

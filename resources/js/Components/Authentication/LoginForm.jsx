@@ -122,7 +122,7 @@ export default function LoginForm () {
                                     />
                                     <label htmlFor="remember" className="text-xs">Remember Me</label>
                                 </div>
-                                <Link href="/forgot" className="cursor-pointer text-xs text-orange-500 focus:outline-none focus:underline focus:text-orange-600 hover:text-orange-600">Forgot Password?</Link>
+                                {/* <Link href="/forgot" className="cursor-pointer text-xs text-orange-500 focus:outline-none focus:underline focus:text-orange-600 hover:text-orange-600">Forgot Password?</Link> */}
                             </div>
                         </div>
 
