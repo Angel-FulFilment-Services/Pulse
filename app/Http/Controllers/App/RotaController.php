@@ -194,7 +194,7 @@ class RotaController extends Controller
             // Process the validated data
             Event::create([
                 'hr_id' => $request->hrID,
-                'shift_id' => $request->shiftID,
+                // 'shift_id' => $request->shiftID,
                 'user_id' => $user->user_id,
                 'created_by_user_id' => auth()->user()->id,
                 'date' => date("Y-m-d", strtotime($request->date)),
@@ -208,7 +208,7 @@ class RotaController extends Controller
                 Meeting::create([
                     'hr_id' => $request->hrID,
                     'user_id' => $user->user_id,
-                    'shift_id' => $request->shiftID,
+                    // 'shift_id' => $request->shiftID,
                     'created_by_user_id' => auth()->user()->id,
                     'title' => 'Absence Action Required',
                     'description' => 'Action required for absence event on ' . date('Y-m-d', strtotime($request->date)),

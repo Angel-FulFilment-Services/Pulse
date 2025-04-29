@@ -111,7 +111,19 @@ export default function ListView({ setView, viewType }) {
   
       // Find the updated timesheets and events for the selected shift
       const updatedTimesheets = timesheets.filter((timesheet) => timesheet.hr_id == selectedShift.shift.hr_id);
-      const updatedEvents = events.filter((event) => event.shift_id == selectedShift.shift.unq_id);
+      const updatedEvents = events.filter((event) => {
+        if (!event.on_time || !event.off_time) return false;
+        const shiftStart = new Date(selectedShift.shift.shiftdate);
+        shiftStart.setHours(Math.floor(selectedShift.shift.shiftstart / 100), selectedShift.shift.shiftstart % 100, 0, 0);
+        const shiftEnd = new Date(selectedShift.shift.shiftdate);
+        shiftEnd.setHours(Math.floor(selectedShift.shift.shiftend / 100), selectedShift.shift.shiftend % 100, 0, 0);
+        const eventOn = new Date(event.on_time);
+        const eventOff = new Date(event.off_time);
+        return (
+          eventOn >= shiftStart &&
+          eventOff <= shiftEnd
+        );
+      });
   
       // Update the selectedShift state with the latest data
       setSelectedShift({

@@ -14,6 +14,7 @@ export default function ClickedFlyout({
   content,
   icon,
   onClose, // Prop for handling closure events
+  onOpen, // Prop for handling opening events
   onSubmit = () => {}, // Default to a no-op function
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -117,6 +118,7 @@ export default function ClickedFlyout({
     setIsOpen((prev) => {
       const newState = !prev;
       if (!newState && onClose) onClose(); // Trigger the onClose callback when closing
+      if ( newState && onOpen) onOpen(); // Trigger the onOpen callback when opening
       return newState;
     });
   };

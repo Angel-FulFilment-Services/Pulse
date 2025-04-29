@@ -26,7 +26,15 @@ export function getStatus(shift, timesheets, events) {
   // Check for events and use the latest event's type for the status
   if (events && events.length > 0) {
     const latestEvent = events
-      .filter((event) => event.shift_id === shift.unq_id) // Ensure events pertain to the current shift
+      .filter((event) => {
+        if (!event.on_time || !event.off_time) return false;
+        const eventOn = new Date(event.on_time);
+        const eventOff = new Date(event.off_time);
+        return (
+          eventOn >= shiftStartDate &&
+          eventOff <= shiftEndDate
+        );
+      }) // Ensure events pertain to the current shift
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; // Get the latest event by `created_at`
 
     if (latestEvent) {
