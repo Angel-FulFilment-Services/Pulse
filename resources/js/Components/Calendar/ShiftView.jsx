@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, differenceInMinutes } from 'date-fns';
 import { BellIcon, ChatBubbleOvalLeftIcon, CheckIcon, FlagIcon } from '@heroicons/react/20/solid';
 import { sendSMS } from '../../Utils/SMS';
@@ -7,6 +7,7 @@ import { validateRequired, validateIsLength, validateAscii } from '../../Utils/V
 import ShiftInformation from './ShiftInformation';
 import FlagShift from './FlagShift';
 import { toast } from 'react-toastify';
+import useFetchEmployee from '../Account/useFetchEmployee';
 
 export default function ShiftView({ selectedShift }) {
   const [sendingButtons, setSendingButtons] = useState({}); // Track sending status for each button
@@ -16,6 +17,8 @@ export default function ShiftView({ selectedShift }) {
   if (!selectedShift) {
     return <p className="p-4">No shift selected.</p>;
   }
+
+  const { employee, isLoading } = useFetchEmployee(selectedShift.shift.hr_id);
 
   const getDefaultShiftReminderMessage = () => {
     const { shift } = selectedShift;
@@ -43,7 +46,7 @@ export default function ShiftView({ selectedShift }) {
     setSendingButtons((prev) => ({ ...prev, [buttonKey]: true })); // Set the specific button to "sending"
 
     try {
-      await sendSMS('Angel', '07788236380', message); // Call the generic sendSMS function
+      await sendSMS('Angel', employee.contact_mobile_phone, message); // Call the generic sendSMS function
     } catch (error) {
       console.error('Error sending shift reminder:', error);
     } finally {
