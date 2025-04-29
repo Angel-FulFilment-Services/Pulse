@@ -47,7 +47,7 @@ class Event extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'created_at' => 'date',
-        'updated_at' => 'date',
+        // 'created_at' => 'date',
+        // 'updated_at' => 'date',
     ];
 }

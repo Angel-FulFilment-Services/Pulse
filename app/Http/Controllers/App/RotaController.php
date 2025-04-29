@@ -197,7 +197,7 @@ class RotaController extends Controller
                 'shift_id' => $request->shiftID,
                 'user_id' => $user->user_id,
                 'created_by_user_id' => auth()->user()->id,
-                'date' => date('Y-m-d'),
+                'date' => date("Y-m-d", strtotime($request->date)),
                 'on_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00',
                 'off_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00',
                 'category' => $request->flagType,
