@@ -126,6 +126,7 @@ export default function ClickedModal({
                     width: sizeClasses[size]?.width, // Dynamically set width
                     height: sizeClasses[size]?.height, // Dynamically set height
                   }} 
+                  id={context?.reference?.id}
                   className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink`}
                 >
                   {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
