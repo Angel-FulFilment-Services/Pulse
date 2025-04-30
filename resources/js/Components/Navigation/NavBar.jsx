@@ -6,8 +6,9 @@ import Logo from '../Branding/Logo.jsx';
 import NavItem from './NavItem.jsx';
 import NavTeamItem from './NavTeamItem.jsx';
 import { router } from '@inertiajs/react'
-import UserItemSelf from '../Account/UserItemSelf';
-import UserItem from '../Account/UserItem';
+import UserItemSelf from '../User/UserItemSelf.jsx';
+import UserItem from '../User/UserItem.jsx';
+import { hasPermission } from '../../Utils/Permissions.jsx';
 
 import {
   Bars3Icon,
@@ -23,7 +24,7 @@ import {
 export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const { employee } = usePage().props;
+  const { auth, employee } = usePage().props;
 
   const teams = [
     { name: 'All Staff', href: '#', initial: 'A', current: false },
@@ -31,12 +32,9 @@ export default function NavBar({ page }) {
   ]
 
   const navigation = useMemo(() => [
-    // { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: window.location.pathname.startsWith('/dashboard') },
-    // { name: 'My Details', href: '/my-details/entry/about-you', icon: UsersIcon, current: window.location.pathname.startsWith('/my-details') },
-    { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.includes('rota') },
-    { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.includes('reporting') },
-    //   { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
-  ], [location.pathname]);
+    { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.includes('rota'), right: 'pulse_view_rota' },
+    { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.includes('reporting'), right: 'pulse_view_reporting' },
+], [currentPath]);
 
   useEffect(() => {
     const handleRouteChange = (event) => {
@@ -51,6 +49,18 @@ export default function NavBar({ page }) {
     //   router.off('navigate', handleRouteChange);
     // };
   }, []);
+  
+  if(!auth?.user) {
+    return (
+      <>
+      <div>
+        <main className="bg-gray-50 h-screen overflow-hidden w-full fixed lg:relative">
+          <div className="h-full" children={page}>{/* Your content */}</div>
+        </main>
+      </div>
+    </>
+    )
+  }
 
   return (
     <>
@@ -108,7 +118,7 @@ export default function NavBar({ page }) {
                         <li>
                           <ul role="list" className="-mx-2 space-y-1">
                             {navigation.map((item, i) => (
-                                <NavItem item={item} key={i}></NavItem>
+                                hasPermission(item.right) && <NavItem item={item} key={i}></NavItem>
                             ))}
                           </ul>
                         </li>
@@ -142,7 +152,7 @@ export default function NavBar({ page }) {
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
                     {navigation.map((item, i) => (
-                        <NavItem item={item} key={i}></NavItem>
+                      hasPermission(item.right) && <NavItem item={item} key={i}></NavItem>
                     ))}
                   </ul>
                 </li>

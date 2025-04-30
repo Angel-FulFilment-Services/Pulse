@@ -67,6 +67,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 |-----------------------
 */
 
+Route::get('', [RotaController::class, 'index'])->name('rota');
 Route::get('/', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
@@ -83,14 +84,14 @@ Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 |-----------------------
 */
 
-Route::get('/reporting', [ReportingController::class, 'index'])>name('reporting');
+Route::get('/reporting', [ReportingController::class, 'index'])->name('reporting');
 
 Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
 Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets']);
 
-Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets']);
+Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting');
 
 /*
 |-----------------------
@@ -102,10 +103,21 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->name('employee');
 Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->name('employee');
 Route::get('/my-details', [AccountController::class, 'index'])->name('employee');
+Route::get('/employee/information', [AccountController::class, 'information'])->withoutMiddleware('has.permission:pulse_view_account');
 
-Route::get('/employee/information', [AccountController::class, 'information']);
+/*
+|-----------------------
+| User
+|-----------------------
+*/
 
 Route::get('/users/active-states', [UserController::class, 'activeStates']);
+
+/*
+|-----------------------
+| T2 SMS Handler
+|-----------------------
+*/
 
 Route::post('/t2/send_sms', function (Request $request) {
 

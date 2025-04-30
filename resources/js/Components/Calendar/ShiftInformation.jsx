@@ -6,9 +6,11 @@ import { getStatus } from '../../Utils/Rota';
 import { toast } from 'react-toastify'; // Import toast for notifications
 import { TrashIcon, ExclamationCircleIcon  } from '@heroicons/react/20/solid';
 import { PencilIcon } from '@heroicons/react/24/solid';
+import { usePage } from '@inertiajs/react';
 
-export default function ShiftInformation({ selectedShift, selectedEvent, setShowFlagShift, setSelectedEvent }) {
+export default function ShiftInformation({ selectedShift, selectedEvent, setShowFlagShift, setSelectedEvent, allowEventManagement }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { auth } = usePage().props;
 
   const shiftStartDate = new Date(selectedShift.shift.shiftdate);
   shiftStartDate.setHours(Math.floor(selectedShift.shift.shiftstart / 100), selectedShift.shift.shiftstart % 100);
@@ -21,6 +23,21 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
 
   const handleRemoveEvent = async () => {
     try {
+      if(!selectedEvent || !allowEventManagement || selectedEvent.category === 'SMS Sent' || selectedEvent.user_id === auth.user.id) {
+        // Display error toast notification
+        toast.error('You cannot remove this event.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+        return;
+      }
+
       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // Get CSRF token
 
       const response = await fetch('/rota/remove-event', {
@@ -58,8 +75,6 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
       // Optionally, refresh the data or update the UI to reflect the removal
       // For example, you could trigger a re-fetch of the shift data here
     } catch (error) {
-      console.error(error);
-
       // Display error toast notification
       toast.error('Failed to remove the event. Please try again.', {
         position: 'top-center',
@@ -252,26 +267,34 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                 : '',
               action: record.origin === 'events' && record.category !== 'SMS Sent' ? (
                 <div className="flex gap-x-1">
-                  <button
-                    type="button"
-                    className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
-                    onClick={() => {
-                      setSelectedEvent(record);
-                      setShowFlagShift(true);
-                    }}
-                  >
-                    <PencilIcon className="w-5 h-5 inline-block text-gray-500" />
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-red-50 w-7 h-7 ring-1 ring-red-200 rounded-md hover:bg-red-100 flex justify-center items-center"
-                    onClick={() => {
-                      setSelectedEvent(record);
-                      setIsDialogOpen(true);
-                    }}
-                  >
-                    <TrashIcon className="w-5 h-5 inline-block text-red-600" />
-                  </button>
+                  {(auth !== record.user_id && allowEventManagement) && (
+                    <>
+                      <button
+                        type="button"
+                        className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                        onClick={() => {
+                          if (allowEventManagement) {
+                            setSelectedEvent(record);
+                            setShowFlagShift(true);
+                          }
+                        }}
+                      >
+                        <PencilIcon className="w-5 h-5 inline-block text-gray-500" />
+                      </button> 
+                      <button
+                        type="button"
+                        className="bg-red-50 w-7 h-7 ring-1 ring-red-200 rounded-md hover:bg-red-100 flex justify-center items-center"
+                        onClick={() => {
+                          if (allowEventManagement) {
+                            setSelectedEvent(record);
+                            setIsDialogOpen(true);
+                          }
+                        }}
+                      >
+                        <TrashIcon className="w-5 h-5 inline-block text-red-600" />
+                      </button>            
+                    </>        
+                  )}
                 </div>
               ) : null,
             }));

@@ -143,15 +143,46 @@ export async function exportHTMLToImage(divRef, filename = 'capture.png') {
     }
 
     try {
+        const modalContent = document.querySelector('#modal-content');
+        let originalModalHeight = null; // Store the original height
+
+        const scrollableContainer = divRef.current.querySelector('#scrollable_container');
+        const scrollableContent = divRef.current.querySelector('#scrollable_content');
+        if (scrollableContainer && scrollableContent) {
+            // Get the scrollable height and current height
+            const scrollableHeight = scrollableContent.scrollHeight; // Total height without scrollbars
+            const currentHeight = scrollableContainer.clientHeight; // Current visible height
+
+            // Calculate the height difference
+            const heightDifference = scrollableHeight - currentHeight;
+
+            if (heightDifference > 0 && modalContent) {
+                // Store the original height of the modal
+                originalModalHeight = modalContent.style.height || getComputedStyle(modalContent).height;
+
+                // Adjust the height of the parent element with ID "modal-content"
+                const currentModalHeight = parseFloat(getComputedStyle(modalContent).height);
+                modalContent.style.height = `${currentModalHeight + heightDifference}px`;
+            }
+        }
+
+        // Generate the image
         const dataUrl = await toPng(divRef.current, {
             cacheBust: true,
             backgroundColor: "#fff",
             pixelRatio: 2,
         });
+
+        // Trigger the download
         const link = document.createElement('a');
         link.download = filename;
         link.href = dataUrl;
         link.click();
+
+        // Revert the height of the modal back to its original value
+        if (modalContent && originalModalHeight !== null) {
+            modalContent.style.height = null;
+        }
     } catch (error) {
         console.error('Error exporting div to image:', error);
         toast.error('Failed to export this section as an image. Please try again.', {

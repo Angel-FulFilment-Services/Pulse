@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import SelectInput from '../Forms/SelectInput';
-import DateInput from '../Forms/DateInput';
 import TextAreaInput from '../Forms/TextAreaInput';
 import TimeInput from '../Forms/TimeInput'; // Import the new TimeInput component
 import { validateRequired, validateMatches } from '../../Utils/Validation';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import { toast } from 'react-toastify';
 
-export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
+export default function FlagShift({ selectedShift, selectedEvent, onCancel, allowEventManagement }) {
 
   const [formData, setFormData] = useState({
     eventID: selectedEvent?.id ? selectedEvent.id : null,
@@ -30,6 +29,8 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
 
   const [shiftStart, setShiftStart] = useState('');
   const [shiftEnd, setShiftEnd] = useState('');
+
+  const isNote = formData.flagType === 'Note';
 
   const flagOptions = [
     { id: 'sick', value: 'Sick' },
@@ -80,7 +81,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
 
   useEffect(() => {
     let startHour, startMinute, endHour, endMinute;
-    if (formData.flagType === 'Note') {
+    if (isNote) {
       startHour = selectedShift.shift.shiftstart.slice(0, 2);
       startMinute = selectedShift.shift.shiftstart.slice(2, 4);
       endHour = selectedShift.shift.shiftstart.slice(0, 2);
@@ -198,10 +199,24 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
 
   const handleSubmit = async () => {
     // Validate all fields
+    if (!allowEventManagement) {
+      toast.error('You do not have permission to create events.', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+      return;
+    }
+
     const isValid = validate(['flagType', 'requiresAction', 'meetingDate', 'meetingTime', 'time', 'notes']);
     if (!isValid) return;
     
-    if(formData.flagType !== 'Note'){
+    if(isNote){
       // Check for overlap with timesheets or events when creating a new event
       const startTime = new Date(
         `${formData.date} ${formData.startTime.hour.padStart(2, '0')}:${formData.startTime.minute.padStart(2, '0')}:00`
@@ -327,7 +342,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
           error={errors.flagType}
         />
 
-        {formData.flagType !== 'Note' && (
+        {!isNote && (
           <>
             {/* Start Time */}
             <TimeInput

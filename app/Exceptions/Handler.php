@@ -7,6 +7,7 @@ use Throwable;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Inertia\Inertia;
+use Illuminate\Auth\AuthenticationException;
 
 class Handler extends ExceptionHandler
 {
@@ -32,7 +33,15 @@ class Handler extends ExceptionHandler
     }
 
     public function render($request, Throwable $exception)
-    {        
+    {       
+
+        if ($exception instanceof AuthenticationException) {
+            // Redirect unauthenticated users to the login page
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Unauthenticated.'], 401)
+                : parent::render($request, $exception);
+        }
+
         if (
             $request->expectsJson() ||
             !$request->isMethod('GET') ||

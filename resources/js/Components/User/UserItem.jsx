@@ -75,7 +75,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
             alt="User profile"
           />
         ) : (
-          <UserIcon className={`w-[80%] h-[80%] text-gray-300`} aria-hidden="true" />
+          <UserIcon className={`w-[80%] h-[80%] text-gray-300 ml-0.5`} aria-hidden="true" />
         )}
       <PopoverFlyout
         placement='top'

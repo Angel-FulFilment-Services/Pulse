@@ -10,7 +10,7 @@ import useFetchEvents from './useFetchEvents';
 import useFetchCalls from './useFetchCalls';
 import MenuComponent from './MenuComponent';
 import FilterControl from '../Controls/FilterControl';
-import UserItemFull from '../Account/UserItemFull';
+import UserItemFull from '../User/UserItemFull';
 import ShiftProgressBar from './ShiftProgressBar';
 import DrawerOverlay from '../Overlays/DrawerOverlay';
 import ShiftView from './ShiftView';

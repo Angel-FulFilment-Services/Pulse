@@ -5,7 +5,7 @@ import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
-import UserItemFull from '../Account/UserItemFull';
+import UserItemFull from './UserItemFull.jsx';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -20,6 +20,7 @@ const tabs = [
 ]
 
 export default function UserFlyoutLayout({hrId, handleClose}) {
+  const [isTransitioning, setIsTransitioning] = useState(true);
   const [activeTab, setActiveTab] = useState('shifts');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
@@ -46,7 +47,13 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'shifts':
-        return <UserFlyoutContentShifts hrId={hrId} handleDateChange={handleDateChange} handleExport={handleExport} dateRange={dateRange} />;
+        return <UserFlyoutContentShifts 
+                  hrId={hrId} handleDateChange={handleDateChange} 
+                  handleExport={handleExport} 
+                  dateRange={dateRange} 
+                  isTransitioning={isTransitioning}
+                  setIsTransitioning={setIsTransitioning}
+                />;
       case 'performance':
         return <div className="p-4">Performance content goes here.</div>;
       case 'employee':

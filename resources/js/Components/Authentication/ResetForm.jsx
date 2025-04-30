@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from '@inertiajs/react'
 import { ThreeDots } from 'react-loader-spinner'
 import Logo from '../Branding/Logo.jsx';
+import { toast } from 'react-toastify';
 
 export default function ResetForm ({ token }) {
     

@@ -333,12 +333,12 @@ const rotaReportsConfig = [
             colSpan: 1,
           },
           {
-            colSpan: 7,
+            colSpan: 6,
             headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
             label: "Agent Hours"
           },
           {
-            colSpan: 5,
+            colSpan: 4,
             headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
             label: "TM / DM / QC Hours"
           },
@@ -412,7 +412,7 @@ const rotaReportsConfig = [
             id: "agent_worked_duration_hours_excl_breaks",
             label: "Worked",
             dataType: "float",
-            visible: true,
+            visible: false,
             allowTarget: true,
             target: 0,
             targetDirection: 'asc',
@@ -570,7 +570,7 @@ const rotaReportsConfig = [
             id: "management_worked_duration_hours_excl_breaks",
             label: "Worked",
             dataType: "float",
-            visible: true,
+            visible: false,
             allowTarget: true,
             target: 0,
             targetDirection: 'asc',
