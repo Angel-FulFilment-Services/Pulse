@@ -124,3 +124,45 @@ export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
         });
     }
 }
+
+import { toPng } from 'html-to-image';
+
+export async function exportHTMLToImage(divRef, filename = 'capture.png') {
+    if (!divRef || !divRef.current) {
+        toast.error('Could not find the element to export.', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+        });
+        return;
+    }
+
+    try {
+        const dataUrl = await toPng(divRef.current, {
+            cacheBust: true,
+            backgroundColor: "#fff",
+            pixelRatio: 2,
+        });
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataUrl;
+        link.click();
+    } catch (error) {
+        console.error('Error exporting div to image:', error);
+        toast.error('Failed to export this section as an image. Please try again.', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+        });
+    }
+}

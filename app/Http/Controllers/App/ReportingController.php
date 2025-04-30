@@ -191,7 +191,8 @@ class ReportingController extends Controller
                         IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
                     ) /
                     (
-                        IFNULL(SUM(shifts.shift_duration_hours), 0) -
+                        IFNULL(SUM(shifts.shift_duration_hours), 0) +
+                        (IFNULL(SUM(timesheet_master.surplus_minutes_master), 0) + IFNULL(SUM(timesheet_today.surplus_minutes_today), 0)) -
                         IFNULL(SUM(events.reduced_minutes), 0)
                     )
                 ) * 100, 0

@@ -78,7 +78,6 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
     }
   }, [selectedShift, selectedEvent]);
 
-
   useEffect(() => {
     let startHour, startMinute, endHour, endMinute;
     if (formData.flagType === 'Note') {
@@ -109,7 +108,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel }) {
       endTime: { hour: endHour, minute: endMinute },
     }));
 
-  }, [formData])
+  }, [formData.flagType])
 
   // Validation rules for each field
   const validationRules = {

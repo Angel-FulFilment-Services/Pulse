@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { format, differenceInMinutes } from 'date-fns';
+import { exportHTMLToImage } from '../../Utils/Exports.jsx'
 import useFetchShifts from '../Calendar/useFetchShifts';
 import useFetchTimesheets from '../Calendar/useFetchTimesheets';
 import useFetchEvents from '../Calendar/useFetchEvents';
 import useFetchCalls from '../Calendar/useFetchCalls';
-import { format, differenceInMinutes } from 'date-fns';
 import ShiftProgressBar from '../Calendar/ShiftProgressBar';
 import DateInput from '../Forms/DateInput.jsx';
+import ButtonControl from '../Controls/ButtonControl';
+import { PhotoIcon } from '@heroicons/react/24/outline';
 
-export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRange }) {
+export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRange, fullname }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
+  const divRef = useRef();
 
   const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
@@ -67,15 +71,29 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRa
             {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
           </p>
         </div>
-        <div className="w-56">
+        <div className="flex gap-x-4 items-center">
+          {shifts.length > 0 && (
+            <ButtonControl 
+              id="refresh_button" 
+              Icon={PhotoIcon} 
+              customClass="w-7 h-7" 
+              iconClass="w-7 h-7 text-orange-500 hover:text-orange-600 transition-all ease-in-out" 
+              onButtonClick={() => {
+                const start = format(new Date(dateRange.startDate), 'dd.MM.yyyy');
+                const end = format(new Date(dateRange.endDate), 'dd.MM.yyyy');
+                const filename = `Shifts - ${start} - ${end}.png`;
+                exportHTMLToImage(divRef, filename);
+              }}
+            />
+          )}
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate overflow-auto ${shifts.length > 6 ? "pr-2" : ""}`}>
-        {isTransitioning
-          ? Array.from({ length: 8 }).map((_, subRowIndex) => (
-              <ul className="flex flex-col pb-2" key={subRowIndex}>
-                <li className="py-1">
+      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`} ref={divRef}>
+        <ul className="flex flex-col pb-2">
+          {isTransitioning
+            ? Array.from({ length: 8 }).map((_, subRowIndex) => (
+                <li className="py-1 pb-2" key={subRowIndex}>
                   <div className="flex flex-row w-full justify-between">
                     <div className="flex flex-col w-1/4 gap-y-1 justify-center">
                       <div className="bg-gray-100 animate-pulse rounded-full w-20 h-4"></div>
@@ -86,18 +104,16 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRa
                     </div>
                   </div>
                 </li>
-              </ul>
-            ))
-          : shifts.map((shift) => {
-              const shiftStartDate = new Date(shift.shiftdate);
-              shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
+              ))
+            : shifts.map((shift) => {
+                const shiftStartDate = new Date(shift.shiftdate);
+                shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
 
-              const shiftEndDate = new Date(shift.shiftdate);
-              shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
+                const shiftEndDate = new Date(shift.shiftdate);
+                shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
 
-              return (
-                <ul className="flex flex-col pb-2" key={shift.id}>
-                  <li className="py-1">
+                return (
+                  <li className="py-1 pb-2" key={shift.id}>
                     <div className="flex flex-row w-full justify-between">
                       <div className="flex flex-col w-1/4 justify-center">
                         <h4 className="font-medium text-xs text-gray-700">
@@ -119,9 +135,9 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRa
                       </div>
                     </div>
                   </li>
-                </ul>
-              );
-            })}
+                );
+              })}
+        </ul>
       </div>
       <div className="mx-auto pt-2 grid grid-cols-5 w-full justify-between">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white w-full">
