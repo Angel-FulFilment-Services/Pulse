@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
+import { exportHTMLToImage } from '../../Utils/Exports.jsx'
+import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
-import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import UserItemFull from '../Account/UserItemFull';
 
 function classNames(...classes) {
@@ -22,6 +23,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
   const [activeTab, setActiveTab] = useState('shifts');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
+  const divRef = useRef();
 
   const handleDateChange = (item) => {   
     setDateRange({startDate: item[0].value, endDate: item[1].value});
@@ -32,10 +34,19 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
     setActiveTab(tabId);
   }
 
+  const handleExport = () => {
+    if (divRef.current) {
+      const start = format(new Date(dateRange.startDate), 'dd.MM.yyyy');
+      const end = format(new Date(dateRange.endDate), 'dd.MM.yyyy');
+      const filename = `Shifts - ${start} - ${end}.png`;
+      exportHTMLToImage(divRef, filename);
+    }
+  }
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'shifts':
-        return <UserFlyoutContentShifts hrId={hrId} handleDateChange={handleDateChange} dateRange={dateRange} />;
+        return <UserFlyoutContentShifts hrId={hrId} handleDateChange={handleDateChange} handleExport={handleExport} dateRange={dateRange} />;
       case 'performance':
         return <div className="p-4">Performance content goes here.</div>;
       case 'employee':
@@ -50,7 +61,7 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
   };
 
   return (
-    <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr] justify-between divide-gray-300 cursor-auto overflow-hidden">
+    <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr] justify-between divide-gray-300 cursor-auto overflow-hidden" ref={divRef}>
       <div className="h-auto">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
           {tabs.map((tab, tabIdx) => (

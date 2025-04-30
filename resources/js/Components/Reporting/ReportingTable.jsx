@@ -183,6 +183,14 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                             {column.headerAnnotation}
                           </span>
                         )}
+                        {column.subLabel && (
+                          <>
+                            <br></br>
+                            <span className="text-gray-500 text-xs font-normal">
+                              {column.subLabel}
+                            </span>
+                          </>
+                        )}
                       </div>
                       {sortConfig.key === column.id && (
                         <span className="flex-shrink-0 text-orange-500 h-5 w-5 flex items-center justify-center">

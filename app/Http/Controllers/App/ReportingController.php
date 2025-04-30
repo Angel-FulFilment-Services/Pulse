@@ -14,7 +14,7 @@ class ReportingController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['auth']);
-        // $this->middleware(['perm.check:view_dashboard']);
+        $this->middleware(['has.permission:pulse_view_rota']);
     }
 
     public function index(){
@@ -171,6 +171,19 @@ class ReportingController extends Controller
             function ($join) {
                 $join->on('hr.hr_id', '=', 'events.hr_id');
             }
+        )        
+        ->leftJoinSub(
+            DB::table('apex_data.breaksheet_master')
+                ->select(
+                    'breaksheet_master.hr_id',
+                    DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS break_minutes'),
+                )
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('hr_id'),
+            'breaksheet',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'breaksheet.hr_id');
+            }
         )
         ->select(DB::raw("
             users.name AS agent,
@@ -182,13 +195,15 @@ class ReportingController extends Controller
             ) / 60 AS shift_duration_hours,
             (
                 IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
-                IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+                IFNULL(SUM(timesheet_today.worked_minutes_today), 0) +
+                IFNULL(SUM(breaksheet.break_minutes), 0)
             ) / 60 AS worked_duration_hours,
             IFNULL(
                 (
                     (
                         IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
-                        IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+                        IFNULL(SUM(timesheet_today.worked_minutes_today), 0) +
+                        IFNULL(SUM(breaksheet.break_minutes), 0)
                     ) /
                     (
                         IFNULL(SUM(shifts.shift_duration_hours), 0) +
@@ -292,6 +307,25 @@ class ReportingController extends Controller
                 $join->on('shifts.hr_id', '=', 'events.hr_id')
                     ->on('shifts.shiftdate', '=', 'events.date');
             }
+        )        
+        ->leftJoinSub(
+            DB::table('apex_data.breaksheet_master')
+                ->select(
+                    'breaksheet_master.hr_id',
+                    'date', 
+                    DB::raw('
+                        SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_break_minutes,
+                        SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS management_break_minutes
+                    ')
+                )
+                ->leftJoin('wings_data.hr_details', 'breaksheet_master.hr_id', '=', 'hr_details.hr_id')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->groupBy('hr_id', 'date'),
+            'breaksheet',
+            function ($join) {
+                $join->on('shifts.hr_id', '=', 'breaksheet.hr_id')
+                    ->on('shifts.shiftdate', '=', 'breaksheet.date');
+            }
         )
         ->whereBetween('shifts.shiftdate', [$startDate, $endDate])
         ->select(DB::raw("
@@ -312,20 +346,32 @@ class ReportingController extends Controller
             ) / 60 AS management_shift_duration_hours,
             (
                 IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
-                IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0) +
+                IFNULL(SUM(breaksheet.agent_break_minutes), 0)
             ) / 60 AS agent_worked_duration_hours,
             (
                 IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
                 IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
-            ) AS agent_worked_duration_seconds,
+            ) / 60 AS agent_worked_duration_hours_excl_breaks,
             (
                 IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
                 IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+            ) / 60 AS management_worked_duration_hours_excl_breaks,
+            (
+                IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0) +
+                IFNULL(SUM(breaksheet.agent_break_minutes), 0)
+            ) AS agent_worked_duration_seconds,
+            (
+                IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0) +
+                IFNULL(SUM(breaksheet.management_break_minutes), 0)
             ) / 60 AS management_worked_duration_hours,
             (
                 (
                     IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
-                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0) +
+                    IFNULL(SUM(breaksheet.agent_break_minutes), 0)
                 ) / 60 
             ) -
             (
@@ -340,7 +386,8 @@ class ReportingController extends Controller
             (
                 (
                     IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
-                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0) +
+                    IFNULL(SUM(breaksheet.management_break_minutes), 0)
                 ) / 60 
             ) -
             (
@@ -355,7 +402,8 @@ class ReportingController extends Controller
             (
                 (
                     IFNULL(SUM(timesheet_master.agent_worked_minutes_master), 0) +
-                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
+                    IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0) +
+                    IFNULL(SUM(breaksheet.agent_break_minutes), 0)
                 ) / 60 
             ) /
             (
@@ -370,7 +418,8 @@ class ReportingController extends Controller
             (
                 (
                     IFNULL(SUM(timesheet_master.management_worked_minutes_master), 0) +
-                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0)
+                    IFNULL(SUM(timesheet_today.management_worked_minutes_today), 0) +
+                    IFNULL(SUM(breaksheet.management_break_minutes), 0)
                 ) / 60 
             ) /
             (

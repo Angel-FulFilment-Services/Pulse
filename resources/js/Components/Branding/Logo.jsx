@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 
-export default function Logo() {
+export default function Logo({ includeTitle = true }) {
     const uniqueId = useId(); // Generate a unique ID for each instance of the Logo component
 
     return (
@@ -70,7 +70,10 @@ export default function Logo() {
                     </g>
                 </svg>
             </div>
-            <h2 className="font-bold text-gray-600 leading-7 text-3xl">Pulse</h2>
+            { includeTitle && ( 
+                <h2 className="font-bold text-gray-600 leading-7 text-3xl">Pulse</h2>
+                )
+            }
         </div>
     );
 }

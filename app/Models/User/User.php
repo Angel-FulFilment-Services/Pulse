@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\User\AssignedPermissions;
+use App\Models\Client\Client;
 
 class User extends Authenticatable
 {
@@ -42,4 +44,37 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function client(){
+        return $this->belongsTo(Client::class, 'client_ref', 'client_ref');
+    }
+
+    public function assignedPermissionsUser()
+    {
+        return $this->hasMany(AssignedPermissions::class, 'user_id', 'id');
+    }
+
+    public function clientAssignedPermissions()
+    {
+        if (!$this->client) {
+            return collect();
+        }
+        return AssignedPermissions::where('client_id', $this->client->id)->get();
+    }
+
+    public function hasPermission($permission)
+    {
+        // Check for direct permission
+        $hasDirect = $this->assignedPermissionsUser()->where('right', $permission)->exists();
+    
+        // Check for permission assigned to any user with the same client_id
+        $hasClient = false;
+        if ($this->client) {
+            $hasClient = $this->clientAssignedPermissions()
+                ->where('right', $permission)
+                ->isNotEmpty();
+        }
+    
+        return $hasDirect || $hasClient;
+    }
 }

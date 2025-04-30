@@ -333,14 +333,14 @@ const rotaReportsConfig = [
             colSpan: 1,
           },
           {
-            colSpan: 6,
+            colSpan: 7,
             headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
-            label: "Agents"
+            label: "Agent Hours"
           },
           {
-            colSpan: 4,
+            colSpan: 5,
             headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
-            label: "TMs / DMs / QCs"
+            label: "TM / DM / QC Hours"
           },
           {
             colSpan: 2,
@@ -366,7 +366,7 @@ const rotaReportsConfig = [
           },
           {
             id: "agent_shift_duration_hours",
-            label: "Hours Scheduled",
+            label: "Scheduled",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -388,7 +388,7 @@ const rotaReportsConfig = [
           },
           {
             id: "agent_worked_duration_hours",
-            label: "Hours Worked",
+            label: "Worked",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -399,6 +399,28 @@ const rotaReportsConfig = [
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "agent_worked_duration_hours_excl_breaks",
+            label: "Worked",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(Excl. Breaks)",
             format: (value) => {
               if (!isNaN(value)) {
                 return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -432,7 +454,7 @@ const rotaReportsConfig = [
           },          
           {
             id: "agent_worked_percentage",
-            label: "Hours Worked",
+            label: "Worked",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -456,7 +478,7 @@ const rotaReportsConfig = [
           },
           {
             id: "agent_sick_hours",
-            label: "Hours Sick",
+            label: "Sick",
             dataType: "integer",
             visible: true,
             allowTarget: true,
@@ -478,7 +500,7 @@ const rotaReportsConfig = [
           },
           {
             id: "agent_awol_hours",
-            label: "Hours AWOL",
+            label: "AWOL",
             dataType: "integer",
             visible: true,
             allowTarget: true,
@@ -502,7 +524,7 @@ const rotaReportsConfig = [
           },
           {
             id: "management_shift_duration_hours",
-            label: "Hours Scheduled",
+            label: "Scheduled",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -524,7 +546,7 @@ const rotaReportsConfig = [
           },
           {
             id: "management_worked_duration_hours",
-            label: "Hours Worked",
+            label: "Worked",
             dataType: "float",
             visible: true,
             allowTarget: true,
@@ -535,6 +557,28 @@ const rotaReportsConfig = [
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "management_worked_duration_hours_excl_breaks",
+            label: "Worked",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(Excl. Breaks)",
             format: (value) => {
               if (!isNaN(value)) {
                 return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -568,7 +612,7 @@ const rotaReportsConfig = [
           },           
           {
             id: "management_worked_percentage",
-            label: "Hours Worked",
+            label: "Worked",
             dataType: "float",
             visible: true,
             allowTarget: true,

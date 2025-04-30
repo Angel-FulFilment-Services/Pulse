@@ -18,6 +18,7 @@ class RotaController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['auth']);
+        $this->middleware(['has.permission:pulse_view_rota']);
     }
 
     public function index(){

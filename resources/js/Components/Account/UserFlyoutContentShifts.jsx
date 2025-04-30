@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, differenceInMinutes } from 'date-fns';
-import { exportHTMLToImage } from '../../Utils/Exports.jsx'
 import useFetchShifts from '../Calendar/useFetchShifts';
 import useFetchTimesheets from '../Calendar/useFetchTimesheets';
 import useFetchEvents from '../Calendar/useFetchEvents';
@@ -10,9 +9,8 @@ import DateInput from '../Forms/DateInput.jsx';
 import ButtonControl from '../Controls/ButtonControl';
 import { PhotoIcon } from '@heroicons/react/24/outline';
 
-export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRange, fullname }) {
+export default function UserFlyoutContentShifts({ hrId, handleDateChange, handleExport, dateRange  }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
-  const divRef = useRef();
 
   const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
@@ -78,18 +76,13 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, dateRa
               Icon={PhotoIcon} 
               customClass="w-7 h-7" 
               iconClass="w-7 h-7 text-orange-500 hover:text-orange-600 transition-all ease-in-out" 
-              onButtonClick={() => {
-                const start = format(new Date(dateRange.startDate), 'dd.MM.yyyy');
-                const end = format(new Date(dateRange.endDate), 'dd.MM.yyyy');
-                const filename = `Shifts - ${start} - ${end}.png`;
-                exportHTMLToImage(divRef, filename);
-              }}
+              onButtonClick={handleExport}
             />
           )}
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`} ref={divRef}>
+      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`}>
         <ul className="flex flex-col pb-2">
           {isTransitioning
             ? Array.from({ length: 8 }).map((_, subRowIndex) => (

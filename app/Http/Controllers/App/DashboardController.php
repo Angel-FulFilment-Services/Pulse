@@ -11,7 +11,7 @@ class DashboardController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['auth']);
-        // $this->middleware(['perm.check:view_dashboard']);
+        $this->middleware(['has.permission:pulse_view_dashboard']);
     }
 
     public function index(){
