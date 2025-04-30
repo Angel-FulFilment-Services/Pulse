@@ -58,7 +58,7 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 |-----------------------
 */
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 // Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 /*
@@ -67,9 +67,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 |-----------------------
 */
 
-Route::get('/', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
-Route::get('/rota', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
-Route::get('/rota/administration', [RotaController::class, 'index'])->middleware(['auth'])->name('rota');
+Route::get('', [RotaController::class, 'index'])->name('rota');
+Route::get('/', [RotaController::class, 'index'])->name('rota');
+Route::get('/rota', [RotaController::class, 'index'])->name('rota');
+Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/shifts', [RotaController::class, 'shifts']);
 Route::get('/rota/timesheets', [RotaController::class, 'timesheets']);
 Route::get('/rota/events', [RotaController::class, 'events']);
@@ -83,14 +84,14 @@ Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 |-----------------------
 */
 
-Route::get('/reporting', [ReportingController::class, 'index'])->middleware(['auth'])->name('reporting');
+Route::get('/reporting', [ReportingController::class, 'index'])->name('reporting');
 
-Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])->middleware(['auth']);
-Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport'])->middleware(['auth']);
+Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
+Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);
 
-Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->middleware(['auth']);
+Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets']);
 
-Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->middleware(['auth']);
+Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting');
 
 /*
 |-----------------------
@@ -99,13 +100,24 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 */
 
 // HR Details
-Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
-Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->middleware(['auth'])->name('employee');
-Route::get('/my-details', [AccountController::class, 'index'])->middleware(['auth'])->name('employee');
+Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->name('employee');
+Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->name('employee');
+Route::get('/my-details', [AccountController::class, 'index'])->name('employee');
+Route::get('/employee/information', [AccountController::class, 'information'])->withoutMiddleware('has.permission:pulse_view_account');
 
-Route::get('/employee/information', [AccountController::class, 'information'])->middleware(['auth']);
+/*
+|-----------------------
+| User
+|-----------------------
+*/
 
 Route::get('/users/active-states', [UserController::class, 'activeStates']);
+
+/*
+|-----------------------
+| T2 SMS Handler
+|-----------------------
+*/
 
 Route::post('/t2/send_sms', function (Request $request) {
 

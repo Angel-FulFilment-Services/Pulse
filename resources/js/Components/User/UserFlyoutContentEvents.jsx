@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import useFetchEvents from '../Calendar/useFetchEvents';
+import useFetchEvents from '../Calendar/useFetchEvents.jsx';
 import { format, differenceInMinutes } from 'date-fns';
-import ShiftProgressBar from '../Calendar/ShiftProgressBar';
+import ShiftProgressBar from '../Calendar/ShiftProgressBar.jsx';
 import DateInput from '../Forms/DateInput.jsx';
-import SimpleList from '../Lists/SimpleList';
+import SimpleList from '../Lists/SimpleList.jsx';
 
 export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRange }) {
   const [isTransitioning, setIsTransitioning] = useState(true);

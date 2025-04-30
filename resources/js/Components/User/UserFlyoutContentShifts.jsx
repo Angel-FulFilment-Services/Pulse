@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { format, differenceInMinutes } from 'date-fns';
-import useFetchShifts from '../Calendar/useFetchShifts';
-import useFetchTimesheets from '../Calendar/useFetchTimesheets';
-import useFetchEvents from '../Calendar/useFetchEvents';
-import useFetchCalls from '../Calendar/useFetchCalls';
-import ShiftProgressBar from '../Calendar/ShiftProgressBar';
+import useFetchShifts from '../Calendar/useFetchShifts.jsx';
+import useFetchTimesheets from '../Calendar/useFetchTimesheets.jsx';
+import useFetchEvents from '../Calendar/useFetchEvents.jsx';
+import useFetchCalls from '../Calendar/useFetchCalls.jsx';
+import ShiftProgressBar from '../Calendar/ShiftProgressBar.jsx';
 import DateInput from '../Forms/DateInput.jsx';
-import ButtonControl from '../Controls/ButtonControl';
+import ButtonControl from '../Controls/ButtonControl.jsx';
 import { PhotoIcon } from '@heroicons/react/24/outline';
 
-export default function UserFlyoutContentShifts({ hrId, handleDateChange, handleExport, dateRange  }) {
-  const [isTransitioning, setIsTransitioning] = useState(true);
-
+export default function UserFlyoutContentShifts({ hrId, handleDateChange, handleExport, dateRange, isTransitioning, setIsTransitioning }) {
   const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
   const { events, isLoading: isLoadingEvents, isLoaded: isLoadedEvents } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
@@ -82,8 +80,8 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`}>
-        <ul className="flex flex-col pb-2">
+      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`} id="scrollable_container">
+        <ul className="flex flex-col pb-2" id="scrollable_content">
           {isTransitioning
             ? Array.from({ length: 8 }).map((_, subRowIndex) => (
                 <li className="py-1 pb-2" key={subRowIndex}>
@@ -132,7 +130,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               })}
         </ul>
       </div>
-      <div className="mx-auto pt-2 grid grid-cols-5 w-full justify-between">
+      <div className="mx-auto pt-2 grid grid-cols-3 w-full justify-between">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white w-full">
           <div className="text-sm font-medium leading-6 text-gray-600">Hours Scheduled</div>
           <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
@@ -147,7 +145,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             }
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-0 bg-white w-full">
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
           <div className="flex flex-col justify-center items-start">
             <div className="text-sm font-medium leading-6 text-gray-600">Hours Worked</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
@@ -163,7 +161,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
+        {/* <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
           <div className="flex flex-col justify-center items-start">
             <div className="text-sm font-medium leading-6 text-gray-600">Potential Earnings</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
@@ -196,7 +194,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               }
             </div>
           </div>
-        </div>
+        </div> */}
         <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white w-full">
           <div className="flex flex-col justify-center items-center">
             <div className="text-sm font-medium leading-6 text-gray-600">Percentage Worked</div>

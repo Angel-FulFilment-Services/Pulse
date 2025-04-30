@@ -7,13 +7,16 @@ import { validateRequired, validateIsLength, validateAscii } from '../../Utils/V
 import ShiftInformation from './ShiftInformation';
 import FlagShift from './FlagShift';
 import { toast } from 'react-toastify';
-import useFetchEmployee from '../Account/useFetchEmployee';
+import useFetchEmployee from '../User/useFetchEmployee';
+import { hasPermission } from '../../Utils/Permissions';
 
 export default function ShiftView({ selectedShift }) {
   const [sendingButtons, setSendingButtons] = useState({}); // Track sending status for each button
   const [message, setMessage] = useState(''); // State to track the textarea value
   const [showFlagShift, setShowFlagShift] = useState(false); // State to toggle between components
   const [selectedEvent, setSelectedEvent] = useState(null); // State to track selected event
+
+  const allowEventManagement = hasPermission('pulse_manage_events');
 
   if (!selectedShift) {
     return <p className="p-4">No shift selected.</p>;
@@ -247,8 +250,9 @@ export default function ShiftView({ selectedShift }) {
           />
 
           <button
-            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 ${showFlagShift ? "bg-red-100 text-red-700" : "hover:bg-red-100 bg-red-50 text-red-600 hover:text-red-700"} cursor-pointer rounded-r-xl`}
-            onClick={() => setShowFlagShift(true)} // Show the FlagShift component
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 ${showFlagShift ? "bg-red-100 text-red-700" : "hover:bg-red-100 bg-red-50 text-red-600 hover:text-red-700"} cursor-pointer rounded-r-xl disabled:bg-red-100 disabled:text-red-300 disabled:cursor-not-allowed`}
+            onClick={() => {if(allowEventManagement) setShowFlagShift(true)}} // Show the FlagShift component
+            {... allowEventManagement ? {} : { disabled: true } } // Disable button if no permission
           >
             <FlagIcon className="w-5 h-5"></FlagIcon>
           </button>
@@ -259,10 +263,17 @@ export default function ShiftView({ selectedShift }) {
           <FlagShift
             selectedShift={selectedShift}
             selectedEvent={selectedEvent}
+            allowEventManagement={allowEventManagement}
             onCancel={() => {setShowFlagShift(false); setSelectedEvent(null);}} // Hide the FlagShift component
           />
         ) : (
-          <ShiftInformation selectedShift={selectedShift} selectedEvent={selectedEvent} setShowFlagShift={setShowFlagShift} setSelectedEvent={setSelectedEvent} />
+          <ShiftInformation 
+            selectedShift={selectedShift} 
+            selectedEvent={selectedEvent}
+            allowEventManagement={allowEventManagement} 
+            setShowFlagShift={setShowFlagShift} 
+            setSelectedEvent={setSelectedEvent} 
+          />
         )}
       </div>
     </div>

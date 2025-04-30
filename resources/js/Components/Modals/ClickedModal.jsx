@@ -20,12 +20,12 @@ export default function ClickedModal({
   const arrowElement = useRef(null);
 
   const sizeClasses = {
-    xs: { width: '40%', height: '50%' }, 
-    sm: { width: '50%', height: '60%' }, 
-    md: { width: '60%', height: '70%' }, 
-    lg: { width: '70%', height: '80%' }, 
-    xl: { width: '80%', height: '90%' }, 
-    "2xl": { width: '90%', height: '100%' },
+    xs: { width: 'lg:w-[40%]', height: 'lg:h-[50%]' }, 
+    sm: { width: 'lg:w-[50%]', height: 'lg:h-[60%]' }, 
+    md: { width: 'lg:w-[60%]', height: 'lg:h-[70%]' }, 
+    lg: { width: 'lg:w-[70%]', height: 'lg:h-[80%]' }, 
+    xl: { width: 'lg:w-[80%]', height: 'lg:h-[90%]' }, 
+    "2xl": { width: 'lg:w-[90%]', height: 'lg:h-[100%]' },
   };
 
   const { x, y, strategy, middlewareData, context, update } = useFloating({
@@ -109,7 +109,7 @@ export default function ClickedModal({
                 flexDirection: "row"
               }}
             >
-              <div className="hidden lg:flex lg:flex-col min-w-72 w-72 h-20"></div>
+              <div className="hidden lg:flex lg:flex-col min-w-72 w-72"></div>
               <div
                 style={{
                   width:"100%",
@@ -121,31 +121,35 @@ export default function ClickedModal({
                 }}
               >
                 <div 
-                  ref={popperElement} 
-                  style={{
-                    width: sizeClasses[size]?.width, // Dynamically set width
-                    height: sizeClasses[size]?.height, // Dynamically set height
-                  }} 
-                  className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink`}
+                  ref={popperElement}
+                  id={"modal-content"}
+                  className={`bg-white rounded-none lg:rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink mt-16 lg:mt-0 w-full h-[calc(100vh-4rem)] ${sizeClasses[size]?.width} ${sizeClasses[size]?.height}`}
                 >
                   {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
                 </div>
               </div>
             </FloatingOverlay>
           ) : (
-            <div
-              ref={popperElement}
-              style={{
-                width: sizeClasses[size]?.width, // Dynamically set width
-                height: sizeClasses[size]?.height, // Dynamically set height
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5`}
-            >
-              {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
-            </div>
+            <>
+              <div className="hidden lg:flex lg:flex-col min-w-72 w-72"></div>
+              <div
+                style={{
+                  width:"100%",
+                  height:"100%",
+                  postion:"relative",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  ref={popperElement}
+                  className={`bg-white rounded-none lg:rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink mt-16 w-full h-[calc(100vh-4rem)] ${sizeClasses[size]?.width} ${sizeClasses[size]?.height}`}
+                >
+                  {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
+                </div>
+              </div>
+            </>
           )}
         </>
       )}

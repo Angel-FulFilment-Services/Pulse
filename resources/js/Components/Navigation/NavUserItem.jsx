@@ -1,6 +1,6 @@
 import { React } from 'react'
 import { usePage } from '@inertiajs/react'
-import UserItemFull from '../Account/UserItemFull';
+import UserItemFull from '../User/UserItemFull';
 
 export default function NavButton ({ item }){
     const { auth, employee } = usePage().props

@@ -49,6 +49,15 @@ class User extends Authenticatable
         return $this->belongsTo(Client::class, 'client_ref', 'client_ref');
     }
 
+    public function assignedPermissions()
+    {
+        $userPermissions = $this->assignedPermissionsUser;
+
+        $clientPermissions = $this->clientAssignedPermissions();
+
+        return $userPermissions->merge($clientPermissions);
+    }
+
     public function assignedPermissionsUser()
     {
         return $this->hasMany(AssignedPermissions::class, 'user_id', 'id');
@@ -64,17 +73,6 @@ class User extends Authenticatable
 
     public function hasPermission($permission)
     {
-        // Check for direct permission
-        $hasDirect = $this->assignedPermissionsUser()->where('right', $permission)->exists();
-    
-        // Check for permission assigned to any user with the same client_id
-        $hasClient = false;
-        if ($this->client) {
-            $hasClient = $this->clientAssignedPermissions()
-                ->where('right', $permission)
-                ->isNotEmpty();
-        }
-    
-        return $hasDirect || $hasClient;
+        return $this->assignedPermissions()->where('right', $permission)->isNotEmpty();
     }
 }
