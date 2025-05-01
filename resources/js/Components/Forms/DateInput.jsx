@@ -1,9 +1,11 @@
-import { Fragment, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Datepicker from "react-tailwindcss-datepicker"; 
+import { dateSelectorOptions } from '../../Utils/Date';
 
 export default function DateInput(props) {
   const { startDateId, endDateId, label, autoComplete, placeholder, annotation, dateRange, showShortcuts, minDate, maxDate, currentState, onDateChange, onBlur, error, clearErrors, width = "w-56" } = props;
-  
+  const [shortcuts, setShortcuts] = useState({});
+
   const handleDateChange = (event) => {   
     if (dateRange) {
       onDateChange([{id: startDateId, value: event.startDate}, {id: endDateId, value: event.endDate}]);
@@ -12,6 +14,13 @@ export default function DateInput(props) {
     }
     if (clearErrors) clearErrors(); // Clear errors when a valid date is selected
   }
+
+  useEffect(() => { 
+    const min = minDate ? new Date(minDate) : null;
+    const max = maxDate ? new Date(maxDate) : null;
+
+    setShortcuts(dateSelectorOptions(min, max)); 
+  }, [minDate, maxDate])
 
   return (
     <div>
@@ -41,69 +50,7 @@ export default function DateInput(props) {
               onChange={handleDateChange} 
               onBlur={ e => { if(onBlur) onBlur([id]);}}
               configs={{
-                shortcuts: {
-                  today: 'Today',
-                  yesterday: 'Yesterday',
-                  thisWeek: {
-                    text: "This Week",
-                    period: {
-                      start: new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)), // Start of the current week (Monday)
-                      end: new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 7)), // End of the current week (Sunday)
-                    },
-                  },
-                  pastWeek: {
-                    text: "Last Week",
-                    period: {
-                      start: new Date(new Date().setDate(new Date().getDate() - new Date().getDay() - 6)), // Start of the previous week (Monday)
-                      end: new Date(new Date().setDate(new Date().getDate() - new Date().getDay())), // End of the previous week (Sunday)
-                    },
-                  },
-                  currentMonth: 'This Month',
-                  pastMonth: 'Last Month',
-                  past: (period) => `Last ${period} days`,
-                  thisPayroll: {
-                    text: "This Payroll",
-                    period: {
-                      start: (() => {
-                        const today = new Date();
-                        const currentMonth = today.getMonth();
-                        const currentYear = today.getFullYear();
-                        return today.getDate() >= 29
-                          ? new Date(currentYear, currentMonth, 29) // Start from the 29th of the current month
-                          : new Date(currentYear, currentMonth - 1, 29); // Start from the 29th of the previous month
-                      })(),
-                      end: (() => {
-                        const today = new Date();
-                        const currentMonth = today.getMonth();
-                        const currentYear = today.getFullYear();
-                        return today.getDate() >= 29
-                          ? new Date(currentYear, currentMonth + 1, 28) // End on the 28th of the next month
-                          : new Date(currentYear, currentMonth, 28); // End on the 28th of the current month
-                      })(),
-                    },
-                  },
-                  lastPayroll: {
-                    text: "Last Payroll",
-                    period: {
-                      start: (() => {
-                        const today = new Date();
-                        const currentMonth = today.getMonth();
-                        const currentYear = today.getFullYear();
-                        return today.getDate() >= 29
-                          ? new Date(currentYear, currentMonth - 1, 29) // Start from the 29th of the previous month
-                          : new Date(currentYear, currentMonth - 2, 29); // Start from the 29th of two months ago
-                      })(),
-                      end: (() => {
-                        const today = new Date();
-                        const currentMonth = today.getMonth();
-                        const currentYear = today.getFullYear();
-                        return today.getDate() >= 29
-                          ? new Date(currentYear, currentMonth, 28) // End on the 28th of the current month
-                          : new Date(currentYear, currentMonth - 1, 28); // End on the 28th of the previous month
-                      })(),
-                    },
-                  },
-                },
+                shortcuts
               }}
             /> 
           </div>
