@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 
-export default function Logo({ includeTitle = true }) {
+export default function Logo({ includeTitle = true, error = false }) {
     const uniqueId = useId(); // Generate a unique ID for each instance of the Logo component
 
     return (
@@ -46,27 +46,53 @@ export default function Logo({ includeTitle = true }) {
                         </linearGradient>
                     </defs>
                     <g clipPath={`url(#donut-clip-${uniqueId})`}> {/* Use the unique clipPath ID */}
-                        <path
-                            d="
-                                M0,20 
-                                L58,20 
-                                L61,13 
-                                L64,25 
-                                L69,5  
-                                L74,33 
-                                L79,15 
-                                L81,20 
-                                L80,20
-                                L98,20
-                            "
-                            fill="none"
-                            stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
-                            strokeWidth={3.5}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            shapeRendering="geometricPrecision"
-                            className="ekg-path"
-                        />
+                        { error ? (
+                            <path
+                                d="
+                                    M0,20 
+                                    L58,20 
+                                    L61,20 
+                                    L65,15 
+                                    L69,23  
+                                    L74,10 
+                                    L79,20 
+                                    L82,20 
+                                    L83,20
+                                    L98,20
+                                "
+                                fill="none"
+                                stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
+                                strokeWidth={3.5}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                shapeRendering="geometricPrecision"
+                                className="ekg-path"
+                            />
+                        ) : (                            
+                            <g clipPath={`url(#donut-clip-${uniqueId})`}> {/* Use the unique clipPath ID */}
+                                <path
+                                    d="
+                                        M0,20 
+                                        L58,20 
+                                        L61,13 
+                                        L64,25 
+                                        L69,5  
+                                        L74,33 
+                                        L79,15 
+                                        L81,20 
+                                        L80,20
+                                        L98,20
+                                    "
+                                    fill="none"
+                                    stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
+                                    strokeWidth={3.5}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    shapeRendering="geometricPrecision"
+                                    className="ekg-path"
+                                />
+                            </g>
+                        )}
                     </g>
                 </svg>
             </div>

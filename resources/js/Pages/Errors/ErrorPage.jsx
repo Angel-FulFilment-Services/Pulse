@@ -37,7 +37,7 @@ export default function ErrorPage({ status }) {
           <div className="mx-auto max-w-2xl py-32 lg:py-56">
             <div className="text-center">
               <div className="scale-[2] -mt-0 lg:-mt-10 pb-16">
-                <Logo includeTitle={false}></Logo>
+                <Logo includeTitle={false} error={true}></Logo>
               </div>
               <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr from-orange-400 to-orange-600 bg-clip-text text-transparent drop-shadow-lg">
                 <span className="font-mono">{status}</span>
