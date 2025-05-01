@@ -283,9 +283,19 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
   return grouped;
 }
 
-const calculateReductionMinutes = (events = []) => {
+const calculateReductionMinutes = (events = [], shiftStartDate, shiftEndDate) => {
   return events
     .filter((event) => event.category === 'Reduced')
+    .filter((record) => {
+      const onTime = new Date(record.on_time);
+      const offTime = record.off_time ? new Date(record.off_time) : new Date();
+  
+      // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
+      return (
+        (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+      );
+    })
     .reduce((total, event) => {
       const onTime = new Date(event.on_time);
       const offTime = event.off_time ? new Date(event.off_time) : new Date();
@@ -342,7 +352,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
   let totalAdditionalSeconds = 0;
 
   // Calculate total reduction minutes
-  const reductionMinutes = calculateReductionMinutes(events);
+  const reductionMinutes = calculateReductionMinutes(events, shiftStartDate, shiftEndDate);
 
   // Merge timesheets and events
   const combinedData = [
