@@ -105,7 +105,16 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
   const grouped = {};
 
   // Sort shifts by shiftstart
-  shifts.sort((a, b) => a.shiftstart - b.shiftstart);
+  shifts.sort((a, b) => {
+    const startDiff = a.shiftstart - b.shiftstart;
+    if (startDiff !== 0) return startDiff;
+    // Secondary sort by agent name (case-insensitive)
+    const agentA = (a.agent || '').toLowerCase();
+    const agentB = (b.agent || '').toLowerCase();
+    if (agentA < agentB) return -1;
+    if (agentA > agentB) return 1;
+    return 0;
+  });
 
   shifts.forEach((shift) => {
     const date = format(new Date(shift.shiftdate), 'yyyy-MM-dd');
