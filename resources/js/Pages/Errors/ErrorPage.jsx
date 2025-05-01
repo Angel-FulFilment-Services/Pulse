@@ -41,7 +41,6 @@ export default function ErrorPage({ status }) {
               </div>
               <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr from-orange-400 to-orange-600 bg-clip-text text-transparent drop-shadow-lg">
                 <span className="font-mono">{status}</span>
-                <div className="fixed inset-0 w-screen h-screen left-0 top-0 bg-red-600/20 z-20"></div>
               </div>
               <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
                 {title}
