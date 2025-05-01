@@ -53,7 +53,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                                     L58,20 
                                     L61,20 
                                     L65,15 
-                                    L69,23  
+                                    L69,25  
                                     L74,10 
                                     L79,20 
                                     L82,20 
