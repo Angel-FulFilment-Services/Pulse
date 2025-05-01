@@ -83,8 +83,6 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
               const sortedData = data.sort(
                 (a, b) => new Date(a.on_time) - new Date(b.on_time)
               );
-  
-              console.log(sortedData);
 
               return sortedData.length > 0 ? (
                 <SimpleList

@@ -53,9 +53,9 @@ export function getStatus(shift, timesheets, events) {
     const remainingMinutes = minutesUntilShift % 60;
 
     const dueInMessage = hoursUntilShift > 0
-      ? `Due in ${hoursUntilShift} hours and ${remainingMinutes} minutes`
+      ? `Due in ${hoursUntilShift}h, ${remainingMinutes}m`
       : remainingMinutes > 0
-      ? `Due in ${remainingMinutes} minutes`
+      ? `Due in ${remainingMinutes}m`
       : 'Due now';
 
     return {

@@ -43,7 +43,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
 
   return (
     <div className="flex gap-x-6">
-      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} />
+      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} jobTitle={jobTitle} />
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
           <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900"} text-nowrap leading-6 w-max`}>{agent.agent || userState.name}</div>

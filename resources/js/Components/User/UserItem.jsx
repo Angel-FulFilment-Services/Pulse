@@ -6,7 +6,7 @@ import React, { memo, useMemo } from 'react';
 import UserFlyoutLayout from './UserFlyoutLayout';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 
-const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
+const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle }) => {
   const sizeClasses = {
     "icon": {
       'extra-small': 'h-6 w-6',
@@ -58,8 +58,8 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto }) => {
             size={"xl"}
             className={`w-full h-full justify-center items-center flex absolute rounded-full`}
             onClose={() => null} // Clear the message when the flyout closes
-            content={(handleSubmit, handleClose) => <UserFlyoutLayout hrId={userId} handleClose={handleClose}
-          />}
+            content={(handleSubmit, handleClose) => <UserFlyoutLayout hrId={userId} handleClose={handleClose} jobTitle={jobTitle} /> 
+          }
         >
           <div
             className={`flex z-20 absolute top-0 left-0 inset-0 items-center justify-center bg-none hover:bg-gray-800 hover:bg-opacity-50 rounded-full cursor-pointer transition-all ease-in-out group`}

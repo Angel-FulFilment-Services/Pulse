@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import { exportHTMLToImage } from '../../Utils/Exports.jsx'
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+import { hasPermission } from '../../Utils/Permissions';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
@@ -11,20 +12,31 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-const tabs = [
-    { id: 'shifts', name: 'Shifts', icon: CalendarIcon, current: true },
-    { id: 'events', name: 'Events', icon: CalendarDaysIcon, current: false },
-    // { id: 'performance', name: 'Performance', icon: ChartBarIcon, current: false },
-    // { id: 'meetings', name: 'Meetings', icon: UsersIcon, current: false },
-    { id: 'employee', name: 'Employee', icon: UserIcon, current: false },
-]
-
-export default function UserFlyoutLayout({hrId, handleClose}) {
+export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [activeTab, setActiveTab] = useState('shifts');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
   const divRef = useRef();
+
+  const allowViewEvents = () => {
+    // Check if the user has permission to view events
+    if(!jobTitle) return true;
+    switch (jobTitle) {
+      case 'Team Manager':
+        return hasPermission('pulse_view_tm_events');
+      default:
+        return true;
+    }
+  };
+
+  const tabs = [
+      { id: 'shifts', name: 'Shifts', icon: CalendarIcon, current: true, visible: () => true },
+      { id: 'events', name: 'Events', icon: CalendarDaysIcon, current: false, visible: allowViewEvents },
+      // { id: 'performance', name: 'Performance', icon: ChartBarIcon, current: false },
+      // { id: 'meetings', name: 'Meetings', icon: UsersIcon, current: false },
+      { id: 'employee', name: 'Employee', icon: UserIcon, current: false, visible: () => true },
+  ]
 
   const handleDateChange = (item) => {   
     setDateRange({startDate: item[0].value, endDate: item[1].value});
@@ -71,14 +83,14 @@ export default function UserFlyoutLayout({hrId, handleClose}) {
     <div className="h-full w-full grid grid-cols-1 grid-rows-[auto,auto,1fr] justify-between divide-gray-300 cursor-auto overflow-hidden" ref={divRef}>
       <div className="h-auto">
         <nav className="isolate flex divide-x divide-gray-200 rounded-t-lg shadow" aria-label="Tabs">
-          {tabs.map((tab, tabIdx) => (
+          {tabs.filter(tab => tab.visible() !== false).map((tab, tabIdx, arr) => (
             <a
               key={tab.name}
               onClick={() => handleTabClick(tab.id)}
               className={classNames(
                 activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
                 tabIdx === 0 ? 'rounded-tl-lg' : '',
-                tabIdx === 2 ? 'rounded-tr-lg' : '',
+                tabIdx === arr.length - 1 ? 'rounded-tr-lg' : '',
                 'group relative min-w-0 flex-1 overflow-hidden bg-gray-50 py-3 px-4 text-center text-sm font-medium cursor-pointer hover:bg-gray-100 focus:z-10 w-full'
               )}
               aria-current={activeTab === tab.id ? 'page' : undefined}
