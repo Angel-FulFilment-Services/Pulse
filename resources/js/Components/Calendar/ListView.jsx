@@ -298,7 +298,25 @@ export default function ListView({ setView, viewType }) {
                                                 >
                                                   View<span className="hidden sm:inline"> shift</span>
                                                 </a>
-                                                  { relevantEvents.find(event => event.requires_action) ?
+                                                  { relevantEvents.filter((event) => {
+                                                      // Build shift start/end Date objects
+                                                      const shiftDate = shift.shiftdate; // e.g. "2024-05-01"
+                                                      const pad = (n) => n.toString().padStart(2, '0');
+                                                      const startHour = Math.floor(shift.shiftstart / 100);
+                                                      const startMinute = shift.shiftstart % 100;
+                                                      const endHour = Math.floor(shift.shiftend / 100);
+                                                      const endMinute = shift.shiftend % 100;
+
+                                                      const shiftStart = new Date(`${shiftDate}T${pad(startHour)}:${pad(startMinute)}:00`);
+                                                      const shiftEnd = new Date(`${shiftDate}T${pad(endHour)}:${pad(endMinute)}:00`);
+
+                                                      // Parse event times
+                                                      const eventOn = new Date(event.on_time);
+                                                      const eventOff = new Date(event.off_time);
+
+                                                      // Check for overlap: event must start before shift ends and end after shift starts
+                                                      return eventOn < shiftEnd && eventOff > shiftStart;
+                                                    }).find(event => event.requires_action) ?
                                                     <div className="w-6 h-6 flex items-center justify-center absolute -mr-12">
                                                       <div className="w-6 h-6 z-10 relative">
                                                         <div className="w-4 h-4 bg-white rounded-full my-1 mx-1 absolute"> </div>

@@ -103,13 +103,13 @@ class BuildAbsenceEventsCommand extends Command
                 'hr_id' => $item->hr_id,
                 'user_id' => $item->user_id,
                 'created_by_user_id' => 1954,
+                'requires_action' => false,
                 // 'shift_id' => $item->shift_id, Redundent
                 'date' => $item->date,
                 'on_time' => $item->shiftstart,
                 'off_time' => $item->shiftend,
                 'category' => "AWOL",
                 'notes' => null,
-                'requires_action', 1,
             ];
         });
 

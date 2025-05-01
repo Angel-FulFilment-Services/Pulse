@@ -203,6 +203,7 @@ class RotaController extends Controller
                     'date' => date("Y-m-d", strtotime($request->date)),
                     'on_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00',
                     'off_time' => date("Y-m-d", strtotime($request->date)) . ' ' . $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00',
+                    'requires_action' => false,
                     'category' => $request->flagType,
                     'notes' => $request->notes,
                 ]);
