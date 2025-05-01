@@ -14,10 +14,10 @@ const rotaReportsConfig = [
         polling: 60000,
         dateRange: {
             default: {
-            startDate: format(startOfDay(subDays(new Date(), 7)), 'yyyy-MM-dd'),
-            endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
+              startDate: format(startOfDay(subDays(new Date(), 8)), 'yyyy-MM-dd'),
+              endDate: format(endOfDay(subDays(new Date(), 1)), 'yyyy-MM-dd'),
             },
-            maxDate: new Date().setFullYear(new Date().getFullYear() + 1),
+            maxDate: subDays(new Date(), 1),
             minDate: new Date().setFullYear(new Date().getFullYear() - 1),
         },
         date: false,
@@ -320,10 +320,10 @@ const rotaReportsConfig = [
         polling: 60000,
         dateRange: {
             default: {
-            startDate: format(startOfDay(subDays(new Date(), 7)), 'yyyy-MM-dd'),
-            endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
+              startDate: format(startOfDay(subDays(new Date(), 8)), 'yyyy-MM-dd'),
+              endDate: format(endOfDay(subDays(new Date(), 1)), 'yyyy-MM-dd'),
             },
-            maxDate: new Date().setFullYear(new Date().getFullYear() + 1),
+            maxDate: subDays(new Date(), 1),
             minDate: new Date().setFullYear(new Date().getFullYear() - 1),
         },
         date: false,
