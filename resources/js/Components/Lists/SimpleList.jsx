@@ -26,7 +26,7 @@ export default function SimpleList({ headers, data }) {
                     {headers.map((header, colIndex) => (
                       <td
                         key={colIndex}
-                        className="whitespace-nowrap px-3 py-2 text-sm text-gray-900"
+                        className="px-3 py-2 text-sm text-gray-900 max-w-96"
                       >
                         <div className={`${header.className || ''}`}>
                           {row[header.label.toLowerCase().replace( /\s/g, '')] || row[header.label]}
