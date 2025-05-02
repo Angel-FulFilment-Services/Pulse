@@ -216,7 +216,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
     const isValid = validate(['flagType', 'requiresAction', 'meetingDate', 'meetingTime', 'time', 'notes']);
     if (!isValid) return;
     
-    if(isNote){
+    if(!isNote){
       // Check for overlap with timesheets or events when creating a new event
       const startTime = new Date(
         `${formData.date} ${formData.startTime.hour.padStart(2, '0')}:${formData.startTime.minute.padStart(2, '0')}:00`
