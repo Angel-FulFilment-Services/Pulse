@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use DB;
 use Str;
 use Log;
+use App\Helper\Auditing;
 
 class ReportingController extends Controller
 {
@@ -483,6 +484,10 @@ class ReportingController extends Controller
                 ->where('client','ANGL')
                 ->where('campaign', $report['label'])
                 ->update(['targets' => json_encode($targets)]);
+
+            // Log the action
+            Auditing::log('Reporting', auth()->user()->id, 'Target set', json_encode($targets));
+
             return response()->json(['status' => 'success', 'message' => 'Targets updated successfully.']);
         } catch(\Throwable $e){
             Log::error('Error updating targets: ' . $e->getMessage());

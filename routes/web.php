@@ -77,6 +77,7 @@ Route::get('/rota/events', [RotaController::class, 'events']);
 Route::get('/rota/calls', [RotaController::class, 'calls']);
 Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
 Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
+Route::post('/rota/remove-break', [RotaController::class, 'removeBreak']);
 
 /*
 |-----------------------

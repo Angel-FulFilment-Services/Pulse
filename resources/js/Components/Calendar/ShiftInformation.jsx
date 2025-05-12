@@ -38,15 +38,16 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
         return;
       }
 
+      const route = selectedEvent.origin === 'events' ? '/rota/remove-event' : '/rota/remove-break';
       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content'); // Get CSRF token
 
-      const response = await fetch('/rota/remove-event', {
+      const response = await fetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrfToken, // Include CSRF token in the headers
         },
-        body: JSON.stringify({ eventId: selectedEvent.id }), // Pass the event ID in the request body
+        body: JSON.stringify({ eventId: selectedEvent.origin === 'events' ? selectedEvent.id : selectedEvent.unq_id }), // Pass the event ID in the request body
       });
 
       if (!response.ok) {
@@ -265,10 +266,9 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                     new Date(record.on_time)
                   ) % 60}m`
                 : '',
-              action: record.origin === 'events' && record.category !== 'SMS Sent' ? (
+              action: (record.origin === 'events' && record.category !== 'SMS Sent') || (record.origin === 'timesheets' && record.category === 'Break') ? (
                 <div className="flex gap-x-1">
-                  {(auth !== record.user_id && allowEventManagement) && (
-                    <>
+                  {(auth !== record.user_id && allowEventManagement && record.origin === 'events') && (
                       <button
                         type="button"
                         className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
@@ -280,7 +280,9 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                         }}
                       >
                         <PencilIcon className="w-5 h-5 inline-block text-gray-500" />
-                      </button> 
+                      </button>
+                  )} 
+                  {(auth !== record.user_id && allowEventManagement) && (
                       <button
                         type="button"
                         className="bg-red-50 w-7 h-7 ring-1 ring-red-200 rounded-md hover:bg-red-100 flex justify-center items-center"
@@ -292,8 +294,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                         }}
                       >
                         <TrashIcon className="w-5 h-5 inline-block text-red-600" />
-                      </button>            
-                    </>        
+                      </button>
                   )}
                 </div>
               ) : null,

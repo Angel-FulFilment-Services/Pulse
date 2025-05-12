@@ -5,6 +5,7 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Helper\Auditing;
 use App\Models\Rota\Shift;
 use App\Models\Employee\Employee;
 use App\Models\Rota\Event;
@@ -81,6 +82,7 @@ class RotaController extends Controller
         // Fetch breaksheet records for the date range        
         $breaksheetMaster = DB::table('apex_data.breaksheet_master')
         ->whereBetween('date', [$startDate, $endDate])
+        ->where('nosync_deleted', 0)
         ->when($hrId, function ($query) use ($hrId) {
             return $query->where('hr_id', $hrId);
         })
@@ -233,6 +235,9 @@ class RotaController extends Controller
             //     ]);
             // }
 
+            // Log the event creation
+            Auditing::log('Event', auth()->user()->id, 'Event Created', 'Event ID: ' . $request->eventID);
+
             return response()->json(['message' => 'Event saved successfully!'], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -256,6 +261,31 @@ class RotaController extends Controller
             $event = Event::find($request->eventId);
 
             if($event && $event->delete()){
+                Auditing::log('Event', auth()->user()->id, 'Event Deleted', 'Event ID: ' . $request->eventId);
+                return response()->json(['message' => 'Event removed successfully!'], 200);
+            } else {
+                return response()->json(['message' => 'Failed to remove the event.'], 500);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error removing event: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to removing the event.'], 500);
+        }
+    }
+
+    public function removeBreak(Request $request)
+    {
+        // Define validation rules
+        $rules = [
+            'eventId' => 'required|numeric',
+        ];
+        try {
+            if(DB::table('apex_data.breaksheet_master')->where('unq_id', $request->eventId)->update(['nosync_deleted' => 1])){
+                Auditing::log('Break', auth()->user()->id, 'Break Deleted', 'Break ID: ' . $request->eventId);
                 return response()->json(['message' => 'Event removed successfully!'], 200);
             } else {
                 return response()->json(['message' => 'Failed to remove the event.'], 500);
