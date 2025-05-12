@@ -3,8 +3,8 @@ import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 const rotaReportsConfig = [
   {
-    id: 'attendence_report',
-    label: 'Attendence Report',
+    id: 'attendance_report',
+    label: 'Attendance Report',
     generate: generateAttendanceReport,
     parameters: {
         targetAllowColumn: true,
