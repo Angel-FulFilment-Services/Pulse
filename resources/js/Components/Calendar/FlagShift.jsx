@@ -227,7 +227,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
 
       const hasOverlap = [
         ...(selectedShift.timesheets || []),
-        ...(selectedShift.events || []).filter(ev => !selectedEvent || ev.id !== selectedEvent.id)
+        ...(selectedShift.events || []).filter(ev => ev.category !== 'Note' && ev.category !== 'SMS Sent')
       ].some((item) => {
         const itemStart = new Date(item.on_time);
         const itemEnd = new Date(item.off_time || selectedShift.shift.shiftend);

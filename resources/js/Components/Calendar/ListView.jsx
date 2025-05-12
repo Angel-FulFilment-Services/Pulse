@@ -361,21 +361,48 @@ export default function ListView({ setView, viewType }) {
         width="lg"
         subTitle={
           selectedShift
-            ? (() => {
-                const startHour = Math.floor(selectedShift.shift.shiftstart / 100);
-                const startMinute = selectedShift.shift.shiftstart % 100;
-                const endHour = Math.floor(selectedShift.shift.shiftend / 100);
-                const endMinute = selectedShift.shift.shiftend % 100;
-
-                const startDate = new Date();
-                startDate.setHours(startHour, startMinute);
-
-                const endDate = new Date();
-                endDate.setHours(endHour, endMinute);
-
-                return `${format(startDate, 'h:mm a')} - ${format(endDate, 'h:mm a')}`;
-              })()
-            : ""
+          ? (() => {
+              const startHour = Math.floor(selectedShift.shift.shiftstart / 100);
+              const startMinute = selectedShift.shift.shiftstart % 100;
+              const endHour = Math.floor(selectedShift.shift.shiftend / 100);
+              const endMinute = selectedShift.shift.shiftend % 100;
+      
+              const startDate = new Date();
+              startDate.setHours(startHour, startMinute);
+      
+              const endDate = new Date();
+              endDate.setHours(endHour, endMinute);
+      
+              // Find the last event or timesheet
+              const lastEvent = selectedShift.events?.filter(ev => ev.category !== 'Note' && ev.category !== 'SMS Sent').reduce((latest, event) => {
+                const eventOffTime = new Date(event.off_time);
+                return eventOffTime > new Date(latest.off_time) ? event : latest;
+              }, selectedShift.events[0]);
+      
+              const lastTimesheet = selectedShift.timesheets?.reduce((latest, timesheet) => {
+                const timesheetOffTime = new Date(timesheet.off_time);
+                return timesheetOffTime > new Date(latest.off_time) ? timesheet : latest;
+              }, selectedShift.timesheets[0]);
+      
+              // Determine the latest off_time between the last event and timesheet
+              const lastOffTime = (() => {
+                if (lastEvent && lastTimesheet) {
+                  return new Date(lastEvent.off_time) > new Date(lastTimesheet.off_time)
+                    ? lastEvent.off_time
+                    : lastTimesheet.off_time;
+                }
+                return lastEvent?.off_time || lastTimesheet?.off_time || null;
+              })();
+      
+              const formattedLastOffTime = lastOffTime
+                ? format(new Date(lastOffTime), 'h:mm a')
+                : '';
+      
+              return `${format(startDate, 'h:mm a')} - ${format(endDate, 'h:mm a')} ${
+                lastOffTime ? `(Last event: ${formattedLastOffTime})` : ''
+              }`;
+            })()
+          : ''
         }
       >
         <ShiftView
