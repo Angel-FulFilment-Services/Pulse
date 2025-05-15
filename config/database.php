@@ -203,6 +203,26 @@ return [
             ]) : [],
         ],
 
+        'assets' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL_NINTH'),
+            'host' => env('DB_HOST_NINTH', '127.0.0.1'),
+            'port' => env('DB_PORT_NINTH', '3306'),
+            'database' => env('DB_DATABASE_NINTH', 'forge'),
+            'username' => env('DB_USERNAME_NINTH', 'forge'),
+            'password' => env('DB_PASSWORD_NINTH', ''),
+            'unix_socket' => env('DB_SOCKET_NINTH', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => FALSE,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'hr' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL_TENTH'),

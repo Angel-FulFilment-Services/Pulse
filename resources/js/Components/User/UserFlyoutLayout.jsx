@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
+import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, WrenchIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import { exportHTMLToImage } from '../../Utils/Exports.jsx'
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { hasPermission } from '../../Utils/Permissions';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
 import UserFlyoutContentEvents from './UserFlyoutContentEvents';
+import UserFlyoutContentTechnicalSupport from './UserFlyoutContentTechnicalSupport';
 import UserItemFull from './UserItemFull.jsx';
 
 function classNames(...classes) {
@@ -36,6 +37,7 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
       // { id: 'performance', name: 'Performance', icon: ChartBarIcon, current: false },
       // { id: 'meetings', name: 'Meetings', icon: UsersIcon, current: false },
       { id: 'employee', name: 'Employee', icon: UserIcon, current: false, visible: () => true },
+      { id: 'technical support', name: 'Technical Support', icon: WrenchIcon, current: false, visible: () => hasPermission('pulse_view_technical_support') && hasPermission('pulse_view_assets') },
   ]
 
   const handleDateChange = (item) => {   
@@ -72,6 +74,8 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
         return <UserFlyoutContentEmployee hrId={hrId} />;
       case 'events':
         return <UserFlyoutContentEvents hrId={hrId} handleDateChange={handleDateChange} dateRange={dateRange}  />;
+      case 'technical support':
+        return <UserFlyoutContentTechnicalSupport hrId={hrId} handleDateChange={handleDateChange} dateRange={dateRange}  />;
       case 'meetings':
         return <div className="p-4">Meetings content goes here.</div>;
       default:

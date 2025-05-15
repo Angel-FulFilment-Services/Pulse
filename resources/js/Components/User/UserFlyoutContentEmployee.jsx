@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import useFetchEmployee from './useFetchEmployee';
+import useFetchEmployee from '../Fetches/User/useFetchEmployee';
 import { format, startOfDay, endOfDay, subDays, differenceInMinutes } from 'date-fns';
 
 export default function UserFlyoutContentEmployee({ hrId }) {

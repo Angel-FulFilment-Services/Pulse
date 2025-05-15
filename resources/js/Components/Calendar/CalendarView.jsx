@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, EllipsisHorizontalIcon } from '@heroicons/react/20/solid';
 import MenuComponent from './MenuComponent';
-import useFetchShifts from './useFetchShifts';
+import useFetchShifts from '../Fetches/Rota/useFetchShifts';
 import './CalendarStyles.css';
 import { startOfWeek, endOfWeek, format, addWeeks, subWeeks, addDays, isSameDay, startOfDay, endOfDay, subDays } from 'date-fns';
 import ShiftBlock from './ShiftBlock';
