@@ -1,36 +1,39 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CheckCircleIcon, ChevronDownIcon, ExclamationCircleIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ChevronDownIcon, ExclamationCircleIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import UserItem from '../User/UserItem.jsx';
 
 export default function StackedList({
   data,
-  allowSupportManagement = true,
+  allowManagement = true,
+  actions= [],
   onRemove,
   onEdit,
   renderTitle,
   renderDescription,
-  allowExpand = true // New prop with default true
+  renderExpandableContent,
+  allowExpand = true, // New prop with default true
 }) {
   const [expandedRow, setExpandedRow] = useState(null);
+  const contentRefs = useRef([]); // Array of refs for each row
+  const [heights, setHeights] = useState([]); // Array of heights for each row
 
   const handleToggleExpand = (rowIndex) => {
-    setExpandedRow(prev => (prev === rowIndex ? null : rowIndex));
+    setExpandedRow((prev) => (prev === rowIndex ? null : rowIndex));
   };
+
+  useEffect(() => {
+    // Update heights for all rows when expandedRow changes
+    if (expandedRow !== null && contentRefs.current[expandedRow]) {
+      const newHeights = [...heights];
+      newHeights[expandedRow] = contentRefs.current[expandedRow].scrollHeight;
+      setHeights(newHeights);
+    }
+  }, [expandedRow]);
 
   return (
     <ul className="w-full">
       {data.map((row, rowIndex) => {
-        const contentRef = useRef(null);
         const isExpanded = expandedRow === rowIndex;
-        const [height, setHeight] = useState(0);
-
-        useEffect(() => {
-          if (isExpanded && contentRef.current) {
-            setHeight(contentRef.current.scrollHeight);
-          } else {
-            setHeight(0);
-          }
-        }, [isExpanded]);
 
         return (
           <li key={rowIndex} className="w-full border-b border-gray-200">
@@ -59,24 +62,17 @@ export default function StackedList({
               <div>
                 <dl className="flex w-full flex-none justify-between gap-x-4 sm:w-auto px-4">
                   <div className="flex -space-x-0.5">
-                    <div>
-                      <UserItem
-                        userId={row.createdBy}
-                        searchState={"userId"}
-                        showState={false}
-                        customClass={"ring-2 ring-white"}
-                        size="extra-small"
-                      />
-                    </div>
-                    <div>
-                      <UserItem
-                        userId={row.loggedby}
-                        searchState={"userId"}
-                        showState={false}
-                        customClass={"ring-2 ring-white"}
-                        size="extra-small"
-                      />
-                    </div>
+                    {row.users.map((user, userIndex) => (
+                      <div key={userIndex}>
+                        <UserItem
+                          userId={user.userId}
+                          searchState={'userId'}
+                          showState={false}
+                          customClass={'ring-2 ring-white'}
+                          size="extra-small"
+                        />
+                      </div>
+                    ))}
                   </div>
                   <div className="flex justify-center items-center w-44 divide-x divide-gray-200">
                     <dt className="flex items-center pr-3">
@@ -86,26 +82,48 @@ export default function StackedList({
                         <ExclamationCircleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
                       )}
                     </dt>
-                    <dt className="flex items-center gap-x-2 pl-3 pr-3">
-                      <PencilIcon
-                        className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
-                        aria-hidden="true"
-                        onClick={() => onEdit && onEdit(row)}
-                      />
+                    <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
                       <button
                         onClick={() => {
-                          if (allowSupportManagement && onRemove) {
+                          if (allowManagement && onEdit) {
+                            onEdit(row);
+                          }
+                        }}
+                      >
+                        <PencilIcon
+                          className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (allowManagement && onRemove) {
                             onRemove(row);
                           }
                         }}
                       >
-                        <TrashIcon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
+                        <TrashIcon
+                          className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                          aria-hidden="true"
+                        />
                       </button>
-                      {row.resolved ? (
-                        <XMarkIcon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
-                      ) : (
-                        <CheckIcon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
-                      )}
+                      {actions.map((action, actionIndex) => (
+                        <button
+                          key={actionIndex}
+                          onClick={() => {
+                            if (allowManagement && action.onClick) {
+                              action.onClick(row);
+                            }
+                          }}
+                          title={action.tooltip || ''}
+                        >
+                          {typeof action.icon === 'function' ? (
+                            action.icon(row)
+                          ) : (
+                            <action.icon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
+                          )}
+                        </button>
+                      ))}
                     </dt>
                     {allowExpand && (
                       <div
@@ -113,7 +131,9 @@ export default function StackedList({
                         onClick={() => handleToggleExpand(rowIndex)}
                       >
                         <ChevronDownIcon
-                          className={`h-6 w-6 text-gray-400 transition-transform duration-300  ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`h-6 w-6 text-gray-400 transition-transform duration-300 ${
+                            isExpanded ? 'rotate-180' : ''
+                          }`}
                           aria-hidden="true"
                         />
                       </div>
@@ -125,15 +145,15 @@ export default function StackedList({
             {/* Expandable content with slide animation */}
             {allowExpand && (
               <div
-                ref={contentRef}
+                ref={(el) => (contentRefs.current[rowIndex] = el)} // Assign ref for each row
                 style={{
-                  height: isExpanded ? height : 0,
+                  height: isExpanded ? heights[rowIndex] || 0 : 0,
                   transition: 'height 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                   overflow: 'hidden',
                 }}
               >
-                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 animate-fade-in">
-                    { renderExpandableContent ? (renderExpand(row, rowIndex)) : null}
+                <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 animate-fade-in">
+                  {renderExpandableContent ? renderExpandableContent(row, rowIndex) : null}
                 </div>
               </div>
             )}

@@ -121,8 +121,10 @@ Route::get('/users/active-states', [UserController::class, 'activeStates']);
 |-----------------------
 */
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
-Route::get('/asset-management/support/events/remove', [AssetController::class, 'events']);
-
+Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
+Route::post('/asset-management/support/events/save', [AssetController::class, 'save']);
+Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
+Route::get('/asset-management/support/kit', [AssetController::class, 'kit']);
 
 /*
 |-----------------------

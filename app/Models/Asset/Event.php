@@ -28,6 +28,7 @@ class Event extends Model
         'category',
         'notes',
         'resolved',
+        'attachments',
     ];
 
     /**

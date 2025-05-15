@@ -1,11 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { useFloating, autoUpdate } from '@floating-ui/react-dom';
-import { FloatingOverlay } from '@floating-ui/react';
+import { useState, useRef, Fragment } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 
 export default function ClickedModal({
-  placement = 'top',
   size = 'md', // Default size
-  overlay = false,
   className = '',
   style = {},
   children, // Trigger element
@@ -15,69 +12,14 @@ export default function ClickedModal({
   onSubmit = () => {}, // Default to a no-op function
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const referenceElement = useRef(null);
-  const popperElement = useRef(null);
-  const arrowElement = useRef(null);
 
   const sizeClasses = {
-    xs: { width: 'lg:w-[40%]', height: 'lg:h-[50%]' }, 
-    sm: { width: 'lg:w-[50%]', height: 'lg:h-[60%]' }, 
-    md: { width: 'lg:w-[60%]', height: 'lg:h-[70%]' }, 
-    lg: { width: 'lg:w-[70%]', height: 'lg:h-[80%]' }, 
-    xl: { width: 'lg:w-[80%]', height: 'lg:h-[90%]' }, 
-    "2xl": { width: 'lg:w-[90%]', height: 'lg:h-[100%]' },
-  };
-
-  const { x, y, strategy, middlewareData, context, update } = useFloating({
-    placement: placement,
-    strategy: 'absolute',
-    middleware: [],
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-      const cleanup = autoUpdate(referenceElement.current, popperElement.current, update);
-      return () => cleanup();
-    }
-  }, [isOpen, update]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        referenceElement.current &&
-        !referenceElement.current.contains(event.target) &&
-        popperElement.current &&
-        !popperElement.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-        if (onClose) onClose(); // Trigger the onClose callback
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  const handleClick = (event) => {
-    // Prevent closing when clicking inside the popperElement
-    if (popperElement.current && popperElement.current.contains(event.target)) {
-      return;
-    }
-    setIsOpen((prev) => {
-      const newState = !prev;
-      if (!newState && onClose) onClose(); // Trigger the onClose callback when closing
-      return newState;
-    });
-  };
-
-  const handleSubmit = (...args) => {
-    onSubmit(...args); // Safely call onSubmit (default is a no-op)
-    setIsOpen(false); // Close the modal after submission
+    xs: 'w-[100%] sm:w-[40%] h-[100%] sm:h-[50%]',
+    sm: 'w-[100%] sm:w-[50%] h-[100%] sm:h-[60%]',
+    md: 'w-[100%] sm:w-[60%] h-[100%] sm:h-[70%]',
+    lg: 'w-[100%] sm:w-[70%] h-[100%] sm:h-[80%]',
+    xl: 'w-[100%] sm:w-[80%] h-[100%] sm:h-[90%]',
+    '2xl': 'w-[100%] h-[100%]',
   };
 
   const handleClose = () => {
@@ -85,74 +27,61 @@ export default function ClickedModal({
     if (onClose) onClose();
   };
 
+  const handleSubmit = (...args) => {
+    onSubmit(...args); // Safely call onSubmit (default is a no-op)
+    setIsOpen(false); // Close the modal after submission
+  };
+
   return (
-    <div
-      ref={referenceElement}
-      onClick={handleClick}
-      className={`${className} ${isOpen ? className.replace(/hover:/g, '') : ''}`}
-      style={style}
-    >
-      {icon}
-
+    <>
       {/* Trigger Element */}
-      {children}
+      <div
+        onClick={() => setIsOpen(true)}
+        className={`${className}`}
+        style={style}
+      >
+        {icon}
+        {children}
+      </div>
 
-      {/* Modal Content */}
-      {isOpen && (
-        <>
-          {overlay ? (
-            <FloatingOverlay
-              style={{
-                zIndex: 999,
-                backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                display: 'flex',
-                flexDirection: "row"
-              }}
-            >
+      {/* Modal */}
+      <Transition.Root show={isOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-30" onClose={handleClose}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex h-full items-center justify-center p-4 text-center sm:p-0 py-12 md:py-0">
               <div className="hidden lg:flex lg:flex-col min-w-72 w-72"></div>
-              <div
-                style={{
-                  width:"100%",
-                  height:"100%",
-                  postion:"relative",
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
-                <div 
-                  ref={popperElement}
-                  id={"modal-content"}
-                  className={`bg-white rounded-none lg:rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink mt-16 lg:mt-0 w-full h-[calc(100vh-4rem)] ${sizeClasses[size]?.width} ${sizeClasses[size]?.height}`}
+                <Dialog.Panel
+                  className={`relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all mt-14 lg:mt-0 mx-0 md:mx-6 ${sizeClasses[size]}`}
                 >
-                  {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
-                </div>
-              </div>
-            </FloatingOverlay>
-          ) : (
-            <>
-              <div className="hidden lg:flex lg:flex-col min-w-72 w-72"></div>
-              <div
-                style={{
-                  width:"100%",
-                  height:"100%",
-                  postion:"relative",
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <div
-                  ref={popperElement}
-                  className={`bg-white rounded-none lg:rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 flex flex-shrink mt-16 w-full h-[calc(100vh-4rem)] ${sizeClasses[size]?.width} ${sizeClasses[size]?.height}`}
-                >
-                  {content(handleSubmit, handleClose)} {/* Pass handleSubmit and handleClose */}
-                </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
-    </div>
+                  {/* Modal Content */}
+                  {content(handleSubmit, handleClose)}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition.Root>
+    </>
   );
 }
