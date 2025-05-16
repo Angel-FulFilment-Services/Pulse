@@ -89,6 +89,18 @@ class AssetController extends Controller
         try {
             $event = Event::find($request->eventId);
 
+            // Remove the attachments from storage
+            if ($event && $event->attachments) {
+                $existingAttachments = json_decode($event->attachments, true);
+
+                // Delete each file from storage
+                foreach ($existingAttachments as $attachment) {
+                    if (isset($attachment['path'])) {
+                        Storage::disk('r2')->delete($attachment['path']);
+                    }
+                }
+            }
+
             if($event && $event->delete()){
                 Auditing::log('Support', auth()->user()->id, 'Support Log Event Deleted', 'Event ID: ' . $request->eventId);
                 return response()->json(['message' => 'Event removed successfully!'], 200);
