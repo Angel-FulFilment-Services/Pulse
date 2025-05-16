@@ -4,7 +4,7 @@ import UserItem from '../User/UserItem.jsx';
 
 export default function StackedList({
   data,
-  allowManagement = true,
+  allowManagement = false,
   actions= [],
   onRemove,
   onEdit,
@@ -74,7 +74,7 @@ export default function StackedList({
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-center items-center w-44 divide-x divide-gray-200">
+                  <div className="flex justify-center items-center w-full divide-x divide-gray-200">
                     <dt className="flex items-center pr-3">
                       {row.resolved ? (
                         <CheckCircleIcon className="h-6 w-6 text-green-500" aria-hidden="true" />
@@ -82,49 +82,51 @@ export default function StackedList({
                         <ExclamationCircleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
                       )}
                     </dt>
-                    <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
-                      <button
-                        onClick={() => {
-                          if (allowManagement && onEdit) {
-                            onEdit(row);
-                          }
-                        }}
-                      >
-                        <PencilIcon
-                          className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (allowManagement && onRemove) {
-                            onRemove(row);
-                          }
-                        }}
-                      >
-                        <TrashIcon
-                          className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      {actions.map((action, actionIndex) => (
+                    {allowManagement && (
+                      <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
                         <button
-                          key={actionIndex}
                           onClick={() => {
-                            if (allowManagement && action.onClick) {
-                              action.onClick(row);
+                            if (allowManagement && onEdit) {
+                              onEdit(row);
                             }
                           }}
-                          title={action.tooltip || ''}
                         >
-                          {typeof action.icon === 'function' ? (
-                            action.icon(row)
-                          ) : (
-                            <action.icon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
-                          )}
+                          <PencilIcon
+                            className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                            aria-hidden="true"
+                          />
                         </button>
-                      ))}
-                    </dt>
+                        <button
+                          onClick={() => {
+                            if (allowManagement && onRemove) {
+                              onRemove(row);
+                            }
+                          }}
+                        >
+                          <TrashIcon
+                            className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                            aria-hidden="true"
+                          />
+                        </button>
+                        {actions.map((action, actionIndex) => (
+                          <button
+                            key={actionIndex}
+                            onClick={() => {
+                              if (allowManagement && action.onClick) {
+                                action.onClick(row);
+                              }
+                            }}
+                            title={action.tooltip || ''}
+                          >
+                            {typeof action.icon === 'function' ? (
+                              action.icon(row)
+                            ) : (
+                              <action.icon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
+                            )}
+                          </button>
+                        ))}
+                      </dt>
+                    )}
                     {allowExpand && (
                       <div
                         className="cursor-pointer pl-3 flex items-center"

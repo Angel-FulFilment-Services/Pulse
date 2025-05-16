@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const useFetchKit = (hrId = null) => {
+const useFetchKit = (startDate, endDate, hrId = null) => {
   const [kit, setKit] = useState([]);
   const [responses, setResponses] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
+  const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
 
   const fetchKit = async (controller) => {
     let loadingTimeout;
@@ -18,11 +19,9 @@ const useFetchKit = (hrId = null) => {
       }, 3000);
 
       const response = await axios.get('/asset-management/support/kit', {
-        params: { hr_id: hrId },
+        params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate, hr_id: hrId },
         signal: controller.signal, // Attach the AbortController signal
       });
-
-      console.log(response.data);
 
       clearTimeout(loadingTimeout);
       setIsLoading(false);
@@ -44,6 +43,11 @@ const useFetchKit = (hrId = null) => {
   };
 
   useEffect(() => {
+    // Update the latestDates ref whenever startDate or endDate changes
+    latestDates.current = { startDate, endDate };
+  }, [startDate, endDate]);
+
+  useEffect(() => {
     const controller = new AbortController(); // Create a new AbortController for each fetch
 
     // Debounce the fetchKit call
@@ -60,7 +64,7 @@ const useFetchKit = (hrId = null) => {
       controller.abort(); // Cancel the ongoing request
       clearTimeout(debounceTimeout.current); // Clear the debounce timeout
     };
-  }, [hrId]); // Re-run when hrId changes
+  }, [startDate, endDate, hrId]); // Re-run when hrId changes
 
   useEffect(() => {
     // Fetch kit every 60 seconds
@@ -72,7 +76,7 @@ const useFetchKit = (hrId = null) => {
     return () => {
       clearInterval(intervalId); // Clear the interval on cleanup
     };
-  }, [hrId]); // Re-run when hrId changes
+  }, [startDate, endDate, hrId]); // Re-run when hrId changes
 
   return { kit, responses, isLoading, isLoaded };
 };

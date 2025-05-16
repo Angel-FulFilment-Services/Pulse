@@ -379,6 +379,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                                 name="file-upload"
                                 type="file"
                                 className="sr-only"
+                                accept="image/png, image/gif, image/jpeg, image/jpg"
                                 multiple
                                 onChange={handleAttachmentUpload}
                                 ref={fileInputRef}

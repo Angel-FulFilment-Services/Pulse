@@ -25,6 +25,8 @@ class AssetController extends Controller
     }
 
     public function kit(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
         $hrId = $request->query('hr_id');
 
         $items = DB::table('assets.assets_issued')
@@ -40,7 +42,7 @@ class AssetController extends Controller
 
         if($device)
             $response = DB::table('assets.openvpn_ping_log')
-                ->where('datetime', '>=', now()->subDays(7))
+                ->whereBetween('datetime', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
                 ->where('device', $device)
                 ->orderBy('datetime', 'desc')
                 ->get();
@@ -67,7 +69,7 @@ class AssetController extends Controller
                 $attachments = json_decode($record->attachments, true);
                 $record->attachments = array_map(function ($attachment) {
                     return [
-                        'path' => Storage::url($attachment['path']), // Generate public URL for the file
+                        'path' => Storage::disk('r2')->temporaryUrl($attachment['path'], now()->addMinutes(5)),
                         'original_name' => $attachment['original_name'], // Include the original filename
                     ];
                 }, $attachments);
@@ -176,7 +178,7 @@ class AssetController extends Controller
                     // Delete each file from storage
                     foreach ($existingAttachments as $attachment) {
                         if (isset($attachment['path'])) {
-                            Storage::disk('public')->delete($attachment['path']);
+                            Storage::disk('r2')->delete($attachment['path']);
                         }
                     }
                 }
@@ -185,10 +187,11 @@ class AssetController extends Controller
             $storedAttachments = [];
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('attachments', 'public'); // Store in the 'attachments' directory in 'storage/app/public'
+                    $path = $file->store('support/attachments', 'r2'); // Store in R2
                     $storedAttachments[] = [
                         'path' => $path,
-                        'original_name' => $file->getClientOriginalName(), // Store the original filename
+                        'original_name' => $file->getClientOriginalName(),
+                        // 'url' => Storage::disk('r2')->url($path), // Optional: store the URL
                     ];
                 }
             }
