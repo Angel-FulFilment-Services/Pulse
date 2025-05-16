@@ -23,7 +23,7 @@ export default function TextInput(props) {
         </label>
       }
       <div className="">
-          <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md h-full`}>
+          <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 w-full h-full`}>
               <input
                   type="text"
                   name={id}

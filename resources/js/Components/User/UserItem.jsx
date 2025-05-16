@@ -111,8 +111,8 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
             </span>
           </PopoverFlyout>
         )}
-        {isNewUser && (
-            <span className="absolute -top-[18%] -right-[18%] transform z-50">
+        {showState && isNewUser && (
+            <span className="absolute -top-[45%] right-[10%] translate-x-1/2 translate-y-1/2 transform z-50">
               <span className={`text-xs text-orange-500 font-bold`}>New</span>
             </span>
         )}

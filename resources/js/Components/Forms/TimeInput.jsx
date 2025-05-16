@@ -8,7 +8,7 @@ function classNames(...classes) {
 }
 
 export default function TimeInput(props) {
-  const { id, label, startTime, endTime, currentState, onTimeChange, error } = props;
+  const { id, label, annotation, startTime, endTime, currentState, onTimeChange, error } = props;
 
   const [hours, setHours] = useState([]);
   const [minutes, setMinutes] = useState([]);
@@ -101,6 +101,9 @@ export default function TimeInput(props) {
     <div>
       <label htmlFor={id} className="block text-sm font-medium leading-6 text-gray-900">
         {label}
+        { annotation &&
+          <span className='text-neutral-500 font-normal'> {annotation} </span>
+        }
       </label>
       <div className="flex space-x-2 mt-2">
         {/* Hour Select */}

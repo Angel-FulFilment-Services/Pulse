@@ -8,11 +8,14 @@ import { toast } from 'react-toastify';
 import { validateRequired, validateMatches } from '../../../Utils/Validation';
 
 export default function SupportForm({ hrId, allowSupportManagement, onCancel, initialData = null }) {
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        started: { hour: '', minute: '' },
-        ended: { hour: '', minute: '' },
+        started: { hour: pad(now.getHours()), minute: pad(now.getMinutes()) },
+        ended: { hour: pad(now.getHours()), minute: pad(now.getMinutes()) },
         attachments: [],
         eventID: null,
     });
@@ -75,6 +78,15 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
 
         loadAttachments();
     }, [initialData]);
+
+    useEffect(() => {
+        if(formData.started.hour > formData.ended.hour || (formData.started.hour === formData.ended.hour && formData.started.minute > formData.ended.minute)){
+            setFormData((prev) => ({
+                ...prev,
+                ended: { hour: formData.started.hour, minute: formData.started.minute },
+            }));
+        }
+    }, [formData.started])
 
     const validate = (fieldsToValidate) => {
         const newErrors = {};
@@ -259,8 +271,8 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
         setFormData({
             title: '',
             description: '',
-            started: { hour: '', minute: '' },
-            ended: { hour: '', minute: '' },
+            started: { hour: pad(now.getHours()), minute: pad(now.getMinutes()) },
+            ended: { hour: pad(now.getHours()), minute: pad(now.getMinutes()) },
             attachments: [],
             eventID: null,
         });
@@ -268,8 +280,8 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
     }
 
     return (
-        <div className="w-full">
-            <div className="space-y-6">
+        <div className="w-full h-full max-h-[50rem] overflow-y-auto">
+            <div className="space-y-6 h-full">
                 {/* Title Field */}
                 <div className="border-b border-gray-900/10 pb-6">
                 <div className="border-b border-gray-900/10 pb-2">
@@ -283,40 +295,45 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     </p>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
-                    <div className="sm:col-span-4">
-                    <TextInput
-                        id="title"
-                        label="Title"
-                        placeholder="Enter the title"
-                        currentState={formData.title}
-                        onTextChange={(value) => handleInputChange('title', value[0].value)}
-                        onBlur={() => validate(['title'])}
-                        error={errors.title}
-                    />
+                <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full xl:w-2/3">
+                    <div className="sm:col-span-2">
+                        <TextInput
+                            id="title"
+                            label="Title"
+                            annotation="(required)"
+                            placeholder="Enter the title"
+                            currentState={formData.title}
+                            onTextChange={(value) => handleInputChange('title', value[0].value)}
+                            onBlur={() => validate(['title'])}
+                            error={errors.title}
+                        />
                     </div>
 
                     {/* Description Field */}
-                    <div className="sm:col-span-3">
-                    <TextAreaInput
-                        id="description"
-                        label="Description"
-                        placeholder="Enter a detailed description"
-                        rows={4}
-                        currentState={formData.description}
-                        onTextChange={(value) => handleInputChange('description', value[0].value)}
-                        onBlur={() => validate(['description'])}
-                        error={errors.description}
-                    />
+                    <div className="sm:col-span-4">
+                        <TextAreaInput
+                            id="description"
+                            label="Description"
+                            height={"h-auto"}
+                            placeholder="Enter a detailed description"
+                            annotation={`(${formData.description.length}/500 characters)`}
+                            rows={4}
+                            currentState={formData.description}
+                            onTextChange={(value) => handleInputChange('description', value[0].value)}
+                            onBlur={() => validate(['description'])}
+                            maxLength={500}
+                            error={errors.description}
+                        />
                     </div>
 
                     {/* Started Time Field */}
-                    <div className="sm:row-start-3 sm:col-span-3">
+                    <div className="sm:row-start-2 sm:col-span-3">
                     <TimeInput
                         id="started"
                         label="Started"
-                        startTime="00:00"
-                        endTime="23:59"
+                        startTime="08:00"
+                        endTime="21:59"
+                        annotation="(required)"
                         currentState={formData.started}
                         onTimeChange={(value) => handleInputChange('started', value)}
                         error={errors.started}
@@ -324,12 +341,13 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     </div>
 
                     {/* Ended Time Field */}
-                    <div className="sm:row-start-3 sm:col-span-3">
+                    <div className="sm:row-start-2 sm:col-span-3">
                     <TimeInput
                         id="ended"
                         label="Ended"
-                        startTime="00:00"
-                        endTime="23:59"
+                        startTime={`${formData.started.hour}:${formData.started.minute})`}
+                        endTime="21:59"
+                        annotation="(required)"
                         currentState={formData.ended}
                         onTimeChange={(value) => handleInputChange('ended', value)}
                         error={errors.ended}
@@ -362,7 +380,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
 
                         {/* Drag-and-Drop Zone */}
                         <div
-                        className={`flex justify-center rounded-lg border border-dashed px-6 py-10 border-gray-900/25`}
+                        className={`flex justify-center rounded-lg border border-dashed px-6 py-4 border-gray-900/25`}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                         >
@@ -396,7 +414,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                 </div>
 
                 {/* Submit and Cancel Buttons */}
-                <div className="mt-6 flex items-center justify-end gap-x-6">
+                <div className="mt-6 flex items-center justify-end gap-x-6 w-full xl:w-2/3">
                 <button
                     type="button"
                     className="text-sm font-semibold text-gray-900"
@@ -405,7 +423,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     Cancel
                 </button>
                 <button
-                className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 disabled:cursor-not-allowed ${
+                className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed ${
                     isProcessing
                     ? 'bg-orange-500'
                     : isSuccess
