@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const useFetchKit = (hrId = null) => {
   const [kit, setKit] = useState([]);
+  const [responses, setResponses] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
@@ -21,9 +22,12 @@ const useFetchKit = (hrId = null) => {
         signal: controller.signal, // Attach the AbortController signal
       });
 
+      console.log(response.data);
+
       clearTimeout(loadingTimeout);
       setIsLoading(false);
-      setKit(response.data);
+      setKit(response.data.items);
+      setResponses(response.data.response);
       setIsLoaded(true);
     } catch (error) {
       clearTimeout(loadingTimeout);
@@ -70,7 +74,7 @@ const useFetchKit = (hrId = null) => {
     };
   }, [hrId]); // Re-run when hrId changes
 
-  return { kit, isLoading, isLoaded };
+  return { kit, responses, isLoading, isLoaded };
 };
 
 export default useFetchKit;

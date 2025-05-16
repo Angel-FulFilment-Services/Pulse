@@ -18,9 +18,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
   const [showSupportForm, setShowSupportForm] = useState(false); // State to toggle content
   
   const { events } = useFetchTechnicalSupport(dateRange.startDate, dateRange.endDate, hrId);
-  const { kit, response } = useFetchKit(hrId);
-
-  console.log(kit);
+  const { kit, responses } = useFetchKit(hrId);
 
   const allowSupportManagement = true; // Replace with actual logic to determine if event management is allowed
 
@@ -348,9 +346,9 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                     {kit && kit.length > 0 ? 'Kit: ' + kit[1].kit_alias || 'Kit Items' : 'Kit Items'}
                   </h4>
                   <p className="max-w-2xl text-sm text-gray-500">
-                    Bla bla bla bla bla bla bla bla bla bla bla
+                    Currently assigned equipment for this user.
                   </p>
-                  <ul className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-md p-4">
+                  <ul className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-md border border-gray-200 p-4">
                     {kit && kit.length > 0 ? (
                       kit.map((item, index) => (
                         <li
@@ -373,6 +371,61 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                 {/* Blank Section */}
                 <div className="w-1/2 pl-2">
                   {/* Leave this section blank for now */}
+                  <h4 className="text-base font-semibold text-gray-900 pt-4">
+                    Latency
+                  </h4>
+                  <p className="max-w-2xl text-sm text-gray-500">
+                    Automated latency test results for the last week.
+                  </p>
+                  <div className="overflow-x-auto rounded-md border border-gray-200 mt-2 max-h-[23rem] overflow-y-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm border-separate border-spacing-0">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">Date/Time</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">IP</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Min (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Max (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Avg (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Lost (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white">
+                      {responses && responses.length > 0 ? (
+                        responses.map((row, idx) => {
+                          // Parse values as numbers for comparison
+                          const avg = Number(row.avg);
+                          const lost = Number(row.lost_rate);
+
+                          let highlightClass = "";
+                          if (avg > 100 || lost > 0) {
+                            highlightClass = "bg-red-100 text-red-800";
+                          } else if (avg > 75) {
+                            highlightClass = "bg-yellow-100 text-yellow-800";
+                          }else {
+                            highlightClass = "odd:bg-gray-50";
+                          }
+
+                          return (
+                            <tr key={idx} className={`${highlightClass}`}>
+                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100">{row.datetime}</td>
+                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100">{row.ip}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.min}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.max}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.avg}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.lost_rate}</td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="px-3 py-4 text-center text-gray-400">
+                            No ping results found for the last week.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
           </div>

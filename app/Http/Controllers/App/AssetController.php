@@ -36,14 +36,16 @@ class AssetController extends Controller
             ->where('assets_issued.returned', null)
             ->get();
 
-        // $device = $items->where('type', 'Telephone')->pluck('afs_id')->first();
+        $device = $items->where('type', 'Telephone')->pluck('alias')->first();
 
-        // if($device)
-        //     $response = DB::table('assests.openvpn_ping_log')
-        //         ->where('device', $device)
-        //         ->get();
+        if($device)
+            $response = DB::table('assets.openvpn_ping_log')
+                ->where('datetime', '>=', now()->subDays(7))
+                ->where('device', $device)
+                ->orderBy('datetime', 'desc')
+                ->get();
 
-        return response()->json($items);
+        return response()->json(array("items" => $items, "device" => $device, "response" => $response ?? []));
     }
 
     public function events(Request $request){
