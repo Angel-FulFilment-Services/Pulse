@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/solid';
+import { PaintBrushIcon } from '@heroicons/react/24/outline';
 
 const themes = [
   { name: 'Orange', class: '', color: '249 115 22' }, // default
   { name: 'Olive', class: 'theme-olive', color: '195 207 33' },
+  { name: 'Blue', class: 'theme-blue', color: '37 99 235' },
   { name: 'Purple', class: 'theme-purple', color: '139 92 246' },
   { name: 'Green', class: 'theme-green', color: '16 185 129' },
   { name: 'Cyan', class: 'theme-cyan', color: '22 163 74' },
@@ -48,37 +50,79 @@ export default function NavTheme() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2 mb-2">
-        {themes.map(themeObj => {
-          const isActive = theme === themeObj.class;
-          return (
-            <button
-              key={themeObj.name}
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSetTheme(themeObj.class);
-              }}
-              className={`relative w-8 h-8 rounded-full border-2 hover:scale-95 flex flex-shrink-0 items-center justify-center transition-all duration-200 ${isActive ? 'border-theme-500 ring-2 ring-theme-300' : 'border-gray-200'}`}
-              aria-label={themeObj.name}
-              style={{ overflow: 'hidden' }}
-            >
-              <svg width="32" height="32" viewBox="0 0 32 32" className="absolute inset-0">
-                <defs>
-                  <linearGradient id={`diag-${themeObj.name}`} x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-                    <stop offset="0.49" stopColor={mode === 'dark' ? '#222' : '#fff'} />
-                    <stop offset="0.51" stopColor={`rgb(${themeObj.color})`} />
-                  </linearGradient>
-                </defs>
-                <rect x="0" y="0" width="32" height="32" fill={`url(#diag-${themeObj.name})`} />
-              </svg>
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-2 divide-y divide-gray-200"
+      onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex flex-shrink-0 items-center justify-center w-8 h-8 rounded-full bg-theme-50 ring-theme-600/30 ring-2">
+          <PaintBrushIcon className="w-5 h-5 text-theme-700" />
+        </div>
+        <div className="flex flex-col items-start justify-center">
+          <span className="text-sm font-semibold text-gray-700 ">Styling</span>
+          <span className="text-sm text-gray-500">Customise your Pulse.</span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Mode:</span>
+      <div className="flex flex-wrap gap-2 pt-2">
+        <span className="text-xs text-gray-500 flex-shrink-0">Theme:</span>
+        <div className="flex flex-wrap gap-2">
+          {themes.map((themeObj) => {
+            const isActive = theme === themeObj.class;
+            return (
+              <button
+                key={themeObj.name}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSetTheme(themeObj.class);
+                }}
+                className={`relative w-8 h-8 rounded-full border-2 hover:scale-95 flex items-center justify-center transition-all duration-200 ${
+                  isActive
+                    ? 'border-theme-500 ring-2 ring-theme-300'
+                    : 'border-gray-200'
+                }`}
+                aria-label={themeObj.name}
+                style={{ overflow: 'hidden' }}
+              >
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 32 32"
+                  className="absolute inset-0"
+                >
+                  <defs>
+                    <linearGradient
+                      id={`diag-${themeObj.name}`}
+                      x1="0"
+                      y1="32"
+                      x2="32"
+                      y2="0"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop
+                        offset="0.49"
+                        stopColor={mode === 'dark' ? '#222' : '#fff'}
+                      />
+                      <stop offset="0.51" stopColor={`rgb(${themeObj.color})`} />
+                    </linearGradient>
+                  </defs>
+                  <rect
+                    x="0"
+                    y="0"
+                    width="32"
+                    height="32"
+                    fill={`url(#diag-${themeObj.name})`}
+                  />
+                </svg>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pt-2">
+        <span className="text-xs text-gray-500">Dark Mode:</span>
         <button
             onClick={e => {
                 e.preventDefault();

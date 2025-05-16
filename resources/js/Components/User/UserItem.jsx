@@ -63,7 +63,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
 
   return (
     <>
-      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-900 rounded-full ${selectedSizeClass} ${customClass}`}>
+      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50  rounded-full ${selectedSizeClass} ${customClass}`}>
         {allowClickInto && (<ClickedModal
             overlay={true}
             size={"xl"}

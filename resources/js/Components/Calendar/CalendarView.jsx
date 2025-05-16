@@ -177,7 +177,7 @@ export default function CalendarView({ setView, viewType }) {
           >
             <div className={`${viewType === 'Week' ? 'grid-cols-7 grid sm:hidden' : 'grid-cols-1 hidden' } text-sm leading-6 text-gray-500 `}>
               {daysOfWeek.map((day, index) => (
-                <div key={index} type="button" className={`flex flex-col items-center ${viewType === 'Week' ? 'hover:bg-gray-50 dark:bg-dark-900 cursor-pointer' : ''} pb-3 pt-2`} onClick={() => handleDateClick(day)}>
+                <div key={index} type="button" className={`flex flex-col items-center ${viewType === 'Week' ? 'hover:bg-gray-50  cursor-pointer' : ''} pb-3 pt-2`} onClick={() => handleDateClick(day)}>
                   {format(day, 'E')[0]}{' '}
                   <span
                     className={`mt-1 flex h-8 w-8 items-center justify-center font-semibold ${
@@ -193,7 +193,7 @@ export default function CalendarView({ setView, viewType }) {
             <div className={`-mr-px ${viewType === 'Week' ? 'grid-cols-7 hidden sm:grid' : 'grid-cols-1 grid'} divide-x divide-gray-100 border-r border-gray-100 text-sm leading-6 text-gray-500 `}>
               <div className="col-end-1 w-14" />
               {daysOfWeek.map((day, index) => (
-                <div key={index} className={`flex items-center ${viewType === 'Week' ? 'hover:bg-gray-50 dark:bg-dark-900 cursor-pointer' : ''} justify-center py-3`} onClick={() => handleDateClick(day)}>
+                <div key={index} className={`flex items-center ${viewType === 'Week' ? 'hover:bg-gray-50  cursor-pointer' : ''} justify-center py-3`} onClick={() => handleDateClick(day)}>
                   <span className="flex gap-x-1">
                     {format(day, 'EEE')}{' '}
                     <span

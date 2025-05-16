@@ -22,7 +22,7 @@ export default function Example() {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-50 dark:bg-dark-9000 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-gray-50  bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto" ref={cancelButtonRef}>
@@ -63,7 +63,7 @@ export default function Example() {
                     </Link>
                     <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-dark-900 border-none border-transparent sm:col-start-2 sm:mt-0"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50  border-none border-transparent sm:col-start-2 sm:mt-0"
                     onClick={() => setOpen(false)}
                   >
                     Not Now

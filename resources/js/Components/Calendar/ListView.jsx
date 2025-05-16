@@ -188,8 +188,8 @@ export default function ListView({ setView, viewType }) {
                               <div className={`animate-pulse flex flex-col justify-center h-full w-full`}>
                                 <div className="h-4 bg-gray-200 rounded-lg w-28"></div>
                               </div>
-                              <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:bg-dark-900 shadow-sm" />
-                              <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:bg-dark-900 shadow-sm" />
+                              <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
+                              <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
                             </th>
                           </tr>
                           {/* Sub-Rows */}
@@ -203,7 +203,7 @@ export default function ListView({ setView, viewType }) {
                               </td>
                               <td className="py-2 text-right w-20">
                                 <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
-                                  <div className="h-4 bg-gray-100 dark:bg-dark-800 rounded-lg w-20"></div>
+                                  <div className="h-4 bg-gray-100  rounded-lg w-20"></div>
                                 </div>
                               </td>
                             </tr>
@@ -239,8 +239,8 @@ export default function ListView({ setView, viewType }) {
                                         {isNaN(startDate.getTime())
                                           ? key.charAt(0).toUpperCase() + key.slice(1)
                                           : `Starting: ${format(startDate, 'h:mm a').toLowerCase()}`}
-                                        <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:bg-dark-900 shadow-sm" />
-                                        <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:bg-dark-900 shadow-sm" />
+                                        <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
+                                        <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
                                       </th>
                                     </tr>
                                     {shifts.map((shift) => {
@@ -281,7 +281,7 @@ export default function ListView({ setView, viewType }) {
                                           <td className="py-2 text-right w-20">
                                             {!isLoaded || isTransitioning ? (
                                               <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
-                                                <div className="h-4 bg-gray-100 dark:bg-dark-800 rounded-lg w-20"></div>
+                                                <div className="h-4 bg-gray-100  rounded-lg w-20"></div>
                                               </div>
                                             ) : (
                                               <div className="flex justify-end gap-x-4">

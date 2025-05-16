@@ -10,12 +10,12 @@
 
 // const colors = [
 //   'bg-theme-100 text-theme-500 border border-theme-300',
-//   'bg-gray-100 dark:bg-dark-800 text-gray-500 border border-gray-300',
+//   'bg-gray-100  text-gray-500 border border-gray-300',
 // ];
 
 const colors = [
   'bg-theme-100 text-theme-600',
-  'bg-gray-100 dark:bg-dark-800 text-gray-500',
+  'bg-gray-100  text-gray-500',
 ];
   
 let colorIndex = 0;

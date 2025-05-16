@@ -427,7 +427,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
       {/* Action Buttons */}
       <div className="pt-4 flex justify-end space-x-4">
         <button
-          className="px-4 py-2 bg-gray-100 dark:bg-dark-800 text-gray-700 rounded-md hover:bg-gray-200 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-gray-100  text-gray-700 rounded-md hover:bg-gray-200 disabled:cursor-not-allowed"
           onClick={onCancel}
           disabled={isProcessing || isSuccess}
         >

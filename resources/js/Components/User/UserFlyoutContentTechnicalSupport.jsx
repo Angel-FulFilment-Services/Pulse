@@ -204,8 +204,8 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                       <li className="py-1">
                         <div className="flex flex-row w-full justify-between">
                           <div className="flex flex-col w-1/4 gap-y-1 justify-center">
-                            <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-20 h-4"></div>
-                            <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-24 h-4"></div>
+                            <div className="bg-gray-100  animate-pulse rounded-full w-20 h-4"></div>
+                            <div className="bg-gray-100  animate-pulse rounded-full w-24 h-4"></div>
                           </div>
                           <div className="w-full">
                             <ShiftProgressBar isLoading={true} />
@@ -349,7 +349,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                   <p className="max-w-2xl text-sm text-gray-500">
                     Currently assigned equipment for this employee.
                   </p>
-                  <ul className={`mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 bg-gray-50 dark:bg-dark-900 rounded-md border min-h-24 h-72 max-h-72 border-gray-200 p-4`}>
+                  <ul className={`mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 bg-gray-50  rounded-md border min-h-24 h-72 max-h-72 border-gray-200 p-4`}>
                     {kit && kit.length > 0 ? (
                       kit.map((item, index) => (
                         <li
@@ -382,7 +382,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                   </p>
                   <div className={`overflow-x-auto rounded-md border border-gray-200 mt-2 min-h-24 max-h-72 overflow-y-auto h-72`}>
                     <table className="min-w-full divide-y divide-gray-200 text-sm border-separate border-spacing-0">
-                      <thead className="bg-gray-50 dark:bg-dark-900 sticky top-0">
+                      <thead className="bg-gray-50  sticky top-0">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">Date/Time</th>
                           <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">IP</th>
@@ -405,7 +405,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                           } else if (avg > 100) {
                             highlightClass = "bg-yellow-100 text-yellow-800";
                           }else {
-                            highlightClass = "odd:bg-gray-50 dark:bg-dark-900";
+                            highlightClass = "odd:bg-gray-50 ";
                           }
 
                           return (

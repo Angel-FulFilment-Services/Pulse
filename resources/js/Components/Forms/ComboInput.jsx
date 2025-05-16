@@ -53,7 +53,7 @@ export default function ComboInput(props) {
                   className={({ active }) =>
                     classNames(
                       'relative cursor-default select-none py-2 pl-3 pr-9',
-                      active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900' : 'text-gray-900'
+                      active ? 'bg-gray-100  text-gray-900' : 'text-gray-900'
                     )
                   }
                 >

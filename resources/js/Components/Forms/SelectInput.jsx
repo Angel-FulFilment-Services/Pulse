@@ -47,7 +47,7 @@ export default function SelectInput(props) {
                         key={item.id}
                         className={({ active }) =>
                         classNames(
-                            active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900' : 'text-gray-900',
+                            active ? 'bg-gray-100  text-gray-900' : 'text-gray-900',
                             'relative cursor-default select-none py-2 pl-3 pr-9'
                         )
                         }

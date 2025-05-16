@@ -87,8 +87,8 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                 <li className="py-1 pb-2" key={subRowIndex}>
                   <div className="flex flex-row w-full justify-between">
                     <div className="flex flex-col w-1/4 gap-y-1 justify-center">
-                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-20 h-4"></div>
-                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-24 h-4"></div>
+                      <div className="bg-gray-100  animate-pulse rounded-full w-20 h-4"></div>
+                      <div className="bg-gray-100  animate-pulse rounded-full w-24 h-4"></div>
                     </div>
                     <div className="w-full">
                       <ShiftProgressBar isLoading={true} />
@@ -135,7 +135,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
           <div className="text-sm font-medium leading-6 text-gray-600">Hours Scheduled</div>
           <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
             { isTransitioning ? 
-              <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+              <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
             :
               <span>
                 {Math.floor(totalShiftMinutes / 60) > 0 && `${Math.floor(totalShiftMinutes / 60)} hours`}
@@ -150,7 +150,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             <div className="text-sm font-medium leading-6 text-gray-600">Hours Worked</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
                   {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
@@ -166,7 +166,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             <div className="text-sm font-medium leading-6 text-gray-600">Potential Earnings</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
                   {Math.floor(totalShiftMinutes / 60) > 0 &&
@@ -183,7 +183,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             <div className="text-sm font-medium leading-6 text-gray-600">Actual Earnings</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
                   {Math.floor(totalActualMinutes / 60) > 0 &&
@@ -200,7 +200,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             <div className="text-sm font-medium leading-6 text-gray-600">Percentage Worked</div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
               { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
                 :
                 `${workedPercentage}%`
               }

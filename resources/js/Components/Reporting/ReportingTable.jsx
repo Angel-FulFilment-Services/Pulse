@@ -218,7 +218,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
           {/* Table Body */}
           <tbody className="bg-white">
             {sortedData.map((row, rowIndex) => (
-              <tr key={rowIndex} className="even:bg-gray-50 dark:bg-dark-900">
+              <tr key={rowIndex} className="even:bg-gray-50 ">
                 {structure.map((column) =>
                   column.visible !== false ? (
                     <td

@@ -17,7 +17,7 @@ export default function TextInput(props) {
         }
       </label>
       <div className="mt-2">
-          <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600" : "ring-gray-300"} ${isDisabled ? "ring-gray-200 bg-gray-50 dark:bg-dark-900" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 w-full ${height}`}> 
+          <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600" : "ring-gray-300"} ${isDisabled ? "ring-gray-200 bg-gray-50 " : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 w-full ${height}`}> 
               <textarea
                   name={id}
                   cols={cols}

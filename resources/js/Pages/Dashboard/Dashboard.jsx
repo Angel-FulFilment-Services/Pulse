@@ -8,7 +8,7 @@ import { BarsArrowUpIcon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicon
 const Dashboard = ({ token }) => {
     return (
         <div className="overflow-y-hidden">
-            <div className="flex flex-row w-full justify-center bg-gray-100 dark:bg-dark-800">                      
+            <div className="flex flex-row w-full justify-center bg-gray-100 ">                      
                 <InformationDialog />
             </div>
             <div className="border-b border-gray-200 p-5 mx-10 sm:flex sm:items-center sm:justify-between">
@@ -47,7 +47,7 @@ const Dashboard = ({ token }) => {
                             </div>
                         <button
                         type="button"
-                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-dark-900"
+                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 "
                         >
                             <BarsArrowUpIcon className="-ml-0.5 h-5 w-5 text-gray-400" aria-hidden="true" />
                             View

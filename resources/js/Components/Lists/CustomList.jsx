@@ -30,7 +30,7 @@ export default function CustomList({ headers, data, renderRow, renderHeader }) {
                   renderRow
                     ? renderRow(row, rowIndex, headers)
                     : (
-                      <tr key={rowIndex} className="even:bg-gray-50 dark:bg-dark-900">
+                      <tr key={rowIndex} className="even:bg-gray-50 ">
                         {headers.map((header, colIndex) => (
                           <td
                             key={colIndex}

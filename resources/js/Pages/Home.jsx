@@ -21,7 +21,7 @@ const Test = () => {
       return (
         <div className="App" style={{opacity: 10}}>
             <div className="bg-white flex flex-col justify-center h-screen items-center">
-                <a href="/holiday" className="border-gray-200 w-20 h-10 border rounded-md bg-gray-50 dark:bg-dark-900 hover:bg-gray-100 dark:bg-dark-800 flex items-center justify-center">
+                <a href="/holiday" className="border-gray-200 w-20 h-10 border rounded-md bg-gray-50  hover:bg-gray-100  flex items-center justify-center">
                   <p className="text-center align-middle">
                     Holiday 
                   </p>

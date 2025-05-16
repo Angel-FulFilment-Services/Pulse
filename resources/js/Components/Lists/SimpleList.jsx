@@ -22,7 +22,7 @@ export default function SimpleList({ headers, data }) {
               </thead>
               <tbody className="bg-white">
                 {data.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="even:bg-gray-50 dark:bg-dark-900">
+                  <tr key={rowIndex} className="even:bg-gray-50 ">
                     {headers.map((header, colIndex) => (
                       <td
                         key={colIndex}

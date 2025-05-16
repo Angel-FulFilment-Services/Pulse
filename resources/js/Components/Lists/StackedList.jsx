@@ -154,7 +154,7 @@ export default function StackedList({
                   overflow: 'hidden',
                 }}
               >
-                <div className="bg-gray-50 dark:bg-dark-900 px-4 py-2 border-t border-gray-200 animate-fade-in">
+                <div className="bg-gray-50  px-4 py-2 border-t border-gray-200 animate-fade-in">
                   {renderExpandableContent ? renderExpandableContent(row, rowIndex) : null}
                 </div>
               </div>
