@@ -88,7 +88,7 @@ export default function ShiftView({ selectedShift }) {
   return (
     <div className="pr-4">
       <div className="flex flex-col gap-y-4 divide-y divide-gray-200">
-        <div className="rounded-xl bg-gray-50 h-8 flex flex-row">
+        <div className="rounded-xl bg-gray-50 dark:bg-dark-900 h-8 flex flex-row">
           <ClickedFlyout
             icon={sendingButtons['shift-reminder'] ? (
                 <svg
@@ -113,8 +113,8 @@ export default function ShiftView({ selectedShift }) {
             placement="bottom"
             className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 z-50 rounded-l-lg ${
                 sendingButtons['shift-reminder']
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'hover:bg-gray-100 text-gray-400 hover:text-gray-500 cursor-pointer'
+                  ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-gray-500 cursor-pointer'
             }`}
             onOpen={() => setMessage(getDefaultShiftReminderMessage())}
             onClose={() => setMessage('')} // Clear the message when the flyout closes
@@ -130,13 +130,13 @@ export default function ShiftView({ selectedShift }) {
                   rows={8}
                   name="comment"
                   id="comment"
-                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-orange-600 sm:text-sm sm:leading-6"
+                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 sm:text-sm sm:leading-6"
                   value={message} // Bind the textarea value to state
                   onChange={(e) => setMessage(e.target.value)} // Update state on input
                   maxLength={255}
                 />
                 <button
-                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600"
                   onClick={() => handleSubmit(message, 'shift-reminder')} // Pass message and buttonKey to handleSubmit
                 >
                   Send
@@ -193,8 +193,8 @@ export default function ShiftView({ selectedShift }) {
             placement="bottom"
             className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 z-50 ${
                 sendingButtons['custom-sms']
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'hover:bg-gray-100 text-gray-400 hover:text-gray-500 cursor-pointer'
+                  ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-100 dark:bg-dark-800 text-gray-400 hover:text-gray-500 cursor-pointer'
             }`}
             onClose={() => setMessage('')} // Clear the message when the flyout closes
             content={(handleSubmit) => (
@@ -209,13 +209,13 @@ export default function ShiftView({ selectedShift }) {
                   rows={8}
                   name="comment"
                   id="comment"
-                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-orange-600 sm:text-sm sm:leading-6"
+                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 sm:text-sm sm:leading-6"
                   value={message} // Bind the textarea value to state
                   onChange={(e) => setMessage(e.target.value)} // Update state on input
                   maxLength={255}
                 />
                 <button
-                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600"
                   onClick={() => handleSubmit(message, 'custom-sms')} // Pass message and buttonKey to handleSubmit
                 >
                   Send

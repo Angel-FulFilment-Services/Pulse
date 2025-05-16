@@ -311,7 +311,7 @@ const Reporting = () => {
                     />
                 </div>
                 { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 shadow-sm slide-down z-20">
+                    <div className="px-6 py-4 bg-gray-50 dark:bg-dark-900 border-b border-gray-200 shadow-sm slide-down z-20">
                         <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
                     </div>
                 }

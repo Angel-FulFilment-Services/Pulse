@@ -29,7 +29,7 @@ export default function SelectInput(props) {
         <div className="w-full">
           {label ? <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 mb-2">{label}</Listbox.Label> : null}
           <div className="relative w-full">
-            <Listbox.Button className={`relative cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 ${width}`}>
+            <Listbox.Button className={`relative cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-theme-600 sm:text-sm sm:leading-6 ${width}`}>
               <span className={`block truncate ${!selected.value && "text-gray-400"}`}>
                 {selected.displayValue ? selected.displayValue : placeholder}
               </span>
@@ -51,7 +51,7 @@ export default function SelectInput(props) {
                     key={item.id}
                     className={({ active }) =>
                       classNames(
-                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-900',
+                        active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900' : 'text-gray-900',
                         'relative cursor-default select-none py-2 pl-3 pr-9'
                       )
                     }
@@ -65,7 +65,7 @@ export default function SelectInput(props) {
                         {selected ? (
                           <span
                             className={classNames(
-                              active ? 'text-gray-900' : 'text-orange-600',
+                              active ? 'text-gray-900' : 'text-theme-600',
                               'absolute inset-y-0 right-0 flex items-center pr-4'
                             )}
                           >

@@ -17,7 +17,7 @@ function classNames(...classes) {
 }
 
 const SkeletonLoader = ({ className }) => (
-  <div className={`animate-pulse bg-gray-100 ${className}`} />
+  <div className={`animate-pulse bg-gray-100 dark:bg-dark-800 ${className}`} />
 );
 
 const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, headingClass = null, subHeadingClass = null}) => {

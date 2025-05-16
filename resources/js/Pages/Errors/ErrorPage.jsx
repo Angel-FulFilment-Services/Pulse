@@ -39,7 +39,7 @@ export default function ErrorPage({ status }) {
               <div className="scale-[2] -mt-0 lg:-mt-10 pb-16">
                 <Logo includeTitle={false} error={true}></Logo>
               </div>
-              <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr from-orange-400 to-orange-600 bg-clip-text text-transparent drop-shadow-lg">
+              <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr from-theme-400 to-theme-600 bg-clip-text text-transparent drop-shadow-lg">
                 <span className="font-mono">{status}</span>
               </div>
               <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
@@ -49,7 +49,7 @@ export default function ErrorPage({ status }) {
                 {description}
               </p>
               <div>
-                <a href="/" className="inline-block px-4 py-2 mt-10 text-md font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                <a href="/" className="inline-block px-4 py-2 mt-10 text-md font-semibold text-white bg-theme-500 rounded-lg hover:bg-theme-400 focus:outline-none focus:ring-2 focus:ring-theme-500 focus:ring-offset-2 transition duration-200 ease-in-out">
                   Go back Home
                 </a>
                 <a href="https://wings.angelfs.co.uk" className="inline-block px-4 py-2 mt-10 ml-4 text-md font-semibold text-gray-700 hover:text-gray-900 transition duration-200 ease-in-out">

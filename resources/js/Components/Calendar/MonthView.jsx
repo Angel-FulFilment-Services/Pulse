@@ -115,7 +115,7 @@ export default function MonthView({ setView }) {
               <div
                 key={day.date}
                 className={classNames(
-                  day.isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-500',
+                  day.isCurrentMonth ? 'bg-white' : 'bg-gray-50 dark:bg-dark-900 text-gray-500',
                   'relative px-3 py-2'
                 )}
               >
@@ -123,7 +123,7 @@ export default function MonthView({ setView }) {
                   dateTime={day.date}
                   className={
                     day.isToday
-                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 font-semibold text-white'
+                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-theme-600 font-semibold text-white'
                       : undefined
                   }
                 >
@@ -134,12 +134,12 @@ export default function MonthView({ setView }) {
                     {day.events.slice(0, 2).map((event) => (
                       <li key={event.id}>
                         <a href={event.href} className="group flex">
-                          <p className="flex-auto truncate font-medium text-gray-900 group-hover:text-orange-600">
+                          <p className="flex-auto truncate font-medium text-gray-900 group-hover:text-theme-600">
                             {event.name}
                           </p>
                           <time
                             dateTime={event.datetime}
-                            className="ml-3 hidden flex-none text-gray-500 group-hover:text-orange-600 xl:block"
+                            className="ml-3 hidden flex-none text-gray-500 group-hover:text-theme-600 xl:block"
                           >
                             {event.time}
                           </time>
@@ -158,20 +158,20 @@ export default function MonthView({ setView }) {
                 key={day.date}
                 type="button"
                 className={classNames(
-                  day.isCurrentMonth ? 'bg-white' : 'bg-gray-50',
+                  day.isCurrentMonth ? 'bg-white' : 'bg-gray-50 dark:bg-dark-900',
                   (day.isSelected || day.isToday) && 'font-semibold',
                   day.isSelected && 'text-white',
-                  !day.isSelected && day.isToday && 'text-orange-600',
+                  !day.isSelected && day.isToday && 'text-theme-600',
                   !day.isSelected && day.isCurrentMonth && !day.isToday && 'text-gray-900',
                   !day.isSelected && !day.isCurrentMonth && !day.isToday && 'text-gray-500',
-                  'flex h-14 flex-col px-3 py-2 hover:bg-gray-100 focus:z-10'
+                  'flex h-14 flex-col px-3 py-2 hover:bg-gray-100 dark:bg-dark-800 focus:z-10'
                 )}
               >
                 <time
                   dateTime={day.date}
                   className={classNames(
                     day.isSelected && 'flex h-6 w-6 items-center justify-center rounded-full',
-                    day.isSelected && day.isToday && 'bg-orange-600',
+                    day.isSelected && day.isToday && 'bg-theme-600',
                     day.isSelected && !day.isToday && 'bg-gray-900',
                     'ml-auto'
                   )}
@@ -195,7 +195,7 @@ export default function MonthView({ setView }) {
         <div className="px-4 py-10 sm:px-6 lg:hidden">
           <ol className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white text-sm shadow ring-1 ring-black ring-opacity-5">
             {selectedDay.events.map((event) => (
-              <li key={event.id} className="group flex p-4 pr-6 focus-within:bg-gray-50 hover:bg-gray-50">
+              <li key={event.id} className="group flex p-4 pr-6 focus-within:bg-gray-50 dark:bg-dark-900 hover:bg-gray-50 dark:bg-dark-900">
                 <div className="flex-auto">
                   <p className="font-semibold text-gray-900">{event.name}</p>
                   <time dateTime={event.datetime} className="mt-2 flex items-center text-gray-700">

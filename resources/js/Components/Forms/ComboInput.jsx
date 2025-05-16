@@ -30,7 +30,7 @@ export default function ComboInput(props) {
         <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900">{label}</Combobox.Label>
         <div className="relative mt-2">
           <Combobox.Input
-            className={`w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 z-10 text-gray-900 ${typeof selected !== "undefined" && !selected.value && error ? "ring-red-600 text-red-800" : "ring-gray-300"} shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-orange-600 sm:text-sm sm:leading-6`}
+            className={`w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 z-10 text-gray-900 ${typeof selected !== "undefined" && !selected.value && error ? "ring-red-600 text-red-800" : "ring-gray-300"} shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 sm:text-sm sm:leading-6`}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
             spellCheck={spellCheck}
@@ -53,7 +53,7 @@ export default function ComboInput(props) {
                   className={({ active }) =>
                     classNames(
                       'relative cursor-default select-none py-2 pl-3 pr-9',
-                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-900'
+                      active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900' : 'text-gray-900'
                     )
                   }
                 >
@@ -65,7 +65,7 @@ export default function ComboInput(props) {
                         <span
                           className={classNames(
                             'absolute inset-y-0 right-0 flex items-center pr-4',
-                            active ? 'text-white' : 'text-orange-600'
+                            active ? 'text-white' : 'text-theme-600'
                           )}
                         >
                           <CheckIcon className="h-5 w-5" aria-hidden="true" />

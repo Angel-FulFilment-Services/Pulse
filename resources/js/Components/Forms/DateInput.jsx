@@ -31,7 +31,7 @@ export default function DateInput(props) {
         }
       </label>
       <div className={ label || annotation ? `mt-2` : ``}>
-          <div className={`flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 bg-white sm:max-w-md cursor-pointer ${width}`}>
+          <div className={`flex rounded-md shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 bg-white sm:max-w-md cursor-pointer ${width}`}>
             <Datepicker
               startWeekOn="mon"
               readOnly={true}

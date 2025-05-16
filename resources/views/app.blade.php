@@ -11,7 +11,7 @@
         <!-- As you can see, we will use vite with jsx syntax for React-->
         @inertiaHead
     </head>
-    <body>
+    <body class="">
         @inertia
     </body>
 </html>

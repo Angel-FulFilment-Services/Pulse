@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\ForgotController;
 use App\Http\Controllers\Auth\ActivationController;
 use App\Http\Controllers\Auth\ResetController;

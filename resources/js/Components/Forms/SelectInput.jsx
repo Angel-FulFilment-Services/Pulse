@@ -23,7 +23,7 @@ export default function SelectInput(props) {
         <>
           <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900">{label}</Listbox.Label>
           <div className="relative mt-2">
-              <Listbox.Button className={`relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6`}>
+              <Listbox.Button className={`relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800" : "ring-gray-300"} focus:outline-none focus:ring-2 focus:ring-theme-600 sm:text-sm sm:leading-6`}>
                 <span className={`block truncate ${(typeof selected == "undefined" || !selected.value) && "text-gray-400"}`}>{typeof selected !== "undefined" && selected.value ? selected.value : `${placeholder}`}</span>
                 <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                 {error ? 
@@ -47,7 +47,7 @@ export default function SelectInput(props) {
                         key={item.id}
                         className={({ active }) =>
                         classNames(
-                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-900',
+                            active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900' : 'text-gray-900',
                             'relative cursor-default select-none py-2 pl-3 pr-9'
                         )
                         }
@@ -61,7 +61,7 @@ export default function SelectInput(props) {
                             {currentState === item.value ? (
                             <span
                                 className={classNames(
-                                active ? 'text-gray-900' : 'text-orange-600',
+                                active ? 'text-gray-900' : 'text-theme-600',
                                 'absolute inset-y-0 right-0 flex items-center pr-4'
                                 )}
                             >

@@ -23,20 +23,20 @@ export default function UserFlyoutContentEmployee({ hrId }) {
           <div className="w-full h-full grid grid-cols-3 space-4 space-y-2 justify-between items-center">
             <div>
               <div className="text-sm text-gray-600 font-medium">Fullname</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.name ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.name ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Job title</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.job_title ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.job_title ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Started</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.start_date ? format(employee.start_date, "d MMMM, y" ) : "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.start_date ? format(employee.start_date, "d MMMM, y" ) : "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Employment Duration</div>
               {isTransitioning ? (
-                <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p>
+                <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p>
               ) : (
                 <p className="text-sm text-gray-500">
                   {employee.start_date
@@ -53,23 +53,23 @@ export default function UserFlyoutContentEmployee({ hrId }) {
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Mobile Phone</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_mobile_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_mobile_phone ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Home Phone</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_phone ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Email <span className="text-xs text-gray-400">(Work)</span></div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.email ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.email ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Email <span className="text-xs text-gray-400">(Personal)</span></div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_email ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.contact_home_email ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Address</div>
-              { isTransitioning ? <p className="w-56 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> 
+              { isTransitioning ? <p className="w-56 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> 
                 {employee.home_address1 ? employee.home_address1 : ""} 
                 {employee.home_address2 ? `,  ${employee.home_address2}` : ""} 
                 {employee.home_address3 ? `,  ${employee.home_address3}` : ""} 
@@ -88,27 +88,27 @@ export default function UserFlyoutContentEmployee({ hrId }) {
           <div className="w-full h-full grid grid-cols-3 space-4 space-y-3 justify-between items-center">
             <div>
               <div className="text-sm text-gray-600 font-medium">Fullname (Next of Kin 1)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_fullname ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_fullname ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Mobile Phone (Next of Kin 1)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_home_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_home_phone ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Home Phone (Next of Kin 1)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_mobile_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin1_mobile_phone ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Fullname (Next of Kin 2)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_fullname ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_fullname ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Mobile Phone (Next of Kin 2)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_home_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_home_phone ?? "-"} </p>}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Home Phone (Next of Kin 2)</div>
-              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_mobile_phone ?? "-"} </p>}
+              { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.kin2_mobile_phone ?? "-"} </p>}
             </div>
           </div>
       </div>

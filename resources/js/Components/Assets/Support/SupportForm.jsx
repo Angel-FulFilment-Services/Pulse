@@ -368,7 +368,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                                 <span>{file.name}</span>
                                 <button
                                 type="button"
-                                className="text-orange-600 hover:underline"
+                                className="text-theme-600 hover:underline"
                                 onClick={() => handleRemoveAttachment(index)}
                                 >
                                 Remove
@@ -389,7 +389,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                             <div className="mt-4 flex text-sm text-gray-600">
                             <label
                                 htmlFor="file-upload"
-                                className="relative cursor-pointer rounded-md bg-white font-semibold text-orange-600 focus-within:ring-2 focus-within:ring-orange-600 focus-within:ring-offset-2 hover:text-orange-500"
+                                className="relative cursor-pointer rounded-md bg-white font-semibold text-theme-600 focus-within:ring-2 focus-within:ring-theme-600 focus-within:ring-offset-2 hover:text-theme-500"
                             >
                                 <span>Upload a file</span>
                                 <input
@@ -425,17 +425,17 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                 <button
                 className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed ${
                     isProcessing
-                    ? 'bg-orange-500'
+                    ? 'bg-theme-500'
                     : isSuccess
                     ? 'bg-green-500 hover:bg-green-600'
-                    : 'bg-orange-500 hover:bg-orange-600'
+                    : 'bg-theme-500 hover:bg-theme-600'
                 }`}
                 onClick={handleSubmit}
                 disabled={isProcessing || isSuccess}
                 >
                 {isProcessing ? (
                     <svg
-                    className="inline w-5 h-5 animate-spin fill-orange-200"
+                    className="inline w-5 h-5 animate-spin fill-theme-200"
                     viewBox="0 0 100 101"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"

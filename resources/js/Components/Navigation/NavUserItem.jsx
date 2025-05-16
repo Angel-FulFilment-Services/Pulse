@@ -8,7 +8,7 @@ export default function NavButton ({ item }){
     return(
       <a
         href="#"
-        className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50"
+        className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50 dark:bg-dark-900"
       >
         {/* <UserItemSelf 
           agent={{hr_id: 2506, agent: auth.user.name}} 

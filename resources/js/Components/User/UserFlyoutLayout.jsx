@@ -95,14 +95,14 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
                 activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
                 tabIdx === 0 ? 'rounded-tl-lg' : '',
                 tabIdx === arr.length - 1 ? 'rounded-tr-lg' : '',
-                'group relative min-w-0 flex-1 overflow-hidden bg-gray-50 py-3 px-4 text-center text-sm font-medium cursor-pointer hover:bg-gray-100 focus:z-10 w-full'
+                'group relative min-w-0 flex-1 overflow-hidden bg-gray-50 dark:bg-dark-900 py-3 px-4 text-center text-sm font-medium cursor-pointer hover:bg-gray-100 dark:bg-dark-800 focus:z-10 w-full'
               )}
               aria-current={activeTab === tab.id ? 'page' : undefined}
             >
               <div className="flex items-center justify-center">
                 <tab.icon
                   className={classNames(
-                    activeTab === tab.id ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500',
+                    activeTab === tab.id ? 'text-theme-500' : 'text-gray-400 group-hover:text-gray-500',
                     '-ml-0.5 mr-2 h-4 w-4'
                   )}
                   aria-hidden="true"
@@ -112,7 +112,7 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
               <span
                 aria-hidden="true"
                 className={classNames(
-                  activeTab === tab.id ? 'bg-orange-500' : 'bg-transparent',
+                  activeTab === tab.id ? 'bg-theme-500' : 'bg-transparent',
                   'absolute inset-x-0 bottom-0 h-0.5'
                 )}
               />
@@ -149,13 +149,13 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
       </div>
 
       {/* <div className="border-t border-gray-50">
-        <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 py-3 px-3">
+        <div className="isolate relative items-center flex rounded-b-lg bg-gray-50 dark:bg-dark-900 py-3 px-3">
           <input
             type="text"
-            className="bg-white w-full h-9 rounded-full ring-1 focus:ring-2 ring-gray-200 focus:ring-orange-500 flex items-center justify-between py-1 outline-none px-4 pr-20 text-gray-700"
+            className="bg-white w-full h-9 rounded-full ring-1 focus:ring-2 ring-gray-200 focus:ring-theme-500 flex items-center justify-between py-1 outline-none px-4 pr-20 text-gray-700"
             placeholder="Compose your message..."
           />
-          <div className="absolute h-7 w-16 right-4 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full ring-1 ring-gray-200 flex justify-center items-center p-1">
+          <div className="absolute h-7 w-16 right-4 bg-gray-100 dark:bg-dark-800 hover:bg-gray-200 cursor-pointer rounded-full ring-1 ring-gray-200 flex justify-center items-center p-1">
             <PaperAirplaneIcon className="w-5 h-5 pl-0.5 text-gray-400"></PaperAirplaneIcon>
           </div>
         </div>

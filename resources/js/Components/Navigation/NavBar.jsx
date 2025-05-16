@@ -1,10 +1,11 @@
 import { React, Fragment, useState, useMemo, useEffect } from 'react'
 import { usePage } from '@inertiajs/react'
 import { useLocation } from 'react-router-dom';
-import { Dialog, Transition } from '@headlessui/react'
+import { Dialog, Transition, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import Logo from '../Branding/Logo.jsx';
 import NavItem from './NavItem.jsx';
 import NavTeamItem from './NavTeamItem.jsx';
+import NavTheme from './NavTheme';
 import { router } from '@inertiajs/react'
 import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
@@ -54,7 +55,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-900 h-screen overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
@@ -165,12 +166,30 @@ export default function NavBar({ page }) {
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
-                  <a
-                    href="#"
-                    className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50"
-                  >
-                    <UserItemSelf></UserItemSelf>
-                  </a>
+                  <Menu as="div" className="relative">
+                    <div>
+                      <MenuButton className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50 dark:bg-dark-900 w-full focus:outline-none">
+                        <UserItemSelf></UserItemSelf>
+                      </MenuButton>
+                    </div>
+                    <MenuItems
+                      transition
+                      className="absolute focus:outline-none bottom-full z-10 mb-2 w-full origin-bottom-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
+                    >
+                      <MenuItem key="theme" as="div" className="px-4 py-2">
+                        <NavTheme />
+                      </MenuItem>
+                      <MenuItem key="signout">
+                        <button
+                          type="button"
+                          onClick={() => router.post('/logout')}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 data-focus:bg-gray-50 dark:bg-dark-900 data-focus:outline-hidden hover:bg-gray-50 dark:bg-dark-900"
+                        >
+                          Sign out
+                        </button>
+                      </MenuItem>
+                    </MenuItems>
+                  </Menu>
                 </li>
               </ul>
             </nav>
@@ -190,7 +209,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-900 h-screen overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

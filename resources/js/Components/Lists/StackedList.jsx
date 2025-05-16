@@ -92,7 +92,7 @@ export default function StackedList({
                           }}
                         >
                           <PencilIcon
-                            className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                            className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out"
                             aria-hidden="true"
                           />
                         </button>
@@ -104,7 +104,7 @@ export default function StackedList({
                           }}
                         >
                           <TrashIcon
-                            className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out"
+                            className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out"
                             aria-hidden="true"
                           />
                         </button>
@@ -121,7 +121,7 @@ export default function StackedList({
                             {typeof action.icon === 'function' ? (
                               action.icon(row)
                             ) : (
-                              <action.icon className="h-5 w-6 text-orange-600 hover:text-orange-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
+                              <action.icon className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
                             )}
                           </button>
                         ))}
@@ -154,7 +154,7 @@ export default function StackedList({
                   overflow: 'hidden',
                 }}
               >
-                <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 animate-fade-in">
+                <div className="bg-gray-50 dark:bg-dark-900 px-4 py-2 border-t border-gray-200 animate-fade-in">
                   {renderExpandableContent ? renderExpandableContent(row, rowIndex) : null}
                 </div>
               </div>

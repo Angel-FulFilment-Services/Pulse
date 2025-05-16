@@ -10,7 +10,7 @@ import { calculateTimeBlocks } from '../../Utils/Rota';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const SkeletonLoader = ({ className }) => (
-    <div className={`animate-pulse bg-gray-100 ${className}`} />
+    <div className={`animate-pulse bg-gray-100 dark:bg-dark-800 ${className}`} />
 );
   
 const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = false }) => {

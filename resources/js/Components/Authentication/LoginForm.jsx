@@ -48,18 +48,18 @@ export default function LoginForm () {
             case wasSuccessful:
                 return "bg-green-500 hover:bg-green-500";
             default: 
-                return "bg-orange-400 hover:bg-orange-500";
+                return "bg-theme-400 hover:bg-theme-500";
         }
     }
 
     return (
         <div className="w-full lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
-            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100 overflow-y-auto' onSubmit={submit}>
+            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100 dark:bg-dark-800 overflow-y-auto' onSubmit={submit}>
                 <div className="h-full flex flex-col items-center justify-center">
                     <div className="h-full flex flex-col justify-between pt-10">
                         <Logo></Logo>
                         <div className="pt-4">
-                            <h2 className="text-base font-semibold leading-7 text-orange-500">Login</h2>
+                            <h2 className="text-base font-semibold leading-7 text-theme-500">Login</h2>
                             <p className="mt-1 text-sm leading-6 text-gray-600">
                                 Please login using your email and password.
                             </p>
@@ -70,7 +70,7 @@ export default function LoginForm () {
                                     Email
                                 </label>
                                 <div className="mt-2">
-                                    <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md ${errors.email && "ring-red-600"}`}>
+                                    <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md ${errors.email && "ring-red-600"}`}>
                                         <input
                                             type="text"
                                             name="email"
@@ -93,7 +93,7 @@ export default function LoginForm () {
                                     Password
                                 </label>
                                 <div className="mt-2">
-                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
+                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
                                         <input
                                             type="password"
                                             name="password"
@@ -123,7 +123,7 @@ export default function LoginForm () {
                                     />
                                     <label htmlFor="remember" className="text-xs">Remember Me</label>
                                 </div>
-                                {/* <Link href="/forgot" className="cursor-pointer text-xs text-orange-500 focus:outline-none focus:underline focus:text-orange-600 hover:text-orange-600">Forgot Password?</Link> */}
+                                {/* <Link href="/forgot" className="cursor-pointer text-xs text-theme-500 focus:outline-none focus:underline focus:text-theme-600 hover:text-theme-600">Forgot Password?</Link> */}
                             </div>
                         </div>
 

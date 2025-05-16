@@ -271,7 +271,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                   {(auth !== record.user_id && allowEventManagement && record.origin === 'events') && (
                       <button
                         type="button"
-                        className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                        className="bg-gray-50 dark:bg-dark-900 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 dark:bg-dark-800 flex justify-center items-center"
                         onClick={() => {
                           if (allowEventManagement) {
                             setSelectedEvent(record);

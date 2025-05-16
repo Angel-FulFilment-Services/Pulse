@@ -20,8 +20,8 @@ const iconTypes = {
   },
   question: {
     icon: QuestionMarkCircleIcon,
-    bgColor: 'bg-orange-100',
-    iconColor: 'text-orange-600',
+    bgColor: 'bg-theme-100',
+    iconColor: 'text-theme-600',
   },
 };
 
@@ -51,7 +51,7 @@ export default function ConfirmationDialog({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-gray-50 dark:bg-dark-9000 bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -82,7 +82,7 @@ export default function ConfirmationDialog({
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 sm:col-start-2"
+                    className="inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 sm:col-start-2"
                     onClick={() => {
                       isYes(); // Trigger the callback for "Yes"
                       setIsOpen(false); // Close the dialog
@@ -92,7 +92,7 @@ export default function ConfirmationDialog({
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 border-none border-transparent sm:col-start-1 sm:mt-0"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-dark-900 border-none border-transparent sm:col-start-1 sm:mt-0"
                     onClick={() => setIsOpen(false)} // Close the dialog
                     ref={cancelButtonRef}
                   >

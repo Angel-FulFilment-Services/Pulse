@@ -16,7 +16,7 @@ export default function MaskedInput(props) {
         {annotation && <span className="text-neutral-500 font-normal"> {annotation} </span>}
       </label>}
       <div className="">
-        <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? 'ring-red-600 text-red-800' : 'ring-gray-300'} focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md h-full`}>
+        <div className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${error ? 'ring-red-600 text-red-800' : 'ring-gray-300'} focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md h-full`}>
           <InputMask
             mask={mask}
             maskChar={maskChar}

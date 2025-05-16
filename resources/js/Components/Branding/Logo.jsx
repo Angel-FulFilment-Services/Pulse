@@ -9,12 +9,12 @@ export default function Logo({ includeTitle = true, error = false }) {
                 {/* Donut SVG */}
                 <svg
                     viewBox="0 0 40 40"
-                    className="z-10 w-14 h-14 block ring-4 ring-orange-50 rounded-full shadow-lg"
+                    className="z-10 w-14 h-14 block ring-4 ring-theme-50 rounded-full shadow-lg"
                 >
                     <defs>
-                        <linearGradient id={`orange-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="rgb(253, 186, 116)" /> {/* Tailwind orange-300 */}
-                            <stop offset="100%" stopColor="rgb(249, 115, 22)" /> {/* Tailwind orange-500 */}
+                        <linearGradient id={`theme-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: 'rgb(var(--theme-300))' }} /> {/* Tailwind theme-300 */}
+                            <stop offset="100%" style={{ stopColor: 'rgb(var(--theme-500))' }} /> {/* Tailwind theme-500 */}
                         </linearGradient>
 
                         {/* Define the clipping path */}
@@ -27,12 +27,12 @@ export default function Logo({ includeTitle = true, error = false }) {
                         cy="20"
                         r="19"
                         fill="none"
-                        stroke={`url(#orange-gradient-${uniqueId})`} // Use the unique gradient ID
+                        stroke={`url(#theme-gradient-${uniqueId})`} // Use the unique gradient ID
                         strokeWidth="15"
                     />
                 </svg>
 
-                <div className="absolute w-10 h-10 rounded-full flex items-center justify-center bg-orange-50" />
+                <div className="absolute w-10 h-10 rounded-full flex items-center justify-center bg-theme-50" />
 
                 {/* Inner Line SVG */}
                 <svg
@@ -40,9 +40,9 @@ export default function Logo({ includeTitle = true, error = false }) {
                     className="overflow-visible block shrink-0 absolute w-7 h-7 mt-0.5"
                 >
                     <defs>
-                        <linearGradient id={`orange-gradient-line-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="rgb(253, 186, 116)" />
-                            <stop offset="100%" stopColor="rgb(249, 115, 22)" />
+                        <linearGradient id={`theme-gradient-line-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: 'rgb(var(--theme-300))' }} /> {/* Tailwind theme-300 */}
+                            <stop offset="100%" style={{ stopColor: 'rgb(var(--theme-500))' }} /> {/* Tailwind theme-500 */}
                         </linearGradient>
                     </defs>
                     <g clipPath={`url(#donut-clip-${uniqueId})`}> {/* Use the unique clipPath ID */}
@@ -61,7 +61,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                                     L98,20
                                 "
                                 fill="none"
-                                stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
+                                stroke={`url(#theme-gradient-line-${uniqueId})`} // Use the unique gradient ID
                                 strokeWidth={3.5}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -84,7 +84,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                                         L98,20
                                     "
                                     fill="none"
-                                    stroke={`url(#orange-gradient-line-${uniqueId})`} // Use the unique gradient ID
+                                    stroke={`url(#theme-gradient-line-${uniqueId})`} // Use the unique gradient ID
                                     strokeWidth={3.5}
                                     strokeLinecap="round"
                                     strokeLinejoin="round"

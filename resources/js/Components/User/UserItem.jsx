@@ -63,7 +63,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
 
   return (
     <>
-      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 rounded-full ${selectedSizeClass} ${customClass}`}>
+      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-900 rounded-full ${selectedSizeClass} ${customClass}`}>
         {allowClickInto && (<ClickedModal
             overlay={true}
             size={"xl"}
@@ -113,7 +113,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
         )}
         {showState && isNewUser && (
             <span className="absolute -top-[45%] right-[10%] translate-x-1/2 translate-y-1/2 transform z-50">
-              <span className={`text-xs text-orange-500 font-bold`}>New</span>
+              <span className={`text-xs text-theme-500 font-bold`}>New</span>
             </span>
         )}
       </span>

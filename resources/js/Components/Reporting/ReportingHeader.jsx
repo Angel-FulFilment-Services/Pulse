@@ -43,7 +43,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
                 onClick={(e => (handleTabClick(tab.path)))}
                 className={classNames(
                   tab.current
-                    ? 'border-orange-500 text-orange-600'
+                    ? 'border-theme-500 text-theme-600'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700',
                   'whitespace-nowrap border-b-2 px-1 pb-4 text-sm font-medium cursor-pointer'
                 )}
@@ -59,7 +59,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
       <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
         <div className="absolute left-16 top-full -mt-16 transform-gpu opacity-50 blur-3xl xl:left-1/2 xl:-ml-80">
           <div
-            className="aspect-[1154/678] w-[72.125rem] bg-gradient-to-br from-[#ff9a63] to-[#fff308]"
+            className="aspect-[1154/678] w-[72.125rem] bg-gradient-to-br from-[rgb(var(--theme-300))] to-[rgb(var(--theme-700))]"
             style={{
               clipPath:
                 'polygon(100% 38.5%, 82.6% 100%, 60.2% 37.7%, 52.4% 32.1%, 47.5% 41.8%, 45.2% 65.6%, 27.5% 23.4%, 0.1% 35.3%, 17.9% 0%, 27.7% 23.4%, 76.2% 2.5%, 74.2% 56%, 100% 38.5%)',
@@ -91,7 +91,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
                                   <p className="whitespace-nowrap text-xs pb-1.5 border-b border-gray-300 text-gray-800">This report is automatically refreshed {formatPollingInterval(report?.parameters?.polling).toLowerCase()}. </p>
                                   <LastUpdated lastUpdated={lastUpdated} />
                                   <div>
-                                    <p className="whitespace-nowrap text-left text-xs pt-1.5 text-orange-600 underline w-full">Click Icon to Disable </p>
+                                    <p className="whitespace-nowrap text-left text-xs pt-1.5 text-theme-600 underline w-full">Click Icon to Disable </p>
                                   </div>
                                 </>
                               :
@@ -99,7 +99,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
                                   <p className="whitespace-nowrap text-xs pb-1.5 border-b border-gray-300 text-gray-800">This report is not automatically refreshed.</p>
                                   <LastUpdated lastUpdated={lastUpdated} />
                                   <div>
-                                    <p className="whitespace-nowrap text-left text-xs pt-1.5 text-orange-600 underline w-full">Click Icon to Enable </p>
+                                    <p className="whitespace-nowrap text-left text-xs pt-1.5 text-theme-600 underline w-full">Click Icon to Enable </p>
                                   </div>
                                 </>
                               }
@@ -118,7 +118,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
               <>
                 <ButtonControl id="refresh_button" Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/>
                 <ButtonControl id="refresh_button" Icon={!isEditing ? Cog8ToothIcon : CheckIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportEdit}/> 
-                <ButtonControl id="refresh_button" Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-orange-500 hover:text-orange-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
+                <ButtonControl id="refresh_button" Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
               </>
               : null
             }

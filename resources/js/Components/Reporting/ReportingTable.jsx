@@ -193,7 +193,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                         )}
                       </div>
                       {sortConfig.key === column.id && (
-                        <span className="flex-shrink-0 text-orange-500 h-5 w-5 flex items-center justify-center">
+                        <span className="flex-shrink-0 text-theme-500 h-5 w-5 flex items-center justify-center">
                             <ChevronUpDownIcon className="w-5 h-5" />
                         </span>
                       )}
@@ -201,7 +201,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                         <span className="">
                           <PopoverControl
                             icon={<ChevronDownIcon className="w-5 h-5 flex-shrink-0" />}
-                            buttonClass={`flex-shrink-0 bg-orange-50 hover:bg-orange-100 text-orange-500 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer focus:outline-none`}
+                            buttonClass={`flex-shrink-0 bg-theme-50 hover:bg-theme-100 text-theme-500 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer focus:outline-none`}
                             content ={(
                               <ReportingTargets column={column} targets={targets} handleTargetChange={handleTargetChange}/>
                             )}
@@ -218,7 +218,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
           {/* Table Body */}
           <tbody className="bg-white">
             {sortedData.map((row, rowIndex) => (
-              <tr key={rowIndex} className="even:bg-gray-50">
+              <tr key={rowIndex} className="even:bg-gray-50 dark:bg-dark-900">
                 {structure.map((column) =>
                   column.visible !== false ? (
                     <td

@@ -3,7 +3,7 @@ import { differenceInMinutes, differenceInSeconds, isSameDay, format } from 'dat
 export function getStatus(shift, timesheets, events) {
   const statuses = {
     attended: 'text-green-700 bg-green-50 ring-green-600/20',
-    upcoming: 'text-gray-600 bg-gray-50 ring-gray-500/10',
+    upcoming: 'text-gray-600 bg-gray-50 dark:bg-dark-900 ring-gray-500/10',
     late: 'text-orange-700 bg-orange-50 ring-orange-600/10',
     absent: 'text-red-700 bg-red-50 ring-red-600/10',
     awol: 'text-red-700 bg-red-50 ring-red-600/10',
@@ -306,11 +306,11 @@ const calculateReductionMinutes = (events = [], shiftStartDate, shiftEndDate) =>
 export function calculateTimeBlocks (shift, timesheets, events) {
   const categories = {
       "time block": {
-          "PBX Import": 'text-orange-700 bg-orange-200 ring-orange-600/50 ring-1 ring-inset hover:bg-orange-100',
+          "PBX Import": 'text-theme-700 bg-theme-200 ring-theme-600/50 ring-1 ring-inset hover:bg-theme-100',
           "Break": 'text-green-700 bg-green-200/75 ring-green-600/50 ring-1 ring-inset hover:bg-green-100',
           "Warehouse": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
-          "Reinstated": 'text-orange-700 bg-orange-200 ring-orange-600/500 ring-1 ring-inset hover:bg-orange-100',
-          "TSA Dedicated Agent": 'text-orange-700 bg-orange-200 ring-orange-600/500 ring-1 ring-inset hover:bg-orange-100',
+          "Reinstated": 'text-theme-700 bg-theme-200 ring-theme-600/500 ring-1 ring-inset hover:bg-theme-100',
+          "TSA Dedicated Agent": 'text-theme-700 bg-theme-200 ring-theme-600/500 ring-1 ring-inset hover:bg-theme-100',
           "Lateness": "text-red-700 bg-red-300 ring-red-600/50 ring-1 ring-inset hover:bg-red-200",
           "Training": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
           "HR Meetings": 'text-blue-700 bg-blue-300 ring-blue-600/70 ring-1 ring-inset hover:bg-blue-200',
@@ -319,14 +319,14 @@ export function calculateTimeBlocks (shift, timesheets, events) {
           "AWOL": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
           "Absent": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50",
           "Sick": "text-yellow-700 bg-yellow-100 border-dashed border-2 border-yellow-600/50 hover:bg-yellow-50",
-          "Gap": "text-gray-700 bg-gray-100/50 border-dashed border-2 border-gray-400/25 hover:bg-gray-50",
+          "Gap": "text-gray-700 bg-gray-100 dark:bg-dark-800/50 border-dashed border-2 border-gray-400/25 hover:bg-gray-50 dark:bg-dark-900",
       },
       "detail": {
-          "PBX Import": 'text-orange-700 bg-orange-50 ring-orange-600/30',
+          "PBX Import": 'text-theme-700 bg-theme-50 ring-theme-600/30',
           "Break": 'text-green-700 bg-green-50 ring-green-600/30',
           "Warehouse": 'text-blue-700 bg-blue-50 ring-blue-600/30',
-          "Reinstated": 'text-orange-700 bg-orange-50 ring-orange-600/30',
-          "TSA Dedicated Agent": 'text-orange-700 bg-orange-50 ring-orange-600/30',
+          "Reinstated": 'text-theme-700 bg-theme-50 ring-theme-600/30',
+          "TSA Dedicated Agent": 'text-theme-700 bg-theme-50 ring-theme-600/30',
           "Lateness": "text-red-700 bg-red-50 ring-red-600/30",
           "Training": 'text-blue-700 bg-blue-50 ring-blue-600/30',
           "Reduced": 'text-blue-700 bg-blue-50 ring-blue-600/30',
@@ -335,7 +335,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
           "AWOL": "text-red-700 bg-red-50 ring-red-600/30",
           "Absent": "text-red-700 bg-red-50 ring-red-600/30",
           "Sick": "text-yellow-600 bg-yellow-50 ring-yellow-600/30",
-          "Gap": "text-gray-500 bg-gray-50 ring-gray-600/30"
+          "Gap": "text-gray-500 bg-gray-50 dark:bg-dark-900 ring-gray-600/30"
       }
   }
 

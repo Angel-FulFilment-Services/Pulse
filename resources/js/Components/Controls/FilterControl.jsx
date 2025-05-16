@@ -83,7 +83,7 @@ export default function FilterControl(props) {
               <Popover.Button className="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900 outline-none">
                 <span>{section.name}</span>
                 {checkedCount > 0 && (
-                  <span className="flex justify-center items-center ml-1.5 h-5 w-5 rounded bg-orange-500 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white align-middle">
+                  <span className="flex justify-center items-center ml-1.5 h-5 w-5 rounded bg-theme-500 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white align-middle">
                     {checkedCount}
                   </span>
                 )}
@@ -122,7 +122,7 @@ export default function FilterControl(props) {
                           onChange={handleFilterChange}
                           type="checkbox"
                           checked={option.checked}
-                          className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 accent-orange-600"
+                          className="h-4 w-4 rounded border-gray-300 text-theme-600 focus:ring-theme-500 accent-theme-600"
                         />
                         <label
                           htmlFor={`filter-${section.id}-${optionIdx}`}

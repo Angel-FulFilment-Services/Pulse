@@ -10,7 +10,7 @@ export default function ButtonControl(props) {
       <div className="flex items-center">
         <button
           type="button"
-          className={`${customClass ? customClass : "flex items-center justify-center w-full min-w-9 max-w-9 bg-white py-1.5 h-9 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 sm:text-sm sm:leading-6 rounded-md"}`}
+          className={`${customClass ? customClass : "flex items-center justify-center w-full min-w-9 max-w-9 bg-white py-1.5 h-9 text-gray-400 hover:text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-theme-600 sm:text-sm sm:leading-6 rounded-md"}`}
           onClick={(event) => {
             if (preventBubble) event.stopPropagation();
             onButtonClick(event);

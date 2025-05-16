@@ -32,7 +32,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" />
+            <div className="fixed inset-0 bg-gray-50 dark:bg-dark-9000/50 transition-opacity" />
           </Transition.Child>
         )}
 

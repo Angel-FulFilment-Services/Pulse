@@ -36,8 +36,8 @@ export default function UserFlyoutContentEvents({ hrId, handleDateChange, dateRa
                 <li className="py-1">
                   <div className="flex flex-row w-full justify-between">
                     <div className="flex flex-col w-1/4 gap-y-1 justify-center">
-                      <div className="bg-gray-100 animate-pulse rounded-full w-20 h-4"></div>
-                      <div className="bg-gray-100 animate-pulse rounded-full w-24 h-4"></div>
+                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-20 h-4"></div>
+                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-24 h-4"></div>
                     </div>
                     <div className="w-full">
                       <ShiftProgressBar isLoading={true} />

@@ -68,7 +68,7 @@ export default function NumberInput(props) {
         <div
           className={`relative flex rounded-md shadow-sm ring-1 ring-inset ${
             error ? 'ring-red-600 text-red-800' : 'ring-gray-300'
-          } focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md h-full`}
+          } focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md h-full`}
         >
           <input
             type="text"
