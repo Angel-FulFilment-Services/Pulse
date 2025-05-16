@@ -7,7 +7,7 @@ import { validateRequired, validateIsLength, validateAscii } from '../../Utils/V
 import ShiftInformation from './ShiftInformation';
 import FlagShift from './FlagShift';
 import { toast } from 'react-toastify';
-import useFetchEmployee from '../User/useFetchEmployee';
+import useFetchEmployee from '../Fetches/User/useFetchEmployee';
 import { hasPermission } from '../../Utils/Permissions';
 
 export default function ShiftView({ selectedShift }) {
