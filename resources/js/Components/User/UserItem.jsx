@@ -45,6 +45,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
   // Memoize profilePhoto and lastActiveAt
   const profilePhoto = useMemo(() => userState?.profile_photo || null, [userState]);
   const lastActiveAt = useMemo(() => userState?.last_active_at || null, [userState]);
+  const isNewUser = useMemo(() => userState?.new || false, [userState]);
 
   // Memoize activeIndicatorColor
   const activeIndicatorColor = useMemo(() => {
@@ -109,6 +110,11 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
               <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
             </span>
           </PopoverFlyout>
+        )}
+        {isNewUser && (
+            <span className="absolute -top-[18%] -right-[18%] transform z-50">
+              <span className={`text-xs text-orange-500 font-bold`}>New</span>
+            </span>
         )}
       </span>
     </>

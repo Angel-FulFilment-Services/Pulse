@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useFetchEmployee from '../Fetches/User/useFetchEmployee';
-import { format, startOfDay, endOfDay, subDays, differenceInMinutes } from 'date-fns';
+import { format, intervalToDuration, formatDuration } from 'date-fns';
 
 export default function UserFlyoutContentEmployee({ hrId }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -32,6 +32,24 @@ export default function UserFlyoutContentEmployee({ hrId }) {
             <div>
               <div className="text-sm text-gray-600 font-medium">Started</div>
               { isTransitioning ? <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p> : <p className="text-sm text-gray-500"> {employee.start_date ? format(employee.start_date, "d MMMM, y" ) : "-"} </p>}
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 font-medium">Employment Duration</div>
+              {isTransitioning ? (
+                <p className="w-32 h-4 mt-1 bg-gray-100 animate-pulse rounded-full"></p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {employee.start_date
+                    ? formatDuration(
+                        intervalToDuration({
+                          start: new Date(employee.start_date),
+                          end: new Date(),
+                        }),
+                        { format: ['years', 'months', 'days'], delimiter: ', '  }
+                      )
+                    : "-"}
+                </p>
+              )}
             </div>
             <div>
               <div className="text-sm text-gray-600 font-medium">Mobile Phone</div>
