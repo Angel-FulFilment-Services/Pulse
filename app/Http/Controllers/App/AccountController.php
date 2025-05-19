@@ -14,6 +14,7 @@ class AccountController extends Controller
     public function __construct(){
         $this->middleware(['auth']);
         $this->middleware(['has.permission:pulse_view_account']);
+        $this->middleware(['log.access']);
     }
 
     public function index($page){

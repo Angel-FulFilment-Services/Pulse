@@ -18,6 +18,7 @@ class AssetController extends Controller
     public function __construct(){
         $this->middleware(['auth']);
         $this->middleware(['has.permission:pulse_view_assets']);
+        $this->middleware(['log.access']);
     }
 
     public function index(){

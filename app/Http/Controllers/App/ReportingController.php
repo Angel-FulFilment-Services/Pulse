@@ -16,6 +16,7 @@ class ReportingController extends Controller
     public function __construct(){
         $this->middleware(['auth']);
         $this->middleware(['has.permission:pulse_view_reporting']);
+        $this->middleware(['log.access']);
     }
 
     public function index(Request $request){

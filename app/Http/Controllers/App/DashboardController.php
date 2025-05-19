@@ -12,6 +12,7 @@ class DashboardController extends Controller
     public function __construct(){
         $this->middleware(['auth']);
         $this->middleware(['has.permission:pulse_view_dashboard']);
+        $this->middleware(['log.access']);
     }
 
     public function index(){

@@ -20,6 +20,7 @@ class RotaController extends Controller
     public function __construct(){
         $this->middleware(['auth']);
         $this->middleware(['has.permission:pulse_view_rota']);
+        $this->middleware(['log.access']);
     }
 
     public function index(){

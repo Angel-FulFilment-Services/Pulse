@@ -16,6 +16,7 @@ class UserController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         // $this->middleware(['perm.check:view_dashboard']);
+        $this->middleware(['log.access']);
     }
 
     public function activeStates(Request $request){
