@@ -17,6 +17,16 @@ class AccountController extends Controller
         $this->middleware(['log.access']);
     }
 
+    public function profile(){
+        $user = User::find(auth()->user()->id);
+        $employee = Employee::where('user_id',auth()->user()->id)->first();
+
+        return Inertia::render('Account/Profile', [
+            'employee' => $employee,
+            'user' => $user,
+        ]);
+    }
+
     public function index($page){
         $employee = Employee::where('user_id',auth()->user()->id)->first();
 

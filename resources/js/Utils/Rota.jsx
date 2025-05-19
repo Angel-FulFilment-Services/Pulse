@@ -319,7 +319,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
           "AWOL": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50 dark:bg-red-300/75 dark:border-red-600/75 dark:hover:bg-red-200/75",
           "Absent": "text-red-700 bg-red-100 border-dashed border-2 border-red-600/50 hover:bg-red-50 dark:bg-red-300/75 dark:border-red-600/75 dark:hover:bg-red-200/75",
           "Sick": "text-yellow-700 bg-yellow-100 border-dashed border-2 border-yellow-600/50 hover:bg-yellow-50 dark:bg-yellow-200/75 dark:border-yellow-600/75 dark:hover:bg-yellow-100/75",
-          "Gap": "text-gray-700 bg-gray-100 border-dashed border-2 border-gray-400/25 hover:bg-gray-50 dark:bg-gray-600/75 dark:text-gray-800 dark:border-gray-500/50 dark:hover:bg-gray-500/75",
+          "Gap": "text-gray-700 bg-gray-100 border-dashed border-2 border-gray-400/25 hover:bg-gray-50 dark:bg-dark-600/75 dark:text-dark-800 dark:border-dark-500/50 dark:hover:bg-dark-500/75",
       },
       "detail": {
           "PBX Import": 'text-theme-700 bg-theme-50 ring-theme-600/30 dark:bg-theme-200/75 dark:ring-theme-800/50 dark:text-theme-700',
@@ -335,7 +335,7 @@ export function calculateTimeBlocks (shift, timesheets, events) {
           "AWOL": "text-red-700 bg-red-50 ring-red-600/30 dark:bg-red-200/75 dark:ring-red-800/50 dark:text-red-700",
           "Absent": "text-red-700 bg-red-50 ring-red-600/30 dark:bg-red-200/75 dark:ring-red-800/50 dark:text-red-700",
           "Sick": "text-yellow-600 bg-yellow-50 ring-yellow-600/30 dark:bg-yellow-200/75 dark:ring-yellow-800/50 dark:text-yellow-700",
-          "Gap": "text-gray-500 bg-gray-50  ring-gray-600/30 dark:bg-gray-200/75 dark:ring-gray-800/50 dark:text-gray-700",
+          "Gap": "text-gray-500 bg-gray-50  ring-gray-600/30 dark:bg-dark-200/75 dark:ring-dark-800/50 dark:text-dark-700",
       }
   }
 

@@ -110,10 +110,12 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 */
 
 // HR Details
-Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->name('employee');
+Route::get('/my-details/entry/{page}', [AccountController::class, 'index'])->name('employee')->withoutMiddleware('has.permission:pulse_view_account');
 Route::get('/my-details/entry/{page}/save', [AccountController::class, 'saveData'])->name('employee');
 Route::get('/my-details', [AccountController::class, 'index'])->name('employee');
 Route::get('/employee/information', [AccountController::class, 'information'])->withoutMiddleware('has.permission:pulse_view_account');
+
+Route::get('/profile/account', [AccountController::class, 'profile'])->name('account.profile')->withoutMiddleware('has.permission:pulse_view_account');
 
 /*
 |-----------------------

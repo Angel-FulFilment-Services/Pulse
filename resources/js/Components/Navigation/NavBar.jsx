@@ -6,7 +6,7 @@ import Logo from '../Branding/Logo.jsx';
 import NavItem from './NavItem.jsx';
 import NavTeamItem from './NavTeamItem.jsx';
 import NavTheme from './NavTheme';
-import { router } from '@inertiajs/react'
+import { router, Link } from '@inertiajs/react'
 import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
 import { hasPermission } from '../../Utils/Permissions.jsx';
@@ -179,11 +179,19 @@ export default function NavBar({ page }) {
                       <MenuItem key="theme" as="div" className="px-4 py-3 bg-white dark:bg-dark-900">
                         <NavTheme />
                       </MenuItem>
+                      <MenuItem key="profile">
+                        <Link
+                          href={"/profile/account"}
+                          className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
+                        >
+                          My Profile
+                        </Link>
+                      </MenuItem>
                       <MenuItem key="signout">
                         <button
                           type="button"
                           onClick={() => router.post('/logout')}
-                          className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
+                          className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100 rounded-b-md data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
                         >
                           Sign out
                         </button>
@@ -218,11 +226,19 @@ export default function NavBar({ page }) {
                 <MenuItem key="theme" as="div" className="px-4 py-3 bg-white dark:bg-dark-900">
                   <NavTheme />
                 </MenuItem>
+                <MenuItem key="profile">
+                  <Link
+                    href={"/profile/account"}
+                    className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
+                  >
+                    My Profile
+                  </Link>
+                </MenuItem>
                 <MenuItem key="signout">
                   <button
                     type="button"
                     onClick={() => router.post('/logout')}
-                    className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
+                    className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100 rounded-b-md data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
                   >
                     Sign out
                   </button>
