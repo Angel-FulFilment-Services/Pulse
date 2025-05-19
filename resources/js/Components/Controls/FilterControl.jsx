@@ -29,24 +29,24 @@ export default function FilterControl(props) {
   return (
     <div className="flex justify-end 2xl:justify-between w-full">
       <div className="2xl:w-full flex justify-start items-center ">
-        <h3 className="text-sm font-medium text-gray-500 pointer-events-none">
+        <h3 className="text-sm font-medium text-gray-500 dark:text-dark-400 pointer-events-none">
           Filters
         </h3>
 
-        <div aria-hidden="true" className="h-6 w-px bg-gray-300 ml-4 block" />
+        <div aria-hidden="true" className="h-6 w-px bg-gray-300 dark:bg-dark-600 ml-4 block" />
 
         <div className="mx-4 items-center hidden 2xl:flex gap-x-3">
           <div className="-m-2.5 flex flex-wrap items-center">
             {activeFilters.map((activeFilter) => (
               <span
                 key={activeFilter.value}
-                className="m-1 inline-flex items-center rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-2 text-sm font-medium text-gray-900"
+                className="m-1 inline-flex items-center rounded-full border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-2 text-sm font-medium text-gray-900 dark:text-dark-100"
               >
                 <span>{activeFilter.label}</span>
                 <button
                   type="button"
                   onClick={() => (onFilterChange({ id: activeFilter.id, value: activeFilter.value, checked: false }))}
-                  className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-500"
+                  className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-500 dark:text-dark-500 dark:hover:bg-dark-700 dark:hover:text-dark-400"
                 >
                   <XMarkIcon className="h-4 w-4 flex-shrink-0" />
                 </button>
@@ -55,7 +55,7 @@ export default function FilterControl(props) {
             {activeFilters.length === 0 &&
               (<span
                 key="filters"
-                className="items-center pl-2.5 pr-2 text-sm text-gray-400"
+                className="items-center pl-2.5 pr-2 text-sm text-gray-400 dark:text-dark-500"
               >
                 <span className="pointer-events-none">No filters active . . .</span>
               </span>)
@@ -66,29 +66,29 @@ export default function FilterControl(props) {
             <button
               type="button"
               onClick={clearFilters}
-              className="ml-1 mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-500"
+              className="ml-1 mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-500 dark:text-dark-500 dark:hover:bg-dark-700 dark:hover:text-dark-400"
             >
               <XMarkIcon className="h-4 w-4 flex-shrink-0" />
             </button>
           )}
         </div>
       </div>
-      <Popover.Group className="flex flex-shrink-0 items-center justify-end divide-x divide-gray-200">
+      <Popover.Group className="flex flex-shrink-0 items-center justify-end divide-x divide-gray-200 dark:divide-dark-700">
         {filters.map((section, sectionIdx) => {
           // Calculate the count of checked options for the current section
           const checkedCount = section.options.filter((option) => option.checked).length;
 
           return (
             <Popover key={section.name} className="relative inline-block px-4 text-left">
-              <Popover.Button className="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900 outline-none">
+              <Popover.Button className="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-dark-200 dark:hover:text-dark-100 outline-none">
                 <span>{section.name}</span>
                 {checkedCount > 0 && (
-                  <span className="flex justify-center items-center ml-1.5 h-5 w-5 rounded bg-theme-500 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white align-middle">
+                  <span className="flex justify-center items-center ml-1.5 h-5 w-5 rounded bg-theme-500 dark:bg-theme-600 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white dark:text-dark-50 align-middle">
                     {checkedCount}
                   </span>
                 )}
                 <ChevronDownIcon
-                  className="-mr-1 ml-1 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+                  className="-mr-1 ml-1 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500 dark:text-dark-500 dark:group-hover:text-dark-400"
                   aria-hidden="true"
                 />
               </Popover.Button>
@@ -103,10 +103,10 @@ export default function FilterControl(props) {
                 leaveTo="transform opacity-0 scale-95"
                 afterLeave={() => setSearch('')}
               >
-                <Popover.Panel className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white p-4 shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <Popover.Panel className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white dark:bg-dark-900 p-4 shadow-2xl ring-1 ring-black ring-opacity-5 dark:ring-dark-50 dark:ring-opacity-5 focus:outline-none">
                   {section.options.length > 10 && (
                     <>
-                      <div className="pb-2 -mx-1 border-b border-gray-300">
+                      <div className="pb-2 -mx-1 border-b border-gray-300 dark:border-dark-600">
                           <TextInput label={null} Icon={MagnifyingGlassIcon} autoComplete={false} onTextChange={handleSearchChange} placeholder="Search"/>
                       </div>
                       <div className="mt-4 w-full"></div>
@@ -122,18 +122,18 @@ export default function FilterControl(props) {
                           onChange={handleFilterChange}
                           type="checkbox"
                           checked={option.checked}
-                          className="h-4 w-4 rounded border-gray-300 text-theme-600 focus:ring-theme-500 accent-theme-600"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-dark-600 text-theme-600 dark:text-theme-700 focus:ring-theme-500 accent-theme-600 dark:focus:ring-theme-600 dark:accent-theme-700"
                         />
                         <label
                           htmlFor={`filter-${section.id}-${optionIdx}`}
-                          className="ml-3 whitespace-nowrap pr-6 text-sm font-medium text-gray-900"
+                          className="ml-3 whitespace-nowrap pr-6 text-sm font-medium text-gray-900 dark:text-dark-100"
                         >
                           {option.label}
                         </label>
                       </div>
                     ))}
                     {section.options.filter((option) => !search || option.label.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-                      <div className="flex items-center justify-center text-sm text-gray-600">
+                      <div className="flex items-center justify-center text-sm text-gray-600 dark:bg-dark-400">
                         <span>No results found . . .</span>
                       </div>
                     )}

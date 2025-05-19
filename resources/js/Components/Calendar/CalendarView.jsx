@@ -166,22 +166,22 @@ export default function CalendarView({ setView, viewType }) {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-none items-center justify-end border-b border-gray-200 gap-x-2 px-6 py-4">
+      <header className="flex flex-none items-center justify-end border-b border-gray-200 dark:border-dark-700 gap-x-2 px-6 py-4">
         <MenuComponent currentView={viewType.charAt(0).toUpperCase() + viewType.slice(1)} setView={setViewWithTransition} handleNextTimeframe={handleNextTimeframe} handlePreviousTimeframe={handlePreviousTimeframe} currentDate={currentDate}/>
       </header>
       <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white transition-all duration-500 ease-in-out">
         <div style={{ width: viewType === 'Week' ? '165%' : '100%' }} className="flex max-w-full flex-none flex-col sm:max-w-none md:max-w-full">
           <div
             ref={containerNav}
-            className="sticky top-0 z-30 flex-none bg-white shadow ring-1 ring-black ring-opacity-5 sm:pr-8"
+            className="sticky top-0 z-30 flex-none bg-white dark:bg-dark-900 shadow ring-1 ring-black dark:ring-dark-50 dark:ring-opacity-5 ring-opacity-5 sm:pr-8"
           >
-            <div className={`${viewType === 'Week' ? 'grid-cols-7 grid sm:hidden' : 'grid-cols-1 hidden' } text-sm leading-6 text-gray-500 `}>
+            <div className={`${viewType === 'Week' ? 'grid-cols-7 grid sm:hidden' : 'grid-cols-1 hidden' } text-sm leading-6 text-gray-500 dark:text-dark-400`}>
               {daysOfWeek.map((day, index) => (
-                <div key={index} type="button" className={`flex flex-col items-center ${viewType === 'Week' ? 'hover:bg-gray-50  cursor-pointer' : ''} pb-3 pt-2`} onClick={() => handleDateClick(day)}>
+                <div key={index} type="button" className={`flex flex-col items-center ${viewType === 'Week' ? 'hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer' : ''} pb-3 pt-2`} onClick={() => handleDateClick(day)}>
                   {format(day, 'E')[0]}{' '}
                   <span
                     className={`mt-1 flex h-8 w-8 items-center justify-center font-semibold ${
-                      isSameDay(day, today) ? 'rounded-full bg-theme-600 text-white' : 'text-gray-900'
+                      isSameDay(day, today) ? 'rounded-full bg-theme-600 text-white dark:text-dark-100' : 'text-gray-900 dark:text-dark-100'
                     }`}
                   >
                     {format(day, 'd')}
@@ -190,15 +190,15 @@ export default function CalendarView({ setView, viewType }) {
               ))}
             </div>
 
-            <div className={`-mr-px ${viewType === 'Week' ? 'grid-cols-7 hidden sm:grid' : 'grid-cols-1 grid'} divide-x divide-gray-100 border-r border-gray-100 text-sm leading-6 text-gray-500 `}>
+            <div className={`-mr-px ${viewType === 'Week' ? 'grid-cols-7 hidden sm:grid' : 'grid-cols-1 grid'} divide-x divide-gray-100 dark:divide-dark-800 border-r border-gray-100 dark:border-dark-800 text-sm leading-6 text-gray-500 dark:text-dark-400`}>
               <div className="col-end-1 w-14" />
               {daysOfWeek.map((day, index) => (
-                <div key={index} className={`flex items-center ${viewType === 'Week' ? 'hover:bg-gray-50  cursor-pointer' : ''} justify-center py-3`} onClick={() => handleDateClick(day)}>
+                <div key={index} className={`flex items-center ${viewType === 'Week' ? 'hover:bg-gray-50 dark:bg-dark-800 cursor-pointer' : ''} justify-center py-3`} onClick={() => handleDateClick(day)}>
                   <span className="flex gap-x-1">
                     {format(day, 'EEE')}{' '}
                     <span
                       className={`items-center justify-center font-semibold ${
-                        isSameDay(day, today) ? 'flex h-6 w-6 rounded-full bg-theme-600 text-white' : 'text-gray-900'
+                        isSameDay(day, today) ? 'flex h-6 w-6 rounded-full bg-theme-600 text-white dark:text-dark-100' : 'text-gray-900 dark:text-dark-100'
                       }`}
                     >
                       {format(day, 'd')}
@@ -208,9 +208,9 @@ export default function CalendarView({ setView, viewType }) {
               ))}
             </div>
           </div>
-          <div className="flex flex-auto relative">
+          <div className="flex flex-auto relative bg-white dark:bg-dark-900">
           {isLoading && (
-              <div ref={containerLoading} className="inset-0 z-20 h-full absolute left-0 w-full flex-none bg-black/30 flex items-center justify-center">
+              <div ref={containerLoading} className="inset-0 z-20 h-full absolute left-0 w-full flex-none bg-black/30 dark:bg-dark-50/30 flex items-center justify-center">
                 <ThreeDots
                   visible={true}
                   height="48"
@@ -224,100 +224,100 @@ export default function CalendarView({ setView, viewType }) {
               </div>
             )}
 
-            <div className="sticky left-0 z-10 w-14 flex-none bg-white ring-1 ring-gray-100" />
+            <div className="sticky left-0 z-10 w-14 flex-none bg-white dark:bg-dark-900 ring-1 ring-gray-100 dark:ring-dark-800" />
             <div className="grid flex-auto grid-cols-1 grid-rows-1">
               {/* Horizontal lines */}
               <div
-                className="col-start-1 col-end-2 row-start-1 grid divide-y divide-gray-100"
+                className="col-start-1 col-end-2 row-start-1 grid divide-y divide-gray-100 dark:divide-dark-800"
                 style={{ gridTemplateRows: 'repeat(29, minmax(3.5rem, 1fr))' }}
               >
                 <div ref={containerOffset} className="row-end-1 h-7"></div>
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     8AM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     9AM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     10AM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     11AM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     12PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     1PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     2PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     3PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     4PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     5PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     6PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     7PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     8PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     9PM
                   </div>
                 </div>
                 <div />
                 <div>
-                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400">
+                  <div className="sticky left-0 z-10 -ml-14 -mt-2.5 w-14 pr-2 text-right text-xs leading-5 text-gray-400 dark:text-dark-500">
                     10PM
                   </div>
                 </div>
@@ -325,7 +325,7 @@ export default function CalendarView({ setView, viewType }) {
               </div>
 
               {/* Vertical lines */}
-              <div className={`col-start-1 col-end-2 row-start-1 hidden ${viewType === 'Week' ? 'grid-cols-7' : 'grid-cols-1'} grid-rows-1 divide-x divide-gray-100 sm:grid`}>
+              <div className={`col-start-1 col-end-2 row-start-1 hidden ${viewType === 'Week' ? 'grid-cols-7' : 'grid-cols-1'} grid-rows-1 divide-x divide-gray-100 dark:divide-dark-800 sm:grid`}>
                 <div className="col-start-1 row-span-full" />
                 {viewType === 'Week' && (
                   <>

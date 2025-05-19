@@ -150,9 +150,8 @@ export default function ClickedFlyout({
                 zIndex: 999,
                 webkitTransform: "translate3d(0, 0, 0)",
                 transform: "translate3d(0, 0, 0)",
-                backgroundColor: 'rgba(0, 0, 0, 0.4)',
               }}
-              className="bg-red-600"
+              className="bg-gray-500/50 dark:bg-dark-800/50 transition-opacity"
             >
               <div
                 ref={popperElement}

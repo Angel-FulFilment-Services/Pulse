@@ -36,7 +36,7 @@ export default function StackedList({
         const isExpanded = expandedRow === rowIndex;
 
         return (
-          <li key={rowIndex} className="w-full border-b border-gray-200">
+          <li key={rowIndex} className="w-full border-b border-gray-200 dark:border-dark-700">
             <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-2 sm:flex-nowrap">
               <div
                 className={`w-full${allowExpand ? ' cursor-pointer' : ''}`}
@@ -46,12 +46,12 @@ export default function StackedList({
                 {renderTitle ? (
                   renderTitle(row, rowIndex)
                 ) : (
-                  <p className="text-sm font-semibold leading-6 text-gray-900">
+                  <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-dark-100">
                     {row.title || row.category}
                   </p>
                 )}
                 {/* Description section */}
-                <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500 dark:text-dark-400">
                   {renderDescription ? (
                     renderDescription(row, rowIndex)
                   ) : (
@@ -68,18 +68,18 @@ export default function StackedList({
                           userId={user.userId}
                           searchState={'userId'}
                           showState={false}
-                          customClass={'ring-2 ring-white'}
+                          customClass={'ring-2 ring-white dark:ring-dark-900'}
                           size="extra-small"
                         />
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-center items-center w-full divide-x divide-gray-200">
+                  <div className="flex justify-center items-center w-full divide-x divide-gray-200 dark:divide-dark-700">
                     <dt className="flex items-center pr-3">
                       {row.resolved ? (
-                        <CheckCircleIcon className="h-6 w-6 text-green-500" aria-hidden="true" />
+                        <CheckCircleIcon className="h-6 w-6 text-green-500 dark:text-green-600" aria-hidden="true" />
                       ) : (
-                        <ExclamationCircleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                        <ExclamationCircleIcon className="h-6 w-6 text-red-600 dark:text-red-700" aria-hidden="true" />
                       )}
                     </dt>
                     {allowManagement && (
@@ -92,7 +92,7 @@ export default function StackedList({
                           }}
                         >
                           <PencilIcon
-                            className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out"
+                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
                             aria-hidden="true"
                           />
                         </button>
@@ -104,7 +104,7 @@ export default function StackedList({
                           }}
                         >
                           <TrashIcon
-                            className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out"
+                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
                             aria-hidden="true"
                           />
                         </button>
@@ -121,7 +121,7 @@ export default function StackedList({
                             {typeof action.icon === 'function' ? (
                               action.icon(row)
                             ) : (
-                              <action.icon className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
+                              <action.icon className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" aria-hidden="true" />
                             )}
                           </button>
                         ))}
@@ -133,7 +133,7 @@ export default function StackedList({
                         onClick={() => handleToggleExpand(rowIndex)}
                       >
                         <ChevronDownIcon
-                          className={`h-6 w-6 text-gray-400 transition-transform duration-300 ${
+                          className={`h-6 w-6 text-gray-400 dark:text-dark-500 transition-transform duration-300 ${
                             isExpanded ? 'rotate-180' : ''
                           }`}
                           aria-hidden="true"
@@ -154,7 +154,7 @@ export default function StackedList({
                   overflow: 'hidden',
                 }}
               >
-                <div className="bg-gray-50  px-4 py-2 border-t border-gray-200 animate-fade-in">
+                <div className="bg-gray-50 dark:bg-dark-800 px-4 py-2 border-t border-gray-200 dark:border-dark-700 animate-fade-in">
                   {renderExpandableContent ? renderExpandableContent(row, rowIndex) : null}
                 </div>
               </div>

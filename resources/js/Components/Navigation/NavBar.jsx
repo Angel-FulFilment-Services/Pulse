@@ -55,7 +55,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50  h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
@@ -108,7 +108,7 @@ export default function NavBar({ page }) {
                     </div>
                   </Transition.Child>
                   {/* Collapsed Sidebar Component */}
-                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2">
+                  <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white dark:bg-dark-900 px-6 pb-2">
                     <div className="flex h-20 shrink-0 items-center">
                         <div className="h-10 w-auto">
                             <Logo/>
@@ -124,7 +124,7 @@ export default function NavBar({ page }) {
                           </ul>
                         </li>
                         <li>
-                          <div className="text-xs font-semibold leading-6 text-gray-400">Your teams</div>
+                          <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
                           <ul role="list" className="-mx-2 mt-2 space-y-1">
                             {teams.map((team, i) => (
                               <NavTeamItem team={team} key={i}></NavTeamItem>
@@ -142,7 +142,7 @@ export default function NavBar({ page }) {
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white dark:bg-dark-900 dark:border-dark-700 px-6">
             <div className="flex h-20 shrink-0 items-center">
                 <div className="h-10 w-auto">
                     <Logo/>
@@ -158,7 +158,7 @@ export default function NavBar({ page }) {
                   </ul>
                 </li>
                 <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400">Your teams</div>
+                  <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
                   <ul role="list" className="-mx-2 mt-2 space-y-1">
                     {teams.map((team, i) => (
                         <NavTeamItem team={team} key={i}></NavTeamItem>
@@ -168,22 +168,22 @@ export default function NavBar({ page }) {
                 <li className="-mx-6 mt-auto">
                   <Menu as="div" className="relative">
                     <div>
-                      <MenuButton className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50  w-full focus:outline-none">
+                      <MenuButton className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50 dark:text-dark-50 dark:hover:bg-dark-800 w-full focus:outline-none">
                         <UserItemSelf></UserItemSelf>
                       </MenuButton>
                     </div>
                     <MenuItems
                       transition
-                      className="absolute focus:outline-none bottom-full divide-y divide-gray-200 z-10 mb-2 w-full origin-bottom-right rounded-md bg-gray-50 shadow-lg ring-1 ring-black/5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
+                      className="absolute focus:outline-none bottom-full divide-y divide-gray-200 z-10 mb-2 w-11/12 mx-3 origin-bottom-right rounded-md bg-gray-50 dark:bg-dark-800 dark:divide-dark-700 shadow-lg ring-1 ring-black/5 dark:ring-dark-100/5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
                     >
-                      <MenuItem key="theme" as="div" className="px-4 py-3 bg-white">
+                      <MenuItem key="theme" as="div" className="px-4 py-3 bg-white dark:bg-dark-900">
                         <NavTheme />
                       </MenuItem>
                       <MenuItem key="signout">
                         <button
                           type="button"
                           onClick={() => router.post('/logout')}
-                          className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 "
+                          className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
                         >
                           Sign out
                         </button>
@@ -197,19 +197,42 @@ export default function NavBar({ page }) {
         </div>
         
         {/* Collapsed Topbar Component */}
-        <div className="relative w-full top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
-          <button type="button" className="-m-2.5 p-2.5 text-gray-700 lg:hidden" onClick={() => setSidebarOpen(true)}>
+        <div className="relative w-full top-0 z-40 flex items-center gap-x-6 bg-white dark:bg-dark-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
+          <button type="button" className="-m-2.5 p-2.5 text-gray-700 dark:text-dark-200 lg:hidden" onClick={() => setSidebarOpen(true)}>
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
-          <div className="flex-1 text-sm font-semibold leading-6 text-gray-900">Dashboard</div>
+          <div className="flex-1 text-sm font-semibold leading-6 text-gray-900"></div>
           <a href="#">
             <span className="sr-only">Your profile</span>
-            <UserItem userId={employee.hr_id} size={"small"} allowClickInto={false} />
+            <Menu as="div" className="relative w-64 flex items-end justify-end cursor-default">
+              <div>
+                <MenuButton className="flex items-center text-sm font-semibold leading-6 text-gray-900 dark:text-dark-50 w-full focus:outline-none">
+                    <UserItem userId={employee.hr_id} size={"small"} allowClickInto={false} />
+                </MenuButton>
+              </div>
+              <MenuItems
+                transition
+                className="absolute focus:outline-none top-full divide-y divide-gray-200 z-10 mt-2 w-full mx-3 origin-bottom-right rounded-md bg-gray-50 dark:bg-dark-800 dark:divide-dark-700 shadow-lg ring-1 ring-black/5 dark:ring-dark-100/5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
+              >
+                <MenuItem key="theme" as="div" className="px-4 py-3 bg-white dark:bg-dark-900">
+                  <NavTheme />
+                </MenuItem>
+                <MenuItem key="signout">
+                  <button
+                    type="button"
+                    onClick={() => router.post('/logout')}
+                    className="block w-full text-left px-4 py-2 text-xs text-gray-500 data-focus:bg-gray-100  data-focus:outline-hidden hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-dark-400"
+                  >
+                    Sign out
+                  </button>
+                </MenuItem>
+              </MenuItems>
+            </Menu>
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50  h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

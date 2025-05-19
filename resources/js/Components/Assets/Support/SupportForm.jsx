@@ -283,12 +283,12 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
         <div className="w-full h-full max-h-[50rem] overflow-y-auto">
             <div className="space-y-6 h-full">
                 {/* Title Field */}
-                <div className="border-b border-gray-900/10 pb-6">
-                <div className="border-b border-gray-900/10 pb-2">
-                    <h2 className="text-base font-semibold text-gray-900">
+                <div className="border-b border-gray-900/10 dark:border-dark-50/10 pb-6">
+                <div className="border-b border-gray-900/10 dark:border-dark-50/10 pb-2">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-dark-100">
                     {initialData ? 'Edit Support Record' : 'Create Support Record'}
                     </h2>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-gray-600 dark:text-dark-400">
                     {initialData
                         ? 'Update the details of the support record below.'
                         : 'Please fill out the form below with the required information.'}
@@ -356,7 +356,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
 
                     {/* Attachments Field */}
                     <div className="col-span-full">
-                    <label htmlFor="attachments" className="block text-sm font-medium text-gray-900">
+                    <label htmlFor="attachments" className="block text-sm font-medium text-gray-900 dark:text-dark-100">
                         Attachments
                     </label>
                     <div className="mt-2">
@@ -364,7 +364,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                         {formData.attachments.length > 0 && (
                         <ul className="mb-4">
                             {formData.attachments.map((file, index) => (
-                            <li key={index} className="flex items-center justify-between text-sm text-gray-600">
+                            <li key={index} className="flex items-center justify-between text-sm text-gray-600 dark:text-dark-400">
                                 <span>{file.name}</span>
                                 <button
                                 type="button"
@@ -380,16 +380,16 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
 
                         {/* Drag-and-Drop Zone */}
                         <div
-                        className={`flex justify-center rounded-lg border border-dashed px-6 py-4 border-gray-900/25`}
+                        className={`flex justify-center rounded-lg border border-dashed px-6 py-4 border-gray-900/25 dark:border-dark-50/25`}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                         >
                         <div className="text-center">
-                            <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300" />
+                            <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
                             <div className="mt-4 flex text-sm text-gray-600">
                             <label
                                 htmlFor="file-upload"
-                                className="relative cursor-pointer rounded-md bg-white font-semibold text-theme-600 focus-within:ring-2 focus-within:ring-theme-600 focus-within:ring-offset-2 hover:text-theme-500"
+                                className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
                             >
                                 <span>Upload a file</span>
                                 <input
@@ -405,7 +405,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                             </label>
                             <p className="pl-1">or drag and drop</p>
                             </div>
-                            <p className="text-xs text-gray-600">PNG, JPG, GIF up to 10MB</p>
+                            <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
                         </div>
                         </div>
                     </div>
@@ -417,7 +417,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                 <div className="mt-6 flex items-center justify-end gap-x-6 w-full xl:w-2/3">
                 <button
                     type="button"
-                    className="text-sm font-semibold text-gray-900"
+                    className="text-sm font-semibold text-gray-900 dark:text-dark-100"
                     onClick={handleCancel}
                 >
                     Cancel
@@ -425,17 +425,17 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                 <button
                 className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed ${
                     isProcessing
-                    ? 'bg-theme-500'
+                    ? 'bg-theme-500 dark:bg-theme-600'
                     : isSuccess
-                    ? 'bg-green-500 hover:bg-green-600'
-                    : 'bg-theme-500 hover:bg-theme-600'
+                    ? 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500'
+                    : 'bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500'
                 }`}
                 onClick={handleSubmit}
                 disabled={isProcessing || isSuccess}
                 >
                 {isProcessing ? (
                     <svg
-                    className="inline w-5 h-5 animate-spin fill-theme-200"
+                    className="inline w-5 h-5 animate-spin fill-theme-200 dark:fill-theme-700"
                     viewBox="0 0 100 101"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"

@@ -17,7 +17,7 @@ function classNames(...classes) {
 }
 
 const SkeletonLoader = ({ className }) => (
-  <div className={`animate-pulse bg-gray-100  ${className}`} />
+  <div className={`animate-pulse bg-gray-100 dark:bg-dark-800 ${className}`} />
 );
 
 const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, headingClass = null, subHeadingClass = null}) => {
@@ -46,7 +46,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
       <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} jobTitle={jobTitle} />
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
-          <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900"} text-nowrap leading-6 w-max`}>{agent.agent || userState.name}</div>
+          <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900 dark:text-dark-50"} text-nowrap leading-6 w-max`}>{agent.agent || userState.name}</div>
           {shift && timesheets && (
             <div
               className={classNames(
@@ -58,7 +58,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
             </div>
           )}
         </div>
-        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500"} ${shift ? "pt-0.5" : null} flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
+        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500 dark:text-dark-400"} ${shift ? "pt-0.5" : null} flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
         {/* <div className="mt-0 text-xs leading-5 text-gray-500"> {jobTitle} <span>- Due: 09:00am </span></div> */}
       </div>
     </div>

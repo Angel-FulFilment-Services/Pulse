@@ -70,7 +70,7 @@ export default function MenuComponent({ currentView, setView, search, setSearch,
   return (
     <div className="w-full flex sm:flex-row justify-between gap-x-2">
       <div className="w-full">
-        <h1 className="text-base font-semibold leading-6 text-gray-900">
+        <h1 className="text-base font-semibold leading-6 text-gray-900 dark:text-dark-100">
           <time dateTime={format(currentDate, 'yyyy-MM-dd')} className="sm:hidden">
             {formattedDate}
           </time>
@@ -79,16 +79,16 @@ export default function MenuComponent({ currentView, setView, search, setSearch,
           </time>
         </h1>
         {(currentView === 'Day' || currentView === 'List') && (
-          <p className="mt-1 text-sm text-gray-500">{formattedDay}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-dark-400">{formattedDay}</p>
         )}
         {currentView === 'Week' && (
-          <p className="mt-1 text-sm text-gray-500 h-5">{formattedDay}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-dark-400 h-5">{formattedDay}</p>
         )}
       </div>
 
       <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end w-full gap-y-2 sm:gap-x-2">
         { setSearch ? 
-          <div className="w-56 bg-white rounded-md">
+          <div className="w-56 bg-white dark:bg-dark-900 rounded-md">
             <TextInput
               id="view-select"
               Icon={MagnifyingGlassIcon}

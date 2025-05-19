@@ -27,10 +27,10 @@ export default function ComboInput(props) {
   return (
     <>
       <Combobox as="div" value={currentState} onChange={ e => { setSelected(e); handleComboChange(e);}}>
-        <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900">{label}</Combobox.Label>
+        <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">{label}</Combobox.Label>
         <div className="relative mt-2">
           <Combobox.Input
-            className={`w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 z-10 text-gray-900 ${typeof selected !== "undefined" && !selected.value && error ? "ring-red-600 text-red-800" : "ring-gray-300"} shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 sm:text-sm sm:leading-6`}
+            className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${typeof selected !== "undefined" && !selected.value && error ? "ring-red-600 text-red-800 dark:ring-red-700 dark:text-red-900" : "ring-gray-300 dark:ring-dark-600"} shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6`}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
             spellCheck={spellCheck}
@@ -38,14 +38,14 @@ export default function ComboInput(props) {
           />
           <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none">
             {error ? 
-              <ExclamationCircleIcon className="absolute right-2 top-1/2 transform w-5 h-5 text-red-600 -translate-y-1/2 pointer-events-none" />
+              <ExclamationCircleIcon className="absolute right-2 top-1/2 transform w-5 h-5 text-red-600 dark:text-red-700 -translate-y-1/2 pointer-events-none" />
               :
-              <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              <ChevronUpDownIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" aria-hidden="true" />
             }
           </Combobox.Button>
-          {error && <div className="text-red-600 text-sm pt-2">{error.message}</div>}
+          {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message}</div>}
           {filteredItems.length > 0 && (
-            <Combobox.Options className="absolute z-10 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+            <Combobox.Options className="absolute z-10 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-dark-900 py-1 text-base shadow-lg ring-1 ring-black dark:ring-dark-50 dark:ring-opacity-5 ring-opacity-5 focus:outline-none sm:text-sm">
               {filteredItems.map((item) => (
                 <Combobox.Option
                   key={item.id}
@@ -53,7 +53,7 @@ export default function ComboInput(props) {
                   className={({ active }) =>
                     classNames(
                       'relative cursor-default select-none py-2 pl-3 pr-9',
-                      active ? 'bg-gray-100  text-gray-900' : 'text-gray-900'
+                      active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-900 dark:text-dark-100'
                     )
                   }
                 >
@@ -65,7 +65,7 @@ export default function ComboInput(props) {
                         <span
                           className={classNames(
                             'absolute inset-y-0 right-0 flex items-center pr-4',
-                            active ? 'text-white' : 'text-theme-600'
+                            active ? 'text-white dark:text-dark-900' : 'text-theme-600 dark:text-theme-700'
                           )}
                         >
                           <CheckIcon className="h-5 w-5" aria-hidden="true" />

@@ -10,7 +10,7 @@ import { calculateTimeBlocks } from '../../Utils/Rota';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const SkeletonLoader = ({ className }) => (
-    <div className={`animate-pulse bg-gray-100  ${className}`} />
+    <div className={`animate-pulse bg-gray-100 dark:bg-dark-800  ${className}`} />
 );
   
 const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = false }) => {
@@ -143,24 +143,24 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
       <div className="flex flex-col gap-y-1 w-full items-end justify-end overflow-visible">
         <div className="flex items-end justify-between pt-0 w-full">
           <div className="flex flex-row md:flex-col xl:flex-row">
-            <p tabIndex="0" className="focus:outline-none leading-4 text-gray-500 text-xs">
+            <p tabIndex="0" className="focus:outline-none leading-4 text-gray-500 dark:text-dark-400 text-xs">
               Shift {shiftStarted ? 'Started' : 'Starts'}: {format(shiftStartDisplayTime, 'hh:mm a')}
             </p>
           </div>
           <div className="flex flex-row gap-x-1">
           { !shift.unallocated && (
-            <p className="focus:outline-none leading-4 text-gray-500 text-xs">Scheduled Hours: {formattedScheduledHours}</p>
+            <p className="focus:outline-none leading-4 text-gray-500 dark:text-dark-400 text-xs">Scheduled Hours: {formattedScheduledHours}</p>
           )}
-            <p className="focus:outline-none leading-4 text-gray-500 text-xs">Actual: {formattedActualHours}</p>
+            <p className="focus:outline-none leading-4 text-gray-500 dark:text-dark-400 text-xs">Actual: {formattedActualHours}</p>
           { !shift.unallocated && (
             <>
-              <p className="focus:outline-none leading-4 text-gray-500 text-xs">-</p>
-              <p className="focus:outline-none leading-4 text-gray-900 text-xs">{workedPercentage}%</p>
+              <p className="focus:outline-none leading-4 text-gray-500 dark:text-dark-400 text-xs">-</p>
+              <p className="focus:outline-none leading-4 text-gray-900 dark:text-dark-100 text-xs">{workedPercentage}%</p>
             </>
           )}
           </div>
         </div>
-        <div className="w-full h-5 bg-gray-200 rounded-full flex flex-row items-center">
+        <div className="w-full h-5 bg-gray-200 dark:bg-dark-700 rounded-full flex flex-row items-center">
           <div className="relative w-full flex flex-row items-center">
             {timeBlocks.map((block, index) => (
               <PopoverFlyout
@@ -172,22 +172,22 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
                   index === timeBlocks.length - 1 ? 'rounded-r-xl' : 'rounded-r'
                 } ${block.color} cursor-pointer absolute overflow-visible`}
                 content={
-                  <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
+                  <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 dark:divide-dark-600">
                       <div className="relative flex gap-x-2 justify-start items-center rounded-lg w-full h-full pb-1">
                           <div className={`flex flex-none items-center justify-center rounded-lg p-2 w-8 h-8 ${categories["detail"][block.category]} ring-1`}>
                               <ClockIcon aria-hidden="true" className="size-6 flex-shrink-0"/>
                           </div>
                           <div className="flex flex-col">
-                              <p className="font-semibold text-gray-900">
+                              <p className="font-semibold text-gray-900 dark:text-dark-100">
                                   Time Block - <span className="font-normal text-sm">{formatTimeDifference(block.start, block.end)}</span>
                               </p>
                           </div>
                       </div>
                       <div className="relative flex gap-x-2 justify-start items-center mx-1 pt-2">
                           <div className="flex flex-col gap-y-1">
-                              <p className="text-gray-500 font-medium text-xs"> Started: <span className="text-gray-700"> {block.started} </span> </p>
-                              <p className="text-gray-500 font-medium text-xs"> Ended: <span className="text-gray-700"> {block.ended} </span> </p>
-                              <p className="text-gray-500 font-medium text-xs"> Category: <span className="text-gray-700"> {block.category} </span> </p>
+                              <p className="text-gray-500 dark:text-dark-400 font-medium text-xs"> Started: <span className="text-gray-700 dark:text-dark-200"> {block.started} </span> </p>
+                              <p className="text-gray-500 dark:text-dark-400 font-medium text-xs"> Ended: <span className="text-gray-700 dark:text-dark-200"> {block.ended} </span> </p>
+                              <p className="text-gray-500 dark:text-dark-400 font-medium text-xs"> Category: <span className="text-gray-700 dark:text-dark-200"> {block.category} </span> </p>
                           </div>
                       </div>
                   </div>
@@ -203,13 +203,13 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
         className=""
         content={
           <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300">
-              <p> Utilisation </p>
+              <p class="text-gray-900 dark:text-dark-100"> Utilisation </p>
           </div>
         }>
           <div className="w-12 h-12 flex items-center justify-center relative">
             <Doughnut data={utilisationData} options={chartOptions} />
             <div className="absolute">
-                <p className="text-xs font-medium text-gray-600">{utilisationPercentage}%</p>
+                <p className="text-xs font-medium text-gray-600 dark:text-dark-300">{utilisationPercentage}%</p>
             </div>
           </div>
         </PopoverFlyout>

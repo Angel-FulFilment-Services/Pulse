@@ -87,12 +87,12 @@ export default function ShiftView({ selectedShift }) {
 
   return (
     <div className="pr-4">
-      <div className="flex flex-col gap-y-4 divide-y divide-gray-200">
-        <div className="rounded-xl bg-gray-50  h-8 flex flex-row">
+      <div className="flex flex-col gap-y-4 divide-y divide-gray-200 dark:divide-dark-700">
+        <div className="rounded-xl bg-gray-50 dark:bg-dark-800 h-8 flex flex-row">
           <ClickedFlyout
             icon={sendingButtons['shift-reminder'] ? (
                 <svg
-                  className="inline w-4 h-4 animate-spin fill-gray-200"
+                  className="inline w-4 h-4 animate-spin fill-gray-200 dark:fill-dark-700"
                   viewBox="0 0 100 101"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -111,18 +111,18 @@ export default function ShiftView({ selectedShift }) {
               )}
             width="w-72"
             placement="bottom"
-            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 z-50 rounded-l-lg ${
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 dark:ring-dark-600 z-50 rounded-l-lg ${
                 sendingButtons['shift-reminder']
-                  ? 'bg-gray-100  text-gray-400 cursor-not-allowed'
-                  : 'hover:bg-gray-100  text-gray-400 hover:text-gray-500 cursor-pointer'
+                  ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 dark:text-dark-500 cursor-not-allowed'
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400 dark:text-dark-500 dark:hover:text-dark-400 hover:text-gray-500 cursor-pointer'
             }`}
             onOpen={() => setMessage(getDefaultShiftReminderMessage())}
             onClose={() => setMessage('')} // Clear the message when the flyout closes
             content={(handleSubmit) => (
-              <div className="w-full mx-auto p-2 flex flex-col space-y-2 divide-y divide-gray-300 hover:text-gray-400 cursor-auto">
+              <div className="w-full mx-auto p-2 flex flex-col space-y-2 divide-y divide-gray-300 hover:text-gray-400 dark:divide-dark-600 dark:hover:text-dark-500 cursor-auto">
                 <div className="w-full flex justify-between items-center">
-                  <h1 className="text-gray-800 hover:text-gray-800">Compose your SMS message</h1>
-                  <h2 className={` ${255 - message.length < 10 ? 'text-red-500' : 'text-gray-400'}  `}>
+                  <h1 className="text-gray-800 hover:text-gray-800 dark:text-dark-100 hover:dark:text-dark-100">Compose your SMS message</h1>
+                  <h2 className={` ${255 - message.length < 10 ? 'text-red-500 dark:text-red-600' : 'text-gray-400 dark:text-dark-500'}  `}>
                     {255 - message.length}
                   </h2>
                 </div>
@@ -130,13 +130,13 @@ export default function ShiftView({ selectedShift }) {
                   rows={8}
                   name="comment"
                   id="comment"
-                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 sm:text-sm sm:leading-6"
+                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 placeholder:text-gray-400 dark:placeholder:text-dark-500 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6"
                   value={message} // Bind the textarea value to state
                   onChange={(e) => setMessage(e.target.value)} // Update state on input
                   maxLength={255}
                 />
                 <button
-                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600"
+                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 dark:bg-theme-600 px-3 py-2 text-sm font-semibold text-white dark:text-dark-100 shadow-sm hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700"
                   onClick={() => handleSubmit(message, 'shift-reminder')} // Pass message and buttonKey to handleSubmit
                 >
                   Send
@@ -172,7 +172,7 @@ export default function ShiftView({ selectedShift }) {
           <ClickedFlyout
             icon={sendingButtons['custom-sms'] ? (
                 <svg
-                  className="inline w-4 h-4 animate-spin fill-gray-200"
+                  className="inline w-4 h-4 animate-spin fill-gray-200 dark:fill-dark-700"
                   viewBox="0 0 100 101"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -191,17 +191,17 @@ export default function ShiftView({ selectedShift }) {
               )}
             width="w-72"
             placement="bottom"
-            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 z-50 ${
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-gray-300 dark:ring-dark-600 z-50 ${
                 sendingButtons['custom-sms']
-                  ? 'bg-gray-100  text-gray-400 cursor-not-allowed'
-                  : 'hover:bg-gray-100  text-gray-400 hover:text-gray-500 cursor-pointer'
+                  ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 dark:text-dark-500 cursor-not-allowed'
+                  : 'hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400 dark:text-dark-500 dark:hover:text-dark-400 hover:text-gray-500 cursor-pointer'
             }`}
             onClose={() => setMessage('')} // Clear the message when the flyout closes
             content={(handleSubmit) => (
-              <div className="w-full mx-auto p-2 flex flex-col space-y-2 divide-y divide-gray-300 hover:text-gray-400 cursor-auto">
+              <div className="w-full mx-auto p-2 flex flex-col space-y-2 divide-y divide-gray-300 hover:text-gray-400 dark:divide-dark-600 dark:hover:text-dark-500 cursor-auto">
                 <div className="w-full flex justify-between items-center">
-                  <h1 className="text-gray-800 hover:text-gray-800">Compose your SMS message</h1>
-                  <h2 className={` ${255 - message.length < 10 ? 'text-red-500' : 'text-gray-400'}  `}>
+                  <h1 className="text-gray-800 hover:text-gray-800 dark:text-dark-100 dark:hover:text-dark-100">Compose your SMS message</h1>
+                  <h2 className={` ${255 - message.length < 10 ? 'text-red-500 dark:text-red-600' : 'text-gray-400 dark:text-dark-500'}  `}>
                     {255 - message.length}
                   </h2>
                 </div>
@@ -209,13 +209,13 @@ export default function ShiftView({ selectedShift }) {
                   rows={8}
                   name="comment"
                   id="comment"
-                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 sm:text-sm sm:leading-6"
+                  className="block w-full p-2 resize-none rounded-md border-0 py-1.5 text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 placeholder:text-gray-400 dark:placeholder:text-dark-500 focus:ring-2 focus:ring-inset !outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6"
                   value={message} // Bind the textarea value to state
                   onChange={(e) => setMessage(e.target.value)} // Update state on input
                   maxLength={255}
                 />
                 <button
-                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600"
+                  className="cursor-pointer inline-flex w-full justify-center rounded-md bg-theme-500 dark:bg-theme-600 px-3 py-2 text-sm font-semibold text-white dark:text-dark-100 shadow-sm hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700"
                   onClick={() => handleSubmit(message, 'custom-sms')} // Pass message and buttonKey to handleSubmit
                 >
                   Send
@@ -250,7 +250,7 @@ export default function ShiftView({ selectedShift }) {
           />
 
           <button
-            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 ${showFlagShift ? "bg-red-100 text-red-700" : "hover:bg-red-100 bg-red-50 text-red-600 hover:text-red-700"} cursor-pointer rounded-r-xl disabled:bg-red-100 disabled:text-red-300 disabled:cursor-not-allowed`}
+            className={`w-1/3 justify-center items-center flex h-full ring-1 ring-inset ring-red-200 dark:ring-red-400/75 ${showFlagShift ? "bg-red-100 dark:bg-red-300/75 text-red-700 dark:text-red-800" : "hover:bg-red-100 bg-red-50 dark:hover:bg-red-200/75 dark:bg-red-300/75 text-red-600 hover:text-red-700 dark:text-red-700 dark:hover:text-red-600"} cursor-pointer rounded-r-xl disabled:bg-red-100 disabled:text-red-300 dark:disabled:text-red-400 dark:disabled:bg-red-300/75 disabled:cursor-not-allowed`}
             onClick={() => {if(allowEventManagement) setShowFlagShift(true)}} // Show the FlagShift component
             {... allowEventManagement ? {} : { disabled: true } } // Disable button if no permission
           >

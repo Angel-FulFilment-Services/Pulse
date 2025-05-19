@@ -13,7 +13,7 @@ export default function LastUpdated({ lastUpdated }) {
   }, []);
 
   return (
-    <p className="whitespace-nowrap text-xs pt-1.5 text-gray-500">
+    <p className="whitespace-nowrap text-xs pt-1.5 text-gray-500 dark:text-dark-400">
       Last Updated: {lastUpdated ? formatDistanceToNow(new Date(lastUpdated), { addSuffix: true }) : 'Never'}
     </p>
   );

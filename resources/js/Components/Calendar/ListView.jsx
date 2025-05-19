@@ -158,7 +158,7 @@ export default function ListView({ setView, viewType }) {
   return (
     <UtilisationTargetsProvider>
       <div className="flex h-full flex-col pb-16 sm:pb-0">
-      <header className="flex flex-col items-center justify-end border-b border-gray-200 gap-x-2 space-y-2 px-6 py-4 divide-gray-200">
+      <header className="flex flex-col items-center justify-end border-b border-gray-200 dark:border-dark-700 gap-x-2 space-y-2 px-6 py-4 divide-gray-200 dark:divide-dark-700">
         <MenuComponent
           currentView={viewType.charAt(0).toUpperCase() + viewType.slice(1)}
           setView={setView}
@@ -169,10 +169,10 @@ export default function ListView({ setView, viewType }) {
           handlePreviousTimeframe={handlePreviousTimeframe}
         />
       </header>
-      <div className="flex flex-col items-end justify-end border-b border-gray-200 gap-x-2 space-y-2 pl-6 px-2 py-3 divide-gray-200">
+      <div className="flex flex-col items-end justify-end border-b border-gray-200 dark:border-dark-700 gap-x-2 space-y-2 pl-6 px-2 py-3 divide-gray-200 dark:divide-dark-700">
           <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
       </div>
-      <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white transition-all duration-500 ease-in-out items-center">
+      <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white dark:bg-dark-900 transition-all duration-500 ease-in-out items-center">
         <div className="flex max-w-full flex-none flex-col sm:max-w-none w-full md:max-w-full">
           <div className="overflow-hidden">
             <div className="mx-auto max-w-7xl xl:max-w-none lg:w-4/5 px-4 sm:px-6 lg:px-8">
@@ -186,10 +186,10 @@ export default function ListView({ setView, viewType }) {
                           <tr key={`row-${headerIndex}`} className="text-sm leading-6 text-gray-900">
                             <th scope="colgroup" colSpan={3} className="relative py-3 font-semibold">
                               <div className={`animate-pulse flex flex-col justify-center h-full w-full`}>
-                                <div className="h-4 bg-gray-200 rounded-lg w-28"></div>
+                                <div className="h-4 bg-gray-200 dark:bg-dark-800 rounded-lg w-28"></div>
                               </div>
-                              <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
-                              <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
+                              <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:border-dark-700 dark:bg-dark-800 shadow-sm" />
+                              <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:border-dark-700 dark:bg-dark-800 shadow-sm" />
                             </th>
                           </tr>
                           {/* Sub-Rows */}
@@ -203,7 +203,7 @@ export default function ListView({ setView, viewType }) {
                               </td>
                               <td className="py-2 text-right w-20">
                                 <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
-                                  <div className="h-4 bg-gray-100  rounded-lg w-20"></div>
+                                  <div className="h-4 bg-gray-100 dark:bg-dark-800 rounded-lg w-20"></div>
                                 </div>
                               </td>
                             </tr>
@@ -213,7 +213,7 @@ export default function ListView({ setView, viewType }) {
                     ) : Object.keys(groupedShifts).length === 0 ? (
                       // Display message when there are no shifts
                       <tr>
-                        <td colSpan={3} className="py-4 text-center text-sm text-gray-500">
+                        <td colSpan={3} className="py-4 text-center text-sm text-gray-500 dark:text-dark-400">
                           No shifts available for the selected date range.
                         </td>
                       </tr>
@@ -234,13 +234,13 @@ export default function ListView({ setView, viewType }) {
 
                                 return (
                                   <Fragment key={key}>
-                                    <tr key={`row-${key}`} className="text-sm leading-6 text-gray-900">
+                                    <tr key={`row-${key}`} className="text-sm leading-6 text-gray-900 dark:text-dark-50">
                                       <th scope="colgroup" colSpan={3} className="relative py-2 font-semibold">
                                         {isNaN(startDate.getTime())
                                           ? key.charAt(0).toUpperCase() + key.slice(1)
                                           : `Starting: ${format(startDate, 'h:mm a').toLowerCase()}`}
-                                        <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
-                                        <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50  shadow-sm" />
+                                        <div className="absolute inset-y-0 right-full -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:border-dark-700 dark:bg-dark-800 shadow-sm" />
+                                        <div className="absolute inset-y-0 left-0 -z-10 w-screen border-b border-gray-200 bg-gray-50 dark:border-dark-700 dark:bg-dark-800 shadow-sm" />
                                       </th>
                                     </tr>
                                     {shifts.map((shift) => {
@@ -281,7 +281,7 @@ export default function ListView({ setView, viewType }) {
                                           <td className="py-2 text-right w-20">
                                             {!isLoaded || isTransitioning ? (
                                               <div className={`animate-pulse flex flex-col justify-center items-end rounded h-10 w-1/2 ml-auto`}>
-                                                <div className="h-4 bg-gray-100  rounded-lg w-20"></div>
+                                                <div className="h-4 bg-gray-100 dark:bg-dark-800 rounded-lg w-20"></div>
                                               </div>
                                             ) : (
                                               <div className="flex justify-end gap-x-4">

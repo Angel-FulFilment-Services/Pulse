@@ -5,23 +5,23 @@ import { ExclamationCircleIcon, CheckCircleIcon, InformationCircleIcon, Question
 const iconTypes = {
   warning: {
     icon: ExclamationCircleIcon,
-    bgColor: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-200/60',
+    iconColor: 'text-yellow-600 dark:text-yellow-700',
   },
   success: {
     icon: CheckCircleIcon,
-    bgColor: 'bg-green-100',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-green-100 dark:bg-green-200/60',
+    iconColor: 'text-green-600 dark:text-green-700',
   },
   info: {
     icon: InformationCircleIcon,
-    bgColor: 'bg-blue-100',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-blue-100 dark:bg-blue-200/60',
+    iconColor: 'text-blue-600 dark:text-blue-700',
   },
   question: {
     icon: QuestionMarkCircleIcon,
-    bgColor: 'bg-theme-100',
-    iconColor: 'text-theme-600',
+    bgColor: 'bg-theme-100 dark:bg-theme-200/60',
+    iconColor: 'text-theme-600 dark:text-theme-700',
   },
 };
 
@@ -51,7 +51,7 @@ export default function ConfirmationDialog({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-gray-500/50 dark:bg-gray-800/50 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -65,24 +65,24 @@ export default function ConfirmationDialog({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white dark:bg-dark-900 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <div>
                   <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${bgColor}`}>
                     <Icon className={`h-7 w-7 ${iconColor}`} aria-hidden="true" />
                   </div>
                   <div className="mt-3 text-center sm:mt-5">
-                    <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                    <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900 dark:text-dark-100">
                       {title}
                     </Dialog.Title>
                     <div className="mt-2">
-                      <p className="text-sm text-gray-500">{description}</p>
+                      <p className="text-sm text-gray-500 dark:text-dark-400">{description}</p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 sm:col-start-2"
+                    className="inline-flex w-full justify-center rounded-md bg-theme-500 dark:bg-theme-600 px-3 py-2 text-sm font-semibold text-white dark:text-dark-50 shadow-sm hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 sm:col-start-2"
                     onClick={() => {
                       isYes(); // Trigger the callback for "Yes"
                       setIsOpen(false); // Close the dialog
@@ -92,7 +92,7 @@ export default function ConfirmationDialog({
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50  border-none border-transparent sm:col-start-1 sm:mt-0"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-dark-900 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:ring-dark-600 dark:hover:bg-dark-800 border-none border-transparent sm:col-start-1 sm:mt-0"
                     onClick={() => setIsOpen(false)} // Close the dialog
                     ref={cancelButtonRef}
                   >

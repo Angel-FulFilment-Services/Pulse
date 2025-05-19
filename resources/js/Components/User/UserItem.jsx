@@ -53,17 +53,17 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
 
     const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt));
     if (minutesAgo <= 2.5) {
-      return 'bg-green-500';
+      return 'bg-green-500 dark:bg-green-600';
     } else if (minutesAgo <= 30) {
-      return 'bg-yellow-500';
+      return 'bg-yellow-500 dark:bg-yellow-600';
     } else {
-      return 'bg-gray-300';
+      return 'bg-gray-300 dark:bg-gray-400';
     }
   }, [lastActiveAt]);
 
   return (
     <>
-      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50  rounded-full ${selectedSizeClass} ${customClass}`}>
+      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass} ${customClass}`}>
         {allowClickInto && (<ClickedModal
             overlay={true}
             size={"xl"}
@@ -73,7 +73,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
           }
         >
           <div
-            className={`flex z-20 absolute top-0 left-0 inset-0 items-center justify-center bg-none hover:bg-gray-800 hover:bg-opacity-50 rounded-full cursor-pointer transition-all ease-in-out group`}
+            className={`flex z-20 absolute top-0 left-0 inset-0 items-center justify-center bg-none hover:bg-gray-800 hover:bg-opacity-50 dark:hover:bg-dark-700/50 rounded-full cursor-pointer transition-all ease-in-out group`}
           >
             <ArrowsPointingOutIcon className="w-5 h-5 text-gray-100 group-hover:block hidden" />
           </div>
@@ -86,7 +86,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
             alt="User profile"
           />
         ) : (
-          <UserIcon className={`w-[80%] h-[80%] text-gray-300 ml-0.5`} aria-hidden="true" />
+          <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />
         )}
         {showState && (
           <PopoverFlyout
@@ -97,16 +97,16 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
               <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">
                   {
                     activeIndicatorColor === 'bg-green-500' ? (
-                      <p className="text-sm">Active</p>
+                      <p className="text-sm text-gray-900 dark:text-dark-100">Active</p>
                     ) : activeIndicatorColor === 'bg-yellow-500' ? (
-                      <p className="text-sm">Active {Math.floor(differenceInMinutes(new Date(), new Date(lastActiveAt)))} minutes ago</p>
+                      <p className="text-sm text-gray-900 dark:text-dark-100">Active {Math.floor(differenceInMinutes(new Date(), new Date(lastActiveAt)))} minutes ago</p>
                     ) : (
-                      <p className="text-sm">Inactive</p>
+                      <p className="text-sm text-gray-900 dark:text-dark-100">Inactive</p>
                     )
                   }
               </div>
             }>
-            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white z-50">
+            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
               <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
             </span>
           </PopoverFlyout>

@@ -1,7 +1,7 @@
 .middle-ring {
     position: relative;
   }
-  
+
 .middle-ring::before,
 .middle-ring::after {
     content: '';
@@ -10,6 +10,16 @@
     right: 0;
     height: 1px;
     background-color: rgb(209 213 219 / 1);
+}
+
+.dark .middle-ring::before,
+.dark .middle-ring::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: rgb(var(--dark-600) / 1);
 }
   
 .middle-ring::before {

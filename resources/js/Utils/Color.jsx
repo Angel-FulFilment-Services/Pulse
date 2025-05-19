@@ -14,8 +14,8 @@
 // ];
 
 const colors = [
-  'bg-theme-100 text-theme-600',
-  'bg-gray-100  text-gray-500',
+  'bg-theme-100 text-theme-600 dark:bg-theme-800 dark:text-theme-100',
+  'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-gray-400',
 ];
   
 let colorIndex = 0;

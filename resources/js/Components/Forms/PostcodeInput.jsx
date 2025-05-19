@@ -90,7 +90,7 @@ export default function ComboInput(props) {
         <div className="mt-2">
           <div class="w-1/3 relative">
             <Combobox.Input
-              className={`w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 z-10 text-gray-900 ${error ? "ring-red-600" : "ring-gray-300"}  ${typeof selected !== "undefined" && !selected.value && "text-gray-400"} shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 sm:text-sm sm:leading-6 uppercase placeholder:normal-case`}
+              className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${error ? "ring-red-600 dark:text-red-700" : "ring-gray-300 dark:ring-dark-600"}  ${typeof selected !== "undefined" && !selected.value && "text-gray-400 dark:text-dark-500"} shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6 uppercase placeholder:normal-case`}
               onChange={handleInputChange}
               displayValue={currentState}
               placeholder={placeholder}
@@ -100,11 +100,11 @@ export default function ComboInput(props) {
               name="stop-autocom" // Use a random string for the name attribute
             />
             <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none">
-              <ChevronUpDownIcon className={`h-5 w-5 ${error ? "text-red-600" : "text-gray-400" }`} aria-hidden="true" />
+              <ChevronUpDownIcon className={`h-5 w-5 ${error ? "text-red-600 dark:text-red-700" : "text-gray-400 dark:text-dark-500" }`} aria-hidden="true" />
             </Combobox.Button>
           </div>
           {items.length > 0 && (
-            <Combobox.Options className="absolute z-10 max-h-60 max-w-max overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+            <Combobox.Options className="absolute z-10 max-h-60 max-w-max overflow-auto rounded-md bg-white dark:text-dark-900 py-1 text-base shadow-lg ring-1 ring-black dark:ring-dark-50 dark:ring-opacity-5 ring-opacity-5 focus:outline-none sm:text-sm">
               {items.map((item) => (
                 <Combobox.Option
                   key={item.id}
@@ -112,7 +112,7 @@ export default function ComboInput(props) {
                   className={({ active }) =>
                     classNames(
                       'relative cursor-default select-none py-2 pl-3 pr-9',
-                      active ? 'bg-gray-100  text-gray-900' : 'text-gray-900'
+                      active ? 'bg-gray-100 dark:bg-dark-800 text-gray-900 dark:text-dark-100' : 'text-gray-900 dark:text-dark-100'
                     )
                   }
                 >
@@ -123,7 +123,7 @@ export default function ComboInput(props) {
                         <span
                           className={classNames(
                             'absolute inset-y-0 right-0 flex items-center pr-4',
-                            active ? 'text-white' : 'text-theme-600'
+                            active ? 'text-white dark:text-dark-900' : 'text-theme-600 dark:text-theme-700'
                           )}
                         >
                           <CheckIcon className="h-5 w-5" aria-hidden="true" />
@@ -136,7 +136,7 @@ export default function ComboInput(props) {
             </Combobox.Options>
           )}
         </div>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-600 dark:text-red-700">{error}</p>}
       </Combobox>
     </>
   );

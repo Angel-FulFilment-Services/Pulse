@@ -146,7 +146,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
   };
 
   return (
-    <div className="px-4 py-3 h-full flex flex-col justify-start items-start divide-y divide-gray-200">
+    <div className="px-4 py-3 h-full flex flex-col justify-start items-start divide-y divide-gray-200 dark:divide-dark-700">
       {showSupportForm ? (
         <SupportForm
           hrId={hrId}
@@ -161,8 +161,8 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
         <>
           <div className="flex gap-x-2 items-center pb-2 justify-between w-full">
             <div className="gap-y-1 flex flex-col">
-              <h3 className="text-base font-semibold text-gray-900">Technical Support</h3>
-              <p className="max-w-2xl text-sm text-gray-500">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-dark-100">Technical Support</h3>
+              <p className="max-w-2xl text-sm text-gray-500 dark:text-dark-400">
                 Technical support for the period of{' '}
                 {format(new Date(dateRange.startDate), 'dd MMMM, yyyy')} -{' '}
                 {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
@@ -174,7 +174,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                   id="add_button"
                   Icon={PlusIcon}
                   customClass="w-7 h-7"
-                  iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 transition-all ease-in-out"
+                  iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out"
                   onButtonClick={() => {
                     setSelectedEvent(null);
                     setShowSupportForm(true);
@@ -196,23 +196,11 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
             </div>
           </div>
 
-          <div className={`w-full h-full isolate max-h-full overflow-auto flex flex-col justify-between divide-y divide-gray-200 pb-2`}>
+          <div className={`w-full h-full isolate max-h-full overflow-auto flex flex-col justify-between divide-y divide-gray-200 dark:divide-dark-700 pb-2`}>
               <div className={`w-full h-full max-h-96 overflow-auto flex flex-col isolate`}>
                 {isTransitioning
                   ? Array.from({ length: 5 }).map((_, subRowIndex) => (
-                    <ul className="flex flex-col pb-2" key={subRowIndex}>
-                      <li className="py-1">
-                        <div className="flex flex-row w-full justify-between">
-                          <div className="flex flex-col w-1/4 gap-y-1 justify-center">
-                            <div className="bg-gray-100  animate-pulse rounded-full w-20 h-4"></div>
-                            <div className="bg-gray-100  animate-pulse rounded-full w-24 h-4"></div>
-                          </div>
-                          <div className="w-full">
-                            <ShiftProgressBar isLoading={true} />
-                          </div>
-                        </div>
-                      </li>
-                    </ul>
+                    <></>
                   ))
                 : (() => {
                     const data = events.map((record) => ({
@@ -276,7 +264,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                         }}
                         actions={[
                           {
-                            icon: (row) => (!row.resolved ? <CheckIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out" /> : <XMarkIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 cursor-pointer transition-all ease-in-out" />),
+                            icon: (row) => (!row.resolved ? <CheckIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" /> : <XMarkIcon className="h-5 w-6 text-theme-600 hover:text-theme-700  dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" />),
                             onClick: (row) => {
                               handleUpdateResolved(row);
                             },
@@ -300,20 +288,20 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                         )}
                         renderExpandableContent={(row) => (
                           <>
-                            <p className="text-sm font-semibold leading-6 text-gray-900">
+                            <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-dark-100">
                               {row.date}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 dark:text-dark-400">
                               {row.startedTime} - {row.endedTime}
                             </p>
                             {row.notes && (
-                              <div className="mt-2 text-xs text-gray-700">
+                              <div className="mt-2 text-xs text-gray-700 dark:text-dark-200">
                                 <span className="font-semibold">Notes: </span>
                                 {row.notes}
                               </div>
                             )}
                             {row.attachments && row.attachments.length > 0 && (
-                              <div className="mt-3 text-xs text-gray-700">
+                              <div className="mt-3 text-xs text-gray-700 dark:text-dark-200">
                                 <span className="font-semibold pb-2">Attachments: </span>
                                 <ul className="list-disc list-inside">
                                   {row.attachments.map((attachment, index) => (
@@ -322,7 +310,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                                         href={attachment.path}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-theme-500 hover:underline"
+                                        className="text-theme-500 dark:text-theme-600 hover:underline"
                                       >
                                         {attachment.original_name || 'Download'}
                                       </a>
@@ -335,7 +323,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                         )}
                       />
                     ) : (
-                      <p className="py-2 text-sm text-gray-500">No support log events available.</p>
+                      <p className="py-2 text-sm text-gray-500 dark:text-dark-400">No support log events available.</p>
                     );
                   })()}
               </div>
@@ -343,28 +331,28 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
               <div className="flex w-full mt-4">
                 {/* Kit Items Section */}
                 <div className="w-1/2 pr-2">
-                  <h4 className="text-base font-semibold text-gray-900 pt-4">
+                  <h4 className="text-base font-semibold text-gray-900 dark:text-dark-100 pt-4">
                     {kit && kit.length > 0 ? 'Kit: ' + kit[1].kit_alias || 'Kit Items' : 'Kit Items'}
                   </h4>
-                  <p className="max-w-2xl text-sm text-gray-500">
+                  <p className="max-w-2xl text-sm text-gray-500 dark:text-dark-400">
                     Currently assigned equipment for this employee.
                   </p>
-                  <ul className={`mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 bg-gray-50  rounded-md border min-h-24 h-72 max-h-72 border-gray-200 p-4`}>
+                  <ul className={`mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 bg-gray-50 dark:bg-dark-800 rounded-md border min-h-24 h-72 max-h-72 border-gray-200 dark:border-dark-700 p-4`}>
                     {kit && kit.length > 0 ? (
                       kit.map((item, index) => (
                         <li
                           key={index}
-                          className="border border-gray-200 rounded-md p-3 shadow-sm bg-white"
+                          className="border border-gray-200 rounded-md p-3 shadow-sm bg-white dark:bg-dark-900 dark:border-dark-700"
                         >
-                          <p className="text-xs font-semibold text-gray-900">
+                          <p className="text-xs font-semibold text-gray-900 dark:text-dark-100">
                             Alias: {item.alias || 'N/A'}
                           </p>
-                          <p className="text-xs text-gray-500">Category: {item.type || 'N/A'}</p>
-                          <p className="text-xs text-gray-500">Asset ID: {item.afs_id || 'N/A'}</p>
+                          <p className="text-xs text-gray-500 dark:text-dark-400">Category: {item.type || 'N/A'}</p>
+                          <p className="text-xs text-gray-500 dark:text-dark-400">Asset ID: {item.afs_id || 'N/A'}</p>
                         </li>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-500">No kit items available.</p>
+                      <p className="text-sm text-gray-500 dark:text-dark-400">No kit items available.</p>
                     )}
                   </ul>
                 </div>
@@ -372,27 +360,27 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                 {/* Blank Section */}
                 <div className="w-1/2 pl-2">
                   {/* Leave this section blank for now */}
-                  <h4 className="text-base font-semibold text-gray-900 pt-4">
+                  <h4 className="text-base font-semibold text-gray-900 dark:text-dark-100 pt-4">
                     Latency
                   </h4>
-                  <p className="max-w-2xl text-sm text-gray-500">
+                  <p className="max-w-2xl text-sm text-gray-500 dark:text-dark-400">
                     Automated latency test results for the period of{' '}
                     {format(new Date(dateRange.startDate), 'dd MMMM, yyyy')} -{' '}
                     {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
                   </p>
-                  <div className={`overflow-x-auto rounded-md border border-gray-200 mt-2 min-h-24 max-h-72 overflow-y-auto h-72`}>
-                    <table className="min-w-full divide-y divide-gray-200 text-sm border-separate border-spacing-0">
-                      <thead className="bg-gray-50  sticky top-0">
+                  <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-72 overflow-y-auto h-72`}>
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
+                      <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
                         <tr>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">Date/Time</th>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">IP</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Min (ms)</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Max (ms)</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Avg (ms)</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 border-b border-gray-200">Lost (%)</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Date/Time</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">IP</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Min (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Max (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Avg (ms)</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Lost (%)</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white">
+                      <tbody className="bg-white dark:bg-dark-900">
                       {responses && responses.length > 0 ? (
                         responses.map((row, idx) => {
                           // Parse values as numbers for comparison
@@ -401,27 +389,27 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
 
                           let highlightClass = "";
                           if (avg > 150 || lost > 0) {
-                            highlightClass = "bg-red-100 text-red-800";
+                            highlightClass = "bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25";
                           } else if (avg > 100) {
-                            highlightClass = "bg-yellow-100 text-yellow-800";
+                            highlightClass = "bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25";
                           }else {
-                            highlightClass = "odd:bg-gray-50 ";
+                            highlightClass = "odd:bg-gray-50 dark:odd:bg-dark-800 dark:text-dark-200 text-gray-800";
                           }
 
                           return (
                             <tr key={idx} className={`${highlightClass}`}>
-                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100">{format(new Date(row.datetime), 'dd/MM/yyyy HH:mm:ss')}</td>
-                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100">{row.ip}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.min}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.max}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.avg}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100">{row.lost_rate * 100}%</td>
+                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{format(new Date(row.datetime), 'dd/MM/yyyy HH:mm:ss')}</td>
+                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.ip}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.min}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.max}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.avg}</td>
+                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.lost_rate * 100}%</td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td colSpan={7} className="px-3 py-4 text-center text-gray-400">
+                          <td colSpan={7} className="px-3 py-4 text-center text-gray-400 dark:text-dark-500">
                             No ping results found for the last week.
                           </td>
                         </tr>

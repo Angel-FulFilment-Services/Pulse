@@ -56,7 +56,7 @@ export default function ClickedModal({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            <div className="fixed inset-0 bg-gray-500/50 dark:bg-dark-800/50 transition-opacity" />
           </Transition.Child>
 
           <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -72,7 +72,7 @@ export default function ClickedModal({
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
                 <Dialog.Panel
-                  className={`relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all mt-14 lg:mt-0 mx-0 md:mx-6 ${sizeClasses[size]}`}
+                  className={`relative transform overflow-hidden rounded-lg bg-white dark:bg-dark-900 text-left shadow-xl transition-all mt-14 lg:mt-0 mx-0 md:mx-6 ${sizeClasses[size]}`}
                 >
                   {/* Modal Content */}
                   {content(handleSubmit, handleClose)}

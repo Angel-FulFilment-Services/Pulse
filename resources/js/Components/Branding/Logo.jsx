@@ -9,7 +9,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                 {/* Donut SVG */}
                 <svg
                     viewBox="0 0 40 40"
-                    className="z-10 w-14 h-14 block ring-4 ring-theme-50 rounded-full shadow-lg"
+                    className="z-10 w-14 h-14 block ring-4 ring-theme-50 dark:ring-theme-50/10 rounded-full shadow-lg"
                 >
                     <defs>
                         <linearGradient id={`theme-gradient-${uniqueId}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -32,7 +32,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                     />
                 </svg>
 
-                <div className="absolute w-10 h-10 rounded-full flex items-center justify-center bg-theme-50" />
+                <div className="absolute w-10 h-10 rounded-full flex items-center justify-center bg-theme-50 dark:bg-theme-50/10" />
 
                 {/* Inner Line SVG */}
                 <svg
@@ -97,7 +97,7 @@ export default function Logo({ includeTitle = true, error = false }) {
                 </svg>
             </div>
             { includeTitle && ( 
-                <h2 className="font-bold text-gray-600 leading-7 text-3xl">Pulse</h2>
+                <h2 className="font-bold text-gray-600 dark:text-dark-300 leading-7 text-3xl">Pulse</h2>
                 )
             }
         </div>

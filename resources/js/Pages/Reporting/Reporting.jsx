@@ -289,7 +289,7 @@ const Reporting = () => {
     }, [activeTab]);
 
     return (
-        <div className="w-full flex flex-col h-screen bg-white">
+        <div className="w-full flex flex-col h-screen bg-white dark:bg-dark-900">
             <div id="reporting_header" className="z-30">
                 <div className="z-30">
                     <ReportingHeader
@@ -311,33 +311,33 @@ const Reporting = () => {
                     />
                 </div>
                 { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
-                    <div className="px-6 py-4 bg-gray-50  border-b border-gray-200 shadow-sm slide-down z-20">
+                    <div className="px-6 py-4 bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 shadow-sm slide-down z-20">
                         <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
                     </div>
                 }
             </div>
             {reportError ? (
                 <div className="flex flex-col items-center justify-center py-56 -my-14 w-full">
-                    <ExclamationCircleIcon className="w-12 h-12 text-red-500" />
-                    <h1 className="text-2xl font-bold text-gray-900 mt-2">Report Failed To Generate</h1>
-                    <p className="mt-2 text-gray-500">Please select another report or try again.</p>
+                    <ExclamationCircleIcon className="w-12 h-12 text-red-500 dark:text-red-600" />
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50 mt-2">Report Failed To Generate</h1>
+                    <p className="mt-2 text-gray-500 dark:text-dark-500">Please select another report or try again.</p>
                 </div>
             ) : !Object.values(report).length ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
-                    <h1 className="text-2xl font-bold text-gray-900">No Report Selected</h1>
-                    <p className="mt-4 text-gray-500">Select a report from the dropdown above to view.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Report Selected</h1>
+                    <p className="mt-4 text-gray-500 dark:text-dark-500">Select a report from the dropdown above to view.</p>
                 </div>
             ) : Object.values(report).length && (dateRange.startDate === null || dateRange.endDate === null) ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
-                    <h1 className="text-2xl font-bold text-gray-900">No Date Selected</h1>
-                    <p className="mt-4 text-gray-500">Select a date from the date selector above to view.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Date Selected</h1>
+                    <p className="mt-4 text-gray-500 dark:text-dark-500">Select a date from the date selector above to view.</p>
                 </div>
             ) : reportData && reportData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
                     <div className="flex gap-3 justify-center">
-                        <div className="w-5 h-5 bg-gray-300 rounded-full animate-loader"></div>
-                        <div className="w-5 h-5 bg-gray-300 rounded-full animate-loader animation-delay-200"></div>
-                        <div className="w-5 h-5 bg-gray-300 rounded-full animate-loader animation-delay-[400ms]"></div>
+                        <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader"></div>
+                        <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-200"></div>
+                        <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-[400ms]"></div>
                     </div>
                 </div>
             ) : (

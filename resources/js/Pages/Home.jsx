@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Loading from '../Components/Loading/Loading.jsx';
 
 const Test = () => {
     const [isLoading, setIsLoading] = useState(true);

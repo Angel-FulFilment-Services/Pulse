@@ -58,11 +58,11 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
   const workedPercentage = calculateWorkedPercentage(totalShiftMinutes - reductionMinutes, totalActualMinutes);
 
   return (
-    <div className="px-4 py-3 h-full flex flex-col justify-between items-start divide-y divide-gray-200">
+    <div className="px-4 py-3 h-full flex flex-col justify-between items-start divide-y divide-gray-200 dark:divide-dark-700">
       <div className="flex gap-x-2 items-center pb-2 justify-between w-full">
         <div className="gap-y-1 flex flex-col">
-          <h3 className="text-base font-semibold text-gray-900">Shifts</h3>
-          <p className="max-w-2xl text-sm text-gray-500">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-dark-100">Shifts</h3>
+          <p className="max-w-2xl text-sm text-gray-500 dark:text-dark-400">
             {format(new Date(dateRange.startDate), 'dd MMMM, yyyy')} -{' '}
             {format(new Date(dateRange.endDate), 'dd MMMM, yyyy')}
           </p>
@@ -73,22 +73,22 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               id="refresh_button" 
               Icon={PhotoIcon} 
               customClass="w-7 h-7" 
-              iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 transition-all ease-in-out" 
+              iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out" 
               onButtonClick={handleExport}
             />
           )}
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white ${shifts.length > 6 ? "pr-2" : ""}`} id="scrollable_container">
+      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white dark:bg-dark-900 ${shifts.length > 6 ? "pr-2" : ""}`} id="scrollable_container">
         <ul className="flex flex-col pb-2" id="scrollable_content">
           {isTransitioning
             ? Array.from({ length: 8 }).map((_, subRowIndex) => (
                 <li className="py-1 pb-2" key={subRowIndex}>
                   <div className="flex flex-row w-full justify-between">
                     <div className="flex flex-col w-1/4 gap-y-1 justify-center">
-                      <div className="bg-gray-100  animate-pulse rounded-full w-20 h-4"></div>
-                      <div className="bg-gray-100  animate-pulse rounded-full w-24 h-4"></div>
+                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-20 h-4"></div>
+                      <div className="bg-gray-100 dark:bg-dark-800 animate-pulse rounded-full w-24 h-4"></div>
                     </div>
                     <div className="w-full">
                       <ShiftProgressBar isLoading={true} />
@@ -107,10 +107,10 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                   <li className="py-1 pb-2" key={shift.id}>
                     <div className="flex flex-row w-full justify-between">
                       <div className="flex flex-col w-1/4 justify-center">
-                        <h4 className="font-medium text-xs text-gray-700">
+                        <h4 className="font-medium text-xs text-gray-700 dark:text-dark-200">
                           {format(new Date(shift.shiftdate), 'dd MMMM, yyyy')}
                         </h4>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-dark-400">
                           {format(shiftStartDate, 'h:mm a').toLowerCase()} -{' '}
                           {format(shiftEndDate, 'h:mm a').toLowerCase()}
                         </p>
@@ -131,11 +131,11 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
         </ul>
       </div>
       <div className="mx-auto pt-2 grid grid-cols-3 w-full justify-between">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white w-full">
-          <div className="text-sm font-medium leading-6 text-gray-600">Hours Scheduled</div>
-          <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+          <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Scheduled</div>
+          <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
             { isTransitioning ? 
-              <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+              <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
             :
               <span>
                 {Math.floor(totalShiftMinutes / 60) > 0 && `${Math.floor(totalShiftMinutes / 60)} hours`}
@@ -145,12 +145,12 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             }
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="flex flex-col justify-center items-start">
-            <div className="text-sm font-medium leading-6 text-gray-600">Hours Worked</div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked</div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
               { isTransitioning ? 
-                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
                   {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
@@ -195,12 +195,12 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             </div>
           </div>
         </div> */}
-        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white w-full">
+        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="flex flex-col justify-center items-center">
-            <div className="text-sm font-medium leading-6 text-gray-600">Percentage Worked</div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked</div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
               { isTransitioning ? 
-                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
                 :
                 `${workedPercentage}%`
               }

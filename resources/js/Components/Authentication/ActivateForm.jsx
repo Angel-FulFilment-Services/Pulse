@@ -39,33 +39,33 @@ export default function ActivateForm ({ token }) {
     function button_colour(){
         switch(true){
             case hasErrors: 
-                return "bg-red-500 hover:bg-red-500";
+                return "bg-red-500 hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-500";
             case wasSuccessful:
-                return "bg-green-500 hover:bg-green-500";
+                return "bg-green-500 hover:bg-green-500 dark:bg-green-600 dark:hover:bg-green-500";
             default: 
-                return "bg-theme-400 hover:bg-theme-500";
+                return "bg-theme-400 hover:bg-theme-500 dark:bg-theme-600 dark:hover:bg-theme-500";
         }
     }
 
     return (
         <div className="w-full lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
-            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100  overflow-y-auto' onSubmit={submit}>
+            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100 dark:bg-dark-800 overflow-y-auto' onSubmit={submit}>
                 <div className="h-full flex flex-col items-center justify-center">
                     <div className="h-full flex flex-col justify-between pt-10">
                         <Logo></Logo>
                         <div className="pt-4">
                             <h2 className="text-base font-semibold leading-7 text-theme-500">Activate Account</h2>
-                            <p className="mt-1 text-sm leading-6 text-gray-600">
+                            <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-dark-300">
                                 Please set a password to activate your account.
                             </p>
                         </div>
                         <div className="mt-3 gap-x-6 gap-y-8">
                             <div className="sm:col-span-4">
-                                <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
+                                <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">
                                     Password
                                 </label>
                                 <div className="mt-2">
-                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
+                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 dark:focus-within:ring-theme-700 sm:max-w-md ${errors.password && "ring-red-600"}`}>
                                         <input
                                             type="password"
                                             name="password"
@@ -73,11 +73,11 @@ export default function ActivateForm ({ token }) {
                                             onChange={e => {setData('password', e.target.value); clearErrors();}}
                                             id="password"
                                             autoComplete="password"
-                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
+                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 dark:placeholder:text-dark-500 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
                                             placeholder="**********"
                                         />
                                     </div>
-                                    {errors.password && <div className="text-red-600 text-sm pt-1">{errors.password}</div>}
+                                    {errors.password && <div className="text-red-600 dark:text-red-700 text-sm pt-1">{errors.password}</div>}
                                 </div>
                             </div>
                         </div>

@@ -327,8 +327,8 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
   };
 
   return (
-    <div className="divide-y divide-gray-200 border-b border-t border-gray-200">
-      <h3 className="font-medium text-sm text-gray-900 py-4">Flag This Shift</h3>
+    <div className="divide-y divide-gray-200 border-b border-t border-gray-200 dark:divide-dark-700 dark:border-dark-700">
+      <h3 className="font-medium text-sm text-gray-900 dark:text-dark-100 py-4">Flag This Shift</h3>
       <div className="py-4 space-y-4">
         {/* Flag Type */}
         <SelectInput
@@ -427,7 +427,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
       {/* Action Buttons */}
       <div className="pt-4 flex justify-end space-x-4">
         <button
-          className="px-4 py-2 bg-gray-100  text-gray-700 rounded-md hover:bg-gray-200 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-dark-200 rounded-md hover:bg-gray-200 dark:hover:bg-dark-700 disabled:cursor-not-allowed"
           onClick={onCancel}
           disabled={isProcessing || isSuccess}
         >
@@ -438,15 +438,15 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
             isProcessing
               ? 'bg-theme-500'
               : isSuccess
-              ? 'bg-green-500 hover:bg-green-600'
-              : 'bg-theme-500 hover:bg-theme-600'
+              ? 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:'
+              : 'bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500'
           }`}
           onClick={handleSubmit}
           disabled={isProcessing || isSuccess}
         >
           {isProcessing ? (
             <svg
-              className="inline w-5 h-5 animate-spin fill-theme-200"
+              className="inline w-5 h-5 animate-spin fill-theme-200 dark:fill-theme-300"
               viewBox="0 0 100 101"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
