@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use \App\Http\Middleware\LogAccess;
+
 // Auth
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -73,10 +75,10 @@ Route::get('', [RotaController::class, 'index'])->name('rota');
 Route::get('/', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
-Route::get('/rota/shifts', [RotaController::class, 'shifts'])->withoutMiddleware('log.access');
-Route::get('/rota/timesheets', [RotaController::class, 'timesheets'])->withoutMiddleware('log.access');
-Route::get('/rota/events', [RotaController::class, 'events'])->withoutMiddleware('log.access');
-Route::get('/rota/calls', [RotaController::class, 'calls'])->withoutMiddleware('log.access');
+Route::get('/rota/shifts', [RotaController::class, 'shifts'])->withoutMiddleware(LogAccess::class);
+Route::get('/rota/timesheets', [RotaController::class, 'timesheets'])->withoutMiddleware(LogAccess::class);
+Route::get('/rota/events', [RotaController::class, 'events'])->withoutMiddleware(LogAccess::class);
+Route::get('/rota/calls', [RotaController::class, 'calls'])->withoutMiddleware(LogAccess::class);
 Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
 Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 Route::post('/rota/remove-break', [RotaController::class, 'removeBreak']);
@@ -99,9 +101,9 @@ Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, '
 Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
 Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
 
-Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
+Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware(LogAccess::class);
 
-Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting')->withoutMiddleware('log.access');;
+Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting', LogAccess::class);
 
 /*
 |-----------------------
@@ -121,7 +123,7 @@ Route::get('/employee/information', [AccountController::class, 'information'])->
 |-----------------------
 */
 
-Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware('log.access');;
+Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware(LogAccess::class);
 
 /*
 |-----------------------
@@ -151,4 +153,4 @@ Route::post('/t2/send_sms', function (Request $request) {
     $response = T2SMS::sendSms($validated['from'], $validated['to'], $validated['message']);
 
     return response()->json(['status' => $response], 200);
-})->withoutMiddleware('log.access');
+})->withoutMiddleware(LogAccess::class);
