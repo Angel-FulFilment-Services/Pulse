@@ -222,8 +222,9 @@ class AssetController extends Controller
                     'notes' => $request->description,
                     'attachments' => json_encode($storedAttachments),
                 ]);
+                Auditing::log('Support', auth()->user()->id, 'Support Log Event Updated', 'Event ID: ' . $request->eventID);
             }else{
-                Event::create([
+                $event = Event::create([
                     'hr_id' => $request->hrID,
                     'user_id' => $user->user_id,
                     'created_by_user_id' => auth()->user()->id,
@@ -235,10 +236,8 @@ class AssetController extends Controller
                     'resolved' => false,
                     'attachments' => json_encode($storedAttachments),
                 ]);
+                Auditing::log('Support', auth()->user()->id, 'Support Log Event Created', 'Event ID: ' . $event->id);
             }
-
-            // Log the event creation
-            Auditing::log('Support', auth()->user()->id, 'Support Log Event Created', 'Event ID: ' . $request->eventID);
 
             return response()->json(['message' => 'Event saved successfully!'], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {

@@ -12,7 +12,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
   }
-
+  
   function formatPollingInterval(milliseconds) {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -76,6 +76,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
                   id="view-select"
                   items={reports}
                   onSelectChange={handleReportChange}
+                  defaultSelected={report ? reports.find(r => r.id === report.id) : null}
                   placeholder={`Select Report`}
                 />
                   {report?.parameters?.polling &&

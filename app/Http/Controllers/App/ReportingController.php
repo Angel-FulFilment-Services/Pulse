@@ -465,6 +465,137 @@ class ReportingController extends Controller
         return response()->json(['data' => $data, 'targets' => json_decode($targets, true)]);
     }
 
+    public function eventLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_data')
+        ->table('apex_data.events')
+        ->leftJoin('wings_config.users as logged_by', 'logged_by.id', '=', 'events.created_by_user_id')
+        ->leftJoin('wings_config.users as users', 'users.id', '=', 'events.user_id')
+        ->whereBetween('events.date', [$startDate, $endDate])
+        ->select(DB::raw("
+            users.name AS agent,
+            logged_by.name AS logged_by,
+            events.created_at as logged_at,
+            TIMESTAMPDIFF(SECOND, on_time, off_time) AS duration,
+            events.category as category,
+            events.notes as notes
+        "))
+        ->orderBy('events.created_at', 'desc')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function smsLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_config')
+        ->table('wings_config.sms_out_log as sms_log')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'sms_log.user_id')
+        ->whereBetween('sms_log.sent', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select(DB::raw("
+            IFNULL(users.name, 'System') AS sent_by,
+            sms_log.sent as sent_at,
+            sms_log.message_from as message_from,
+            sms_log.message_to as message_to,
+            sms_log.message as message,
+            sms_log.status as status,
+            sms_log.provider as provider
+        "))
+        ->orderBy('sms_log.sent', 'desc')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function auditLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_config')
+        ->table('audit_log_pulse as audit_log')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'audit_log.user_id')
+        ->whereBetween('audit_log.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select(DB::raw("
+            users.name AS user,
+            audit_log.created_at as created_at,
+            audit_log.type as type,
+            audit_log.action as action,
+            audit_log.notes
+        "))
+        ->orderBy('audit_log.created_at', 'desc')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function technicalSupportLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_data')
+        ->table('assets.support_log')
+        ->leftJoin('wings_config.users as logged_by', 'logged_by.id', '=', 'support_log.created_by_user_id')
+        ->leftJoin('wings_config.users as users', 'users.id', '=', 'support_log.user_id')
+        ->whereBetween('support_log.date', [$startDate, $endDate])
+        ->select(DB::raw("
+            users.name AS agent,
+            logged_by.name AS logged_by,
+            support_log.created_at as logged_at,
+            TIMESTAMPDIFF(SECOND, on_time, off_time) AS duration,
+            support_log.category as title,
+            support_log.notes as description,
+            support_log.resolved
+        "))
+        ->orderBy('support_log.created_at', 'desc')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function kitDetailsReport(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_data')
+        ->table('assets.kits')
+        ->where('kits.alias', 'like', '%AFS-LM%')
+        ->leftJoin('assets.assets_issued', function($join) {
+            $join->on('kits.id', '=', 'assets_issued.kit_id');
+                // ->where('issued', '<=', date("Y-m-d"));
+        })
+        ->leftJoin('wings_config.users', 'users.id', '=', 'assets_issued.user_id')
+        ->leftJoin('assets.assets as laptop', function($join) {
+            $join->on('kits.asset_id', '=', 'laptop.id')
+                ->where('laptop.type', '=', 'Laptop');
+        })
+        ->leftJoin('assets.assets as telephone', function($join) {
+            $join->on('kits.asset_id', '=', 'telephone.id')
+                ->where('telephone.type', '=', 'Telephone');
+        })
+        ->leftJoin('assets.assets as headset', function($join) {
+            $join->on('kits.asset_id', '=', 'headset.id')
+                ->where('headset.type', '=', 'Headset');
+        })
+        ->select(DB::raw("
+            kits.alias,
+            assets_issued.issued as issued_on,
+            users.name AS issued_to,
+            IFNULL(MAX(laptop.alias), '') AS laptop_alias,
+            IFNULL(MAX(laptop.make), '') AS laptop_make,
+            IFNULL(MAX(telephone.alias), '') AS telephone_alias,
+            IFNULL(MAX(headset.alias), '') AS headset_alias
+        "))
+        ->orderBy('kits.alias', 'asc')
+        ->groupBy('kits.alias')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
     public function setTargets(Request $request){       
         
         $report = $request->report;

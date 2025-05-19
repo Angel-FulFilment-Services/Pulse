@@ -13,9 +13,7 @@ export default function SelectInput(props) {
   const [selected, setSelected] = useState(defaultSelected || '');
 
   useEffect(() => {
-    if (defaultSelected) {
-      setSelected(defaultSelected);
-    }
+    setSelected(defaultSelected || '');
   }, [defaultSelected]);
 
   const handleSelectChange = (event) => {

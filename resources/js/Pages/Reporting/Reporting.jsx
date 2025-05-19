@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import rotaReportsConfig from '../../Config/RotaReportsConfig.jsx';
+import assetsReportsConfig from '../../Config/AssetsReportsConfig.jsx';
+import systemReportsConfig from '../../Config/SystemReportsConfig.jsx';
 import ReportingHeader from '../../Components/Reporting/ReportingHeader.jsx';
 import ReportingTable from '../../Components/Reporting/ReportingTable.jsx';
 import FilterControl from '../../Components/Controls/FilterControl.jsx';
@@ -9,6 +11,7 @@ import '../../Components/Reporting/ReportingStyles.css';
 import {exportTableToExcel} from '../../Utils/Exports.jsx'
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { set } from 'date-fns';
 
 const Reporting = () => {
     const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
@@ -29,18 +32,38 @@ const Reporting = () => {
 
     const tabs = [
         { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true },
+        { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false },
+        { id: 'system', label: 'System', path: '/reporting/system', current: false },
     ];
 
     const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
 
     const handleTabClick = (path) => {
+        setReport([]);
+        setReportData([]);
+        setReportError(false);
+        setDateRange({ startDate: null, endDate: null });
         navigate(path);
     };
 
     const handleReportChange = (report) => {
         setReportData([]);
         setReportError(false);
-        setReport(rotaReportsConfig.find((r) => r.id === report.value));
+
+        switch (activeTab) {
+            case 'rota':
+                setReport(rotaReportsConfig.find((r) => r.id === report.value));
+                break;
+            case 'assets':
+                setReport(assetsReportsConfig.find((r) => r.id === report.value));
+                break;
+            case 'system':
+                setReport(systemReportsConfig.find((r) => r.id === report.value));
+                break;
+            default:
+                setReport([]);
+                break;
+        }
     };
 
     const handleDateChange = (item) => {
@@ -276,6 +299,24 @@ const Reporting = () => {
             case 'rota':
                 setReports(
                     rotaReportsConfig.map((report) => ({
+                        id: report.id,
+                        value: report.id,
+                        displayValue: report.label,
+                    }))
+                );
+                break;
+            case 'assets':
+                setReports(
+                    assetsReportsConfig.map((report) => ({
+                        id: report.id,
+                        value: report.id,
+                        displayValue: report.label,
+                    }))
+                );
+                break;
+            case 'system':
+                setReports(
+                    systemReportsConfig.map((report) => ({
                         id: report.id,
                         value: report.id,
                         displayValue: report.label,

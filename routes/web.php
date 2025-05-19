@@ -92,6 +92,11 @@ Route::get('/reporting/{page}', [ReportingController::class, 'index'])->name('re
 
 Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
 Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);
+Route::get('/reporting/reports/generate/event-log', [ReportingController::class, 'eventLog']);
+Route::get('/reporting/reports/generate/technical-support-log', [ReportingController::class, 'technicalSupportLog']);
+Route::get('/reporting/reports/generate/kit-details', [ReportingController::class, 'kitDetailsReport']);
+Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog']);
+Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets']);
 

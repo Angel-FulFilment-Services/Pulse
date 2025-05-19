@@ -209,8 +209,10 @@ class RotaController extends Controller
                     'category' => $request->flagType,
                     'notes' => $request->notes,
                 ]);
+
+                Auditing::log('Event', auth()->user()->id, 'Event Updated', 'Event ID: ' . $request->eventID);
             }else{
-                Event::create([
+                $event = Event::create([
                     'hr_id' => $request->hrID,
                     // 'shift_id' => $request->shiftID,
                     'user_id' => $user->user_id,
@@ -221,6 +223,8 @@ class RotaController extends Controller
                     'category' => $request->flagType,
                     'notes' => $request->notes,
                 ]);
+
+                Auditing::log('Event', auth()->user()->id, 'Event Created', 'Event ID: ' . $event->id);
             }
 
             // if ($request->requiresAction) {
@@ -234,9 +238,6 @@ class RotaController extends Controller
             //         'meeting_datetime' => date("Y-m-d", strtotime($request->meetingDate)) . ' ' . $request->meetingTime['hour'] . ':' . $request->meetingTime['minute'] . ':00',
             //     ]);
             // }
-
-            // Log the event creation
-            Auditing::log('Event', auth()->user()->id, 'Event Created', 'Event ID: ' . $request->eventID);
 
             return response()->json(['message' => 'Event saved successfully!'], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {

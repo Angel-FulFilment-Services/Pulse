@@ -1,4 +1,4 @@
-import { generateAttendanceReport, generateHoursComparisonReport } from '../Components/Reporting/Reports/RotaReportGenerators';
+import { generateAttendanceReport, generateHoursComparisonReport, generateEventLog } from '../Components/Reporting/Reports/RotaReportGenerators';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 const rotaReportsConfig = [
@@ -686,6 +686,208 @@ const rotaReportsConfig = [
         filters: [
         ]
     },
+  },
+  {
+      id: 'event_log',
+      label: 'Event Log',
+      generate: generateEventLog,
+      parameters: {
+          targetAllowColumn: false,
+          targetAllowCell: false,
+          targetAllowRow: false,
+          total: false,
+          polling: 60000,
+          dateRange: {
+              default: {
+                startDate: format(startOfDay(subDays(new Date(), 31)), 'yyyy-MM-dd'),
+                endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
+              },
+              maxDate: new Date(),
+              minDate: new Date().setFullYear(new Date().getFullYear() - 1),
+          },
+          date: false,
+          structure: [
+            {
+              id: "agent",
+              label: "Agent",
+              dataType: "string",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-left font-medium flex flex-row items-center justify-start gap-x-2 w-full",
+              headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "category",
+              label: "Category",
+              dataType: "string",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "notes",
+              label: "Notes",
+              dataType: "string",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full max-w-[40rem] overflow-hidden text-elipsis text-wrap",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full max-w-[40rem]",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "logged_by",
+              label: "Logged By",
+              dataType: "string",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "logged_at",
+              label: "Logged At",
+              dataType: "date",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => format(new Date(value), 'dd MMMM, yyyy HH:mm:ss'),
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "duration",
+              label: "Duration",
+              dataType: "integer",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => {
+                if (!value) {
+                  return ""; // Return a default value if the value is null or undefined
+                }
+
+                if (!isNaN(value)) {
+                  return `${Math.floor(value / 60 / 60)}h ${value / 60 % 60}m`;
+                }
+                return value; // Return the value as is if it's not a number
+              },
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+          ],
+          filters: [
+              {
+                id: 'agent',
+                name: 'Agent',
+                expression: (data) => (filterValue) => {
+                  return data?.agent === filterValue;
+                },
+                calculateOptions: (reportData) => {
+                  const seen = new Set();
+                  return reportData
+                    .filter(item => {
+                      if (!item.agent || seen.has(item.agent)) return false;
+                      seen.add(item.agent);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.agent,
+                      label: item.agent,
+                      checked: false,
+                    }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                },
+              },
+              { 
+                id: 'logged_by',
+                name: 'Logged By',
+                expression: (data) => (filterValue) => {
+                  return data?.logged_by === filterValue;
+                },
+                calculateOptions: (reportData) => {
+                  const seen = new Set();
+                  return reportData
+                    .filter(item => {
+                      if (!item.logged_by || seen.has(item.logged_by)) return false;
+                      seen.add(item.logged_by);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.logged_by,
+                      label: item.logged_by,
+                      checked: false,
+                    }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                },
+              },
+              {
+                id: 'category',
+                name: 'Category',
+                expression: (data) => (filterValue) => {
+                  return data?.category === filterValue;
+                },
+                calculateOptions: (reportData) => {
+                  const seen = new Set();
+                  return reportData
+                    .filter(item => {
+                      if (!item.category || seen.has(item.category)) return false;
+                      seen.add(item.category);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.category,
+                      label: item.category,
+                      checked: false,
+                    }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                },
+              }
+          ]
+      },
   },
 ];
 
