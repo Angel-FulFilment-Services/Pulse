@@ -42,12 +42,11 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
                 key={tab.label}
                 onClick={(e => (handleTabClick(tab.path)))}
                 className={classNames(
-                  tab.current
+                  activeTab === tab.id
                     ? 'border-theme-500 text-theme-600 dark:border-theme-700 dark:text-theme-700'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-dark-400 dark:hover:border-dark-700 dark:hover:text-dark-400',
                   'whitespace-nowrap border-b-2 px-1 pb-4 text-sm font-medium cursor-pointer'
                 )}
-                aria-current={tab.current ? 'page' : undefined}
               >
                 {tab.label}
               </a>

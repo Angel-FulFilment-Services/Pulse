@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useFloating, offset, arrow, autoUpdate, computePosition, flip, shift } from '@floating-ui/react-dom';
 import './PopoverFlyoutStyles.css';
 
-export default function PopoverFlyout({ placement = 'top', width = 'auto', className = '', placementOffset = 5, style = {}, children, content }) {
+export default function PopoverFlyout({ placement = 'top', width = 'auto', className = '', placementOffset = 5, style = {}, children, content, element = "div", enabled = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const referenceElement = useRef(null);
   const popperElement = useRef(null);
@@ -15,7 +15,7 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
   });
 
   useEffect(() => {
-    if (isOpen && referenceElement.current && popperElement.current) {
+    if (isOpen && referenceElement.current && popperElement.current && enabled) {
       const cleanup = autoUpdate(referenceElement.current, popperElement.current, () => {
         if (!popperElement.current) return;
         computePosition(referenceElement.current, popperElement.current, {
@@ -99,8 +99,10 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
     setIsOpen(false);
   };
 
+  const Element = element
+
   return (
-    <div
+    <Element
       ref={referenceElement}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -126,6 +128,6 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
           <div ref={arrowElement} className="arrow bg-white dark:bg-dark-900" />
         </div>
       )}
-    </div>
+    </Element>
   );
 }

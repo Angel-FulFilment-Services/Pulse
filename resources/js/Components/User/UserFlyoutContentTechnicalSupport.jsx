@@ -11,6 +11,7 @@ import StackedList from '../Lists/StackedList.jsx';
 import SupportForm from '../Assets/Support/SupportForm.jsx';
 import { toast } from 'react-toastify';
 import { hasPermission } from '../../Utils/Permissions.jsx';
+import PopoverFlyout from '../Flyouts/PopoverFlyout.jsx';
 
 export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChange, dateRange }) {
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -376,8 +377,30 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                           <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">IP</th>
                           <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Min (ms)</th>
                           <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Max (ms)</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Avg (ms)</th>
-                          <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Lost (%)</th>
+                          <PopoverFlyout
+                              placement='top'
+                              placementOffset={5}
+                              element="th"
+                              className={`px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200`}
+                              content={
+                                <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                                  <p className="text-sm text-gray-900 dark:text-dark-100 font-normal">Optimum latency is less than 100ms, a maximum latency of 150ms is acceptable.</p>
+                                </div>
+                              }>
+                                Avg (ms)
+                            </PopoverFlyout>
+                            <PopoverFlyout
+                              placement='top'
+                              placementOffset={5}
+                              element="th"
+                              className={`px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200`}
+                              content={
+                                <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                                  <p className="text-sm text-gray-900 dark:text-dark-100 font-normal">A lost rate of greater than 0% is not acceptable.</p>
+                                </div>
+                              }>
+                                Lost (%)
+                            </PopoverFlyout>
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-dark-900">
@@ -388,23 +411,40 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                           const lost = Number(row.lost_rate);
 
                           let highlightClass = "";
+                          let popoverContent = "";
+                          let popoverEnabled = false;
                           if (avg > 150 || lost > 0) {
                             highlightClass = "bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25";
+                            popoverContent = "This latency test has failed. (Avg. Response > 150ms or Lost > 0%)";
+                            popoverEnabled = true;
                           } else if (avg > 100) {
                             highlightClass = "bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25";
+                            popoverContent = "This latency test is borderline. (Avg. Response > 100ms)";
+                            popoverEnabled = true;
                           }else {
                             highlightClass = "odd:bg-gray-50 dark:odd:bg-dark-800 dark:text-dark-200 text-gray-800";
                           }
 
                           return (
-                            <tr key={idx} className={`${highlightClass}`}>
-                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{format(new Date(row.datetime), 'dd/MM/yyyy HH:mm:ss')}</td>
-                              <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.ip}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.min}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.max}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.avg}</td>
-                              <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.lost_rate * 100}%</td>
-                            </tr>
+                            <PopoverFlyout
+                              placement='top'
+                              placementOffset={5}
+                              element="tr"
+                              className={`${highlightClass}`}
+                              key={idx}
+                              enabled={popoverEnabled}
+                              content={
+                                <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                                  <p className="text-sm text-gray-900 dark:text-dark-100">{popoverContent}</p>
+                                </div>
+                              }>
+                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{format(new Date(row.datetime), 'dd/MM/yyyy HH:mm:ss')}</td>
+                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.ip}</td>
+                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.min}</td>
+                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.max}</td>
+                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.avg}</td>
+                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.lost_rate * 100}%</td>
+                            </PopoverFlyout>
                           );
                         })
                       ) : (

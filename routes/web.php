@@ -88,6 +88,7 @@ Route::post('/rota/remove-break', [RotaController::class, 'removeBreak']);
 */
 
 Route::get('/reporting', [ReportingController::class, 'index'])->name('reporting');
+Route::get('/reporting/{page}', [ReportingController::class, 'index'])->name('reporting');
 
 Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
 Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);

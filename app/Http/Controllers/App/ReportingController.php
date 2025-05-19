@@ -18,7 +18,7 @@ class ReportingController extends Controller
         $this->middleware(['has.permission:pulse_view_reporting']);
     }
 
-    public function index(){
+    public function index(Request $request){
         return Inertia::render('Reporting/Reporting');
     }
 

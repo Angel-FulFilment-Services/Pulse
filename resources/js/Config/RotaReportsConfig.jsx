@@ -334,12 +334,12 @@ const rotaReportsConfig = [
           },
           {
             colSpan: 6,
-            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
+            headerClass: "text-center w-full border-r border-gray-300 dark:border-dark-600 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
             label: "Agent Hours"
           },
           {
             colSpan: 4,
-            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
+            headerClass: "text-center w-full border-r border-gray-300 dark:border-dark-600 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
             label: "TM / DM / QC Hours"
           },
           {
@@ -508,8 +508,8 @@ const rotaReportsConfig = [
             targetDirection: 'asc',
             prefix: "",
             suffix: "",
-            thClass: "border-r border-gray-300",
-            tdClass: "border-r border-gray-300",
+            thClass: "border-r border-gray-300 dark:border-dark-600",
+            tdClass: "border-r border-gray-300 dark:border-dark-600",
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full pr-2",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full pr-2",
             headerAnnotation: "",
@@ -622,8 +622,8 @@ const rotaReportsConfig = [
             suffix: "%",
             numeratorId: "management_worked_duration_hours", 
             denominatorId: "management_shift_duration_hours",
-            thClass: "border-r border-gray-300",
-            tdClass: "border-r border-gray-300",
+            thClass: "border-r border-gray-300 dark:border-dark-600",
+            tdClass: "border-r border-gray-300 dark:border-dark-600",
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "(%)",
