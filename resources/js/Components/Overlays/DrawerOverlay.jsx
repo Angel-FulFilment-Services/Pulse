@@ -32,7 +32,7 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500/50 transition-opacity" />
+            <div className="fixed inset-0 bg-gray-500/50 dark:bg-dark-900/50 transition-opacity" />
           </Transition.Child>
         )}
 
@@ -49,21 +49,21 @@ export default function DrawerOverlay({ isOpen, onClose, title, subTitle, childr
                 leaveTo={slideOutClasses}
               >
                 <Dialog.Panel className={`pointer-events-auto w-screen ${widthClasses[width]}`}>
-                  <div className="flex h-full flex-col overflow-y-auto bg-white py-6 shadow-xl">
+                  <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-dark-900 py-6 shadow-xl">
                     <div className="px-4 sm:px-6">
                       <div className="flex items-start justify-between">
                         <div>
-                          <Dialog.Title className="text-base font-semibold leading-6 text-gray-900">
+                          <Dialog.Title className="text-base font-semibold leading-6 text-gray-900 dark:text-dark-50">
                             {title}
                           </Dialog.Title>
-                          <Dialog.Title className="text-sm text-gray-500">
+                          <Dialog.Title className="text-sm text-gray-500 dark:text-dark-400">
                             {subTitle}
                           </Dialog.Title>
                         </div>
                         <div className="ml-3 flex h-7 items-center">
                           <button
                             type="button"
-                            className="relative rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                            className="relative rounded-md bg-white dark:bg-dark-900 text-gray-400 dark:text-dark-500 dark:hover:text-dark-400 hover:text-gray-500 focus:outline-none"
                             onClick={onClose}
                           >
                             <span className="absolute -inset-2.5" />

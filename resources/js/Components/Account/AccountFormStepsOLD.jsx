@@ -35,18 +35,18 @@ export default function AccountFormSteps(props) {
             {step.status === 'complete' ? (
               <Link
                 href={step.href}
-                className="group flex flex-col border-l-4 border-orange-500 py-2 pl-4 hover:border-orange-700 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4"
+                className="group flex flex-col border-l-4 border-theme-500 py-2 pl-4 hover:border-theme-700 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4"
               >
-                <span className="text-sm font-medium text-orange-600 group-hover:text-orange-800">{step.id}</span>
+                <span className="text-sm font-medium text-theme-600 group-hover:text-theme-800">{step.id}</span>
                 <span className="text-sm font-medium">{step.name}</span>
               </Link>
             ) : step.status === 'current' ? (
               <Link
                 href={step.href}
-                className="flex flex-col border-l-4 border-orange-500 py-2 pl-4 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4"
+                className="flex flex-col border-l-4 border-theme-500 py-2 pl-4 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4"
                 aria-current="step"
               >
-                <span className="text-sm font-medium text-orange-500">{step.id}</span>
+                <span className="text-sm font-medium text-theme-500">{step.id}</span>
                 <span className="text-sm font-medium">{step.name}</span>
               </Link>
             ) : (

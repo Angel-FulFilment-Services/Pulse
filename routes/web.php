@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\ForgotController;
 use App\Http\Controllers\Auth\ActivationController;
 use App\Http\Controllers\Auth\ResetController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Auth\ResetController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\ReportingController;
+use App\Http\Controllers\App\AssetController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -113,6 +115,17 @@ Route::get('/employee/information', [AccountController::class, 'information'])->
 */
 
 Route::get('/users/active-states', [UserController::class, 'activeStates']);
+
+/*
+|-----------------------
+| Asset Management
+|-----------------------
+*/
+Route::get('/asset-management/support/events', [AssetController::class, 'events']);
+Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
+Route::post('/asset-management/support/events/save', [AssetController::class, 'save']);
+Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
+Route::get('/asset-management/support/kit', [AssetController::class, 'kit']);
 
 /*
 |-----------------------

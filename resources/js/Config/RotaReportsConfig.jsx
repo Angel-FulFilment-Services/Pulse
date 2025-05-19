@@ -334,12 +334,12 @@ const rotaReportsConfig = [
           },
           {
             colSpan: 6,
-            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
+            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
             label: "Agent Hours"
           },
           {
             colSpan: 4,
-            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 font-semibold h-10",
+            headerClass: "text-center w-full border-r border-gray-300 text-sm text-gray-400 dark:text-dark-500 font-semibold h-10",
             label: "TM / DM / QC Hours"
           },
           {

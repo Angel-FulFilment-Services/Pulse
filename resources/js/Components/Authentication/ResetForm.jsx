@@ -43,18 +43,18 @@ export default function ResetForm ({ token }) {
             case wasSuccessful:
                 return "bg-green-500 hover:bg-green-500";
             default: 
-                return "bg-orange-400 hover:bg-orange-500";
+                return "bg-theme-400 hover:bg-theme-500";
         }
     }
 
     return (
         <div className="w-full lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
-            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100 overflow-y-auto' onSubmit={submit}>
+            <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100  overflow-y-auto' onSubmit={submit}>
                 <div className="h-full flex flex-col items-center justify-center">
                     <div className="h-full flex flex-col justify-between pt-10">
                         <Logo></Logo>
                         <div className="pt-4">
-                            <h2 className="text-base font-semibold leading-7 text-orange-500">Reset Your Password</h2>
+                            <h2 className="text-base font-semibold leading-7 text-theme-500">Reset Your Password</h2>
                             <p className="mt-1 text-sm leading-6 text-gray-600">
                                 Please set a new password to your account.
                             </p>
@@ -65,7 +65,7 @@ export default function ResetForm ({ token }) {
                                     Password
                                 </label>
                                 <div className="mt-2">
-                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
+                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
                                         <input
                                             type="password"
                                             name="password"
@@ -88,7 +88,7 @@ export default function ResetForm ({ token }) {
                                     Confirm Password
                                 </label>
                                 <div className="mt-2">
-                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
+                                <div className={`flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-theme-600 sm:max-w-md ${errors.password && "ring-red-600"}`}>
                                         <input
                                             type="password"
                                             name="password_confirmation"

@@ -18,7 +18,7 @@ function classNames(...classes) {
 }
 
 const SkeletonLoader = ({ className }) => (
-  <div className={`animate-pulse bg-gray-100 ${className}`} />
+  <div className={`animate-pulse bg-gray-100 dark:bg-dark-800 ${className}`} />
 );
 
 const UserItemFull = ({ iconSize = "large", isLoading = false, headingClass = null, subHeadingClass = null}) => {
@@ -45,9 +45,9 @@ const UserItemFull = ({ iconSize = "large", isLoading = false, headingClass = nu
       <UserItem userId={employee.hr_id} size={iconSize} allowClickInto={false} />
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
-          <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900"} text-nowrap leading-6 w-max`}>{name}</div>
+          <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900 dark:text-dark-50"} text-nowrap leading-6 w-max`}>{name}</div>
         </div>
-        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500"} flex items-center gap-x-2 leading-5`}>{jobTitle}</div>
+        <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500 dark:text-dark-400"} flex items-center gap-x-2 leading-5`}>{jobTitle}</div>
       </div>
     </div>
   );

@@ -96,11 +96,11 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
 
   return (
     <>
-      <h3 className="font-medium text-sm text-gray-900 pt-4">Shift</h3>
-      <dl className="divide-y divide-gray-200 border-b border-t border-gray-200 pt-2">
+      <h3 className="font-medium text-sm text-gray-900 dark:text-dark-100 pt-4">Shift</h3>
+      <dl className="divide-y divide-gray-200 border-b border-t border-gray-200 dark:divide-dark-700 dark:border-dark-700 pt-2">
         {/* Status */}
         <div className="flex justify-between items-center py-1.5 text-sm font-medium">
-          <dt className="text-gray-500">Status</dt>
+          <dt className="text-gray-500 dark:text-dark-400">Status</dt>
           <dd className={(() => {
             const { color } = getStatus(selectedShift.shift, selectedShift.timesheets, selectedShift.events);
             return `p-1 px-2 rounded-lg ring-1 text-xs ${color}`;
@@ -114,8 +114,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
 
         {/* Shift Start */}
         <div className="flex justify-between items-center py-2 text-sm font-medium">
-          <dt className="text-gray-500">{!selectedShift.shift.unallocated ? "Scheduled Shift Start" : "Shift Started"}</dt>
-          <dd className="text-gray-900">
+          <dt className="text-gray-500 dark:text-dark-400">{!selectedShift.shift.unallocated ? "Scheduled Shift Start" : "Shift Started"}</dt>
+          <dd className="text-gray-900 dark:text-dark-100">
             {(() => {
               const startHour = Math.floor(selectedShift.shift.shiftstart / 100);
               const startMinute = selectedShift.shift.shiftstart % 100;
@@ -128,8 +128,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
 
         {/* Shift End */}
         <div className="flex justify-between items-center py-2 text-sm font-medium">
-          <dt className="text-gray-500">{!selectedShift.shift.unallocated ? "Scheduled Shift End" : "Shift Ended"}</dt>
-          <dd className="text-gray-900">
+          <dt className="text-gray-500 dark:text-dark-400">{!selectedShift.shift.unallocated ? "Scheduled Shift End" : "Shift Ended"}</dt>
+          <dd className="text-gray-900 dark:text-dark-100">
             {(() => {
               const endHour = Math.floor(selectedShift.shift.shiftend / 100);
               const endMinute = selectedShift.shift.shiftend % 100;
@@ -143,8 +143,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
         {/* Actual Time Started */}
         {!selectedShift.shift.unallocated ? (
           <div className="flex justify-between items-center py-2 text-sm font-medium">
-            <dt className="text-gray-500">Actual Time Started</dt>
-            <dd className="text-gray-900">
+            <dt className="text-gray-500 dark:text-dark-400">Actual Time Started</dt>
+            <dd className="text-gray-900 dark:text-dark-100">
               {(() => {
                 const earliestOnTime = selectedShift.timesheets
                   .filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id)
@@ -162,8 +162,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
         {/* Scheduled Hours */}
         {!selectedShift.shift.unallocated ? (
           <div className="flex justify-between py-2 text-sm font-medium">
-            <dt className="text-gray-500">Scheduled Hours</dt>
-            <dd className="text-gray-900">
+            <dt className="text-gray-500 dark:text-dark-400">Scheduled Hours</dt>
+            <dd className="text-gray-900 dark:text-dark-100">
               {(() => {
                 const reductionMinutes = (selectedShift?.events || [])
                 .filter((event) => event.category === 'Reduced') // Filter only reduction events
@@ -201,8 +201,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
 
         {/* Worked Hours */}
         <div className="flex justify-between py-2 text-sm font-medium">
-          <dt className="text-gray-500">Worked Hours</dt>
-          <dd className="text-gray-900">
+          <dt className="text-gray-500 dark:text-dark-400">Worked Hours</dt>
+          <dd className="text-gray-900 dark:text-dark-100">
             {(() => {
               const totalActualMinutes = selectedShift.timesheets
                 .filter((timesheet) => timesheet.hr_id === selectedShift.shift.hr_id)
@@ -222,7 +222,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
         </div>
       </dl>
 
-      <h3 className="pt-4 font-medium text-sm text-gray-900">Events</h3>
+      <h3 className="pt-4 font-medium text-sm text-gray-900 dark:text-dark-100">Events</h3>
       <div className="w-full">
         <div className="pt-2">
           {(() => {
@@ -271,7 +271,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                   {(auth !== record.user_id && allowEventManagement && record.origin === 'events') && (
                       <button
                         type="button"
-                        className="bg-gray-50 w-7 h-7 ring-1 ring-gray-300 rounded-md hover:bg-gray-100 flex justify-center items-center"
+                        className="bg-gray-50 dark:bg-dark-800 w-7 h-7 ring-1 ring-gray-300 dark:ring-dark-600 rounded-md hover:bg-gray-100 dark:hover:bg-dark-700 flex justify-center items-center"
                         onClick={() => {
                           if (allowEventManagement) {
                             setSelectedEvent(record);
@@ -279,13 +279,13 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                           }
                         }}
                       >
-                        <PencilIcon className="w-5 h-5 inline-block text-gray-500" />
+                        <PencilIcon className="w-5 h-5 inline-block text-gray-500 dark:text-dark-400" />
                       </button>
                   )} 
                   {(auth !== record.user_id && allowEventManagement) && (
                       <button
                         type="button"
-                        className="bg-red-50 w-7 h-7 ring-1 ring-red-200 rounded-md hover:bg-red-100 flex justify-center items-center"
+                        className="bg-red-50 dark:bg-red-300/75 w-7 h-7 ring-1 ring-red-200 dark:ring-red-500/50 rounded-md hover:bg-red-100 dark:hover:bg-red-200/75 flex justify-center items-center"
                         onClick={() => {
                           if (allowEventManagement) {
                             setSelectedEvent(record);
@@ -293,7 +293,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                           }
                         }}
                       >
-                        <TrashIcon className="w-5 h-5 inline-block text-red-600" />
+                        <TrashIcon className="w-5 h-5 inline-block text-red-600 dark:text-red-700" />
                       </button>
                   )}
                 </div>
@@ -317,7 +317,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
                 data={sortedData}
               />
             ) : (
-              <p className="py-2 text-sm text-gray-500">No events available.</p>
+              <p className="py-2 text-sm text-gray-500 dark:text-dark-400">No events available.</p>
             );
           })()}
         </div>

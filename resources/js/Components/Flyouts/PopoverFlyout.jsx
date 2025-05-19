@@ -120,10 +120,10 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
             left: x ?? '',
             zIndex: 9999,
           }}
-          className={`bg-white rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width}`}
+          className={`bg-white dark:bg-dark-900 dark:ring-dark-100/5 rounded-lg shadow-lg text-sm leading-6 ring-1 ring-gray-900/5 isolate ${width}`}
         >
           {content}
-          <div ref={arrowElement} className="arrow" />
+          <div ref={arrowElement} className="arrow bg-white dark:bg-dark-900" />
         </div>
       )}
     </div>

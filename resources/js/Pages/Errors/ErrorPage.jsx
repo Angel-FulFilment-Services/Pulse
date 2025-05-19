@@ -28,10 +28,10 @@ export default function ErrorPage({ status }) {
                 clipPath:
                   'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
               }}
-              className="relative h-screen left-[calc(50%-11rem)] aspect-1155/678 w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#fbca8e] to-[#fff6ae] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+              className="relative h-screen left-[calc(50%-11rem)] aspect-1155/678 w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr  from-[rgb(var(--theme-300))] dark:from-[rgb(var(--theme-500))] to-[rgb(var(--theme-700))] dark:to-[rgb(var(--theme-900))] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
             />
           </div>
-          <div className="absolute inset-x-0 inset-y-0 w-full h-screen bg-black/5 backdrop-blur-md -z-10">
+          <div className="absolute inset-x-0 inset-y-0 w-full h-screen bg-black/5 dark:bg-gray-800/5 backdrop-blur-md -z-10">
 
           </div>
           <div className="mx-auto max-w-2xl py-32 lg:py-56">
@@ -39,20 +39,20 @@ export default function ErrorPage({ status }) {
               <div className="scale-[2] -mt-0 lg:-mt-10 pb-16">
                 <Logo includeTitle={false} error={true}></Logo>
               </div>
-              <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr from-orange-400 to-orange-600 bg-clip-text text-transparent drop-shadow-lg">
+              <div className="pb-4 text-3xl scale-150 font-extrabold bg-gradient-to-tr  from-[rgb(var(--theme-300))] dark:from-[rgb(var(--theme-500))] to-[rgb(var(--theme-700))] dark:to-[rgb(var(--theme-900))] bg-clip-text text-transparent drop-shadow-lg">
                 <span className="font-mono">{status}</span>
               </div>
-              <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
+              <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 dark:text-dark-100 sm:text-7xl">
                 {title}
               </h1>
-              <p className="mt-8 text-lg font-medium text-pretty text-gray-500 sm:text-xl/8">
+              <p className="mt-8 text-lg font-medium text-pretty text-gray-500 dark:text-dark-400 sm:text-xl/8">
                 {description}
               </p>
               <div>
-                <a href="/" className="inline-block px-4 py-2 mt-10 text-md font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                <a href="/" className="inline-block px-4 py-2 mt-10 text-md font-semibold text-white dark:text-dark-50 bg-theme-500 dark:bg-theme-600 dark:hover:bg-theme-500 rounded-lg hover:bg-theme-400 focus:outline-none focus:ring-2 focus:ring-theme-500 dark:focus:ring-theme-600 focus:ring-offset-2 transition duration-200 ease-in-out">
                   Go back Home
                 </a>
-                <a href="https://wings.angelfs.co.uk" className="inline-block px-4 py-2 mt-10 ml-4 text-md font-semibold text-gray-700 hover:text-gray-900 transition duration-200 ease-in-out">
+                <a href="https://wings.angelfs.co.uk" className="inline-block px-4 py-2 mt-10 ml-4 text-md font-semibold text-gray-700 hover:text-gray-900 dark:hover:text-dark-50 dark:text-dark-200 transition duration-200 ease-in-out">
                   Back to Wings
                   <span className="pl-2" aria-hidden="true">&rarr;</span>
                 </a>
@@ -68,7 +68,7 @@ export default function ErrorPage({ status }) {
                 clipPath:
                   'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
               }}
-              className="relative h-screen left-[calc(50%+3rem)] aspect-1155/678 w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#fbca8e] to-[#fff6ae] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+              className="relative h-screen left-[calc(50%+3rem)] aspect-1155/678 w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr  from-[rgb(var(--theme-300))] dark:from-[rgb(var(--theme-500))] to-[rgb(var(--theme-700))] dark:to-[rgb(var(--theme-900))] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
             />
           </div>
         </div>

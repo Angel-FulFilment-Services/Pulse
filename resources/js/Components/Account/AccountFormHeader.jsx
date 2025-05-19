@@ -28,7 +28,7 @@ export default function AccountHeader({ auth, employee }) {
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-x-8 lg:mx-0 lg:max-w-none">
               <div>
                 <div className="flex items-center gap-x-6">
-                  <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="h-24 w-24 rounded-full bg-gray-100  flex items-center justify-center">
                       {auth.user.profile_photo ?
                         <img src={`/images/profile/${auth.user.profile_photo}`} className="h-24 w-24 select-none rounded-full brightness-95" />
                       :
@@ -36,7 +36,7 @@ export default function AccountHeader({ auth, employee }) {
                       }
                   </div>
                   <h1>
-                      <div className="mt-1 text-base font-semibold leading-6 text-gray-900 text-orange-600">{auth.user.name}</div>
+                      <div className="mt-1 text-base font-semibold leading-6 text-gray-900 text-theme-600">{auth.user.name}</div>
                       <div className="text-sm leading-6 text-gray-500">
                         {employee.job_title}
                       </div>

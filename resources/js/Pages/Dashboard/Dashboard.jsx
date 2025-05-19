@@ -8,7 +8,7 @@ import { BarsArrowUpIcon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicon
 const Dashboard = ({ token }) => {
     return (
         <div className="overflow-y-hidden">
-            <div className="flex flex-row w-full justify-center bg-gray-100">                      
+            <div className="flex flex-row w-full justify-center bg-gray-100 ">                      
                 <InformationDialog />
             </div>
             <div className="border-b border-gray-200 p-5 mx-10 sm:flex sm:items-center sm:justify-between">
@@ -34,20 +34,20 @@ const Dashboard = ({ token }) => {
                                     type="text"
                                     name="mobile-search-candidate"
                                     id="mobile-search-candidate"
-                                    className="block w-full rounded-none rounded-l-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-orange-600 !outline-none sm:hidden"
+                                    className="block w-full rounded-none rounded-l-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-theme-600 !outline-none sm:hidden"
                                     placeholder="Search"
                                 />
                                 <input
                                     type="text"
                                     name="desktop-search-candidate"
                                     id="desktop-search-candidate"
-                                    className="hidden w-full rounded-none rounded-l-md border-0 py-1.5 pl-10 text-sm leading-6 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-orange-600 !outline-none sm:block"
+                                    className="hidden w-full rounded-none rounded-l-md border-0 py-1.5 pl-10 text-sm leading-6 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-theme-600 !outline-none sm:block"
                                     placeholder="Search candidates"
                                 />
                             </div>
                         <button
                         type="button"
-                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 "
                         >
                             <BarsArrowUpIcon className="-ml-0.5 h-5 w-5 text-gray-400" aria-hidden="true" />
                             View
