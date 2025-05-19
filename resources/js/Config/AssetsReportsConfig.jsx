@@ -214,14 +214,7 @@ const assetsReportsConfig = [
         targetAllowRow: false,
         total: false,
         polling: 60000,
-        dateRange: {
-            default: {
-              startDate: format(startOfDay(subDays(new Date(), 31)), 'yyyy-MM-dd'),
-              endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
-            },
-            maxDate: new Date(),
-            minDate: new Date().setFullYear(new Date().getFullYear() - 1),
-        },
+        dateRange: false,
         date: false,
         structure: [
           {

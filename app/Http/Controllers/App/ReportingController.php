@@ -532,6 +532,30 @@ class ReportingController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function accessLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_config')
+        ->table('access_logs as access_log')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'access_log.user_id')
+        ->whereBetween('access_log.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select(DB::raw("
+            users.name AS user,
+            access_log.created_at as created_at,
+            access_log.ip_address as ip,
+            access_log.url as url,
+            access_log.method as method,
+            access_log.user_agent as device,
+            access_log.status_code as status,
+            access_log.duration_ms as duration
+        "))
+        ->orderBy('access_log.created_at', 'desc')
+        ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
     public function technicalSupportLog(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
@@ -557,9 +581,6 @@ class ReportingController extends Controller
     }
 
     public function kitDetailsReport(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
-
         $data = DB::connection('wings_data')
         ->table('assets.kits')
         ->where('kits.alias', 'like', '%AFS-LM%')

@@ -1,4 +1,4 @@
-import { generateSMSLog, generateAuditLog } from '../Components/Reporting/Reports/SystemReportGenerators';
+import { generateSMSLog, generateAuditLog, generateAccessLog } from '../Components/Reporting/Reports/SystemReportGenerators';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 
 const systemReportsConfig = [
@@ -326,7 +326,217 @@ const systemReportsConfig = [
             },
         ]
     },
-},
+  },
+  {
+    id: 'access_log',
+    label: 'Access Log',
+    generate: generateAccessLog,
+    parameters: {
+        targetAllowColumn: false,
+        targetAllowCell: false,
+        targetAllowRow: false,
+        total: false,
+        polling: 60000,
+        dateRange: {
+            default: {
+              startDate: format(startOfDay(subDays(new Date(), 31)), 'yyyy-MM-dd'),
+              endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
+            },
+            maxDate: new Date(),
+            minDate: new Date().setFullYear(new Date().getFullYear() - 1),
+        },
+        date: false,
+        structure: [
+          {
+            id: "user",
+            label: "User",
+            dataType: "string",
+            visible: true,
+            allowTarget: false,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-left font-medium flex flex-row items-center justify-start gap-x-2 w-full",
+            headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "ip",
+            label: "IP Address",
+            dataType: "string",
+            visible: true,
+            allowTarget: false,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "url",
+            label: "URL",
+            dataType: "string",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full max-w-[35rem] overflow-hidden text-elipsis text-wrap",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full max-w-[35rem]",
+            headerAnnotation: "",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "method",
+            label: "Method",
+            dataType: "string",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "created_at",
+            label: "Occured At",
+            dataType: "date",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => format(new Date(value), 'dd MMMM, yyyy HH:mm:ss'),
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "duration",
+            label: "Duration",
+            dataType: "integer",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(ms)",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "status",
+            label: "Status",
+            dataType: "integer",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => value,
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+        ],
+        filters: [
+            {
+              id: 'user',
+              name: 'User',
+              expression: (data) => (filterValue) => {
+                return data?.user === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.user || seen.has(item.user)) return false;
+                    seen.add(item.user);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.user,
+                    label: item.user,
+                    checked: false,
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
+            },
+            {
+              id: 'method',
+              name: 'Method',
+              expression: (data) => (filterValue) => {
+                return data?.method === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.method || seen.has(item.method)) return false;
+                    seen.add(item.method);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.method,
+                    label: item.method,
+                    checked: false,
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
+            },
+            {
+              id: 'status',
+              name: 'Status',
+              expression: (data) => (filterValue) => {
+                return data?.status === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.status || seen.has(item.status)) return false;
+                    seen.add(item.status);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.status,
+                    label: item.status,
+                    checked: false,
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
+            }
+        ]
+    },
+  },
 ];
 
 export default systemReportsConfig;

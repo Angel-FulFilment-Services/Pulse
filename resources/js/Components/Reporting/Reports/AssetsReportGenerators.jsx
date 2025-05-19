@@ -20,7 +20,7 @@ export const generateKitDetails = async (parameters) => {
 
     try {
         const response = await axios.get('/reporting/reports/generate/kit-details', {
-            params: { start_date: dateRange.startDate, end_date: dateRange.endDate },
+            params: { },
         });
 
         return response.data; // Return the generated report data

@@ -125,18 +125,20 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
           </div>
         </div>
         <div className="max-w-56 w-full">
-          <DateInput 
-            startDateId={"startDate"} 
-            endDateId={"endDate"} 
-            label={null} 
-            placeholder={"Date Range"} 
-            dateRange={true} 
-            showShortcuts={true}
-            minDate={report?.parameters?.dateRange?.minDate || null} 
-            maxDate={report?.parameters?.dateRange?.maxDate || null}
-            currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} 
-            onDateChange={handleDateChange}
-          />
+          {(report?.parameters?.dateRange || report?.parameters?.date) && (
+              <DateInput 
+              startDateId={"startDate"} 
+              endDateId={"endDate"} 
+              label={null} 
+              placeholder={"Date Range"} 
+              dateRange={true} 
+              showShortcuts={true}
+              minDate={report?.parameters?.dateRange?.minDate || null} 
+              maxDate={report?.parameters?.dateRange?.maxDate || null}
+              currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} 
+              onDateChange={handleDateChange}
+            />
+          )}
         </div>
       </div>
     </header>

@@ -126,7 +126,7 @@ const Reporting = () => {
     const regenerateReport = () => {
         setReportData([]);
         setReportError(false);
-        if (Object.values(report).length && dateRange.startDate && dateRange.endDate) {
+        if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
             generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
         }
     };
@@ -170,7 +170,7 @@ const Reporting = () => {
         }
 
         pollingIntervalRef.current = setInterval(() => {
-            if (Object.values(report).length && dateRange.startDate && dateRange.endDate) {
+            if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
                 setReportError(false);
                 generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
             }
@@ -266,13 +266,18 @@ const Reporting = () => {
 
             generateReport({ startDate, endDate }, report);
         }
+        
+        if(report && report.parameters && (!report.parameters.date && !report.parameters.dateRange)) {
+            setDateRange({ startDate: null, endDate: null });
+            generateReport({ startDate: null, endDate: null }, report);
+        }
 
         return () => stopPolling(); // Cleanup polling on component unmount or report change
     }, [report]);
 
 
     useEffect(() => {
-        if (Object.values(report).length && dateRange.startDate && dateRange.endDate) {
+        if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
             if (report.parameters.polling) {
                 startPolling(report.parameters.polling);
             } else {
@@ -302,7 +307,7 @@ const Reporting = () => {
                         id: report.id,
                         value: report.id,
                         displayValue: report.label,
-                    }))
+                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
                 );
                 break;
             case 'assets':
@@ -311,7 +316,7 @@ const Reporting = () => {
                         id: report.id,
                         value: report.id,
                         displayValue: report.label,
-                    }))
+                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
                 );
                 break;
             case 'system':
@@ -320,7 +325,7 @@ const Reporting = () => {
                         id: report.id,
                         value: report.id,
                         displayValue: report.label,
-                    }))
+                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
                 );
                 break;
             default:
@@ -368,7 +373,7 @@ const Reporting = () => {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Report Selected</h1>
                     <p className="mt-4 text-gray-500 dark:text-dark-500">Select a report from the dropdown above to view.</p>
                 </div>
-            ) : Object.values(report).length && (dateRange.startDate === null || dateRange.endDate === null) ? (
+            ) : Object.values(report).length && (dateRange.startDate === null || dateRange.endDate === null) && (report.parameters.date || report.parameters.dateRange) ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Date Selected</h1>
                     <p className="mt-4 text-gray-500 dark:text-dark-500">Select a date from the date selector above to view.</p>
