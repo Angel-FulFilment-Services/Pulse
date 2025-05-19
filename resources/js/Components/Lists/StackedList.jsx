@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { CheckCircleIcon, ChevronDownIcon, ExclamationCircleIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import UserItem from '../User/UserItem.jsx';
+import PopoverFlyout from '../Flyouts/PopoverFlyout.jsx';
 
 export default function StackedList({
   data,
@@ -64,22 +65,52 @@ export default function StackedList({
                   <div className="flex -space-x-0.5">
                     {row.users.map((user, userIndex) => (
                       <div key={userIndex}>
-                        <UserItem
-                          userId={user.userId}
-                          searchState={'userId'}
-                          showState={false}
-                          customClass={'ring-2 ring-white dark:ring-dark-900'}
-                          size="extra-small"
-                        />
+                        <PopoverFlyout
+                          placement='top'
+                          className=""
+                          placementOffset={7.5}
+                          content={
+                            <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                              <p className="text-sm text-gray-900 dark:text-dark-100">{user.name}</p>
+                            </div>
+                          }>
+                          <UserItem
+                            userId={user.userId}
+                            searchState={'userId'}
+                            showState={false}
+                            customClass={'ring-2 ring-white dark:ring-dark-900'}
+                            size="extra-small"
+                          />
+                        </PopoverFlyout>
                       </div>
                     ))}
                   </div>
                   <div className="flex justify-center items-center w-full divide-x divide-gray-200 dark:divide-dark-700">
                     <dt className="flex items-center pr-3">
                       {row.resolved ? (
-                        <CheckCircleIcon className="h-6 w-6 text-green-500 dark:text-green-600" aria-hidden="true" />
+                        <PopoverFlyout
+                        placement='top'
+                        className=""
+                        placementOffset={5}
+                        content={
+                          <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                            <p className="text-sm text-gray-900 dark:text-dark-100">Resolved</p>
+                          </div>
+                        }>
+                          <CheckCircleIcon className="h-6 w-6 text-green-500 dark:text-green-600" aria-hidden="true" />
+                        </PopoverFlyout>
                       ) : (
-                        <ExclamationCircleIcon className="h-6 w-6 text-red-600 dark:text-red-700" aria-hidden="true" />
+                        <PopoverFlyout
+                        placement='top'
+                        className=""
+                        placementOffset={5}
+                        content={
+                          <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                            <p className="text-sm text-gray-900 dark:text-dark-100">Unresolved</p>
+                          </div>
+                        }>
+                          <ExclamationCircleIcon className="h-6 w-6 text-red-600 dark:text-red-700" aria-hidden="true" />
+                        </PopoverFlyout>
                       )}
                     </dt>
                     {allowManagement && (

@@ -60,8 +60,9 @@ class AssetController extends Controller
         ->select('support_log.*')
         ->when($hrId, function ($query) use ($hrId) {
             return $query->where('support_log.hr_id', $hrId)
-            ->leftJoin('wings_config.users', 'users.id', '=', 'support_log.created_by_user_id')
-            ->addSelect('users.name as logged_by');
+            ->leftJoin('wings_config.users as logged', 'logged.id', '=', 'support_log.created_by_user_id')
+            ->leftJoin('wings_config.users', 'users.id', '=', 'support_log.user_id')
+            ->addSelect('logged.name as logged_by', 'users.name as user_name');
         })
         ->get()
         ->map(function ($record) {

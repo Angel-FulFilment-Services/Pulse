@@ -240,7 +240,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                         ? format(new Date(record.created_at), 'dd MMMM, yyyy h:mm a')
                         : '-',
                       loggedby: record.logged_by,
-                      users: [{ userId: record.user_id }, { userId: record.created_by_user_id }],
+                      users: [{ userId: record.user_id, name: record.user_name }, { userId: record.created_by_user_id, name: record.logged_by }],
                       resolved: record.resolved,
                       id: record.id,
                       attachments: record.attachments,
