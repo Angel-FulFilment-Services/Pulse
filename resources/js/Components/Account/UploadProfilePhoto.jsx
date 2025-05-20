@@ -142,6 +142,36 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  // Touch handlers for preview image
+  const handleTouchStart = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    setDragStart({
+      x: touch.clientX,
+      y: touch.clientY,
+      originX: drag.x,
+      originY: drag.y,
+    });
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!dragStart) return;
+    const touch = e.touches[0];
+    const nextDrag = {
+      x: dragStart.originX + (touch.clientX - dragStart.x),
+      y: dragStart.originY + (touch.clientY - dragStart.y),
+    };
+    setDrag(clampDrag(nextDrag));
+  };
+
+  const handleTouchEnd = () => {
+    setDragStart(null);
+    window.removeEventListener('touchmove', handleTouchMove);
+    window.removeEventListener('touchend', handleTouchEnd);
+  };
+
   // Clamp drag so image edges can't leave the preview circle
   const clampDrag = useCallback(
     (nextDrag) => {
@@ -280,6 +310,9 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                   userSelect: 'none',
                 }}
                 onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 {isLoading && <Spinner />}
                 <img
@@ -359,7 +392,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       {isCameraActive && !cameraError ? (
         <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
           <div className="relative">
-            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" />
+            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" playsInline autoPlay muted/>
             {/* Face outline overlay */}
             <svg
               className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
