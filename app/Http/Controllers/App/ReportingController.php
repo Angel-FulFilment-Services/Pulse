@@ -584,7 +584,6 @@ class ReportingController extends Controller
     public function kitDetailsReport(Request $request){
         $data = DB::connection('wings_data')
         ->table('assets.kits')
-        ->where('kits.alias', 'like', '%AFS-LM%')
         ->leftJoin('assets.assets_issued', function($join) {
             $join->on('kits.kit_id', '=', 'assets_issued.kit_id');
                 // ->where('issued', '<=', date("Y-m-d"));

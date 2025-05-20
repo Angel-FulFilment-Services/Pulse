@@ -93,9 +93,11 @@ export default function ReportingTable({ parameters, structure, filters, data, t
       }
 
       if (column.dataType === 'string') {
+        const strA = valueA == null ? '' : String(valueA);
+        const strB = valueB == null ? '' : String(valueB);
         return direction === 'asc'
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
+          ? strA.localeCompare(strB)
+          : strB.localeCompare(strA);
       }
 
       if (column.dataType === 'date') {
