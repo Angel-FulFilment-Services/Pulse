@@ -27,7 +27,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
   const selectedSizeClass = sizeClasses.icon[size] || sizeClasses.icon.medium;
   const selectedActivitySizeClass = sizeClasses.activity[size] || sizeClasses.activity.medium;
 
-  const userStates = useUserStates();
+  const { userStates } = useUserStates();
 
   // Memoize userState to avoid recalculating it unnecessarily
   const userState = useMemo(() => {
@@ -61,6 +61,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
     }
   }, [lastActiveAt]);
 
+
   return (
     <>
       <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass} ${customClass}`}>
@@ -81,7 +82,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
 
         {profilePhoto ? (
           <img
-            src={`/images/profile/${profilePhoto}`}
+            src={`https://pulse.cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
             className={`w-full h-full select-none rounded-full brightness-95`}
             alt="User profile"
           />

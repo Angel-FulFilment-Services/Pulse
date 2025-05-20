@@ -71,7 +71,7 @@ export default function ListView({ setView, viewType }) {
     ];
   });
   
-  const userStates = useUserStates();
+  const { userStates } = useUserStates().userStates;
   const groupedShifts = useMemo(() => {
     return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters, search);
   }, [shifts, timesheets, filters, search]);

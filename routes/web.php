@@ -117,6 +117,7 @@ Route::get('/employee/information', [AccountController::class, 'information'])->
 
 Route::get('/profile/account', [AccountController::class, 'profile'])->name('account.profile')->withoutMiddleware('has.permission:pulse_view_account');
 Route::post('/profile/account/photo/set', [AccountController::class, 'setProfilePhoto'])->name('account.profile.photo.set')->withoutMiddleware('has.permission:pulse_view_account');
+Route::post('/profile/account/photo/delete', [AccountController::class, 'deleteProfilePhoto'])->name('account.profile.photo.remove')->withoutMiddleware('has.permission:pulse_view_account');
 
 /*
 |-----------------------

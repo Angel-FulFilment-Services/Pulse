@@ -30,7 +30,7 @@ export default function AccountHeader({ employee }) {
                 <div className="flex items-center gap-x-6">
                   <div className="h-24 w-24 rounded-full bg-gray-100  flex items-center justify-center">
                       {employee.profile_photo ?
-                        <img src={`/images/profile/${employee.profile_photo}`} className="h-24 w-24 select-none rounded-full brightness-95" />
+                        <img src={`https://pulse.cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="h-24 w-24 select-none rounded-full brightness-95" />
                       :
                         <UserIcon className="h-16 w-16 text-gray-300" aria-hidden="true" />
                       }

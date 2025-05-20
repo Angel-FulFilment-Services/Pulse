@@ -7,11 +7,14 @@ import PostcodeInput from '../../Components/Forms/PostcodeInput'
 import ClickedModal from '../../Components/Modals/ClickedModal'
 import UploadProfilePhoto from '../../Components/Account/UploadProfilePhoto.jsx'
 import { toast } from 'react-toastify'
+import { router } from '@inertiajs/react'
+import { useUserStates } from '../../Components/Context/ActiveStateContext';
 
 import UKCounties from '../../Components/Forms/LocalAddress/UKCounties.jsx';
 
 export default function Example({ employee, user }) {
     const counties = UKCounties();
+    const { refreshUserStates } = useUserStates();
 
     const setProfilePhoto = async (image) => {
         try {
@@ -35,6 +38,9 @@ export default function Example({ employee, user }) {
                 }
                 throw new Error('Failed to set profile photo');
             }
+
+            router.visit('/profile/account')
+            refreshUserStates();
 
             toast.success('Profile photo updated successfully!', {
                 position: 'top-center',
@@ -62,6 +68,49 @@ export default function Example({ employee, user }) {
             }
         }
     };
+
+    const deleteProfilePhoto = async () => {
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            const response = await fetch('/profile/account/photo/delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete profile photo');
+            }
+            
+            router.visit('/profile/account')
+            refreshUserStates();
+
+            toast.success('Profile photo deleted successfully!', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+        } catch (error) {
+            console.error(error);
+            toast.error('Profile photo could not be deleted. Please try again.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+        }
+    }
 
   return (
     <form>
@@ -107,7 +156,7 @@ export default function Example({ employee, user }) {
                             <div className="size-20 relative flex items-center justify-center">
                                 <div className="size-16 ring-2 rounded-full absolute ring-gray-700/20 dark:ring-dark-300/50"></div>
                                 {employee.profile_photo ?
-                                    <img src={`/images/profile/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90" />
+                                    <img src={`https://pulse.cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90" />
                                 :
                                     <UserCircleIcon aria-hidden="true" className="size-20 text-gray-300 dark:text-dark-500 absolute" />
                                 }
@@ -117,7 +166,7 @@ export default function Example({ employee, user }) {
                                     <div className="flex items-center gap-x-3 w-full">
                                         <div> File: {employee.profile_photo ? employee.profile_photo : "No profile photo set."} </div>
                                         <button
-                                            onClick={() => {}}
+                                            onClick={() => {deleteProfilePhoto()}}
                                         >
                                             <TrashIcon
                                                 className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"

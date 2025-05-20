@@ -253,8 +253,8 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.closePath();
           ctx.clip();
 
-          // Calculate scale to fit the image within the preview area, then apply zoom
-          const scale = Math.max(previewSize / img.width, previewSize / img.height) * zoom;
+          // Use Math.min to fit the whole image inside the crop area
+          const scale = Math.min(previewSize / img.width, previewSize / img.height) * zoom;
           const displayWidth = img.width * scale;
           const displayHeight = img.height * scale;
 
