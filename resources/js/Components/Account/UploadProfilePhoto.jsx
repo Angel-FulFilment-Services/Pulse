@@ -115,23 +115,37 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     if (videoRef.current) {
       const video = videoRef.current;
       const previewSize = 384;
-      // Find the largest centered square in the video frame
-      const size = Math.min(video.videoWidth, video.videoHeight);
-      const sx = (video.videoWidth - size) / 2;
-      const sy = (video.videoHeight - size) / 2;
 
-      // Always output a 384x384 image
+      // Get the aspect ratios
+      const videoAspect = video.videoWidth / video.videoHeight;
+      const previewAspect = 1; // square
+
+      let sx, sy, sWidth, sHeight;
+
+      if (videoAspect > previewAspect) {
+        // Video is wider than preview: crop the sides
+        sHeight = video.videoHeight;
+        sWidth = video.videoHeight * previewAspect;
+        sx = (video.videoWidth - sWidth) / 2;
+        sy = 0;
+      } else {
+        // Video is taller than preview: crop the top/bottom
+        sWidth = video.videoWidth;
+        sHeight = video.videoWidth / previewAspect;
+        sx = 0;
+        sy = (video.videoHeight - sHeight) / 2;
+      }
+
+      // Draw to a square canvas
       const canvas = document.createElement('canvas');
       canvas.width = previewSize;
       canvas.height = previewSize;
       const ctx = canvas.getContext('2d');
-      // Draw the centered square from the video, scaled to 384x384
-      ctx.drawImage(video, sx, sy, size, size, 0, 0, previewSize, previewSize);
+      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, previewSize, previewSize);
 
       const imageDataUrl = canvas.toDataURL('image/png');
       setPreview(imageDataUrl);
       setLastSource("camera");
-      // No need to set zoom/drag here; let your cropper handle it as usual
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
         // You can use this file if needed
@@ -403,7 +417,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       {isCameraActive && !cameraError ? (
         <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
           <div className="relative">
-            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" height="384" width="384" playsInline autoPlay muted/>
+            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" playsInline autoPlay muted/>
             {/* Face outline overlay */}
             <svg
               className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
