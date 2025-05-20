@@ -78,7 +78,7 @@ export default function LoginForm () {
                                             onChange={e => {setData('email', e.target.value); clearErrors();}}
                                             id="email"
                                             autoComplete="email"
-                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 dark:placeholder:text-dark-600 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
+                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 dark:placeholder:text-dark-500 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
                                             placeholder="Email"
                                         />
                                     </div>
@@ -89,7 +89,7 @@ export default function LoginForm () {
 
                         <div className="mt-3 gap-x-6 gap-y-8">
                             <div className="sm:col-span-4">
-                                <label htmlFor="username" className="block text-sm font-medium leading-6 text-gray-900">
+                                <label htmlFor="username" className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">
                                     Password
                                 </label>
                                 <div className="mt-2">
@@ -101,7 +101,7 @@ export default function LoginForm () {
                                             onChange={e => {setData('password', e.target.value); clearErrors();}}
                                             id="password"
                                             autoComplete="password"
-                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 dark:placeholder:text-dark-600 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
+                                            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 dark:placeholder:text-dark-500 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none"
                                             placeholder="**********"
                                         />
                                     </div>
@@ -116,12 +116,12 @@ export default function LoginForm () {
                                     <input 
                                         id="remember" 
                                         name="remember" 
-                                        className="focus:outline-none w-3 h-3 mr-2" 
+                                        className="focus:outline-none w-3 h-3 mr-2 accent-theme-500 dark:accent-theme-600" 
                                         type="checkbox"
                                         value={data.remember}
                                         onChange={e => setData('remember', e.target.value)}
                                     />
-                                    <label htmlFor="remember" className="text-xs">Remember Me</label>
+                                    <label htmlFor="remember" className="text-xs text-gray-900 dark:text-dark-100">Remember Me</label>
                                 </div>
                                 {/* <Link href="/forgot" className="cursor-pointer text-xs text-theme-500 focus:outline-none focus:underline focus:text-theme-600 hover:text-theme-600">Forgot Password?</Link> */}
                             </div>
@@ -130,7 +130,7 @@ export default function LoginForm () {
                         <div className="gap-x-6 gap-y-8 pb-10 pt-5">
                             <div className="sm:col-span-4">
                                 <div className="mt-2">
-                                    <button disabled={processing || wasSuccessful || hasErrors} className={`${button_colour()} transition-all duration-500 w-full rounded-md py-1.5 text-gray-100 dark:text-dark-800 text-base font-semibold flex flex-row justify-center items-center gap-1.5`}>
+                                    <button disabled={processing || wasSuccessful || hasErrors} className={`${button_colour()} transition-all duration-500 w-full rounded-md py-1.5 text-gray-100 dark:text-dark-100 text-base font-semibold flex flex-row justify-center items-center gap-1.5`}>
                                         {processing ? 
                                             <ThreeDots
                                             visible={true}

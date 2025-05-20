@@ -401,7 +401,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
             </div>
           )}
           {/* Camera/Retake button */}
-          {!preview && lastSource === "upload" ? (<div className="h-12" />) : null}
+          {!preview && lastSource === "upload" || cameraError ? (<div className="h-12" />) : null}
           <button
             onClick={preview && lastSource === "camera" ? startCamera : startCamera}
             className="flex items-center justify-center gap-2 bg-theme-600 text-white mt-1 px-4 py-2 rounded-md w-40 hover:bg-theme-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
@@ -450,12 +450,12 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
       {/* File Upload Section */}
       <div
-        className="flex flex-col items-center border-2 border-dashed border-gray-300 dark:border-dark-500 rounded-md p-4 w-full max-w-md"
+        className="flex flex-col items-center border-2 border-dashed border-gray-300 dark:border-dark-500 rounded-md px-4 py-3 w-full max-w-md"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
         <div className="text-center">
-          {/* <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600 mb-4" /> */}
+          <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600 mb-1" />
           <div className="flex text-sm text-gray-600">
             <label
               htmlFor="file-upload"

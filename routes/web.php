@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\ForgotController;
 use App\Http\Controllers\Auth\ActivationController;
 use App\Http\Controllers\Auth\ResetController;
+use App\Http\Controllers\Auth\TwoFactorController;
 
 // App
 use App\Http\Controllers\App\DashboardController;
@@ -53,6 +54,16 @@ Route::post('/forgot', [ForgotController::class, 'password_reset'])->name('passw
 // // Reset Password
 Route::get('/reset', [ResetController::class, 'index'])->name('reset')->middleware('signed');;
 Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_password');
+
+/*
+|-----------------------
+| Two Factor Authentication
+|-----------------------
+*/
+
+Route::get('/verify', [TwoFactorController::class, 'index'])->name('verify');
+Route::get('/verify/resend', [TwoFactorController::class, 'resend'])->name('resend');
+Route::post('/verify', [TwoFactorController::class, 'verify']);
 
 /*
 |-----------------------
@@ -118,6 +129,7 @@ Route::get('/employee/information', [AccountController::class, 'information'])->
 Route::get('/profile/account', [AccountController::class, 'profile'])->name('account.profile')->withoutMiddleware('has.permission:pulse_view_account');
 Route::post('/profile/account/photo/set', [AccountController::class, 'setProfilePhoto'])->name('account.profile.photo.set')->withoutMiddleware('has.permission:pulse_view_account');
 Route::post('/profile/account/photo/delete', [AccountController::class, 'deleteProfilePhoto'])->name('account.profile.photo.remove')->withoutMiddleware('has.permission:pulse_view_account');
+Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name('account.profile.photo')->withoutMiddleware('has.permission:pulse_view_account','auth','twofactor');
 
 /*
 |-----------------------

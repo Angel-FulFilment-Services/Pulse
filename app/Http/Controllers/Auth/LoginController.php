@@ -7,8 +7,12 @@ use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\User\User;
+use App\Helper\Permissions;
 use App\Models\Authentication\Invitation;
 use Illuminate\Support\Facades\Hash;
+use App\Jobs\SendTwoFactorEmail;
+use App\Jobs\SendTwoFactorSMS;
+use App\Helper\T2SMS;
 use DateTime;
 use Str;
 use URL;
@@ -17,7 +21,8 @@ class LoginController extends Controller
 {
     // Blocked logged in user from logging in
     public function __construct(){
-        // $this->middleware(['guest']);
+        $this->middleware(['guest']);
+        $this->middleware(['log.access']);
     }
 
     // Return the login view
@@ -28,8 +33,6 @@ class LoginController extends Controller
     
     public function login(request $request)
     {
-        // sleep(1);
-
         $this->validate($request, [
             'email' => 'required|email',
             'password' => 'required'
@@ -49,5 +52,21 @@ class LoginController extends Controller
                 return back()->withErrors(['error' => 'You have entered an invalid username or password.']);
             }
         };
+
+        if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055)) {
+            if (Permissions::hasPermission('sms_2fa_enabled') || Permissions::hasPermission('email_2fa_enabled')) {
+                auth()->user()->generate_two_factor_code();
+            }
+
+            // Send 2FA SMS if enabled
+            if (Permissions::hasPermission('sms_2fa_enabled')) {
+                SendTwoFactorSMS::dispatch(auth()->user());
+            }
+
+            // Send 2FA email if enabled
+            if (Permissions::hasPermission('email_2fa_enabled')) {
+                SendTwoFactorEmail::dispatch(auth()->user());
+            }
+        }
     }
 }

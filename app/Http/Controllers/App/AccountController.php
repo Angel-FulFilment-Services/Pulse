@@ -14,7 +14,7 @@ class AccountController extends Controller
 {
     // Block logged out users from using dashboard
     public function __construct(){
-        $this->middleware(['auth']);
+        $this->middleware(['auth', 'twofactor']);
         $this->middleware(['has.permission:pulse_view_account']);
         $this->middleware(['log.access']);
     }
@@ -26,6 +26,24 @@ class AccountController extends Controller
         return Inertia::render('Account/Profile', [
             'employee' => $employee,
             'user' => $user,
+        ]);
+    }
+
+    public function photo(Request $request){
+        $hrId = $request->input('hr_id');
+
+        if ($hrId) {
+            $account = Employee::where('hr_id', $hrId)->first();
+        } else {
+            $account = Employee::where('user_id', auth()->user()->id)->first();
+        }
+
+        if (!$account) {
+            return redirect()->route('login')->with('error', 'Account not found.');
+        }
+
+        return Inertia::render('Account/Photo', [
+            'account' => $account
         ]);
     }
 

@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'has.permission' => \App\Http\Middleware\HasPermission::class,
         'log.access' => \App\Http\Middleware\LogAccess::class,
+        'twofactor' => \App\Http\Middleware\TwoFactorMiddleware::class,
     ];
 }
