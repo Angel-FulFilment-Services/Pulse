@@ -24,7 +24,7 @@ function Spinner() {
   );
 }
 
-export default function UploadProfilePhoto({ onUpload, onClose }) {
+export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   const [preview, setPreview] = useState(null);
   const [cameraError, setCameraError] = useState(false);
   const fileInputRef = useRef(null);
@@ -124,7 +124,6 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
       setLastSource("camera");
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
-        // onUpload(file);
       });
     }
     stopCamera();
@@ -202,14 +201,72 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
     if (imgLoaded) setIsLoading(false);
   }, [imgLoaded]);
 
+  // Call this to save (you can expand this as needed)
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!preview) return;
+
+    const getCroppedImage = () => {
+      return new Promise((resolve) => {
+        const img = new window.Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+          const previewSize = 384;
+          const canvas = document.createElement('canvas');
+          canvas.width = previewSize;
+          canvas.height = previewSize;
+          const ctx = canvas.getContext('2d');
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(previewSize / 2, previewSize / 2, previewSize / 2, 0, Math.PI * 2, true);
+          ctx.closePath();
+          ctx.clip();
+
+          // Calculate scale to fit the image within the preview area, then apply zoom
+          const scale = Math.max(previewSize / img.width, previewSize / img.height) * zoom;
+          const displayWidth = img.width * scale;
+          const displayHeight = img.height * scale;
+
+          // Center the image, then apply drag
+          const dx = (previewSize - displayWidth) / 2 + drag.x;
+          const dy = (previewSize - displayHeight) / 2 + drag.y;
+
+          ctx.drawImage(
+            img,
+            dx,
+            dy,
+            displayWidth,
+            displayHeight
+          );
+          ctx.restore();
+
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = preview;
+      });
+    };
+
+    const cropped = await getCroppedImage();
+    handleSubmit(cropped);
+    handleClose();
+  };
+
   return (
-    <div className="flex flex-col items-center gap-4 h-full justify-center">
+    <form onSubmit={handleSave} className="flex flex-col items-center gap-4 h-full justify-center w-full">
+      {/* Title and subtitle at the top */}
+      <div className="mb-4 text-center w-full">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Update Profile Photo</h1>
+        <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+          Take a new photo or upload an image to use as your profile picture.
+        </p>
+      </div>
+
       {/* Preview Section */}
       {!isCameraActive && (
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center gap-y-2">
           <div
-            className="size-96 rounded-full ring-4 ring-theme-600 dark:ring-theme-700 overflow-hidden bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative"
-            style={{ width: '24rem', height: '24rem' }}
+            className="size-64 lg:size-96 rounded-full ring-4 ring-theme-600 dark:ring-theme-700 overflow-hidden bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative"
           >
             {preview ? (
               <div
@@ -266,7 +323,7 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
             ) : cameraError ? (
               <p className="text-sm text-gray-500 dark:text-dark-400">Cannot access camera</p>
             ) : (
-              <PhotoIcon className="w-96 text-gray-300 dark:text-dark-500" />
+              <PhotoIcon className="w-20 text-gray-300 dark:text-dark-500" />
             )}
           </div>
           {/* Zoom slider outside the preview circle */}
@@ -286,9 +343,10 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
             </div>
           )}
           {/* Camera/Retake button */}
+          {!preview && lastSource === "upload" ? (<div className="h-12" />) : null}
           <button
             onClick={preview && lastSource === "camera" ? startCamera : startCamera}
-            className="flex items-center gap-2 bg-theme-600 text-white px-4 py-2 mt-4 rounded-md w-28"
+            className="flex items-center justify-center gap-2 bg-theme-600 text-white mt-1 px-4 py-2 rounded-md w-40 hover:bg-theme-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             <CameraIcon className="w-5 h-5" />
@@ -301,7 +359,7 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
       {isCameraActive && !cameraError ? (
         <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
           <div className="relative">
-            <video ref={videoRef} className="size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" />
+            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" />
             {/* Face outline overlay */}
             <svg
               className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
@@ -324,7 +382,7 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
           <div className="h-14" />
           <button
             onClick={capturePhoto}
-            className="bg-theme-600 text-white px-4 py-2 rounded-md w-28"
+            className="bg-theme-600 text-white px-4 py-2 rounded-md w-40 hover:bg-theme-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             Capture
@@ -363,6 +421,24 @@ export default function UploadProfilePhoto({ onUpload, onClose }) {
           <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
         </div>
       </div>
-    </div>
+
+      {/* Save and Cancel buttons at the bottom */}
+      <div className="flex justify-end gap-4 w-full mt-4">
+        <button
+          type="button"
+          className="text-sm font-semibold text-gray-900 dark:text-dark-100 px-4 py-2 rounded-md"
+          onClick={handleClose}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="rounded-md bg-theme-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-theme-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
+          disabled={isLoading || !preview}
+        >
+          Save
+        </button>
+      </div>
+    </form>
   );
 }

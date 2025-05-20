@@ -1,18 +1,67 @@
-import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid'
-import { ChevronDownIcon } from '@heroicons/react/16/solid'
+import { UserCircleIcon } from '@heroicons/react/24/solid'
 import { EnvelopeIcon, UserIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { usePage } from '@inertiajs/react'
 import AccountFormHeader from '../../Components/Account/AccountFormHeader'
 import TextInput from '../../Components/Forms/TextInput'
 import ComboInput from '../../Components/Forms/ComboInput'
 import PostcodeInput from '../../Components/Forms/PostcodeInput'
 import ClickedModal from '../../Components/Modals/ClickedModal'
 import UploadProfilePhoto from '../../Components/Account/UploadProfilePhoto.jsx'
+import { toast } from 'react-toastify'
 
 import UKCounties from '../../Components/Forms/LocalAddress/UKCounties.jsx';
 
 export default function Example({ employee, user }) {
     const counties = UKCounties();
+
+    const setProfilePhoto = async (image) => {
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const formData = new FormData();
+            formData.append('profile_photo', image);
+
+            const response = await fetch('/profile/account/photo/set', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                if (response.status === 422) {
+                    const errorData = await response.json();
+                    setErrors(errorData.errors);
+                    throw new Error('Validation failed');
+                }
+                throw new Error('Failed to set profile photo');
+            }
+
+            toast.success('Profile photo updated successfully!', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+        } catch (error) {
+            console.error(error);
+            if (error.message !== 'Validation failed') {
+                toast.error('Profile photo could not be updated. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            }
+        }
+    };
 
   return (
     <form>
@@ -82,12 +131,22 @@ export default function Example({ employee, user }) {
                                 </div>
                                 <ClickedModal
                                     overlay={true}
-                                    size={"md"}
+                                    customSize={"max-w-fit max-h-fit px-8 py-4"}
                                     className={`rounded-md bg-white dark:bg-dark-900 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-xs ring-1 ring-gray-300 dark:ring-dark-500 ring-inset hover:bg-gray-50 dark:hover:bg-dark-800 text-center cursor-pointer`}
                                     onClose={() => {
-                                        
-                                    }} // Clear the message when the flyout closes
-                                    content={(handleSubmit, handleClose) => UploadProfilePhoto 
+                                        const iframe = document.querySelector('iframe');
+                                        const videos = document.querySelectorAll('video');
+                                        videos.forEach(video => {
+                                            if (video.srcObject) {
+                                                video.srcObject.getTracks().forEach(track => track.stop());
+                                                video.srcObject = null;
+                                            }
+                                        });
+                                    }}
+                                    onSubmit={(image) => {
+                                        setProfilePhoto(image);
+                                    }}
+                                    content={(handleSubmit, handleClose) => <UploadProfilePhoto handleSubmit={handleSubmit} handleClose={handleClose} />
                                     }
                                 >
                                     Change

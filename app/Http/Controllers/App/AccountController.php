@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Employee\Employee;
 use App\Models\User\User;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 class AccountController extends Controller
 {
@@ -25,6 +26,41 @@ class AccountController extends Controller
             'employee' => $employee,
             'user' => $user,
         ]);
+    }
+
+    public function setProfilePhoto(Request $request){
+        $user = Employee::where('user_id', auth()->user()->id)->first();
+
+        $data = $request->input('profile_photo');
+        if (!$data) {
+            return response()->json(['message' => 'No image data provided.'], 422);
+        }
+    
+        // Extract base64 string
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+            $data = substr($data, strpos($data, ',') + 1);
+            $type = strtolower($type[1]); // jpg, png, gif
+    
+            $data = base64_decode($data);
+            if ($data === false) {
+                return response()->json(['message' => 'Base64 decode failed.'], 422);
+            }
+        } else {
+            return response()->json(['message' => 'Invalid image data.'], 422);
+        }
+    
+        // Generate a unique filename
+        $fileName = uniqid('profile_') . '.' . $type;
+        $filePath = 'profile/images/' . $fileName;
+    
+        // Store the image (local disk, change to 'r2' if needed)
+        \Storage::disk('r2')->put($filePath, $data);
+    
+        // Save the filename/path to the employee
+        $user->profile_photo = $fileName;
+        $user->save();
+    
+        return response()->json(['message' => 'Profile photo updated.', 'file' => $fileName]);
     }
 
     public function index($page){
