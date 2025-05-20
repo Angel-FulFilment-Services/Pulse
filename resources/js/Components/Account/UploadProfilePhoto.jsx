@@ -129,6 +129,13 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       const imageDataUrl = canvas.toDataURL('image/png');
       setPreview(imageDataUrl);
       setLastSource("camera");
+
+      // Set initial zoom so the whole image fits the crop area
+      const previewSize = 384; // or your crop size
+      const initialZoom = previewSize / size;
+      setZoom(initialZoom);
+      setDrag({ x: 0, y: 0 });
+
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
         // You can use this file if needed
