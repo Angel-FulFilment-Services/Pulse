@@ -455,8 +455,8 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         onDragOver={handleDragOver}
       >
         <div className="text-center">
-          <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
-          <div className="mt-4 flex text-sm text-gray-600">
+          {/* <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600 mb-4" /> */}
+          <div className="flex text-sm text-gray-600">
             <label
               htmlFor="file-upload"
               className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
