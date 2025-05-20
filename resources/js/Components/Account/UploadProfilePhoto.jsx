@@ -403,7 +403,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       {isCameraActive && !cameraError ? (
         <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
           <div className="relative">
-            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" playsInline autoPlay muted/>
+            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" height="384" width="384" playsInline autoPlay muted/>
             {/* Face outline overlay */}
             <svg
               className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
