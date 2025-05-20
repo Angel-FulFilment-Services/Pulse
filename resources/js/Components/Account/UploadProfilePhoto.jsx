@@ -1,40 +1,92 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
 
-export default function UploadProfilePhoto({ onUpload }) {
-  const [preview, setPreview] = useState(null); // Preview of the captured or uploaded image
-  const [cameraError, setCameraError] = useState(false); // Track camera access errors
+// Simple spinner component
+function Spinner() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/30">
+      <svg
+          className="inline w-12 h-12 animate-spin fill-theme-500 dark:fill-theme-600 text-gray-200 dark:text-dark-700"
+          viewBox="0 0 100 101"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+            fill="currentColor"
+          />
+          <path
+            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+            fill="currentFill"
+          />
+        </svg>
+    </div>
+  );
+}
+
+export default function UploadProfilePhoto({ onUpload, onClose }) {
+  const [preview, setPreview] = useState(null);
+  const [cameraError, setCameraError] = useState(false);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
 
+  const [drag, setDrag] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastSource, setLastSource] = useState(null); // "camera" or "upload"
+
+  // Spinner for image loading
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const stopCamera = useCallback(() => {
+    setIsCameraActive(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject;
+      const tracks = stream.getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (preview) setImgLoaded(false);
+  }, [preview]);
+
   // Automatically start the camera when the component mounts
   useEffect(() => {
     startCamera();
-    return () => stopCamera(); // Cleanup camera on unmount
-  }, []);
+    return () => stopCamera();
+  }, [stopCamera]);
 
   // Handle file upload
   const handleAttachmentUpload = (event) => {
     const files = Array.from(event.target.files);
-    const file = files[0]; // Only handle the first file for profile photo
+    const file = files[0];
     if (file) {
-      setPreview(URL.createObjectURL(file)); // Set preview
-      onUpload(file); // Pass the file to the parent component
+      setIsLoading(true);
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      setLastSource("upload");
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Reset the file input
+      fileInputRef.current.value = '';
     }
+    stopCamera();
   };
 
   // Handle drag-and-drop file upload
   const handleDrop = (event) => {
     event.preventDefault();
     const files = Array.from(event.dataTransfer.files);
-    const file = files[0]; // Only handle the first file for profile photo
+    const file = files[0];
     if (file) {
-      setPreview(URL.createObjectURL(file)); // Set preview
-      onUpload(file); // Pass the file to the parent component
+      setIsLoading(true);
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      setLastSource("upload");
     }
   };
 
@@ -45,7 +97,7 @@ export default function UploadProfilePhoto({ onUpload }) {
   // Start the camera
   const startCamera = async () => {
     setIsCameraActive(true);
-    setCameraError(false); // Reset camera error
+    setCameraError(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) {
@@ -53,7 +105,6 @@ export default function UploadProfilePhoto({ onUpload }) {
         videoRef.current.play();
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
       setCameraError(true);
       setIsCameraActive(false);
     }
@@ -69,59 +120,217 @@ export default function UploadProfilePhoto({ onUpload }) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageDataUrl = canvas.toDataURL('image/png');
-      setPreview(imageDataUrl); // Set preview
+      setPreview(imageDataUrl);
+      setLastSource("camera");
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
-        onUpload(file); // Pass the captured photo to the parent component
+        // onUpload(file);
       });
     }
     stopCamera();
   };
 
-  // Stop the camera
-  const stopCamera = () => {
-    setIsCameraActive(false);
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
+  // Drag handlers for preview image
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      originX: drag.x,
+      originY: drag.y,
+    });
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
   };
+
+  // Clamp drag so image edges can't leave the preview circle
+  const clampDrag = useCallback(
+    (nextDrag) => {
+      const previewSize = 384;
+      const imgSize = zoom * previewSize;
+      const maxOffset = (imgSize - previewSize) / 2;
+      return {
+        x: Math.max(-maxOffset, Math.min(nextDrag.x, maxOffset)),
+        y: Math.max(-maxOffset, Math.min(nextDrag.y, maxOffset)),
+      };
+    },
+    [zoom]
+  );
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!dragStart) return;
+      const nextDrag = {
+        x: dragStart.originX + (e.clientX - dragStart.x),
+        y: dragStart.originY + (e.clientY - dragStart.y),
+      };
+      setDrag(clampDrag(nextDrag));
+    },
+    [dragStart, clampDrag]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setDragStart(null);
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    if (dragStart) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [dragStart, handleMouseMove, handleMouseUp]);
+
+  // Reset drag/zoom when new preview is set
+  useEffect(() => {
+    setDrag({ x: 0, y: 0 });
+    setZoom(1);
+  }, [preview]);
+
+  // When zoom changes, also clamp drag to prevent image from being out of bounds
+  useEffect(() => {
+    setDrag((prev) => clampDrag(prev));
+  }, [zoom, clampDrag]);
+
+  // Spinner: hide when image is loaded
+  useEffect(() => {
+    if (imgLoaded) setIsLoading(false);
+  }, [imgLoaded]);
 
   return (
     <div className="flex flex-col items-center gap-4 h-full justify-center">
       {/* Preview Section */}
-      <div className="size-96 rounded-full overflow-hidden bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-        {preview ? (
-          <img src={preview} alt="Profile Preview" className="w-full h-full object-cover" />
-        ) : cameraError ? (
-          <p className="text-sm text-gray-500 dark:text-dark-400">Cannot access camera</p>
-        ) : (
-          <PhotoIcon className="w-16 h-16 text-gray-300 dark:text-dark-500" />
-        )}
-      </div>
+      {!isCameraActive && (
+        <div className="flex flex-col items-center justify-center">
+          <div
+            className="size-96 rounded-full ring-4 ring-theme-600 dark:ring-theme-700 overflow-hidden bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative"
+            style={{ width: '24rem', height: '24rem' }}
+          >
+            {preview ? (
+              <div
+                className="w-full h-full cursor-move"
+                style={{
+                  overflow: 'hidden',
+                  borderRadius: '9999px',
+                  width: '24rem',
+                  height: '24rem',
+                  position: 'relative',
+                  userSelect: 'none',
+                }}
+                onMouseDown={handleMouseDown}
+              >
+                {isLoading && <Spinner />}
+                <img
+                  src={preview}
+                  alt="Profile Preview"
+                  draggable={false}
+                  onLoad={() => setImgLoaded(true)}
+                  style={{
+                    position: 'absolute',
+                    left: `calc(50% + ${drag.x}px)`,
+                    top: `calc(50% + ${drag.y}px)`,
+                    width: `${zoom * 100}%`,
+                    height: `${zoom * 100}%`,
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    transform: 'translate(-50%, -50%)',
+                    objectFit: 'cover',
+                    opacity: isLoading ? 0 : 1,
+                    transition: 'opacity 0.2s',
+                  }}
+                />
+                {/* Face outline overlay */}
+                <svg
+                  className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
+                  style={{ zIndex: 10 }}
+                  viewBox="0 0 384 384"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <ellipse
+                    cx="192"
+                    cy="180"
+                    rx="90"
+                    ry="120"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    fill="none"
+                  />
+                </svg>
+              </div>
+            ) : cameraError ? (
+              <p className="text-sm text-gray-500 dark:text-dark-400">Cannot access camera</p>
+            ) : (
+              <PhotoIcon className="w-96 text-gray-300 dark:text-dark-500" />
+            )}
+          </div>
+          {/* Zoom slider outside the preview circle */}
+          {preview && (
+            <div className="flex flex-col items-center justify-center mt-4">
+              <span className="text-sm text-gray-500 dark:text-dark-400">Zoom: {(zoom * 100).toFixed(0)}%</span>
+              <input
+                type="range"
+                min="1"
+                max="2"
+                step="0.01"
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-48 mt-4 accent-theme-600 dark:accent-theme-700"
+                aria-label="Zoom"
+              />
+            </div>
+          )}
+          {/* Camera/Retake button */}
+          <button
+            onClick={preview && lastSource === "camera" ? startCamera : startCamera}
+            className="flex items-center gap-2 bg-theme-600 text-white px-4 py-2 mt-4 rounded-md w-28"
+            disabled={isLoading}
+          >
+            <CameraIcon className="w-5 h-5" />
+            {preview && lastSource === "camera" ? "Retake" : "Use Camera"}
+          </button>
+        </div>
+      )}
 
       {/* Camera Section */}
       {isCameraActive && !cameraError ? (
-        <div className="relative">
-          <video ref={videoRef} className="size-96 rounded-full object-cover" />
+        <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
+          <div className="relative">
+            <video ref={videoRef} className="size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" />
+            {/* Face outline overlay */}
+            <svg
+              className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
+              style={{ zIndex: 10 }}
+              viewBox="0 0 384 384"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <ellipse
+                cx="192"
+                cy="180"
+                rx="90"
+                ry="120"
+                stroke="currentColor"
+                strokeWidth="6"
+                fill="none"
+              />
+            </svg>
+          </div>
+          <div className="h-14" />
           <button
             onClick={capturePhoto}
-            className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-theme-600 text-white px-4 py-2 rounded-md"
+            className="bg-theme-600 text-white px-4 py-2 rounded-md w-28"
+            disabled={isLoading}
           >
             Capture
           </button>
         </div>
-      ) : (
-        <button
-          onClick={startCamera}
-          className="flex items-center gap-2 bg-theme-600 text-white px-4 py-2 rounded-md"
-        >
-          <CameraIcon className="w-5 h-5" />
-          Use Camera
-        </button>
-      )}
+      ) : null}
 
       {/* File Upload Section */}
       <div
@@ -130,14 +339,14 @@ export default function UploadProfilePhoto({ onUpload }) {
         onDragOver={handleDragOver}
       >
         <div className="text-center">
-            <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
-            <div className="mt-4 flex text-sm text-gray-600">
+          <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
+          <div className="mt-4 flex text-sm text-gray-600">
             <label
-                htmlFor="file-upload"
-                className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
+              htmlFor="file-upload"
+              className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
             >
-                <span>Upload a file</span>
-                <input
+              <span>Upload a file</span>
+              <input
                 id="file-upload"
                 name="file-upload"
                 type="file"
@@ -146,11 +355,12 @@ export default function UploadProfilePhoto({ onUpload }) {
                 multiple
                 onChange={handleAttachmentUpload}
                 ref={fileInputRef}
-                />
+                disabled={isLoading}
+              />
             </label>
-            <p className="pl-1">or drag and drop</p>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
+            <p className="pl-1 text-gray-700 dark:text-dark-300">or drag and drop</p>
+          </div>
+          <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
         </div>
       </div>
     </div>

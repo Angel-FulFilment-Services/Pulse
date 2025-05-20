@@ -82,9 +82,11 @@ export default function Example({ employee, user }) {
                                 </div>
                                 <ClickedModal
                                     overlay={true}
-                                    size={"sm"}
+                                    size={"md"}
                                     className={`rounded-md bg-white dark:bg-dark-900 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-xs ring-1 ring-gray-300 dark:ring-dark-500 ring-inset hover:bg-gray-50 dark:hover:bg-dark-800 text-center cursor-pointer`}
-                                    onClose={() => null} // Clear the message when the flyout closes
+                                    onClose={() => {
+                                        
+                                    }} // Clear the message when the flyout closes
                                     content={(handleSubmit, handleClose) => UploadProfilePhoto 
                                     }
                                 >
