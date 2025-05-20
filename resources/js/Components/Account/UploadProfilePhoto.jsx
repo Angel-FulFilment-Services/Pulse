@@ -116,32 +116,32 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       const video = videoRef.current;
       const previewSize = 384;
 
-      // Get the aspect ratios
-      const videoAspect = video.videoWidth / video.videoHeight;
-      const previewAspect = 1; // square
+      // Get the displayed size of the video element
+      const rect = video.getBoundingClientRect();
+      const displayWidth = rect.width;
+      const displayHeight = rect.height;
 
-      let sx, sy, sWidth, sHeight;
+      // Get the natural size of the video stream
+      const videoWidth = video.videoWidth;
+      const videoHeight = video.videoHeight;
 
-      if (videoAspect > previewAspect) {
-        // Video is wider than preview: crop the sides
-        sHeight = video.videoHeight;
-        sWidth = video.videoHeight * previewAspect;
-        sx = (video.videoWidth - sWidth) / 2;
-        sy = 0;
-      } else {
-        // Video is taller than preview: crop the top/bottom
-        sWidth = video.videoWidth;
-        sHeight = video.videoWidth / previewAspect;
-        sx = 0;
-        sy = (video.videoHeight - sHeight) / 2;
-      }
+      // Calculate the scale between displayed and natural size
+      const scale = Math.max(displayWidth / videoWidth, displayHeight / videoHeight);
+
+      // Calculate the size of the area from the video frame that is visible in the preview
+      const cropWidth = previewSize / scale;
+      const cropHeight = previewSize / scale;
+
+      // Calculate the top-left corner of the crop area in the video frame
+      const sx = (videoWidth - cropWidth) / 2;
+      const sy = (videoHeight - cropHeight) / 2;
 
       // Draw to a square canvas
       const canvas = document.createElement('canvas');
       canvas.width = previewSize;
       canvas.height = previewSize;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, previewSize, previewSize);
+      ctx.drawImage(video, sx, sy, cropWidth, cropHeight, 0, 0, previewSize, previewSize);
 
       const imageDataUrl = canvas.toDataURL('image/png');
       setPreview(imageDataUrl);
