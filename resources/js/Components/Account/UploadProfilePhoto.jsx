@@ -114,28 +114,24 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   const capturePhoto = () => {
     if (videoRef.current) {
       const video = videoRef.current;
+      const previewSize = 384;
       // Find the largest centered square in the video frame
       const size = Math.min(video.videoWidth, video.videoHeight);
       const sx = (video.videoWidth - size) / 2;
       const sy = (video.videoHeight - size) / 2;
 
-      // Draw to a square canvas
+      // Always output a 384x384 image
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = previewSize;
+      canvas.height = previewSize;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+      // Draw the centered square from the video, scaled to 384x384
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, previewSize, previewSize);
 
       const imageDataUrl = canvas.toDataURL('image/png');
       setPreview(imageDataUrl);
       setLastSource("camera");
-
-      // Set initial zoom so the whole image fits the crop area
-      const previewSize = 384; // or your crop size
-      const initialZoom = previewSize / size;
-      setZoom(initialZoom);
-      setDrag({ x: 0, y: 0 });
-
+      // No need to set zoom/drag here; let your cropper handle it as usual
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
         // You can use this file if needed
