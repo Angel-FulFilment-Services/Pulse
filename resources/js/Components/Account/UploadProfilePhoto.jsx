@@ -113,17 +113,25 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   // Capture photo from the camera
   const capturePhoto = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
       const video = videoRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Find the largest centered square in the video frame
+      const size = Math.min(video.videoWidth, video.videoHeight);
+      const sx = (video.videoWidth - size) / 2;
+      const sy = (video.videoHeight - size) / 2;
+
+      // Draw to a square canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+
       const imageDataUrl = canvas.toDataURL('image/png');
       setPreview(imageDataUrl);
       setLastSource("camera");
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.png', { type: 'image/png' });
+        // You can use this file if needed
       });
     }
     stopCamera();
@@ -253,8 +261,8 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.closePath();
           ctx.clip();
 
-          // Use Math.min to fit the whole image inside the crop area
-          const scale = Math.min(previewSize / img.width, previewSize / img.height) * zoom;
+          // Calculate scale to fit the image within the preview area, then apply zoom
+          const scale = Math.max(previewSize / img.width, previewSize / img.height) * zoom;
           const displayWidth = img.width * scale;
           const displayHeight = img.height * scale;
 
