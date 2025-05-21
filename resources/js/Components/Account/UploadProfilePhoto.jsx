@@ -63,38 +63,11 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   }, [stopCamera]);
 
   const processImageToSquare = (file, callback) => {
-    loadImage(
-      file,
-      (img) => {
-        const previewSize = 384;
-        const canvas = document.createElement('canvas');
-        canvas.width = previewSize;
-        canvas.height = previewSize;
-        const ctx = canvas.getContext('2d');
-
-        // "Contain" logic
-        const imgAspect = img.width / img.height;
-        const canvasAspect = 1;
-
-        let drawWidth, drawHeight, dx, dy;
-        if (imgAspect > canvasAspect) {
-          drawWidth = previewSize;
-          drawHeight = previewSize / imgAspect;
-          dx = 0;
-          dy = (previewSize - drawHeight) / 2;
-        } else {
-          drawHeight = previewSize;
-          drawWidth = previewSize * imgAspect;
-          dx = (previewSize - drawWidth) / 2;
-          dy = 0;
-        }
-
-        ctx.clearRect(0, 0, previewSize, previewSize);
-        ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
-        callback(canvas.toDataURL('image/png'));
-      },
-      { orientation: true, canvas: false }
-    );
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      callback(e.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Handle file upload
@@ -404,7 +377,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     maxWidth: 'none',
                     maxHeight: 'none',
                     transform: 'translate(-50%, -50%)',
-                    objectFit: 'cover',
+                    objectFit: 'contain',
                     opacity: isLoading ? 0 : 1,
                     transition: 'opacity 0.2s',
                   }}
@@ -520,7 +493,6 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                 type="file"
                 className="sr-only"
                 accept="image/png, image/gif, image/jpeg, image/jpg"
-                multiple
                 onChange={handleAttachmentUpload}
                 ref={fileInputRef}
                 disabled={isLoading}
