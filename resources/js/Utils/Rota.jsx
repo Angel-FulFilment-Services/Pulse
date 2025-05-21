@@ -2,13 +2,13 @@ import { differenceInMinutes, differenceInSeconds, isSameDay, format } from 'dat
 
 export function getStatus(shift, timesheets, events) {
   const statuses = {
-    attended: 'text-green-700 bg-green-50 ring-green-600/20 dark:text-green-700 dark:bg-green-200/75 dark:ring-green-800/10',
-    upcoming: 'text-gray-600 bg-gray-50 ring-gray-500/10 dark:text-gray-900 dark:bg-gray-200/75 dark:ring-gray-800/10',
-    late: 'text-orange-700 bg-orange-50 ring-orange-600/10 dark:text-orange-700 dark:bg-orange-200/75 dark:ring-orange-800/10',
-    absent: 'text-red-700 bg-red-50 ring-red-600/10 dark:text-red-700 dark:bg-red-200/75 dark:ring-red-800/10',
-    awol: 'text-red-700 bg-red-50 ring-red-600/10 dark:text-red-700 dark:bg-red-200/75 dark:ring-red-800/10',
-    sick: 'text-yellow-600 bg-yellow-50 ring-yellow-600/10 dark:text-yellow-700 dark:bg-yellow-200/75 dark:ring-yellow-800/10',
-    flagged: 'text-blue-700 bg-blue-50 ring-blue-600/20 dark:text-blue-700 dark:bg-blue-200/75 dark:ring-blue-800/10',
+    attended: 'text-green-700 bg-green-50 ring-green-600/20 dark:text-green-700 dark:bg-green-100/85 dark:ring-green-800/10',
+    upcoming: 'text-gray-600 bg-gray-50 ring-gray-500/10 dark:text-gray-900 dark:bg-gray-100/85 dark:ring-gray-800/10',
+    late: 'text-orange-700 bg-orange-50 ring-orange-600/10 dark:text-orange-800 dark:bg-orange-200/85 dark:ring-orange-800/10',
+    absent: 'text-red-700 bg-red-50 ring-red-600/10 dark:text-red-700 dark:bg-red-100/85 dark:ring-red-800/10',
+    awol: 'text-red-700 bg-red-50 ring-red-600/10 dark:text-red-700 dark:bg-red-100/85 dark:ring-red-800/10',
+    sick: 'text-yellow-600 bg-yellow-50 ring-yellow-600/10 dark:text-yellow-700 dark:bg-yellow-100/85 dark:ring-yellow-800/10',
+    flagged: 'text-blue-700 bg-blue-50 ring-blue-600/20 dark:text-blue-700 dark:bg-blue-100/85 dark:ring-blue-800/10',
   };
 
   const shiftStartDate = new Date(shift.shiftdate);
@@ -84,13 +84,17 @@ export function getStatus(shift, timesheets, events) {
     return { status: 'Absent', color: statuses.absent, due: shiftStartDate, end: shiftEndDate };
   }
 
-  if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) <= 60) {
+  if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) <= 60 && differenceInMinutes(new Date(), shiftStartDate) > 1) {
     return { status: 'Late', color: statuses.late, due: shiftStartDate, end: shiftEndDate };
+  }
+
+  if (!earliestTimesheet && differenceInMinutes(new Date(), shiftStartDate) <= 1) {
+    return { status: 'Overdue', color: statuses.upcoming, due: shiftStartDate, end: shiftEndDate };
   }
 
   const onTime = new Date(earliestTimesheet.on_time);
 
-  if (onTime <= shiftStartDate) {
+  if (onTime <= new Date(shiftStartDate.getTime() + 1 * 60 * 1000)) {
     return { status: 'Attended', color: statuses.attended, due: shiftStartDate, end: shiftEndDate };
   }
 
