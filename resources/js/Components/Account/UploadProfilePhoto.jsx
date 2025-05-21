@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
-import loadImage from 'blueimp-load-image';
 
 // Simple spinner component
 function Spinner() {
@@ -41,6 +40,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
   // Spinner for image loading
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [lastPinchDistance, setLastPinchDistance] = useState(null);
 
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
@@ -62,24 +62,15 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     return () => stopCamera();
   }, [stopCamera]);
 
-  const processImageToSquare = (file, callback) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      callback(e.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
   // Handle file upload
   const handleAttachmentUpload = (event) => {
     const files = Array.from(event.target.files);
     const file = files[0];
     if (file) {
       setIsLoading(true);
-      processImageToSquare(file, (dataUrl) => {
-        setPreview(dataUrl);
-        setLastSource("upload");
-      });
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      setLastSource("upload");
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -94,10 +85,9 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     const file = files[0];
     if (file) {
       setIsLoading(true);
-      processImageToSquare(file, (dataUrl) => {
-        setPreview(dataUrl);
-        setLastSource("upload");
-      });
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      setLastSource("upload");
     }
   };
 
@@ -180,29 +170,47 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
   // Touch handlers for preview image
   const handleTouchStart = (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    setDragStart({
-      x: touch.clientX,
-      y: touch.clientY,
-      originX: drag.x,
-      originY: drag.y,
-    });
-    window.addEventListener('touchmove', handleTouchMove);
-    window.addEventListener('touchend', handleTouchEnd);
+    if (e.touches.length === 2) {
+      // Pinch start
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      setLastPinchDistance(Math.sqrt(dx * dx + dy * dy));
+    } else if (e.touches.length === 1) {
+      // Drag start
+      const touch = e.touches[0];
+      setDragStart({
+        x: touch.clientX,
+        y: touch.clientY,
+        originX: drag.x,
+        originY: drag.y,
+      });
+    }
   };
 
   const handleTouchMove = (e) => {
-    if (!dragStart) return;
-    const touch = e.touches[0];
-    const nextDrag = {
-      x: dragStart.originX + (touch.clientX - dragStart.x),
-      y: dragStart.originY + (touch.clientY - dragStart.y),
-    };
-    setDrag(clampDrag(nextDrag));
+    if (e.touches.length === 2 && lastPinchDistance !== null) {
+      // Pinch to zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDistance = Math.sqrt(dx * dx + dy * dy);
+      const delta = newDistance - lastPinchDistance;
+      setLastPinchDistance(newDistance);
+
+      // Adjust zoom, clamp between 1 and 2
+      setZoom((prevZoom) => Math.max(1, Math.min(2, prevZoom + delta / 200)));
+    } else if (e.touches.length === 1 && dragStart) {
+      // Drag
+      const touch = e.touches[0];
+      const nextDrag = {
+        x: dragStart.originX + (touch.clientX - dragStart.x),
+        y: dragStart.originY + (touch.clientY - dragStart.y),
+      };
+      setDrag(clampDrag(nextDrag));
+    }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    setLastPinchDistance(null);
     setDragStart(null);
     window.removeEventListener('touchmove', handleTouchMove);
     window.removeEventListener('touchend', handleTouchEnd);
@@ -289,8 +297,12 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.closePath();
           ctx.clip();
 
-          // Calculate scale to fit the image within the preview area, then apply zoom
-          const scale = Math.max(previewSize / img.width, previewSize / img.height) * zoom;
+          // Use "contain" for uploads, "cover" for camera
+          const baseScale = lastSource === "upload"
+            ? Math.min(previewSize / img.width, previewSize / img.height)
+            : Math.max(previewSize / img.width, previewSize / img.height);
+
+          const scale = baseScale * zoom;
           const displayWidth = img.width * scale;
           const displayHeight = img.height * scale;
 
@@ -363,6 +375,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     backgroundColor: 'rgba(239, 68, 68, 0.2)',
                   }}
                 >
+                </div>
                 <img
                   src={preview}
                   alt="Profile Preview"
@@ -377,13 +390,11 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     maxWidth: 'none',
                     maxHeight: 'none',
                     transform: 'translate(-50%, -50%)',
-                    objectFit: 'contain',
+                    objectFit: lastSource === 'upload' ? 'contain' : 'cover',
                     opacity: isLoading ? 0 : 1,
                     transition: 'opacity 0.2s',
                   }}
                 />
-
-                </div>
                 {/* Face outline overlay */}
                 <svg
                   className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
@@ -475,32 +486,34 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
       {/* File Upload Section */}
       <div
-        className="flex flex-col items-center border-2 border-dashed border-gray-300 dark:border-dark-500 rounded-md px-4 py-3 w-full max-w-md"
+        className="flex flex-col items-center border-2 border-dashed border-gray-300 dark:border-dark-500 rounded-md px-4 py-0.5 sm:py-3 w-full max-w-md"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        <div className="text-center">
-          <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600 mb-1" />
-          <div className="flex text-sm text-gray-600">
-            <label
-              htmlFor="file-upload"
-              className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
-            >
-              <span>Upload a file</span>
-              <input
-                id="file-upload"
-                name="file-upload"
-                type="file"
-                className="sr-only"
-                accept="image/png, image/gif, image/jpeg, image/jpg"
-                onChange={handleAttachmentUpload}
-                ref={fileInputRef}
-                disabled={isLoading}
-              />
-            </label>
-            <p className="pl-1 text-gray-700 dark:text-dark-300">or drag and drop</p>
+        <div className="text-center flex items-center gap-x-2 sm:block">
+          <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600 sm:mb-1" />
+          <div>
+            <div className="flex text-sm text-gray-600">
+              <label
+                htmlFor="file-upload"
+                className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
+              >
+                <span>Upload a file</span>
+                <input
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                  accept="image/png, image/gif, image/jpeg, image/jpg"
+                  onChange={handleAttachmentUpload}
+                  ref={fileInputRef}
+                  disabled={isLoading}
+                />
+              </label>
+              <p className="pl-1 text-gray-700 dark:text-dark-300 hidden sm:block">or drag and drop</p>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
           </div>
-          <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
         </div>
       </div>
 
