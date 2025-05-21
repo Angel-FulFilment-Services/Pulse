@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
+import loadImage from 'blueimp-load-image';
 
 // Simple spinner component
 function Spinner() {
@@ -62,29 +63,26 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   }, [stopCamera]);
 
   const processImageToSquare = (file, callback) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new window.Image();
-      img.onload = () => {
+    loadImage(
+      file,
+      (img) => {
         const previewSize = 384;
         const canvas = document.createElement('canvas');
         canvas.width = previewSize;
         canvas.height = previewSize;
         const ctx = canvas.getContext('2d');
 
-        // "Contain" logic: fit the whole image inside the square, centered
+        // "Contain" logic
         const imgAspect = img.width / img.height;
-        const canvasAspect = 1; // square
+        const canvasAspect = 1;
 
         let drawWidth, drawHeight, dx, dy;
         if (imgAspect > canvasAspect) {
-          // Image is wider: fit width
           drawWidth = previewSize;
           drawHeight = previewSize / imgAspect;
           dx = 0;
           dy = (previewSize - drawHeight) / 2;
         } else {
-          // Image is taller or square: fit height
           drawHeight = previewSize;
           drawWidth = previewSize * imgAspect;
           dx = (previewSize - drawWidth) / 2;
@@ -94,10 +92,9 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         ctx.clearRect(0, 0, previewSize, previewSize);
         ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
         callback(canvas.toDataURL('image/png'));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+      },
+      { orientation: true, canvas: false }
+    );
   };
 
   // Handle file upload
