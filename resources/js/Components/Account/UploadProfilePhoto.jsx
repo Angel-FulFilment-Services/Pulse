@@ -171,12 +171,12 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   // Touch handlers for preview image
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
-      // Pinch start
+      e.preventDefault(); // Prevent pinch-zoom on page
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       setLastPinchDistance(Math.sqrt(dx * dx + dy * dy));
     } else if (e.touches.length === 1) {
-      // Drag start
+      e.preventDefault(); // Prevent scroll on page
       const touch = e.touches[0];
       setDragStart({
         x: touch.clientX,
@@ -189,17 +189,15 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
   const handleTouchMove = (e) => {
     if (e.touches.length === 2 && lastPinchDistance !== null) {
-      // Pinch to zoom
+      e.preventDefault(); // Prevent pinch-zoom on page
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const newDistance = Math.sqrt(dx * dx + dy * dy);
       const delta = newDistance - lastPinchDistance;
       setLastPinchDistance(newDistance);
-
-      // Adjust zoom, clamp between 1 and 2
       setZoom((prevZoom) => Math.max(1, Math.min(2, prevZoom + delta / 200)));
     } else if (e.touches.length === 1 && dragStart) {
-      // Drag
+      e.preventDefault(); // Prevent scroll on page
       const touch = e.touches[0];
       const nextDrag = {
         x: dragStart.originX + (touch.clientX - dragStart.x),
@@ -210,6 +208,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   };
 
   const handleTouchEnd = (e) => {
+    e.preventDefault(); // Prevent unwanted gestures
     setLastPinchDistance(null);
     setDragStart(null);
     window.removeEventListener('touchmove', handleTouchMove);
@@ -393,6 +392,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     objectFit: lastSource === 'upload' ? 'contain' : 'cover',
                     opacity: isLoading ? 0 : 1,
                     transition: 'opacity 0.2s',
+                    touchAction: 'none',
                   }}
                 />
                 {/* Face outline overlay */}
