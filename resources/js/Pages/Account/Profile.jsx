@@ -223,7 +223,7 @@ export default function Profile({ employee, user }) {
                             id={"firstname"}
                             disabled={true}
                             autoComplete={"firstname"}
-                            currentState={employee.firstname}
+                            currentState={employee?.firstname}
                             label="First name"
                             placeholder="Enter your firstname"                    
                         />
@@ -234,7 +234,7 @@ export default function Profile({ employee, user }) {
                             id={"lastname"}
                             disabled={true}
                             autoComplete={"lastname"}
-                            currentState={employee.surname}
+                            currentState={employee?.surname}
                             label="Last name"
                             placeholder="Enter your last name"                    
                         />
@@ -245,7 +245,7 @@ export default function Profile({ employee, user }) {
                             id={"email_home"}
                             disabled={true}
                             autoComplete={"email"}
-                            currentState={employee.contact_home_email}
+                            currentState={employee?.contact_home_email}
                             annotation="(This is your personal email address. Used for payslips.)"
                             label="Email"
                             Icon={EnvelopeIcon}
@@ -267,7 +267,7 @@ export default function Profile({ employee, user }) {
                             spellCheck={false} 
                             items={[{}]} 
                             placeholder={"Postcode"} 
-                            currentState={employee.home_postcode}
+                            currentState={employee?.home_postcode}
                             disabled={true}
                         />
                     </div>
@@ -278,7 +278,7 @@ export default function Profile({ employee, user }) {
                             label={"Address Line 1"} 
                             autoComplete={"address-line1"} 
                             placeholder={"Address Line 1"} 
-                            currentState={employee.home_address1} 
+                            currentState={employee?.home_address1} 
                             disabled={true}
                         />
                     </div>
@@ -289,7 +289,7 @@ export default function Profile({ employee, user }) {
                             label={"Address Line 2"} 
                             autoComplete={"address-line2"} 
                             placeholder={"Address Line 2"} 
-                            currentState={employee.home_address2} 
+                            currentState={employee?.home_address2} 
                             disabled={true}
                         />
                     </div>
@@ -300,7 +300,7 @@ export default function Profile({ employee, user }) {
                             label={"Address Line 3"} 
                             autoComplete={"address-line3"} 
                             placeholder={"Address Line 3"} 
-                            currentState={employee.home_address3} 
+                            currentState={employee?.home_address3} 
                             disabled={true}
                         />
                     </div>
@@ -311,7 +311,7 @@ export default function Profile({ employee, user }) {
                             label={"Town / City"} 
                             autoComplete={"town"} 
                             placeholder={"Town"} 
-                            currentState={employee.home_town}
+                            currentState={employee?.home_town}
                             disabled={true}    
                         />
                     </div>
@@ -323,7 +323,7 @@ export default function Profile({ employee, user }) {
                             spellCheck={false} 
                             items={counties} 
                             placeholder={"County"} 
-                            currentState={employee.home_county}
+                            currentState={employee?.home_county}
                             disabled={true}
                         />
                     </div>
