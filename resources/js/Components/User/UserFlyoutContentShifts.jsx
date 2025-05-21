@@ -55,7 +55,17 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
     const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
     return total + differenceInMinutes(offTime, onTime);
   }, 0);
+  const totalActualMinutesExcludingBreaks = timesheets.reduce((total, timesheet) => {
+      if( timesheet.category === "Break"){
+        return total;
+      }
+
+      const onTime = new Date(timesheet.on_time);
+      const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+      return total + differenceInMinutes(offTime, onTime);
+  }, 0);
   const workedPercentage = calculateWorkedPercentage(totalShiftMinutes - reductionMinutes, totalActualMinutes);
+  const workedPercentageExcludingBreaks = calculateWorkedPercentage(totalShiftMinutes - reductionMinutes, totalActualMinutesExcludingBreaks);
 
   return (
     <div className="px-4 py-3 h-full flex flex-col justify-between items-start divide-y divide-gray-200 dark:divide-dark-700">
@@ -130,7 +140,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               })}
         </ul>
       </div>
-      <div className="mx-auto pt-2 grid grid-cols-3 w-full justify-between">
+      <div className="mx-auto pt-2 grid grid-cols-5 w-full justify-between">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Scheduled</div>
           <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
@@ -145,9 +155,9 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             }
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+        <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="flex flex-col justify-center items-start">
-            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked</div>
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
               { isTransitioning ? 
                 <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
@@ -195,14 +205,43 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             </div>
           </div>
         </div> */}
-        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="flex flex-col justify-center items-center">
-            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked</div>
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
               { isTransitioning ? 
                 <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
                 :
                 `${workedPercentage}%`
+              }
+              
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+          <div className="flex flex-col justify-center items-start">
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Excl. Breaks)</span></div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
+              { isTransitioning ? 
+                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+              :
+                <span>
+                  {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && `${Math.floor(totalActualMinutesExcludingBreaks / 60)} hours`}
+                  {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && totalActualMinutesExcludingBreaks % 60 > 0 && ', '}
+                  {totalActualMinutesExcludingBreaks % 60 > 0 && `${totalActualMinutesExcludingBreaks % 60} minutes`}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+          <div className="flex flex-col justify-center items-center">
+            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Excl. Breaks)</span></div>
+            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
+              { isTransitioning ? 
+                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                :
+                `${workedPercentageExcludingBreaks}%`
               }
               
             </div>
