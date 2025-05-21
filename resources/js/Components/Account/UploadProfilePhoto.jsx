@@ -61,15 +61,55 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     return () => stopCamera();
   }, [stopCamera]);
 
+  const processImageToSquare = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const previewSize = 384;
+        const canvas = document.createElement('canvas');
+        canvas.width = previewSize;
+        canvas.height = previewSize;
+        const ctx = canvas.getContext('2d');
+
+        // "Contain" logic: fit the whole image inside the square, centered
+        const imgAspect = img.width / img.height;
+        const canvasAspect = 1; // square
+
+        let drawWidth, drawHeight, dx, dy;
+        if (imgAspect > canvasAspect) {
+          // Image is wider: fit width
+          drawWidth = previewSize;
+          drawHeight = previewSize / imgAspect;
+          dx = 0;
+          dy = (previewSize - drawHeight) / 2;
+        } else {
+          // Image is taller or square: fit height
+          drawHeight = previewSize;
+          drawWidth = previewSize * imgAspect;
+          dx = (previewSize - drawWidth) / 2;
+          dy = 0;
+        }
+
+        ctx.clearRect(0, 0, previewSize, previewSize);
+        ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
+        callback(canvas.toDataURL('image/png'));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Handle file upload
   const handleAttachmentUpload = (event) => {
     const files = Array.from(event.target.files);
     const file = files[0];
     if (file) {
       setIsLoading(true);
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      setLastSource("upload");
+      processImageToSquare(file, (dataUrl) => {
+        setPreview(dataUrl);
+        setLastSource("upload");
+      });
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -84,9 +124,10 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     const file = files[0];
     if (file) {
       setIsLoading(true);
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      setLastSource("upload");
+      processImageToSquare(file, (dataUrl) => {
+        setPreview(dataUrl);
+        setLastSource("upload");
+      });
     }
   };
 
@@ -321,7 +362,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       {!isCameraActive && (
         <div className="flex flex-col items-center justify-center gap-y-2">
           <div
-            className="size-64 lg:size-96 rounded-full ring-4 ring-theme-600 dark:ring-theme-700 overflow-hidden bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative"
+            className="size-64 lg:size-96 rounded-full ring-4 ring-theme-500 dark:ring-theme-600 overflow-hidden bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative"
           >
             {preview ? (
               <div
@@ -340,6 +381,18 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                 onTouchEnd={handleTouchEnd}
               >
                 {isLoading && <Spinner />}
+                <div className="absolute inset-0 flex border-8 border-red-400/20 border-dashed rounded-full"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      45deg,
+                      rgba(239,68,68,0.08) 0px,
+                      rgba(239,68,68,0.08) 8px,
+                      transparent 8px,
+                      transparent 16px
+                    )`,
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                  }}
+                >
                 <img
                   src={preview}
                   alt="Profile Preview"
@@ -359,6 +412,8 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     transition: 'opacity 0.2s',
                   }}
                 />
+
+                </div>
                 {/* Face outline overlay */}
                 <svg
                   className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
@@ -417,7 +472,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       {isCameraActive && !cameraError ? (
         <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
           <div className="relative">
-            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-600 dark:ring-theme-700" playsInline autoPlay muted/>
+            <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-500 dark:ring-theme-600" playsInline autoPlay muted/>
             {/* Face outline overlay */}
             <svg
               className="pointer-events-none absolute top-0 left-0 w-full h-full text-theme-500 dark:text-theme-600 opacity-50"
