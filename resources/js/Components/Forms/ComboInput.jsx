@@ -30,7 +30,7 @@ export default function ComboInput(props) {
         <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">{label}</Combobox.Label>
         <div className="relative mt-2">
           <Combobox.Input
-            className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${typeof selected !== "undefined" && !selected.value && error ? "ring-red-600 text-red-800 dark:ring-red-700 dark:text-red-900" : "ring-gray-300 dark:ring-dark-600"} shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6 disabled:text-gray-600 dark:disabled:text-dark-500 ${disabled ? "opacity-75 cursor-not-allowed" : ""}`}
+            className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${typeof selected !== "undefined" && !selected?.value && error ? "ring-red-600 text-red-800 dark:ring-red-700 dark:text-red-900" : "ring-gray-300 dark:ring-dark-600"} shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-dark-600 focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6 disabled:text-gray-600 dark:disabled:text-dark-500 ${disabled ? "opacity-75 cursor-not-allowed" : ""}`}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
             spellCheck={spellCheck}
