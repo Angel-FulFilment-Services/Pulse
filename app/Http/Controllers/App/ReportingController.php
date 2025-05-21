@@ -44,7 +44,7 @@ class ReportingController extends Controller
                         COUNT(shifts.shiftdate) AS shifts_scheduled,
                         SUM(
                             CASE
-                                WHEN earliest_timesheet.on_time > STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i")
+                                WHEN earliest_timesheet.on_time > DATE_ADD(STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), INTERVAL 1 MINUTE)
                                 THEN 1
                                 ELSE 0
                             END
