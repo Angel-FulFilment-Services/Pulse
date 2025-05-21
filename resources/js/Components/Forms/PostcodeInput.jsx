@@ -9,7 +9,7 @@ function classNames(...classes) {
 }
 
 export default function ComboInput(props) {
-  const { id, label, currentState, placeholder, onComboChange } = props;
+  const { id, label, currentState, placeholder, onComboChange, disabled } = props;
   const [selected, setSelected] = useState(currentState);
   const [query, setQuery] = useState(currentState || '');
   const [items, setItems] = useState([]);
@@ -86,21 +86,22 @@ export default function ComboInput(props) {
   return (
     <>
       <Combobox as="div" value={currentState} onChange={handleComboChange}>
-        <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900">{label}</Combobox.Label>
+        <Combobox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">{label}</Combobox.Label>
         <div className="mt-2">
-          <div class="w-1/3 relative">
+          <div class="w-full relative">
             <Combobox.Input
-              className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${error ? "ring-red-600 dark:text-red-700" : "ring-gray-300 dark:ring-dark-600"}  ${typeof selected !== "undefined" && !selected.value && "text-gray-400 dark:text-dark-500"} shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6 uppercase placeholder:normal-case`}
+              className={`w-full rounded-md border-0 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 z-10 text-gray-900 dark:text-dark-100 ${error && !disabled ? "ring-red-600 dark:text-red-700" : "ring-gray-300 dark:ring-dark-600"}  ${typeof selected !== "undefined" && !selected.value && "text-gray-400 dark:text-dark-500"} shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6 uppercase placeholder:normal-case disabled:text-gray-600 dark:disabled:text-dark-500 ${disabled ? "opacity-75 cursor-not-allowed" : ""}`}
               onChange={handleInputChange}
               displayValue={currentState}
               placeholder={placeholder}
+              disabled={disabled}
               maxLength={8}
               spellCheck="false" // Disable spellcheck
               autoComplete="stop-autocom" // Disable browser autofill
               name="stop-autocom" // Use a random string for the name attribute
             />
-            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none">
-              <ChevronUpDownIcon className={`h-5 w-5 ${error ? "text-red-600 dark:text-red-700" : "text-gray-400 dark:text-dark-500" }`} aria-hidden="true" />
+            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none disabled:cursor-not-allowed" disabled={disabled}>
+              <ChevronUpDownIcon className={`h-5 w-5 ${error && !disabled ? "text-red-600 dark:text-red-700" : "text-gray-400 dark:text-dark-500" }`} aria-hidden="true" />
             </Combobox.Button>
           </div>
           {items.length > 0 && (
@@ -136,7 +137,7 @@ export default function ComboInput(props) {
             </Combobox.Options>
           )}
         </div>
-        {error && <p className="mt-2 text-sm text-red-600 dark:text-red-700">{error}</p>}
+        {error && !disabled && <p className="mt-2 text-sm text-red-600 dark:text-red-700">{error}</p>}
       </Combobox>
     </>
   );

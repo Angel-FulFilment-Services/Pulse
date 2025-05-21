@@ -15,6 +15,7 @@ class ResetController extends Controller
     // Block logged in user from resetting password
     public function __construct(){
         $this->middleware(['guest']);
+        $this->middleware(['log.access']);
     }
 
     // Return the reset password view.

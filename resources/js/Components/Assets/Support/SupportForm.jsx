@@ -384,29 +384,29 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                         >
-                        <div className="text-center">
-                            <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
-                            <div className="mt-4 flex text-sm text-gray-600">
-                            <label
-                                htmlFor="file-upload"
-                                className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
-                            >
-                                <span>Upload a file</span>
-                                <input
-                                id="file-upload"
-                                name="file-upload"
-                                type="file"
-                                className="sr-only"
-                                accept="image/png, image/gif, image/jpeg, image/jpg"
-                                multiple
-                                onChange={handleAttachmentUpload}
-                                ref={fileInputRef}
-                                />
-                            </label>
-                            <p className="pl-1">or drag and drop</p>
+                            <div className="text-center">
+                                <PhotoIcon aria-hidden="true" className="mx-auto h-12 w-12 text-gray-300 dark:text-dark-600" />
+                                <div className="mt-4 flex text-sm text-gray-600">
+                                <label
+                                    htmlFor="file-upload"
+                                    className="relative cursor-pointer rounded-md bg-white dark:bg-dark-900 font-semibold text-theme-600 dark:text-theme-700 focus-within:ring-2 focus-within:ring-theme-600 dark:focus-within:ring-theme-700 focus-within:ring-offset-2 hover:text-theme-500 dark:hover:text-theme-500"
+                                >
+                                    <span>Upload a file</span>
+                                    <input
+                                    id="file-upload"
+                                    name="file-upload"
+                                    type="file"
+                                    className="sr-only"
+                                    accept="image/png, image/gif, image/jpeg, image/jpg"
+                                    multiple
+                                    onChange={handleAttachmentUpload}
+                                    ref={fileInputRef}
+                                    />
+                                </label>
+                                <p className="pl-1">or drag and drop</p>
+                                </div>
+                                <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-dark-400">PNG, JPG, GIF up to 10MB</p>
-                        </div>
                         </div>
                     </div>
                     </div>

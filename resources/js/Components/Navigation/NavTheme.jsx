@@ -64,7 +64,7 @@ export default function NavTheme() {
   }
 
   return (
-    <div className="flex flex-col gap-2 divide-y divide-gray-200 dark:divide-gray-700"
+    <div className="flex flex-col gap-2 divide-y divide-gray-200 dark:divide-dark-700"
       onClick={e => {
         e.preventDefault();
         e.stopPropagation();

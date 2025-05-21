@@ -15,6 +15,7 @@ class ActivationController extends Controller
     // Blocked logged in user from registering
     public function __construct(){
         $this->middleware(['guest']);
+        $this->middleware(['log.access']);
     }
 
     // Return the registation view

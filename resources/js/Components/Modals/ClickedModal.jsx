@@ -3,6 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 
 export default function ClickedModal({
   size = 'md', // Default size
+  customSize = null, // Custom size
   className = '',
   style = {},
   children, // Trigger element
@@ -72,7 +73,7 @@ export default function ClickedModal({
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
                 <Dialog.Panel
-                  className={`relative transform overflow-hidden rounded-lg bg-white dark:bg-dark-900 text-left shadow-xl transition-all mt-14 lg:mt-0 mx-0 md:mx-6 ${sizeClasses[size]}`}
+                  className={`relative transform overflow-hidden rounded-lg bg-white dark:bg-dark-900 text-left shadow-xl transition-all mt-14 lg:mt-0 mx-0 md:mx-6 ${!customSize ? sizeClasses[size] : customSize} overflow-y-auto max-h-screen`}
                 >
                   {/* Modal Content */}
                   {content(handleSubmit, handleClose)}

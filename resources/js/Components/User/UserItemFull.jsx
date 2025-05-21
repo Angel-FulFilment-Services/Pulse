@@ -22,7 +22,7 @@ const SkeletonLoader = ({ className }) => (
 
 const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, headingClass = null, subHeadingClass = null}) => {
   const selectedSizeClass = sizeClasses[iconSize] || sizeClasses['medium'];
-  const userStates = useUserStates();
+  const { userStates } = useUserStates();
   const userState = agent?.hr_id ? userStates[agent.hr_id] : null;
   const jobTitle = userState ? userState.job_title : null;
 

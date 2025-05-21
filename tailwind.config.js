@@ -18,9 +18,24 @@ export default {
             transform: 'translate3d(0, -0.5rem, 0)'
           }
         },
+        'dot-sequence': {
+          "0%": {
+            opacity: 0,
+          },
+          "33%": {
+            opacity: 1,
+          },
+          "66%": {
+            opacity: 0,
+          },
+          "100%": {
+            opacity: 0,
+          },
+        },
       },
       animation: {
         'loader': 'loader 0.6s infinite alternate',
+        'dot-squence': 'dot-sequence 1.5s infinite',
       },
       colors: {
         theme: {
