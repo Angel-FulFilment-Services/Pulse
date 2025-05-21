@@ -40,18 +40,42 @@ class LoginController extends Controller
 
         // Check if the user has permission to access Pulse
         $user = User::where('email', STR::lower($request->email))->first();
-        if ($user && !$user->hasPermission('pulse_allow_access')) {
-            return back()->withErrors(['error' => 'You do not have permission to access this application.']);
+        if($user){
+            if (!$user->hasPermission('pulse_allow_access')) {
+                return back()->withErrors(['error' => 'You do not have permission to access this application.']);
+            }
+    
+            if ($user->active == -3) {
+                return back()->withErrors(['error' => 'Your account has been locked due to too many failed login attempts. Please contact support.']);
+            }
+    
+            if ($user->login_attempt >= 5) {
+                // Reset login_attempt and lock the account
+                $user->update([
+                    'login_attempt' => 0,
+                    'active' => -3
+                ]);
+    
+                return back()->withErrors(['error' => 'Your account has been locked due to too many failed login attempts. Please contact support.']);
+            }
         }
 
         // sign in user
         if (!auth()->attempt(['email' => STR::lower($request->email), 'password' => $request->password, 'active' => 1],$request->remember)){                            
-            if(User::where('active', 0)->where('email',STR::lower($request->email))->count()){
-                return back()->withErrors(['error' => 'Please activate this account before logging in.']);
-            }else{
-                return back()->withErrors(['error' => 'You have entered an invalid username or password.']);
+            if ($user) {
+                // Increment the login_attempt counter
+                $user->increment('login_attempt');
+
+                // Check if the user is inactive
+                if ($user->active == 0) {
+                    return back()->withErrors(['error' => 'Please activate this account before logging in.']);
+                }
             }
+
+            return back()->withErrors(['error' => 'Invalid login details.']);
         };
+
+        $user->update(['login_attempt' => 0]);
 
         if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055)) {
             if (Permissions::hasPermission('sms_2fa_enabled') || Permissions::hasPermission('email_2fa_enabled')) {

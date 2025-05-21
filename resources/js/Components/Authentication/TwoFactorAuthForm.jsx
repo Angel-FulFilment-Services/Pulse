@@ -138,7 +138,7 @@ export default function TwoFactorAuthForm() {
                 }}
                 id="passcode"
                 autoComplete="one-time-code"
-                className="block flex-1 border-0 bg-transparent px-1 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 caret-transparent dark:placeholder:text-dark-600 focus:ring-0 sm:leading-6 focus:outline-none text-center max-w-48 min-h-16 placeholder:text-md text-2xl uppercase"
+                className="block flex-1 border-0 bg-transparent px-1 text-gray-900 placeholder:text-gray-400 dark:text-dark-100 caret-transparent dark:placeholder:text-dark-600 focus:ring-0 sm:leading-6 focus:outline-none text-center font-semibold max-w-48 min-h-16 placeholder:text-md text-2xl uppercase"
                 placeholder="&lowast;&lowast;&lowast;&lowast;&lowast;&lowast;"
                 spellCheck="false"
                 maxLength="6"
@@ -188,6 +188,22 @@ export default function TwoFactorAuthForm() {
               !wasSuccessful &&
               !hasErrors && <p>Verify</p>
             )}
+            {hasErrors &&
+                <div className='w-5 h-5 checkmark__check'>
+                    <svg viewBox="-2 -2 56 56" class="crossmark__icon" width="" height="">
+                        <circle class="crossmark__circle" strokeWidth={4} strokeMiterlimit={10} stroke="currentColor" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="crossmark__cross" strokeWidth={4} strokeMiterlimit={10} strokeLinecap={"round"} stroke="currentColor" fill="none" d="M16 16 36 36M36 16 16 36"/>
+                    </svg>
+                </div>
+            }
+            {wasSuccessful &&
+                <div className='w-5 h-5 checkmark__check'>
+                    <svg viewBox="-2 -2 56 56" class="checkmark__icon">
+                        <circle class="checkmark__circle" strokeWidth={4} strokeMiterlimit={10} stroke="currentColor" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark__cross" strokeWidth={4} strokeMiterlimit={10} strokeLinecap={"round"} stroke="currentColor" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+            }
           </button>
         </div>
       </form>

@@ -32,14 +32,14 @@ class TwoFactorController extends Controller
                 ]);  
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->with('status', 'Please enter a valid passcode.')->withInput();
+            return back()->withErrors(['error' => 'Please enter a valid passcode.'])->withInput();
         }
 
         $passcode = $request->input('passcode');
 
         $user = auth()->user();
         if ($passcode !== $user->pulse_two_factor_code) {
-            return back()->with('status',"The passcode you entered doesn't match our records")->withInput();
+            return back()->withErrors(['error' => "The passcode you entered doesn't match our records"])->withInput();
         }
         $user->reset_two_factor_code();
         return redirect()->route('rota');

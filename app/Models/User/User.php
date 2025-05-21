@@ -27,6 +27,8 @@ class User extends Authenticatable
         'password',
         'pulse_two_factor_code', 
         'pulse_two_factor_expires_at',
+        'login_attempt',
+        'active',
     ];
 
     /**

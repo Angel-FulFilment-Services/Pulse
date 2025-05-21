@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import { UserCircleIcon } from '@heroicons/react/24/solid'
 import { EnvelopeIcon, UserIcon, TrashIcon } from '@heroicons/react/24/outline'
 import AccountFormHeader from '../../Components/Account/AccountFormHeader'
@@ -9,12 +10,14 @@ import UploadProfilePhoto from '../../Components/Account/UploadProfilePhoto.jsx'
 import { toast } from 'react-toastify'
 import { router } from '@inertiajs/react'
 import { useUserStates } from '../../Components/Context/ActiveStateContext';
+import ConfirmationDialog from '../../Components/Dialogs/ConfirmationDialog'
 
 import UKCounties from '../../Components/Forms/LocalAddress/UKCounties.jsx';
 
 export default function Profile({ employee, user }) {
     const counties = UKCounties();
     const { refreshUserStates } = useUserStates();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const setProfilePhoto = async (image) => {
         try {
@@ -125,8 +128,8 @@ export default function Profile({ employee, user }) {
                 <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-4">
                     <div className="col-span-2 xl:col-span-1">
                         <TextInput 
-                            id="username"
-                            autoComplete="username"
+                            id={"username"}
+                            autoComplete={"username"}
                             currentState={user.name}
                             label="Username"
                             Icon={UserIcon}
@@ -137,8 +140,8 @@ export default function Profile({ employee, user }) {
 
                     <div className="col-span-2 xl:col-span-1 row-start-1">
                         <TextInput 
-                            id="email"
-                            autoComplete="email"
+                            id={"email"}
+                            autoComplete={"email"}
                             currentState={user.email}
                             annotation="(This is the email address you use to log in.)"
                             label="Email"
@@ -166,7 +169,7 @@ export default function Profile({ employee, user }) {
                                     <div className="flex items-center gap-x-3 w-full">
                                         <div className="text-nowrap"> File: {employee.profile_photo ? employee.profile_photo : "No profile photo set."} </div>
                                         <button
-                                            onClick={() => {deleteProfilePhoto()}}
+                                            onClick={(event) => {setIsDialogOpen(true); event.preventDefault()}}
                                         >
                                             <TrashIcon
                                                 className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
@@ -217,9 +220,9 @@ export default function Profile({ employee, user }) {
                 <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-4">
                     <div className="col-span-2 xl:col-span-1">
                         <TextInput 
-                            id="firstname"
+                            id={"firstname"}
                             disabled={true}
-                            autoComplete="firstname"
+                            autoComplete={"firstname"}
                             currentState={employee.firstname}
                             label="First name"
                             placeholder="Enter your firstname"                    
@@ -228,9 +231,9 @@ export default function Profile({ employee, user }) {
 
                     <div className="col-span-2 xl:col-span-1">
                         <TextInput 
-                            id="lastname"
+                            id={"lastname"}
                             disabled={true}
-                            autoComplete="lastname"
+                            autoComplete={"lastname"}
                             currentState={employee.surname}
                             label="Last name"
                             placeholder="Enter your last name"                    
@@ -239,9 +242,9 @@ export default function Profile({ employee, user }) {
 
                     <div className="col-span-2 xl:col-span-1">
                         <TextInput 
-                            id="email"
+                            id={"email_home"}
                             disabled={true}
-                            autoComplete="email"
+                            autoComplete={"email"}
                             currentState={employee.contact_home_email}
                             annotation="(This is your personal email address. Used for payslips.)"
                             label="Email"
@@ -251,12 +254,21 @@ export default function Profile({ employee, user }) {
                     </div>
 
                     <div className="col-span-2 xl:col-span-1 sm:row-start-2">
-                        <PostcodeInput 
+                        {/* <PostcodeInput 
                             id={{postcode: "postcode", address1: "address1", address2: "address2", address3: "address3", town: "town", county: "county"}} label={"Postcode"} 
                             autoComplete={"postal-code"} 
                             placeholder={"Postcode"} 
                             currentState={employee.home_postcode}
                             disabled={true} 
+                        /> */}
+                        <ComboInput 
+                            id={"postcode"} 
+                            label={"Postcode"} 
+                            spellCheck={false} 
+                            items={[{}]} 
+                            placeholder={"Postcode"} 
+                            currentState={employee.home_postcode}
+                            disabled={true}
                         />
                     </div>
 
@@ -330,6 +342,17 @@ export default function Profile({ employee, user }) {
                 Save
             </button>
         </div>
+
+        <ConfirmationDialog
+            isOpen={isDialogOpen}
+            setIsOpen={setIsDialogOpen}
+            title="Confirm Removal"
+            description="Are you sure you want to remove this profile photo? This action cannot be undone."
+            isYes={deleteProfilePhoto}
+            type="question"
+            yesText="Remove"
+            cancelText="Cancel"
+        />
     </form>
   )
 }
