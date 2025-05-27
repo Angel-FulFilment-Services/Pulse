@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes, differenceInSeconds } from 'date-fns';
 import useFetchShifts from '../Fetches/Rota/useFetchShifts.jsx';
 import useFetchTimesheets from '../Fetches/Rota/useFetchTimesheets.jsx';
 import useFetchEvents from '../Fetches/Rota/useFetchEvents.jsx';
@@ -50,20 +50,24 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
 
   const totalShiftMinutes = calculateTotalShiftMinutes(shifts);
   const reductionMinutes = calculateReductionMinutes(events);
-  const totalActualMinutes = timesheets.reduce((total, timesheet) => {
-    const onTime = new Date(timesheet.on_time);
-    const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
-    return total + differenceInMinutes(offTime, onTime);
-  }, 0);
-  const totalActualMinutesExcludingBreaks = timesheets.reduce((total, timesheet) => {
-      if( timesheet.category === "Break"){
-        return total;
-      }
-
+  const totalActualMinutes = Math.round(
+    timesheets.reduce((total, timesheet) => {
       const onTime = new Date(timesheet.on_time);
       const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
-      return total + differenceInMinutes(offTime, onTime);
-  }, 0);
+      return total + differenceInSeconds(offTime, onTime);
+    }, 0) / 60
+  );
+  
+  const totalActualMinutesExcludingBreaks = Math.round(
+    timesheets.reduce((total, timesheet) => {
+      if (timesheet.category === "Break") {
+        return total;
+      }
+      const onTime = new Date(timesheet.on_time);
+      const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+      return total + differenceInSeconds(offTime, onTime);
+    }, 0) / 60
+  );
   const workedPercentage = calculateWorkedPercentage(totalShiftMinutes - reductionMinutes, totalActualMinutes);
   const workedPercentageExcludingBreaks = calculateWorkedPercentage(totalShiftMinutes - reductionMinutes, totalActualMinutesExcludingBreaks);
 
