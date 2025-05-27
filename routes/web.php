@@ -16,6 +16,7 @@ use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\ReportingController;
 use App\Http\Controllers\App\AssetController;
+use App\Http\Controllers\App\PayrollController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -113,6 +114,16 @@ Route::get('/reporting/reports/generate/access-log', [ReportingController::class
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting', 'log.access');
+
+/*
+|-----------------------
+| Payroll
+|-----------------------
+*/  
+
+Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll');
+Route::get('/payroll/{page}', [PayrollController::class, 'index'])->name('payroll');
+Route::get('/payroll/exports/generate/payroll', [PayrollController::class, 'payrollExport']);
 
 /*
 |-----------------------

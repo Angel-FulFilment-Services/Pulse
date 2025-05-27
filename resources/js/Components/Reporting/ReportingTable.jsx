@@ -29,7 +29,21 @@ function applyFilters(data, filters = []) {
   });
 }
 
-export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange }) {
+function resolveColumnParameters(column, parameters, dateRange) {
+  if (!column.parameters) return undefined;
+  return Object.fromEntries(
+    Object.entries(column.parameters).map(([k, v]) => {
+      // Add more types as needed
+
+      if (v.type === 'endDate' && dateRange?.endDate) return [k, dateRange.endDate];
+      if (v.type === 'startDate' && dateRange?.startDate) return [k, dateRange.startDate];
+      // Add more custom logic for other types here
+      return [k, v.default];
+    })
+  );
+}
+
+export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, dateRange }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // State to track sorting configuration
   const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
 
@@ -230,8 +244,18 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                       <div className={`${column.cellClass || ''}`}>
                         {column.prefix || ''}
                         {column.format
-                          ? column.format(row[column.id])
-                          : row[column.id]}
+                        ? (
+                            column.requires
+                              ? column.format(
+                                  ...column.requires.map(field => row[field]),
+                                  resolveColumnParameters(column, parameters, dateRange)
+                                )
+                              : column.format(
+                                  row[column.id],
+                                  resolveColumnParameters(column, parameters, dateRange)
+                                )
+                          )
+                        : row[column.id]}
                         {column.suffix || ''}
                       </div>
                     </td>
@@ -265,12 +289,35 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                                 const weightedAverage = totalDenominator
                                   ? ((totalNumerator / totalDenominator) * 100).toFixed(2)
                                   : 0;
-                                return `${column.format(weightedAverage)}%`;
+                                  return column.format
+                                  ? (
+                                      column.requires
+                                        ? column.format(
+                                            weightedAverage,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                        : column.format(
+                                            weightedAverage,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                    ) + '%'
+                                  : weightedAverage + '%';
                               } else {
-                                // Sum numeric columns
-                                return column.format(
-                                  sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0)
-                                );
+                                // Sum numeric columns, use format with parameters if present
+                                const totalValue = sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0);
+                                return column.format
+                                  ? (
+                                      column.requires
+                                        ? column.format(
+                                            totalValue,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                        : column.format(
+                                            totalValue,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                    )
+                                  : totalValue;
                               }
                             } else if (column.dataType === 'string') {
                               // Leave string columns empty or provide a label

@@ -1,22 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import rotaReportsConfig from '../../Config/RotaReportsConfig.jsx';
-import assetsReportsConfig from '../../Config/AssetsReportsConfig.jsx';
-import systemReportsConfig from '../../Config/SystemReportsConfig.jsx';
-import ReportingHeader from '../../Components/Reporting/ReportingHeader.jsx';
+import payrollReportsConfig from '../../Config/PayrollReportsConfig.jsx';
+import PayrollHeader from '../../Components/Payroll/PayrollHeader.jsx';
 import ReportingTable from '../../Components/Reporting/ReportingTable.jsx';
 import FilterControl from '../../Components/Controls/FilterControl.jsx';
 import '../../Components/Reporting/ReportingStyles.css';
 import {exportTableToExcel} from '../../Utils/Exports.jsx'
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { set } from 'date-fns';
 
-const Reporting = () => {
+const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
     const [lastUpdated, setLastUpdated] = useState(null);
-    const [reports, setReports] = useState([]);
     const [report, setReport] = useState([]);
     const [reportData, setReportData] = useState([]);
     const [targets, setTargets] = useState([]);
@@ -24,46 +19,29 @@ const Reporting = () => {
     const [reportError, setReportError] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const navigate = useNavigate();
-    const location = useLocation();
+    const [reports, setReports] = useState(
+        payrollReportsConfig.map((report) => ({
+            id: report.id,
+            value: report.id,
+            displayValue: report.label,
+        })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
+    );
     const pollingIntervalRef = useRef(null);
     const hasChangesRef = useRef(false);
     const tableRef = useRef(null);
 
-    const tabs = [
-        { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true },
-        { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false },
-        { id: 'system', label: 'System', path: '/reporting/system', current: false },
-    ];
-
-    const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
-
-    const handleTabClick = (path) => {
+    const handleTabChange = (path) => {
         setReport([]);
         setReportData([]);
         setReportError(false);
         setDateRange({ startDate: null, endDate: null });
-        navigate(path);
+        handleTabClick(path);
     };
 
     const handleReportChange = (report) => {
         setReportData([]);
         setReportError(false);
-
-        switch (activeTab) {
-            case 'rota':
-                setReport(rotaReportsConfig.find((r) => r.id === report.value));
-                break;
-            case 'assets':
-                setReport(assetsReportsConfig.find((r) => r.id === report.value));
-                break;
-            case 'system':
-                setReport(systemReportsConfig.find((r) => r.id === report.value));
-                break;
-            default:
-                setReport([]);
-                break;
-        }
+        setReport(payrollReportsConfig.find((r) => r.id === report.value));
     };
 
     const handleDateChange = (item) => {
@@ -299,50 +277,15 @@ const Reporting = () => {
         }
     }, [report, reportData]);
 
-    useEffect(() => {
-        switch (activeTab) {
-            case 'rota':
-                setReports(
-                    rotaReportsConfig.map((report) => ({
-                        id: report.id,
-                        value: report.id,
-                        displayValue: report.label,
-                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
-                );
-                break;
-            case 'assets':
-                setReports(
-                    assetsReportsConfig.map((report) => ({
-                        id: report.id,
-                        value: report.id,
-                        displayValue: report.label,
-                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
-                );
-                break;
-            case 'system':
-                setReports(
-                    systemReportsConfig.map((report) => ({
-                        id: report.id,
-                        value: report.id,
-                        displayValue: report.label,
-                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
-                );
-                break;
-            default:
-                setReports([]);
-                break;
-        }
-    }, [activeTab]);
-
     return (
-        <div className="w-full flex flex-col h-screen bg-white dark:bg-dark-900">
+        <>
             <div id="reporting_header" className="z-30">
                 <div className="z-30">
-                    <ReportingHeader
+                    <PayrollHeader
                         dateRange={dateRange}
                         tabs={tabs}
                         activeTab={activeTab}
-                        handleTabClick={handleTabClick}
+                        handleTabClick={handleTabChange}
                         handleDateChange={handleDateChange}
                         reports={reports}
                         report={report}
@@ -365,13 +308,13 @@ const Reporting = () => {
             {reportError ? (
                 <div className="flex flex-col items-center justify-center py-56 -my-14 w-full">
                     <ExclamationCircleIcon className="w-12 h-12 text-red-500 dark:text-red-600" />
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50 mt-2">Report Failed To Generate</h1>
-                    <p className="mt-2 text-gray-500 dark:text-dark-500">Please select another report or try again.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50 mt-2">Export Failed To Generate</h1>
+                    <p className="mt-2 text-gray-500 dark:text-dark-500">Please select another export or try again.</p>
                 </div>
             ) : !Object.values(report).length ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Report Selected</h1>
-                    <p className="mt-4 text-gray-500 dark:text-dark-500">Select a report from the dropdown above to view.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Export Selected</h1>
+                    <p className="mt-4 text-gray-500 dark:text-dark-500">Select a export from the dropdown above to view.</p>
                 </div>
             ) : Object.values(report).length && (dateRange.startDate === null || dateRange.endDate === null) && (report.parameters.date || report.parameters.dateRange) ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
@@ -388,11 +331,11 @@ const Reporting = () => {
                 </div>
             ) : (
                 <div ref={tableRef} className="px-6 py-2 h-full">
-                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }} structure={report.parameters.structure} filters={filters} data={reportData} targets={targets} editing={isEditing} handleTargetChange={handleTargetChange}  dateRange={dateRange}/>
+                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }} structure={report.parameters.structure} filters={filters} data={reportData} targets={targets} editing={isEditing} handleTargetChange={handleTargetChange} dateRange={dateRange}/>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
-export default Reporting;
+export default Payroll;

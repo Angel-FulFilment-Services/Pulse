@@ -5,7 +5,7 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User\User;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Inertia\Inertia;

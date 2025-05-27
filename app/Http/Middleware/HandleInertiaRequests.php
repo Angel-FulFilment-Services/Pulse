@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 
 class HandleInertiaRequests extends Middleware
 {
