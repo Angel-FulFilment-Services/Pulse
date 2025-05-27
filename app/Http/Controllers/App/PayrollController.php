@@ -135,12 +135,12 @@ class PayrollController extends Controller
             $completed[] = $campaign->client . '-' . $campaign->wings_camp;
         }
 
-        $data = Employee::where('start_date', '>=', $startDate)
-        ->orWhere(function($query) use ($startDate, $endDate) {
-            $query->whereBetween('leave_date', [$startDate, $endDate])
-                    ->orWhereNull('leave_date');
-        })
-        ->select(
+        $holidaySub = 
+
+        // Subquery for timesheets, grouped by hr_id
+        $timesheetSub = 
+
+        $data = Employee::select(
             'sage_id',
             'hr_details.hr_id',
             'firstname',
@@ -149,20 +149,63 @@ class PayrollController extends Controller
             'start_date',
             'leave_date',
             'halo_id',
-            DB::raw('SUM(TIMESTAMPDIFF(SECOND, timesheet.on_time, timesheet.off_time)) / 60 / 60 as hours'),
+            DB::raw('COALESCE(timesheet.total_hours, 0) as hours'),
+            DB::raw('COALESCE(dow_updates.days_of_week, 0) as days_of_week'),
             DB::raw('DATEDIFF(COALESCE(leave_date, NOW()), start_date) as length_of_service'),
-            DB::raw('SUM(holiday.days_off) as holiday'),
+            DB::raw('COALESCE(holiday.total_days_off, 0) as holiday')
         )
-        ->leftJoin('hr.holiday_requests as holiday', function($query) use ($startDate, $endDate) {
-            $query->on('hr_details.hr_id', '=', 'holiday.hr_id')
+        ->leftJoinSub(
+            DB::table('hr.holiday_requests')
+            ->select('hr_id', DB::raw('SUM(days_off) as total_days_off'))
             ->where(function($query) use ($startDate, $endDate) {
-                $query->where('holiday.startdate', '<=', $endDate)
-                    ->where('holiday.enddate', '>=', $startDate);
-            });
-        })
-        ->leftJoin('apex_data.timesheet_master as timesheet', function($query) use ($startDate, $endDate) {
-            $query->on('hr_details.hr_id', '=', 'timesheet.hr_id')
-                ->whereBetween('timesheet.on_time', [$startDate, $endDate]);
+                $query->where('startdate', '<=', $endDate)
+                    ->where('enddate', '>=', $startDate);
+            })
+            ->groupBy('hr_id'), 
+            'holiday', 
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'holiday.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('hr.dow_updates')
+            ->select('hr_id', DB::raw('dow as days_of_week'))
+            ->where(function($query) use ($startDate, $endDate) {
+                $query->where('startdate', '<=', $startDate)
+                    ->where('enddate', '>=', $endDate)
+                    ->orWhere(function($query) use ($startDate, $endDate) {
+                        $query->where('startdate', '<=', $endDate)
+                            ->where('enddate', '>=', $startDate);
+                    });
+            })
+            ->orderBy('startdate', 'desc')
+            ->groupBy('hr_id'), 
+            'dow_updates', 
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'dow_updates.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::connection('apex_data')
+            ->table('timesheet_master')
+            ->select(
+                'hr_id',
+                DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 / 60 as total_hours')
+            )
+            ->where('type', '!=', 'Holiday')
+            ->whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->groupBy('hr_id'), 
+            'timesheet', 
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'timesheet.hr_id');
+            }
+        )
+        ->where(function($query) use ($startDate, $endDate) {
+            $query->where('start_date', '>=', $startDate)
+                ->orWhere(function($query) use ($startDate, $endDate) {
+                    $query->whereBetween('leave_date', [$startDate, $endDate])
+                            ->orWhereNull('leave_date');
+                });
         })
         ->groupBy('hr_details.hr_id')
         ->get();
