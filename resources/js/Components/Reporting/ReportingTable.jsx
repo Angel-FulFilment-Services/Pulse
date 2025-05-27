@@ -84,10 +84,42 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     };
   }, []);
 
+  const groupedData = useMemo(() => {
+    if (!parameters.grouping || !parameters.grouping.groupBy || parameters.grouping.groupBy.length === 0) {
+      return data;
+    }
+
+    // Helper to get a unique group key for each row
+    const getGroupKey = (row) =>
+      parameters.grouping.groupBy.map((col) => row[col]).join('||');
+
+    // Group rows by group key
+    const groups = {};
+    data.forEach((row) => {
+      const key = getGroupKey(row);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+
+    // For each group, build a new row using groupColumns logic
+    return Object.values(groups).map((groupRows) => {
+      const groupedRow = {};
+      parameters.grouping.groupColumns.forEach((col) => {
+        if (col.group && typeof col.group === 'function') {
+          groupedRow[col.id] = col.group(groupRows);
+        } else {
+          // Default: just take the first value
+          groupedRow[col.id] = groupRows[0][col.id];
+        }
+      });
+      return groupedRow;
+    });
+  }, [data, parameters.grouping]);
+
   // Apply filters to the data
   const filteredData = useMemo(() => {
-    return applyFilters(data, filters);
-  }, [data, filters]);
+    return applyFilters(groupedData, filters);
+  }, [groupedData, filters]);
 
   // Apply sorting to the filtered data
   const sortedData = useMemo(() => {

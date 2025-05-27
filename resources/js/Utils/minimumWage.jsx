@@ -45,7 +45,7 @@ const MINIMUM_WAGE_BANDS = [
 ];
 
 // Helper to get the correct rate for a given age and date
-function getRateForDate(age, date) {
+export function getRateForDate(age, date) {
   // Sort bands by effectiveFrom descending
   const sortedBands = [...MINIMUM_WAGE_BANDS].sort(
     (a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom)

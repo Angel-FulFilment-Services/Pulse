@@ -91,7 +91,6 @@ class PayrollController extends Controller
 
             $template = json_decode($template, true);
             if (is_null($template) || !is_array($template)) {
-                Log::debug('Invalid template for campaign: ' . $campaign->client . '-' . $campaign->wings_camp);
                 continue;
             }
 
@@ -101,8 +100,6 @@ class PayrollController extends Controller
                 if(!is_array($products)){
                     $products = [$products];
                 }
-
-                Log::debug('Products found for campaign: ' . $campaign->client . '-' . $campaign->wings_camp . ' - ' . implode(', ', $products));
             }else{
                 continue;
             }
@@ -135,11 +132,6 @@ class PayrollController extends Controller
             $completed[] = $campaign->client . '-' . $campaign->wings_camp;
         }
 
-        $holidaySub = 
-
-        // Subquery for timesheets, grouped by hr_id
-        $timesheetSub = 
-
         $data = Employee::select(
             'sage_id',
             'hr_details.hr_id',
@@ -149,23 +141,11 @@ class PayrollController extends Controller
             'start_date',
             'leave_date',
             'halo_id',
+            'gross_pay',
+            'last_qty',
             DB::raw('COALESCE(timesheet.total_hours, 0) as hours'),
             DB::raw('COALESCE(dow_updates.days_of_week, 0) as days_of_week'),
             DB::raw('DATEDIFF(COALESCE(leave_date, NOW()), start_date) as length_of_service'),
-            DB::raw('COALESCE(holiday.total_days_off, 0) as holiday')
-        )
-        ->leftJoinSub(
-            DB::table('hr.holiday_requests')
-            ->select('hr_id', DB::raw('SUM(days_off) as total_days_off'))
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->where('startdate', '<=', $endDate)
-                    ->where('enddate', '>=', $startDate);
-            })
-            ->groupBy('hr_id'), 
-            'holiday', 
-            function($join) {
-                $join->on('hr_details.hr_id', '=', 'holiday.hr_id');
-            }
         )
         ->leftJoinSub(
             DB::table('hr.dow_updates')
@@ -200,6 +180,22 @@ class PayrollController extends Controller
                 $join->on('hr_details.hr_id', '=', 'timesheet.hr_id');
             }
         )
+        ->leftJoinSub(
+            DB::connection('hr')
+            ->table('gross_pay')
+            ->select(
+                'hr_id',
+                DB::raw('SUM(amount) as gross_pay'),
+                DB::raw('COUNT(amount) as last_qty')
+            )
+            ->whereBetween('startdate', [date('Y-m-d', strtotime('-3 months', strtotime($startDate))), $startDate])
+            ->groupBy('hr_id'),
+            'gross_pay',
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'gross_pay.hr_id');
+            }
+        )
+        ->whereNull('employment_category')
         ->where(function($query) use ($startDate, $endDate) {
             $query->where('start_date', '>=', $startDate)
                 ->orWhere(function($query) use ($startDate, $endDate) {
@@ -223,6 +219,24 @@ class PayrollController extends Controller
                 $startDate,
                 $endDate
             );
+            $employee->holiday = $this->calculateHoliday(
+                $employee->hr_id,
+                $startDate,
+                $endDate,
+                $employee->start_date,
+                $employee->leave_date,
+                $employee->days_of_week,
+            );
+            $employee->holiday_pay = $this->calculateHolidayPay(
+                $employee->hr_id,
+                $employee->days_of_week,
+                $employee->holiday,
+                $employee->gross_pay,
+                $employee->last_qty,
+                $employee->leave_date,
+                $employee->start_date,
+            );
+
             return $employee;
         });
 
@@ -298,6 +312,136 @@ class PayrollController extends Controller
         return $weeks;
     }
 
+    private function calculateHoliday($hr_id, $startDate, $endDate, $startedDate, $leftDate, $dow = 0) {
+        $holidays = DB::connection('hr')
+        ->table('holiday_requests')
+        ->select(
+            'startdate',
+            'enddate',
+            'days_off'
+        )
+        ->where('hr_id', $hr_id)
+        ->where(function ($query) use ($startDate, $endDate) {
+            $query->where('startdate', '<=', $endDate)
+                ->where('enddate', '>=', $startDate);
+        })
+        ->where('approved', 'Y')
+        ->where('type', '=', 'Paid Annual Leave')
+        ->get();
+
+        $holidays = $holidays->map(function($holiday) use ($startDate, $endDate) {
+            $lv_days = 0;
+            $lv_decimal = false;
+            $lv_adjustment = false;
+            $original_days_off = $holiday->days_off;
+        
+            $start = strtotime($holiday->startdate);
+            $end = strtotime($holiday->enddate);
+            $real_start = strtotime($startDate);
+            $real_end = strtotime($endDate);
+        
+            // If enddate > lp_real_enddate
+            if ($end > $real_end) {
+                for ($i = 0; $i < ($real_end + 86400) - $start; $i += 86400) { // +1 day for inclusive
+                    if ($lv_days < $original_days_off) {
+                        $lv_days++;
+                    }
+                }
+                $lv_decimal = true;
+                $lv_adjustment = true;
+            }
+        
+            // If startdate <= lp_real_startdate
+            if ($start <= $real_start) {
+                for ($i = 0; $i < ($real_start - $start); $i += 86400) {
+                    if ($lv_days < $original_days_off) {
+                        $lv_days++;
+                    }
+                }
+                $lv_days = ($original_days_off - $lv_days);
+                $lv_adjustment = true;
+            }
+        
+            // Final adjustment
+            if ($lv_adjustment && $lv_days != $original_days_off) {
+                $decimal_part = $original_days_off - intval($original_days_off);
+                if ($lv_decimal && $decimal_part >= 0.01 && $decimal_part <= 0.99) {
+                    $holiday->days_off = $lv_days + $decimal_part;
+                } else {
+                    $holiday->days_off = $lv_days;
+                }
+            }
+        
+            // Clamp start/end to reporting period for output
+            if ($holiday->enddate > $endDate) {
+                $holiday->enddate = $endDate;
+            }
+            if ($holiday->startdate < $startDate) {
+                $holiday->startdate = $startDate;
+            }
+
+            return $holiday;
+        });
+        
+        // Leaver calculate add in remaining entitlement
+        if( $leftDate && strtotime($leftDate) > strtotime($startDate) ){
+            if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)))) ){
+                $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)));
+            }
+
+            switch ($dow) {
+                case 5:
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off');
+                    break;
+                case 4: 
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off');
+                    break;
+                case 3:
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off');
+                    break;
+                case 2:
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off');
+                    break;
+                case 1:
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off');
+                    break;
+            }
+        }
+
+        return $holidays->sum('days_off');
+    }
+
+    private function calculateHolidayPay($hr_id, $dow, $holiday, $gross_pay, $last_qty, $leftDate = null, $startDate = null) {
+        if ($holiday <= 0 || $last_qty <= 0) {
+            return 0;
+        }
+
+        $daily_rate = 0;
+
+        switch ($last_qty) {
+            case 3:
+                $average_monthly_pay = $gross_pay / 3;
+                $annual_pay = $average_monthly_pay * 12;
+                $weekly_pay = $annual_pay / 52;
+                $daily_rate = $weekly_pay / $dow;
+                break;    
+            case 2:
+                $average_monthly_pay = $gross_pay / 2;
+                $annual_pay = $average_monthly_pay * 12;
+                $weekly_pay = $annual_pay / 52;
+                $daily_rate = $weekly_pay / $dow;
+                break;
+            case $last_qty == 1 && $leftDate && strtotime($leftDate) > strtotime($startDate):
+                $daily_rate = $gross_pay * 0.1207;
+                break;
+        }
+
+        if($daily_rate <= 0){
+            return 0;
+        }
+
+        return round($daily_rate * $holiday, 2);
+    }
 
     public function setTargets(Request $request){       
         

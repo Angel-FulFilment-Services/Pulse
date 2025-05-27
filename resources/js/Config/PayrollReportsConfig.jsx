@@ -216,7 +216,7 @@ const payrollReportsConfig = [
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
               format: (value) => {
-                if (!value || isNaN(value) || Number(value) <= 0) return "";
+                if (!value || isNaN(value) || Number(value) <= 0) return "0";
                 return parseFloat(value).toFixed(3);
               },
               cellAnnotation: (value) => value,
@@ -256,6 +256,27 @@ const payrollReportsConfig = [
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
               format: (value) => {
+                if (!value || isNaN(value) || Number(value) <= 0) return "0";
+                const num = Number(value);
+                return Number.isInteger(num) ? Math.round(num) : num.toFixed(2);
+              },
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "holiday_pay",
+              label: "Holiday Pay",
+              dataType: "integer",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => {
                 if (!value || isNaN(value) || Number(value) <= 0) return "0.00";
                 return parseFloat(value).toFixed(2);
               },
@@ -277,9 +298,10 @@ const payrollReportsConfig = [
               headerAnnotation: "",
               format: (days, { startDate } = {} ) => {
                 if (!days || isNaN(days)) return "";
+                
                 const duration = intervalToDuration({
-                  start: new Date(startDate),
-                  end: addDays(new Date(startDate), Number(days)),
+                  start: subDays(new Date(startDate), Number(days)),
+                  end: new Date(startDate),
                 });
                 const parts = [];
                 if (duration.years) parts.push(`${duration.years} years`);
