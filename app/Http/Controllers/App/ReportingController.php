@@ -88,7 +88,7 @@ class ReportingController extends Controller
             DB::table('apex_data.timesheet_master')
                 ->select(
                     'timesheet_master.hr_id',
-                    DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_master'),
+                    DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 AS worked_minutes_master'),
                     DB::raw('
                         SUM(
                             CASE
@@ -131,7 +131,7 @@ class ReportingController extends Controller
             DB::table('apex_data.timesheet_today')
                 ->select(
                     'timesheet_today.hr_id',
-                    DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS worked_minutes_today'),
+                    DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 AS worked_minutes_today'),
                     DB::raw('
                         SUM(
                             CASE
@@ -248,8 +248,8 @@ class ReportingController extends Controller
         ->leftJoinSub(
             DB::table('apex_data.timesheet_master')
                 ->select('timesheet_master.hr_id', 'date', DB::raw('
-                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS agent_worked_minutes_master,
-                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS management_worked_minutes_master
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(SECOND, on_time, off_time), 0)) / 60 AS agent_worked_minutes_master,
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(SECOND, on_time, off_time), 0)) / 60 AS management_worked_minutes_master
                 '))
                 ->leftJoin('wings_data.hr_details', 'timesheet_master.hr_id', '=', 'hr_details.hr_id')
                 ->whereBetween('date', [$startDate, $endDate])
@@ -263,8 +263,8 @@ class ReportingController extends Controller
         ->leftJoinSub(
             DB::table('apex_data.timesheet_today')
                 ->select('timesheet_today.hr_id', 'date', DB::raw('
-                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(MINUTE, on_time, IFNULL(off_time, NOW())), 0)) AS agent_worked_minutes_today,
-                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(MINUTE, on_time, IFNULL(off_time, NOW())), 0)) AS management_worked_minutes_today
+                    SUM(IF(hr_details.rank IS NULL OR hr_details.rank = "", TIMESTAMPDIFF(SECOND, on_time, IFNULL(off_time, NOW())), 0)) / 60 AS agent_worked_minutes_today,
+                    SUM(IF(hr_details.rank IS NOT NULL OR hr_details.rank != "", TIMESTAMPDIFF(SECOND, on_time, IFNULL(off_time, NOW())), 0)) / 60 AS management_worked_minutes_today
                 '))
                 ->leftJoin('wings_data.hr_details', 'timesheet_today.hr_id', '=', 'hr_details.hr_id')
                 ->whereBetween('date', [$startDate, $endDate])
