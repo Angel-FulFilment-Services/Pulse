@@ -217,7 +217,7 @@ const payrollReportsConfig = [
               headerAnnotation: "",
               format: (value) => {
                 if (!value || isNaN(value) || Number(value) <= 0) return "0";
-                return parseFloat(value).toFixed(3);
+                return parseFloat(value).toFixed(2);
               },
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
