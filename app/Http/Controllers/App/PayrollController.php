@@ -188,7 +188,7 @@ class PayrollController extends Controller
                 DB::raw('SUM(amount) as gross_pay'),
                 DB::raw('COUNT(amount) as last_qty')
             )
-            ->whereBetween('startdate', [date('Y-m-d', strtotime('-3 months', strtotime($startDate))), $startDate])
+            ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
             ->groupBy('hr_id'),
             'gross_pay',
             function($join) {
