@@ -169,37 +169,45 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     // Find the target with the matching column ID
     const target = targets.find((t) => t.id === column.id);
 
-    if (target?.target) {
-      // If the target has a key prop, find the matching key value
-      if (target.key) {
-        const keyValue = row[target.key]; // Get the key value from the row
-        const keyTarget = target.values.find((v) => v.keyValue === keyValue); // Find the matching key value in the target
+    if (parameters.targetAllowCell && target) {
+      if (target?.target) {
+        // If the target has a key prop, find the matching key value
+        if (target.key) {
+          const keyValue = row[target.key]; // Get the key value from the row
+          const keyTarget = target.values.find((v) => v.keyValue === keyValue); // Find the matching key value in the target
 
-        if (keyTarget) {
-          // Use the high and low values from the keyTarget
-          const { high, low } = keyTarget;
+          if (keyTarget) {
+            // Use the high and low values from the keyTarget
+            const { high, low } = keyTarget;
+            const cellValue = parseFloat(row[column.id]);
+
+            if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
+            if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
+            if(low || high) {
+              return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
+            }
+          }
+        } else {
+          // Use the high and low values directly from the target
+          const { high, low } = target.target;
           const cellValue = parseFloat(row[column.id]);
-
           if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
           if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
           if(low || high) {
             return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
           }
         }
-      } else {
-        // Use the high and low values directly from the target
-        const { high, low } = target.target;
-        const cellValue = parseFloat(row[column.id]);
-        if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
-        if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
-        if(low || high) {
-          return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
-        }
       }
     }
 
     return ''; // Default color if no target is found
   };
+
+  const getRowColour = (row) => {
+    if (parameters.targetAllowRow && parameters.target) {
+      return parameters.target(row);
+    }
+  }
 
   return (
     <div className={`flex flex-col`} style={{ height: tableHeight, overflowY: 'auto', marginTop: '0.5rem' }}>
@@ -266,12 +274,12 @@ export default function ReportingTable({ parameters, structure, filters, data, t
           {/* Table Body */}
           <tbody className="bg-white dark:bg-dark-900">
             {sortedData.map((row, rowIndex) => (
-              <tr key={rowIndex} className="even:bg-gray-50 dark:even:bg-dark-800">
+              <tr key={rowIndex} className={`${getRowColour(row) || 'text-gray-800 dark:text-dark-200 even:bg-gray-50 dark:even:bg-dark-800'}`}>
                 {structure.map((column) =>
                   column.visible !== false ? (
                     <td
                       key={column.id}
-                      className={`whitespace-nowrap px-3 py-2 text-sm text-gray-800 dark:text-dark-200 ${getCellColour(column, row)} ${column.tdClass}`}
+                      className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)} ${column.tdClass}`}
                     >
                       <div className={`${column.cellClass || ''}`}>
                         {column.prefix || ''}

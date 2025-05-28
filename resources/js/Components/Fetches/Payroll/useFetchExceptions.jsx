@@ -13,9 +13,7 @@ const useFetchExceptions = (startDate, endDate, hrId = null) => {
     setIsLoaded(false);
 
     try {
-      loadingTimeout = setTimeout(() => {
-        setIsLoading(true);
-      }, 3000);
+      setIsLoading(true);
 
       const response = await axios.get('/payroll/exports/exceptions', {
         params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate, hr_id: hrId },

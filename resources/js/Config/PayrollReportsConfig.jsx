@@ -13,7 +13,7 @@ const payrollReportsConfig = [
       parameters: {
           targetAllowColumn: false,
           targetAllowCell: false,
-          targetAllowRow: false,
+          targetAllowRow: true,
           total: false,
           polling: 60000,
           dateRange: {
@@ -25,6 +25,17 @@ const payrollReportsConfig = [
               minDate: new Date().setFullYear(new Date().getFullYear() - 1),
           },
           date: false,
+          target: (row) => {
+            if (!row) return "";
+
+            if(row.exception_count > 0) {
+              return `bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25`;
+            }
+
+            if(row.leave_date) {
+              return `bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25`;
+            }
+          },
           structure: [
             {
               id: "actions",
@@ -46,12 +57,12 @@ const payrollReportsConfig = [
                       aria-hidden="true"
                     />
                   </ClickedModal>
-                  {
+                  {/* {
                     row.exception_count > 0 &&
-                    <div className="text-white dark:text-red-100 text-xs font-semibold rounded-full bg-red-500 ring-red-400/50 dark:bg-red-600/45 ring-1 dark:ring-red-400/25 w-5 h-5 flex items-center justify-center flex-shrink-0">
+                    <div className="text-red-600 dark:text-red-700 text-xs font-semibold rounded-full ring-red-600 ring-1 dark:ring-red-700 w-5 h-5 flex items-center justify-center flex-shrink-0">
                       {row.exception_count}
                     </div>
-                  }
+                  } */}
                 </div>
               ),
               headerClass: "text-center flex flex-row items-center justify-start w-full",
