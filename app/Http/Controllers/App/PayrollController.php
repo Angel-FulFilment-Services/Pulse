@@ -229,6 +229,10 @@ class PayrollController extends Controller
                             ->orWhereNull('leave_date');
                 });
         })
+        ->where(function($query) use ($startDate, $endDate) {
+            $query->where('timesheet.total_hours', '>', 0)
+            ->where('sage_id', '>', 0);
+        })
         ->groupBy('hr_details.hr_id')
         ->get();
 
