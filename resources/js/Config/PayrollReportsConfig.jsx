@@ -1,6 +1,9 @@
 import { generatePayrollExport } from '../Components/Payroll/Exports/PayrollExportGenerators';
 import { format, startOfDay, endOfDay, subDays, isBefore, isAfter, setDate, subMonths, addMonths, differenceInYears, intervalToDuration, addDays } from 'date-fns';
 import { getMinimumWageForPeriodByDOB } from '../Utils/minimumWage.jsx';
+import { FlagIcon } from '@heroicons/react/24/outline';
+import ClickedModal from '../Components/Modals/ClickedModal.jsx';
+import PayrollExceptions from '../Components/Payroll/PayrollExceptions.jsx';
 
 const payrollReportsConfig = [
   {
@@ -24,6 +27,51 @@ const payrollReportsConfig = [
           date: false,
           structure: [
             {
+              id: "actions",
+              label: "Actions",
+              dataType: "control",
+              visible: true,
+              control: (row, rowIndex, { startDate, endDate } = {}) => (
+                <div className="flex flex-row items-center justify-start gap-x-3">
+                  <ClickedModal
+                      overlay={true}
+                      size={"xs"}
+                      className={`w-full h-full justify-center items-center flex`}
+                      onClose={() => null} // Clear the message when the flyout closes
+                      content={(handleSubmit, handleClose) => <PayrollExceptions hrId={row.hr_id} dateRange={{startDate: startDate, endDate: endDate}} handleClose={handleClose} /> 
+                    }
+                  >
+                    <FlagIcon
+                      className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                      aria-hidden="true"
+                    />
+                  </ClickedModal>
+                  {
+                    row.exception_count > 0 &&
+                    <div className="text-white dark:text-red-100 text-xs font-semibold rounded-full bg-red-500 ring-red-400/50 dark:bg-red-600/45 ring-1 dark:ring-red-400/25 w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      {row.exception_count}
+                    </div>
+                  }
+                </div>
+              ),
+              headerClass: "text-center flex flex-row items-center justify-start w-full",
+              cellClass: "text-center flex flex-row items-center justify-start w-full",
+              parameters: {
+                startDate: {
+                  type: 'startDate',
+                  label: 'Start Date',
+                  default: new Date(),
+                  description: 'The date to calculate the ROP against. Defaults to today.',
+                },
+                endDate: {
+                  type: 'endDate',
+                  label: 'End Date',
+                  default: new Date(),
+                  description: 'The date to calculate the age against. Defaults to today.',
+                },
+              },
+            },
+            {
               id: "sage_id",
               label: "Sage ID",
               dataType: "integer",
@@ -33,8 +81,8 @@ const payrollReportsConfig = [
               targetDirection: 'asc',
               prefix: "",
               suffix: "",
-              cellClass: "text-left font-medium flex flex-row items-center justify-start gap-x-2 w-full",
-              headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
+              cellClass: "text-center font-medium flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
               format: (value) => value,
               cellAnnotation: (value) => value,
@@ -42,7 +90,7 @@ const payrollReportsConfig = [
             },
             {
               id: "hr_id",
-              label: "Employee Reference",
+              label: "Employee ID",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -330,6 +378,74 @@ const payrollReportsConfig = [
               target: 0,
               targetDirection: 'asc',
               prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "ssp_qty",
+              label: "SSP (No. of Days)",
+              dataType: "integer",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "spp_qty",
+              label: "SPP (No. of Days)",
+              dataType: "integer",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "pilon_qty",
+              label: "PILON (No. of Days)",
+              dataType: "integer",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "od_qty",
+              label: "Other Deductions",
+              dataType: "integer",
+              visible: true,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "£",
               suffix: "",
               cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",

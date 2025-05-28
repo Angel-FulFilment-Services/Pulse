@@ -10,6 +10,7 @@ use Str;
 use Log;
 use App\Helper\Auditing;
 use App\Models\HR\Employee;
+use App\Models\Payroll\Exception;
 use Schema;
 
 class PayrollController extends Controller
@@ -146,6 +147,12 @@ class PayrollController extends Controller
             DB::raw('COALESCE(timesheet.total_hours, 0) as hours'),
             DB::raw('COALESCE(dow_updates.days_of_week, 0) as days_of_week'),
             DB::raw('DATEDIFF(COALESCE(leave_date, NOW()), start_date) as length_of_service'),
+            DB::raw('COALESCE(exceptions.ssp_qty, 0) as ssp_qty'),
+            DB::raw('COALESCE(exceptions.spp_qty, 0) as spp_qty'),
+            DB::raw('COALESCE(exceptions.pilon_qty, 0) as pilon_qty'),
+            DB::raw('COALESCE(exceptions.od_qty, 0) as od_qty'),
+            DB::raw('COALESCE(exceptions.adhoc_qty, 0) as bonus'),
+            DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count')
         )
         ->leftJoinSub(
             DB::table('hr.dow_updates')
@@ -195,6 +202,25 @@ class PayrollController extends Controller
                 $join->on('hr_details.hr_id', '=', 'gross_pay.hr_id');
             }
         )
+        ->leftJoinSub(
+            DB::connection('hr')
+            ->table('exceptions')
+            ->select(
+                'hr_id',
+                DB::raw('SUM(IF(type = "Statutory Sick Pay", quantity, 0)) as ssp_qty'),
+                DB::raw('SUM(IF(type = "Statutory Paternity Pay", quantity, 0)) as spp_qty'),
+                DB::raw('SUM(IF(type = "Payment In Lieu of Notice", quantity, 0)) as pilon_qty'),
+                DB::raw('SUM(IF(type = "Other Deductions", quantity, 0)) as od_qty'),
+                DB::raw('SUM(IF(type = "Adhoc Bonus", quantity, 0)) as adhoc_qty'),
+                DB::raw('COUNT(id) as exception_count')
+            )
+            ->whereBetween('startdate', [$startDate, $endDate])
+            ->groupBy('hr_id'),
+            'exceptions',
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'exceptions.hr_id');
+            }
+        )
         ->whereNull('employment_category')
         ->where(function($query) use ($startDate, $endDate) {
             $query->where('start_date', '>=', $startDate)
@@ -211,7 +237,7 @@ class PayrollController extends Controller
         $apexData = $apexData->get();
 
         $data = $data->map(function($employee) use ($haloData, $apexData, $startDate, $endDate) {
-            $employee->bonus = $this->calculateIncentives(
+            $employee->bonus += $this->calculateBonus(
                 $employee->hr_id,
                 $employee->halo_id,
                 $haloData,
@@ -243,8 +269,7 @@ class PayrollController extends Controller
         return response()->json(['data' => $data]); 
     }
 
-    private function calculateIncentives($hr_id, $halo_id, $haloData, $apexData, $startDate, $endDate)
-    {   
+    private function calculateBonus($hr_id, $halo_id, $haloData, $apexData, $startDate, $endDate){   
 
         // Filter for this hr_id and date range
         $sign_ups = $haloData->where('halo_id', $halo_id)
@@ -473,5 +498,115 @@ class PayrollController extends Controller
         }
 
         return response()->json(['status' => 'error', 'message' => 'No targets provided.'], 400);
+    }
+
+    public function exceptions(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
+
+        // Fetch event records for the date range
+        $events = Exception::whereBetween('startdate', [$startDate, $endDate])
+        ->select('exceptions.*')
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('exceptions.hr_id', $hrId)
+            ->leftJoin('wings_config.users as logged', 'logged.id', '=', 'exceptions.created_by_user_id')
+            ->leftJoin('wings_config.users', 'users.id', '=', 'exceptions.user_id')
+            ->addSelect('logged.name as logged_by', 'users.name as user_name');
+        })
+        ->get();
+
+        return response()->json($events);
+    }
+
+    public function saveException(Request $request){
+
+        // Define validation rules
+        $rules = [
+            'type' => 'required|string',
+            'notes' => 'nullable|string|max:500',
+            'quantity' => 'required|integer',
+        ];
+
+        // Define custom validation messages
+        $messages = [
+            'type.required' => 'The type field is required.',
+            'type.string' => 'The type must be a string.',
+            'notes.string' => 'The notes must be a string.',
+            'notes.max' => 'The notes may not be greater than 500 characters.',
+            'quantity.required' => 'The quantity field is required.',
+            'quantity.integer' => 'The quantity must be an numeric value.',
+        ];
+
+        try {
+            $request->validate($rules, $messages);
+
+            $user = Employee::where('hr_id', '=', $request->hrID)->first();
+
+            // Process the validated data
+            if ($request->exceptionID){
+                Exception::find($request->exceptionID)->update([
+                    'hr_id' => $request->hrID,
+                    'user_id' => $user->user_id,
+                    'created_by_user_id' => auth()->user()->id,
+                    'date' => date("Y-m-d"),
+                    'startdate' => $request->startDate,
+                    'enddate' => $request->endDate,
+                    'type' => $request->type,
+                    'notes' => $request->notes,
+                    'quantity' => $request->quantity,
+                ]);
+                Auditing::log('Payroll', auth()->user()->id, 'Payroll Exception Updated', 'Exception ID: ' . $request->exceptionID);
+            }else{
+                $exception = Exception::create([
+                    'hr_id' => $request->hrID,
+                    'user_id' => $user->user_id,
+                    'created_by_user_id' => auth()->user()->id,
+                    'date' => date("Y-m-d"),
+                    'startdate' => $request->startDate,
+                    'enddate' => $request->endDate,
+                    'type' => $request->type,
+                    'notes' => $request->notes,
+                    'quantity' => $request->quantity,
+                ]);
+                Auditing::log('Payroll', auth()->user()->id, 'Payroll Exception Created', 'Exception ID: ' . $exception->id);
+            }
+
+            return response()->json(['message' => 'Event saved successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error saving exception: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to save exception.'], 500);
+        }
+    }
+
+    public function removeException(Request $request){
+        // Define validation rules
+        $rules = [
+            'exceptionID' => 'required|numeric',
+        ];
+
+        try {
+            $exception = Exception::find($request->exceptionID);
+
+            if($exception && $exception->delete()){
+                Auditing::log('Payroll', auth()->user()->id, 'Payroll Exception Deleted', 'Exception ID: ' . $request->exceptionID);
+                return response()->json(['message' => 'Exception removed successfully!'], 200);
+            } else {
+                return response()->json(['message' => 'Failed to remove the exception.'], 500);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error removing exception: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to remove the exception.'], 500);
+        }
     }
 }

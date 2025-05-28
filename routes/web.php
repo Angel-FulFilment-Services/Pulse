@@ -123,6 +123,9 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 
 Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll');
 Route::get('/payroll/{page}', [PayrollController::class, 'index'])->name('payroll');
+Route::get('/payroll/exports/exceptions', [PayrollController::class, 'exceptions']);
+Route::post('/payroll/exports/exceptions/save', [PayrollController::class, 'saveException']);
+Route::post('/payroll/exports/exceptions/remove', [PayrollController::class, 'removeException']);
 Route::get('/payroll/exports/generate/payroll', [PayrollController::class, 'payrollExport']);
 
 /*

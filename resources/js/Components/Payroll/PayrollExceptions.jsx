@@ -1,0 +1,246 @@
+import React, { useState, useEffect } from 'react';
+import useFetchExceptions from '../Fetches/Payroll/useFetchExceptions.jsx';
+import { format, differenceInMinutes } from 'date-fns';
+import { PlusIcon, ChevronDownIcon, BanknotesIcon, TrashIcon, PencilIcon  } from '@heroicons/react/24/outline';
+import ButtonControl from '../Controls/ButtonControl.jsx';
+import ConfirmationDialog from '../Dialogs/ConfirmationDialog';
+import StackedList from '../Lists/StackedList.jsx';
+import { toast } from 'react-toastify';
+import PayrollExceptionsForm from './PayrollExceptionsForm.jsx';
+
+export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
+  const [isTransitioning, setIsTransitioning] = useState(true);
+  const [selectedException, setSelectedException] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showExceptionsForm, setShowExceptionsForm] = useState(false); // State to toggle content
+  
+  const { exceptions } = useFetchExceptions(dateRange.startDate, dateRange.endDate, hrId);
+
+  useEffect(() => {
+    setIsTransitioning(false);
+  }, [exceptions]);
+
+  const handleRemoveEvent = async () => {
+    try {
+      if (!selectedException) {
+        toast.error('You cannot remove this exception.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+        return;
+      }
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+      const response = await fetch('/payroll/exports/exceptions/remove', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify({ exceptionID: selectedException.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove the event');
+      }
+
+      window.dispatchEvent(new Event('refreshExceptions'));
+
+      toast.success('Exception removed successfully!', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error('Failed to remove this exception. Please try again.', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+
+      setIsDialogOpen(false);
+    }
+  };
+
+  return (
+    <div className="px-4 py-3 h-full flex flex-col justify-start items-start divide-y divide-gray-200 dark:divide-dark-700">
+      {showExceptionsForm ? (
+        <PayrollExceptionsForm
+          hrId={hrId}
+          onCancel={() => {
+            setSelectedException(null);
+            setShowExceptionsForm(false);
+          }}
+          initialData={selectedException}
+          dateRange={dateRange}
+        />
+      ) : (
+        <>
+          <div className="flex gap-x-2 items-center pb-2 justify-between w-full">
+            <div className="gap-y-1 flex flex-col">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-dark-100">Payroll Exceptions</h3>
+              <p className="max-w-2xl text-sm text-gray-500 dark:text-dark-400">
+                Add any payroll exceptions for this month.
+              </p>
+            </div>
+            <div className="flex gap-x-4 items-center">
+              <ButtonControl
+                id="add_button"
+                Icon={PlusIcon}
+                customClass="w-7 h-7"
+                iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out"
+                onButtonClick={() => {
+                  setSelectedException(null);
+                  setShowExceptionsForm(true);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className={`w-full h-full isolate max-h-full overflow-auto flex flex-col justify-between divide-y divide-gray-200 dark:divide-dark-700 pb-2`}>
+              <div className={`w-full h-full max-h-96 overflow-auto flex flex-col isolate`}>
+                {isTransitioning
+                  ? Array.from({ length: 5 }).map((_, subRowIndex) => (
+                    <></>
+                  ))
+                : (() => {
+                    const data = exceptions.map((record) => ({
+                      type: record.type,
+                      date: record.date
+                        ? format(new Date(record.date), 'dd MMMM, yyyy')
+                        : '-',
+                      startDate:
+                        record.startdate
+                          ? format(new Date(record.startdate), 'dd MMMM, yyyy')
+                          : '',
+                      endDate:
+                        record.enddate
+                          ? format(new Date(record.enddate), 'dd MMMM, yyyy')
+                          : '',
+                      type: record.type || 'N/A',
+                      notes: record.notes,
+                      logged: record.created_at
+                        ? format(new Date(record.created_at), 'dd MMMM, yyyy h:mm a')
+                        : '-',
+                      loggedby: record.logged_by,
+                      quantity: record.quantity || 'N/A',
+                      users: [{ userId: record.user_id, name: record.user_name }, { userId: record.created_by_user_id, name: record.logged_by }],
+                      id: record.id,
+                    }));
+
+                    const sortedData = data.sort(
+                      (a, b) => new Date(a.startDate) - new Date(b.startDate)
+                    );
+
+                    return sortedData.length > 0 ? (
+                      <>
+                        <StackedList
+                          data={sortedData}
+                          allowManagement={true}
+                          placeholderCount={5}
+                          onRemove={(row) => {
+                            setSelectedException(row);
+                            setIsDialogOpen(true);
+                          }}
+                          onEdit={(row) => {
+                            setSelectedException(row);
+                            setShowExceptionsForm(true);
+                          }}
+                          renderDescription={(row) => (
+                            <>
+                              <p>Logged By: {row.loggedby}</p>
+                              <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                <circle cx={1} cy={1} r={1} />
+                              </svg>
+                              <p>
+                                { (row.type === "Statutory Sick Pay" || row.type === "Statutory Paternity Pay" || row.type === "Payment In Lieu of Notice") ? "Quantity of Days: " : "Amount of Pay (£): " }
+                                { row.quantity }
+                              </p>
+                              <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                <circle cx={1} cy={1} r={1} />
+                              </svg>
+                              <p className="text-xs text-gray-500 dark:text-dark-400">
+                                {row.logged}
+                              </p>
+                            </>
+                          )}
+                          renderExpandableContent={(row) => (
+                            <>
+                              <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-dark-100">
+                                Payroll Month:
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-dark-400">
+                                { row.startDate && row.endDate
+                                  ? ` (${row.startDate} - ${row.endDate})`
+                                  : ''
+                                }
+                              </p>
+                              {row.notes && (
+                                <div className="mt-2 text-xs text-gray-700 dark:text-dark-200">
+                                  <span className="font-semibold">Notes: </span>
+                                  {row.notes}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        />
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full w-full">
+                        <div className="flex items-center justify-center h-20 w-20 rounded-full bg-gray-50 ring-1 ring-gray-200/50 dark:ring-dark-700/75 dark:bg-dark-800 -mt-8 mb-2">
+                          <BanknotesIcon className="w-12 h-12 text-theme-500 dark:text-theme-600" />
+                        </div>
+                        <p className="py-2 text-md font-semibold text-gray-900 dark:text-dark-100">No payroll exceptions available.</p>
+                        <p className="text-sm text-gray-500 dark:text-dark-400">
+                          You can add exceptions by clicking the "Add" button above.
+                        </p>
+                      </div>
+                    );
+                  })()}
+              </div>
+              <div className="mt-2 flex items-center justify-end gap-x-6 w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-4 px-2">
+                <button
+                    type="button"
+                    className="text-sm font-semibold text-gray-900 dark:text-dark-100"
+                    onClick={handleClose}
+                >
+                    Done
+                </button>
+              </div>
+          </div>
+
+          {/* Confirmation Dialog */}
+          <ConfirmationDialog
+            isOpen={isDialogOpen}
+            setIsOpen={setIsDialogOpen}
+            title="Confirm Removal"
+            description="Are you sure you want to remove this payroll exception? This action cannot be undone."
+            isYes={handleRemoveEvent}
+            type="question"
+            yesText="Remove"
+            cancelText="Cancel"
+          />
+        </>
+      )}
+    </div>
+  );
+}

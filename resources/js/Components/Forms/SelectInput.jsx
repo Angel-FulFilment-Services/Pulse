@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import PropTypes from 'prop-types';
 import { Listbox, Transition } from '@headlessui/react'
 import { CheckIcon, ChevronUpDownIcon, ExclamationCircleIcon } from '@heroicons/react/20/solid'
@@ -10,7 +10,16 @@ function classNames(...classes) {
 export default function SelectInput(props) {
   const { id, label, currentState, items, onSelectChange, onBlur, placeholder, error, clearErrors } = props;
   
-  const [selected, setSelected] = useState((currentState && items.find(item => item.value === currentState)));
+  const [selected, setSelected] = useState({id: id, value: currentState || ''});
+
+  useEffect(() => {
+    if (currentState && items) {
+      const foundItem = items.find(item => item.value === currentState);
+      if (foundItem) {
+        setSelected(foundItem);
+      } 
+    }
+  }, [currentState, items, id]);
 
   const handleSelectChange = (event) => {
     onSelectChange([{id: id, value: event.value}]);

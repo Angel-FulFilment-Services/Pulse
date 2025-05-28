@@ -1,4 +1,6 @@
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
+import { useRef } from 'react';
+import { toast } from 'react-toastify'; // <-- Add this import
 
 export default function NumberInput(props) {
   const {
@@ -18,9 +20,12 @@ export default function NumberInput(props) {
     onBlur,
     error,
     clearErrors,
-    high, // Maximum allowed value
-    low,  // Minimum allowed value
+    high,
+    low,
+    showRangeAlert = false, // <-- Add this prop, default to false
   } = props;
+
+  const prevValue = useRef(currentState);
 
   const formatNumber = (value) => {
     if (!value) return '';
@@ -29,19 +34,56 @@ export default function NumberInput(props) {
     return parts.join('.');
   };
 
-  const handleTextChange = (event) => {
-    let rawValue = String(event.target.value).replace(/[^0-9.]/g, ''); // Allow only numbers and a single decimal point
+  // Helper: are two numbers in the same range of ten?
+  const inSameRangeOfTen = (a, b) => Math.floor(a / 10) === Math.floor(b / 10);
 
-    // Restrict the value based on the high and low properties
-    if (rawValue) {
-      const numericValue = parseFloat(rawValue);
-      if ((high !== undefined || high !== null) && numericValue > high) {
-        rawValue = String(high); // Restrict to the maximum value
+  const handleTextChange = (event) => {
+    let allowNegative = typeof low === 'number' && low < 0;
+    let rawValue = String(event.target.value).replace(allowNegative ? /[^0-9.-]/g : /[^0-9.]/g, '');
+    if (allowNegative) {
+      rawValue = rawValue.replace(/(?!^)-/g, '');
+    }
+    let numericValue = rawValue ? parseFloat(rawValue) : null;
+    let outOfRange = false;
+
+    if (numericValue !== null) {
+      if (high !== undefined && high !== null && numericValue > high) {
+        outOfRange = true;
+        if (inSameRangeOfTen(numericValue, high)) {
+          rawValue = String(high);
+        } else {
+          rawValue = String(prevValue.current ?? '');
+        }
       }
-      if ((low !== undefined || low !== null) && numericValue < low) {
-        rawValue = String(low); // Restrict to the minimum value
+      if (low !== undefined && low !== null && numericValue < low) {
+        outOfRange = true;
+        if (inSameRangeOfTen(numericValue, low)) {
+          rawValue = String(low);
+        } else {
+          rawValue = String(prevValue.current ?? '');
+        }
       }
     }
+
+    if (showRangeAlert && outOfRange) {
+      if (!toast.isActive("range-toast")) {
+        toast.warn(
+          `Value must be between ${formatNumber(low)} and ${formatNumber(high)}`,
+          {
+            toastId: 'range-toast',
+            position: 'top-center',
+            autoClose: 2000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: false,
+            theme: 'light',
+          }
+        );
+      }
+    }
+
+    prevValue.current = rawValue;
 
     const formattedValue = formatNumber(rawValue); // Format the value with commas
     onTextChange([{ id: id, value: rawValue }]); // Pass the raw value (unformatted) to the parent
@@ -49,10 +91,13 @@ export default function NumberInput(props) {
   };
 
   const handleInput = (event) => {
-    // Prevent invalid characters from being entered
-    const invalidChars = /[^0-9.]/g;
+    let allowNegative = typeof low === 'number' && low < 0;
+    const invalidChars = allowNegative ? /[^0-9.-]/g : /[^0-9.]/g;
     if (invalidChars.test(event.target.value)) {
       event.target.value = event.target.value.replace(invalidChars, '');
+    }
+    if (allowNegative) {
+      event.target.value = event.target.value.replace(/(?!^)-/g, '');
     }
   };
 

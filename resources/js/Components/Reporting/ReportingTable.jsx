@@ -275,19 +275,25 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                     >
                       <div className={`${column.cellClass || ''}`}>
                         {column.prefix || ''}
-                        {column.format
-                        ? (
-                            column.requires
-                              ? column.format(
-                                  ...column.requires.map(field => row[field]),
-                                  resolveColumnParameters(column, parameters, dateRange)
-                                )
-                              : column.format(
-                                  row[column.id],
-                                  resolveColumnParameters(column, parameters, dateRange)
-                                )
+                        {column.control
+                          ? column.control(
+                            row, 
+                            rowIndex,
+                            resolveColumnParameters(column, parameters, dateRange)
                           )
-                        : row[column.id]}
+                          : column.format
+                            ? (
+                                column.requires
+                                  ? column.format(
+                                      ...column.requires.map(field => row[field]),
+                                      resolveColumnParameters(column, parameters, dateRange)
+                                    )
+                                  : column.format(
+                                      row[column.id],
+                                      resolveColumnParameters(column, parameters, dateRange)
+                                    )
+                              )
+                            : row[column.id]}
                         {column.suffix || ''}
                       </div>
                     </td>
