@@ -1,7 +1,7 @@
 import { generatePayrollExport } from '../Components/Payroll/Exports/PayrollExportGenerators';
 import { format, startOfDay, endOfDay, subDays, isBefore, isAfter, setDate, subMonths, addMonths, differenceInYears, intervalToDuration, addDays } from 'date-fns';
 import { getMinimumWageForPeriodByDOB } from '../Utils/minimumWage.jsx';
-import { FlagIcon } from '@heroicons/react/24/outline';
+import { FlagIcon, PauseIcon, PlayIcon } from '@heroicons/react/24/outline';
 import ClickedModal from '../Components/Modals/ClickedModal.jsx';
 import PayrollExceptions from '../Components/Payroll/PayrollExceptions.jsx';
 
@@ -43,7 +43,7 @@ const payrollReportsConfig = [
               dataType: "control",
               visible: true,
               control: (row, rowIndex, { startDate, endDate } = {}) => (
-                <div className="flex flex-row items-center justify-start gap-x-3">
+                <div className="flex flex-row items-center justify-start gap-x-2">
                   <ClickedModal
                       overlay={true}
                       size={"xs"}
@@ -57,6 +57,12 @@ const payrollReportsConfig = [
                       aria-hidden="true"
                     />
                   </ClickedModal>
+                  <div className="w-full h-full justify-center items-center flex">
+                    <PauseIcon
+                        className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                        aria-hidden="true"
+                    />
+                  </div>
                   {/* {
                     row.exception_count > 0 &&
                     <div className="text-red-600 dark:text-red-700 text-xs font-semibold rounded-full ring-red-600 ring-1 dark:ring-red-700 w-5 h-5 flex items-center justify-center flex-shrink-0">
@@ -65,8 +71,8 @@ const payrollReportsConfig = [
                   } */}
                 </div>
               ),
-              headerClass: "text-center flex flex-row items-center justify-start w-full",
-              cellClass: "text-center flex flex-row items-center justify-start w-full",
+              headerClass: "text-center flex flex-row items-center justify-center w-full",
+              cellClass: "text-center flex flex-row items-center justify-center w-full",
               parameters: {
                 startDate: {
                   type: 'startDate',

@@ -234,6 +234,7 @@ class PayrollController extends Controller
             ->where('sage_id', '>', 0);
         })
         ->groupBy('hr_details.hr_id')
+        ->orderBy('hr_details.hr_id')
         ->get();
 
         $haloData = isset($masterHaloData) ? $masterHaloData->get() : collect();
