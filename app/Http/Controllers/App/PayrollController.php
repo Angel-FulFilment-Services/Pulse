@@ -154,7 +154,8 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.od_days_qty, 0) as od_days_qty'),
             DB::raw('COALESCE(exceptions.adhoc_qty, 0) as adhoc_qty'),
             DB::raw('COALESCE(exceptions.adhoc_amount, 0) as bonus'),
-            DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count')
+            DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count'),
+            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent')
         )
         ->leftJoinSub(
             DB::table('hr.dow_updates')
@@ -225,6 +226,20 @@ class PayrollController extends Controller
                 $join->on('hr_details.hr_id', '=', 'exceptions.hr_id');
             }
         )
+        ->leftJoinSub(
+            DB::connection('wings_config')
+            ->table('assigned_permissions')
+            ->select(
+                'user_id',
+                DB::raw('true as is_cpa_agent'),
+            )
+            ->where('right', '=', 'angel_cpa_agent')
+            ->groupBy('user_id'),
+            'angel_cpa_agents',
+            function($join) {
+                $join->on('hr_details.user_id', '=', 'angel_cpa_agents.user_id');
+            }
+        )
         ->whereNull('employment_category')
         ->where(function($query) use ($startDate, $endDate) {
             $query->where('start_date', '>=', $startDate)
@@ -248,6 +263,7 @@ class PayrollController extends Controller
             $employee->bonus += $this->calculateBonus(
                 $employee->hr_id,
                 $employee->halo_id,
+                $employee->is_cpa_agent,
                 $haloData,
                 $apexData,
                 $startDate,
@@ -277,7 +293,7 @@ class PayrollController extends Controller
         return response()->json(['data' => $data]); 
     }
 
-    private function calculateBonus($hr_id, $halo_id, $haloData, $apexData, $startDate, $endDate){   
+    private function calculateBonus($hr_id, $halo_id, $is_cpa_agent, $haloData, $apexData, $startDate, $endDate){   
 
         // Filter for this hr_id and date range
         $sign_ups = $haloData->where('halo_id', $halo_id)
@@ -286,6 +302,10 @@ class PayrollController extends Controller
         $diallings = $apexData->where('hr_id', $hr_id)
             ->whereBetween('date', [$startDate, $endDate])
             ->sum('diallings');
+
+        if (!$is_cpa_agent) {
+            return $sign_ups * 0.75; // Base bonus for non-CPA agents
+        }
 
         $dialling_percentage = ($diallings > 0) ? round(($sign_ups / $diallings) * 100, 2) : 0;
 
