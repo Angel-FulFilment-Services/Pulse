@@ -140,7 +140,6 @@ export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
                 )
                 : (() => {
                     const data = exceptions.map((record) => ({
-                      type: record.type,
                       date: record.date
                         ? format(new Date(record.date), 'dd MMMM, yyyy')
                         : '-',
@@ -158,7 +157,8 @@ export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
                         ? format(new Date(record.created_at), 'dd MMMM, yyyy h:mm a')
                         : '-',
                       loggedby: record.logged_by,
-                      quantity: record.quantity || 'N/A',
+                      amount: record.amount,
+                      days: record.days,
                       users: [{ userId: record.user_id, name: record.user_name }, { userId: record.created_by_user_id, name: record.logged_by }],
                       id: record.id,
                     }));
@@ -188,8 +188,8 @@ export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
                                 <circle cx={1} cy={1} r={1} />
                               </svg>
                               <p>
-                                { (row.type === "Statutory Sick Pay" || row.type === "Statutory Paternity Pay" || row.type === "Payment In Lieu of Notice") ? "Quantity of Days: " : "Amount of Pay (£): " }
-                                { row.quantity }
+                                { row.days ? "Quantity of Days: " : "Amount of Pay (£): " }
+                                { row.days || row.amount || 'N/A' }
                               </p>
                               <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                                 <circle cx={1} cy={1} r={1} />

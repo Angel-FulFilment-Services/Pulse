@@ -150,7 +150,8 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.ssp_qty, 0) as ssp_qty'),
             DB::raw('COALESCE(exceptions.spp_qty, 0) as spp_qty'),
             DB::raw('COALESCE(exceptions.pilon_qty, 0) as pilon_qty'),
-            DB::raw('COALESCE(exceptions.od_qty, 0) as od_qty'),
+            DB::raw('COALESCE(exceptions.od_amount_qty, 0) as od_amount_qty'),
+            DB::raw('COALESCE(exceptions.od_days_qty, 0) as od_days_qty'),
             DB::raw('COALESCE(exceptions.adhoc_qty, 0) as adhoc_qty'),
             DB::raw('COALESCE(exceptions.adhoc_amount, 0) as bonus'),
             DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count')
@@ -208,12 +209,13 @@ class PayrollController extends Controller
             ->table('exceptions')
             ->select(
                 'hr_id',
-                DB::raw('SUM(IF(type = "Statutory Sick Pay", quantity, 0)) as ssp_qty'),
-                DB::raw('SUM(IF(type = "Statutory Paternity Pay", quantity, 0)) as spp_qty'),
-                DB::raw('SUM(IF(type = "Payment In Lieu of Notice", quantity, 0)) as pilon_qty'),
-                DB::raw('SUM(IF(type = "Other Deductions", quantity, 0)) as od_qty'),
+                DB::raw('SUM(IF(type = "Statutory Sick Pay", days, 0)) as ssp_qty'),
+                DB::raw('SUM(IF(type = "Statutory Paternity Pay", days, 0)) as spp_qty'),
+                DB::raw('SUM(IF(type = "Payment In Lieu of Notice", amount, 0)) as pilon_qty'),
+                DB::raw('SUM(IF(type = "Other Deductions", amount, 0)) as od_amount_qty'),
+                DB::raw('SUM(IF(type = "Other Deductions", days, 0)) as od_days_qty'),
                 DB::raw('SUM(IF(type = "Adhoc Bonus", 1, 0)) as adhoc_qty'),
-                DB::raw('SUM(IF(type = "Adhoc Bonus", quantity, 0)) as adhoc_amount'),
+                DB::raw('SUM(IF(type = "Adhoc Bonus", amount, 0)) as adhoc_amount'),
                 DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count')
             )
             ->whereBetween('startdate', [$startDate, $endDate])
@@ -532,17 +534,20 @@ class PayrollController extends Controller
         $rules = [
             'type' => 'required|string',
             'notes' => 'nullable|string|max:500',
-            'quantity' => 'required|integer',
+            'days' => 'required_without:amount|nullable|numeric',
+            'amount' => 'required_without:days|nullable|numeric',
         ];
-
+        
         // Define custom validation messages
         $messages = [
             'type.required' => 'The type field is required.',
             'type.string' => 'The type must be a string.',
             'notes.string' => 'The notes must be a string.',
             'notes.max' => 'The notes may not be greater than 500 characters.',
-            'quantity.required' => 'The quantity field is required.',
-            'quantity.integer' => 'The quantity must be an numeric value.',
+            'days.required_without' => 'The days field is required if amount is not provided.',
+            'days.numeric' => 'The days must be a numeric value.',
+            'amount.required_without' => 'The amount field is required if days is not provided.',
+            'amount.numeric' => 'The amount must be a numeric value.',
         ];
 
         try {
@@ -561,7 +566,8 @@ class PayrollController extends Controller
                     'enddate' => $request->endDate,
                     'type' => $request->type,
                     'notes' => $request->notes,
-                    'quantity' => $request->quantity,
+                    'days' => $request->days,
+                    'amount' => $request->amount,
                 ]);
                 Auditing::log('Payroll', auth()->user()->id, 'Payroll Exception Updated', 'Exception ID: ' . $request->exceptionID);
             }else{
@@ -574,7 +580,8 @@ class PayrollController extends Controller
                     'enddate' => $request->endDate,
                     'type' => $request->type,
                     'notes' => $request->notes,
-                    'quantity' => $request->quantity,
+                    'days' => $request->days,
+                    'amount' => $request->amount,
                 ]);
                 Auditing::log('Payroll', auth()->user()->id, 'Payroll Exception Created', 'Exception ID: ' . $exception->id);
             }

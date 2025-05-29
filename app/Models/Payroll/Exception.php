@@ -26,6 +26,8 @@ class Exception extends Model
         'enddate',
         'type',
         'notes',
+        'amount',
+        'days',
         'quantity',
     ];
 

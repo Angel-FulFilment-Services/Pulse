@@ -10,8 +10,6 @@ const useFetchExceptions = (startDate, endDate, hrId = null) => {
 
   const fetchExceptions = async (controller) => {
     let loadingTimeout;
-    setIsLoaded(false);
-
     try {
       setIsLoading(true);
 

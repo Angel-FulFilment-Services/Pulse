@@ -16,7 +16,8 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
         startDate: dateRange.startDate ? dateRange.startDate : new Date(),
         endDate: dateRange.endDate ? dateRange.endDate : new Date(),
         notes: '',
-        quantity: '',
+        days: '',
+        amount: '',
         exceptionID: '',
     });
     const [isProcessing, setIsProcessing] = useState(false);
@@ -38,18 +39,6 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
             customMessage: 'Please select a type.',
             }),
         ],
-        // started: [
-        // (value) =>
-        //     validateRequired(value.hour && value.minute, 'Time', {
-        //     customMessage: 'Please select a time.',
-        //     }),
-        // ],
-        // ended: [
-        // (value) =>
-        //     validateRequired(value.hour && value.minute, 'Time', {
-        //     customMessage: 'Please select a time.',
-        //     }),
-        // ],
         notes: [
         (value) =>
             validateMatches(value, /^[a-zA-Z0-9\s.,'"\-()!?;:@#&%]*$/, null, {
@@ -57,6 +46,30 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
             condition: () => value.trim() !== '', // Only validate if the field is not empty
             }),
         ],
+        days: [
+            (value, allValues) =>
+              validateRequired(value, 'Days', {
+                customMessage: 'Please enter a quantity of days.',
+                condition: () => !allValues.amount, // Only validate if amount is not set
+              }),
+            (value, allValues) =>
+              validateMatches(value, /^-?\d*\.?\d*$/, null, {
+                customMessage: 'Quantity of days must be a valid number.',
+                condition: () => value.trim() !== '' && !allValues.amount, // Only validate if not empty and amount is not set
+              }),
+          ],
+          amount: [
+            (value, allValues) =>
+              validateRequired(value, 'Amount', {
+                customMessage: 'Please enter a monetary value.',
+                condition: () => !allValues.days, // Only validate if days is not set
+              }),
+            (value, allValues) =>
+              validateMatches(value, /^-?\d*\.?\d*$/, null, {
+                customMessage: 'Amount must be a valid number.',
+                condition: () => value.trim() !== '' && !allValues.days, // Only validate if not empty and days is not set
+              }),
+          ],
     };
 
     // Populate form data if initialData is provided
@@ -67,7 +80,8 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                 notes: initialData.notes || '',
                 startDate: initialData.startDate ? initialData.startDate : dateRange.startDate || new Date(),
                 endDate: initialData.endDate ? initialData.endDate : dateRange.endDate || new Date(),
-                quantity: initialData.quantity || '',
+                days: initialData.days || '',
+                amount: initialData.amount || '',
                 exceptionID: initialData.id || '',
             });
         }
@@ -84,11 +98,11 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
     }, [formData.startDate])
 
     useEffect(() => {
-        if((formData.type === 'Statutory Sick Pay' || formData.type === 'Statutory Paternity Pay' || formData.type === "Payment In Lieu of Notice") && (formData.quantity > 31 || formData.quantity < 0)) {
-            setFormData((prev) => (
-                {
+        if(formData.type === 'Other Deductions') {
+            setFormData((prev) => ({
                 ...prev,
-                quantity: formData.quantity > 31 ? 31 : formData.quantity < 0 ? 0 : formData.quantity,
+                days: '',
+                amount: '',
             }));
         }
     }, [formData.type]);
@@ -102,7 +116,7 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
 
         if (fieldRules) {
             for (const rule of fieldRules) {
-            const error = rule(value);
+            const error = rule(value, formData);
             if (error) {
                 newErrors[field] = error;
                 break;
@@ -132,7 +146,7 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
 
     const handleSubmit = async () => {
         // Validate all fields            
-        const isValid = validate(['type', 'startDate', 'endDate', 'notes']);
+        const isValid = validate(['type', 'startDate', 'endDate', 'notes', 'days', 'amount']);
         if (!isValid) return;
 
         // Set processing state
@@ -158,7 +172,8 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                   ? format(new Date(formData.endDate), 'yyyy-MM-dd')
                   : ''
               );
-            formDataPayload.append('quantity', formData.quantity);
+            formDataPayload.append('days', formData.days);
+            formDataPayload.append('amount', formData.amount);
             formDataPayload.append('hrID', hrId);
             if (initialData) {
                 formDataPayload.append('exceptionID', formData.exceptionID);
@@ -235,7 +250,8 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
             startDate: dateRange.startDate ? dateRange.startDate : new Date(),
             endDate: dateRange.endDate ? dateRange.endDate : new Date(),
             notes: '',
-            quantity: '',
+            days: '',
+            amount: '',
             exceptionID: '',
         });
         onCancel();
@@ -291,15 +307,15 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                     { formData.type === 'Statutory Sick Pay' && (
                         <div className="sm:col-span-6">
                          <NumberInput 
-                            id="quantity"
+                            id="days"
                             label="Quantity"
                             Icon={CalendarDaysIcon}
                             annotation="(Days)"
                             placeholder="Enter the quantity of days for SSP"
-                            currentState={formData.quantity}
-                            onTextChange={(value) => handleInputChange('quantity', value[0].value)}
-                            onBlur={() => validate(['quantity'])}
-                            error={errors.quantity}
+                            currentState={formData.days}
+                            onTextChange={(value) => handleInputChange('days', value[0].value)}
+                            onBlur={() => validate(['days'])}
+                            error={errors.days}
                             low={0}
                             high={31}
                             showRangeAlert={true}
@@ -310,15 +326,15 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                     { formData.type === 'Statutory Paternity Pay' && (
                         <div className="sm:col-span-6">
                          <NumberInput 
-                            id="quantity"
+                            id="days"
                             label="Quantity"
                             annotation="(Days)"
                             Icon={CalendarDaysIcon}
                             placeholder="Enter the quantity of days for SPP"
-                            currentState={formData.quantity}
-                            onTextChange={(value) => handleInputChange('quantity', value[0].value)}
-                            onBlur={() => validate(['quantity'])}
-                            error={errors.quantity}
+                            currentState={formData.days}
+                            onTextChange={(value) => handleInputChange('days', value[0].value)}
+                            onBlur={() => validate(['days'])}
+                            error={errors.days}
                             low={0}
                             high={31}
                             showRangeAlert={true}
@@ -329,15 +345,15 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                     { formData.type === 'Payment In Lieu of Notice' && (
                         <div className="sm:col-span-6">
                             <NumberInput 
-                            id="quantity"
+                            id="amount"
                             label="Quantity"
                             annotation="(Days)"
                             Icon={CalendarDaysIcon}
                             placeholder="Enter the quantity of days for PILON"
-                            currentState={formData.quantity}
-                            onTextChange={(value) => handleInputChange('quantity', value[0].value)}
-                            onBlur={() => validate(['quantity'])}
-                            error={errors.quantity}
+                            currentState={formData.amount}
+                            onTextChange={(value) => handleInputChange('amount', value[0].value)}
+                            onBlur={() => validate(['amount'])}
+                            error={errors.amount}
                             low={0}
                             high={31}
                             showRangeAlert={true}
@@ -345,22 +361,66 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                         </div>
                     )}
 
-                    { (formData.type === 'Other Deductions' || formData.type === 'Adhoc Bonus') && (
+                    { formData.type === 'Adhoc Bonus' && (
                         <div className="sm:col-span-6">
                             <NumberInput 
-                                id="quantity"
+                                id="amount"
                                 label="Quantity"
                                 annotation="(Amount)"
                                 Icon={CurrencyPoundIcon}
-                                placeholder="Enter the pound (£) amount for this exception"
-                                currentState={formData.quantity}
-                                onTextChange={(value) => handleInputChange('quantity', value[0].value)}
-                                onBlur={() => validate(['quantity'])}
-                                error={errors.quantity}
+                                placeholder="Enter the monetary (£) amount for this exception"
+                                currentState={formData.amount}
+                                onTextChange={(value) => handleInputChange('amount', value[0].value)}
+                                onBlur={() => validate(['amount'])}
+                                error={errors.amount}
                                 low={-10000}
                                 high={10000}
                                 showRangeAlert={true}
                             />   
+                        </div>
+                    )}
+
+                    {formData.type === 'Other Deductions' && (
+                        <div className="sm:col-span-6 flex flex-col sm:flex-row w-full items-center justify-items gap-x-4">
+                            <div className="w-full">
+                                <NumberInput 
+                                    id="amount"
+                                    label="Quantity"
+                                    annotation="(Amount)"
+                                    Icon={CurrencyPoundIcon}
+                                    placeholder="Enter the monetary amount to be deducted"
+                                    currentState={formData.amount}
+                                    onTextChange={(value) => {
+                                        handleInputChange('days', '');
+                                        handleInputChange('amount', value[0].value)}
+                                    }
+                                    onBlur={() => validate(['amount'])}
+                                    error={errors.amount}
+                                    low={-10000}
+                                    high={10000}
+                                    showRangeAlert={true}
+                                />
+                            </div>
+                            <p className={`text-sm font-semibold text-gray-600 dark:text-dark-400 ${(errors.days || errors.amount) ? '' : 'sm:mt-7'}`}>Or</p>
+                            <div className="w-full">
+                                <NumberInput 
+                                    id="days"
+                                    label="Quantity"
+                                    annotation="(Days)"
+                                    Icon={CalendarDaysIcon}
+                                    placeholder="Enter the quantity of days deductable"
+                                    currentState={formData.days}
+                                    onTextChange={(value) => {
+                                        handleInputChange('amount', '');
+                                        handleInputChange('days', value[0].value)}
+                                    }
+                                    onBlur={() => validate(['days'])}
+                                    error={errors.days}
+                                    low={0}
+                                    high={31}
+                                    showRangeAlert={true}
+                                />
+                            </div>
                         </div>
                     )}
                     </div>
