@@ -238,7 +238,6 @@ class PayrollController extends Controller
             ->orWhere('timesheet.total_hours', '>', 0);
         })
         ->groupBy('hr_details.hr_id')
-        ->orderBy('hr_details.hr_id')
         ->get();
 
         $haloData = isset($masterHaloData) ? $masterHaloData->get() : collect();

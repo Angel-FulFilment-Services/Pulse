@@ -39,6 +39,9 @@ const payrollReportsConfig = [
               return `bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25`;
             }
           },
+          sorting: {
+            default: { key: 'surname', direction: 'asc' }
+          },
           structure: [
             {
               id: "actions",
@@ -110,7 +113,7 @@ const payrollReportsConfig = [
             },
             {
               id: "hr_id",
-              label: "Employee ID",
+              label: "Emp. ID",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -313,6 +316,7 @@ const payrollReportsConfig = [
             {
               id: "holiday",
               label: "Holiday",
+              subLabel: "(No. of Days)",
               dataType: "integer",
               visible: true,
               allowTarget: true,
@@ -333,7 +337,8 @@ const payrollReportsConfig = [
             },
             {
               id: "holiday_pay",
-              label: "Holiday Pay",
+              label: "Holiday",
+              subLabel: "(£)",
               dataType: "integer",
               visible: true,
               allowTarget: true,
@@ -345,7 +350,7 @@ const payrollReportsConfig = [
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
               format: (value) => {
-                if (!value || isNaN(value) || Number(value) <= 0) return "0.00";
+                if (!value || isNaN(value) || Number(value) <= 0) return "0";
                 return parseFloat(value).toFixed(2);
               },
               cellAnnotation: (value) => value,
@@ -353,7 +358,8 @@ const payrollReportsConfig = [
             },
             {
               id: "length_of_service",
-              label: "Length of Service",
+              label: "LOS",
+              subLabel: "(Length of Service)",
               dataType: "integer",
               visible: true,
               allowTarget: true,
@@ -391,7 +397,8 @@ const payrollReportsConfig = [
             },
             {
               id: "days_of_week",
-              label: "Days Per Week",
+              label: "DOW",
+              subLabel: "(Days of Week)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -408,7 +415,8 @@ const payrollReportsConfig = [
             },
             {
               id: "ssp_qty",
-              label: "SSP (No. of Days)",
+              label: "SSP",
+              subLabel: "(No. of Days)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -425,7 +433,8 @@ const payrollReportsConfig = [
             },
             {
               id: "spp_qty",
-              label: "SPP (No. of Days)",
+              label: "SPP",
+              subLabel: "(No. of Days)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -442,7 +451,8 @@ const payrollReportsConfig = [
             },
             {
               id: "pilon_qty",
-              label: "PILON (No. of Days)",
+              label: "PILON",
+              subLabel: "(No. of Days)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -459,24 +469,29 @@ const payrollReportsConfig = [
             },
             {
               id: "od_amount_qty",
-              label: "Other Deductions",
+              label: "Deductions",
+              subLabel: "(£)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
               target: 0,
               targetDirection: 'asc',
-              prefix: "£",
+              prefix: "-£",
               suffix: "",
               cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
-              headerAnnotation: "(£)",
-              format: (value) => value,
+              headerAnnotation: "",
+              format: (value) => {
+                if (!value || isNaN(value) || Number(value) <= 0) return "0";
+                return parseFloat(value).toFixed(2);
+              },
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
             },
             {
               id: "od_days_qty",
-              label: "Other Deductions",
+              label: "Deductions",
+              subLabel: "(No. of Days)",
               dataType: "integer",
               visible: true,
               allowTarget: false,
@@ -486,7 +501,7 @@ const payrollReportsConfig = [
               suffix: "",
               cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
-              headerAnnotation: "(Days)",
+              headerAnnotation: "",
               format: (value) => value,
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
