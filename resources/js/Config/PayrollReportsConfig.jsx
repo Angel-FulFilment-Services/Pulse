@@ -16,14 +16,17 @@ const payrollReportsConfig = [
           targetAllowRow: true,
           total: false,
           polling: 60000,
-          dateRange: {
-              default: {
-                startDate: format(isBefore(new Date(), setDate(new Date(), 29)) ? setDate(subMonths(new Date(), 1), 29) : setDate(new Date(), 29), 'yyyy-MM-dd'),
-                endDate: format(isAfter(new Date(), setDate(new Date(), 28)) ? setDate(addMonths(new Date(), 1), 28) : setDate(new Date(), 28), 'yyyy-MM-dd'),
-              },
-              maxDate: new Date(),
+          dateRange: (() => {
+            const today = new Date();
+            const day = today.getDate();
+            const startDate = format(setDate(subMonths(today, day <= 5 ? 2 : 1), 29), 'yyyy-MM-dd');
+            const endDate = format(setDate(subMonths(today, day <= 5 ? 1 : 0), 28), 'yyyy-MM-dd');
+            return {
+              default: { startDate, endDate },
+              maxDate: endDate,
               minDate: new Date().setFullYear(new Date().getFullYear() - 1),
-          },
+            };
+          })(),
           date: false,
           target: (row) => {
             if (!row) return "";
@@ -57,18 +60,18 @@ const payrollReportsConfig = [
                       aria-hidden="true"
                     />
                   </ClickedModal>
-                  <div className="w-full h-full justify-center items-center flex">
+                  {/* <div className="w-full h-full justify-center items-center flex">
                     <PauseIcon
                         className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
                         aria-hidden="true"
                     />
-                  </div>
-                  {/* {
-                    row.exception_count > 0 &&
-                    <div className="text-red-600 dark:text-red-700 text-xs font-semibold rounded-full ring-red-600 ring-1 dark:ring-red-700 w-5 h-5 flex items-center justify-center flex-shrink-0">
-                      {row.exception_count}
+                  </div> */}
+                  {
+                    (row.exception_count > 0 || row.adhoc_qty > 0) &&
+                    <div className="text-red-600 dark:text-red-700 text-xs font-semibold rounded-full ring-red-600 ring-1 dark:ring-red-700 w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      {(Number(row.exception_count) || 0) + (Number(row.adhoc_qty) || 0)}
                     </div>
-                  } */}
+                  }
                 </div>
               ),
               headerClass: "text-center flex flex-row items-center justify-center w-full",

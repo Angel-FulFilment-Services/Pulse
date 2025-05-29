@@ -151,7 +151,8 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.spp_qty, 0) as spp_qty'),
             DB::raw('COALESCE(exceptions.pilon_qty, 0) as pilon_qty'),
             DB::raw('COALESCE(exceptions.od_qty, 0) as od_qty'),
-            DB::raw('COALESCE(exceptions.adhoc_qty, 0) as bonus'),
+            DB::raw('COALESCE(exceptions.adhoc_qty, 0) as adhoc_qty'),
+            DB::raw('COALESCE(exceptions.adhoc_amount, 0) as bonus'),
             DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count')
         )
         ->leftJoinSub(
@@ -211,8 +212,9 @@ class PayrollController extends Controller
                 DB::raw('SUM(IF(type = "Statutory Paternity Pay", quantity, 0)) as spp_qty'),
                 DB::raw('SUM(IF(type = "Payment In Lieu of Notice", quantity, 0)) as pilon_qty'),
                 DB::raw('SUM(IF(type = "Other Deductions", quantity, 0)) as od_qty'),
-                DB::raw('SUM(IF(type = "Adhoc Bonus", quantity, 0)) as adhoc_qty'),
-                DB::raw('COUNT(id) as exception_count')
+                DB::raw('SUM(IF(type = "Adhoc Bonus", 1, 0)) as adhoc_qty'),
+                DB::raw('SUM(IF(type = "Adhoc Bonus", quantity, 0)) as adhoc_amount'),
+                DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count')
             )
             ->whereBetween('startdate', [$startDate, $endDate])
             ->groupBy('hr_id'),
