@@ -127,6 +127,7 @@ Route::get('/payroll/exports/exceptions', [PayrollController::class, 'exceptions
 Route::post('/payroll/exports/exceptions/save', [PayrollController::class, 'saveException']);
 Route::post('/payroll/exports/exceptions/remove', [PayrollController::class, 'removeException']);
 Route::get('/payroll/exports/generate/payroll', [PayrollController::class, 'payrollExport']);
+Route::get('/payroll/exports/generate/exp/payroll', [PayrollController::class, 'payrollExportSage']);
 
 /*
 |-----------------------

@@ -38,6 +38,10 @@ const payrollReportsConfig = [
             if(row.leave_date) {
               return `bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25`;
             }
+
+            if(row.last_qty == 0 || row.days_of_week == 0) {
+              return `bg-theme-100 text-theme-800 dark:bg-theme-400 dark:text-theme-200 dark:bg-opacity-25`;
+            }
           },
           sorting: {
             default: { key: 'surname', direction: 'asc' }
@@ -560,15 +564,18 @@ const payrollReportsConfig = [
                   return data.leave_date;
                 } else if (filterValue === 'exceptions') {
                   return data.exception_count && data.exception_count > 0;
+                } else if (filterValue === 'issue') {
+                  return data.last_qty == 0 || data.days_of_week == 0;
                 } else if (filterValue === 'active') {
-                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0);
+                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && (data.last_qty > 0 || data.days_of_week > 0);
                 }
                 return true; // Default case, no filter applied
               },
               options: [
                 { value: 'exceptions', label: 'Has exceptions', checked: false },
+                { value: 'issue', label: 'Has data issues', checked: false },
                 { value: 'leaver', label: 'Is a leaver', checked: false },
-                { value: 'active', label: 'Is ready to export', checked: false } // Uncomment if needed
+                { value: 'active', label: 'Is ready to export', checked: false } 
               ]
             }
         ]

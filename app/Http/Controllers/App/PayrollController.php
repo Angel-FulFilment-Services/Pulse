@@ -18,7 +18,7 @@ class PayrollController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['auth', 'twofactor']);
-        $this->middleware(['has.permission:pulse_view_reporting']);
+        $this->middleware(['has.permission:pulse_view_payroll']);
         $this->middleware(['log.access']);
     }
 
@@ -26,112 +26,172 @@ class PayrollController extends Controller
         return Inertia::render('Payroll/Payroll');
     }
 
+    public function payrollExportSage(Request $request){
+        $startDate = $request->query('startDate');
+        $endDate = $request->query('endDate');
+
+        $export = [];
+
+        $export['employees'] = Employee::select(
+            'hr_details.hr_id',
+            'hr_details.sage_id',
+            'hr_details.halo_id',
+            'hr_details.firstname',
+            'hr_details.surname',
+            'hr_details.dob',
+            'gross_pay',
+            'last_qty',
+            DB::raw('COALESCE(dow.days_of_week, 0) as days_of_week'),
+            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent')
+        )
+        ->leftJoinSub(
+            DB::connection('hr')
+            ->table('exceptions')
+            ->select(
+                'hr_id',
+            )
+            ->whereBetween('startdate', [$startDate, $endDate])
+            ->where('type', '!=', 'Adhoc Bonus')
+            ->groupBy('hr_id'),
+            'exceptions',
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'exceptions.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('hr.dow_updates')
+            ->select('hr_id', DB::raw('dow as days_of_week'))
+            ->where(function($query) use ($startDate, $endDate) {
+                $query->where('startdate', '<=', $startDate)
+                    ->where('enddate', '>=', $endDate)
+                    ->orWhere(function($query) use ($startDate, $endDate) {
+                        $query->where('startdate', '<=', $endDate)
+                            ->where('enddate', '>=', $startDate);
+                    });
+            })
+            ->orderBy('startdate', 'desc')
+            ->groupBy('hr_id'), 
+            'dow', 
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'dow.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::connection('hr')
+            ->table('gross_pay')
+            ->select(
+                'hr_id',
+                DB::raw('SUM(amount) as gross_pay'),
+                DB::raw('COUNT(amount) as last_qty')
+            )
+            ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
+            ->groupBy('hr_id'),
+            'gross_pay',
+            function($join) {
+                $join->on('hr_details.hr_id', '=', 'gross_pay.hr_id');
+            }
+        )->leftJoinSub(
+            DB::connection('wings_config')
+            ->table('assigned_permissions')
+            ->select(
+                'user_id',
+                DB::raw('true as is_cpa_agent'),
+            )
+            ->where('right', '=', 'angel_cpa_agent')
+            ->groupBy('user_id'),
+            'angel_cpa_agents',
+            function($join) {
+                $join->on('hr_details.user_id', '=', 'angel_cpa_agents.user_id');
+            }
+        )
+        ->whereNull('employment_category') // Exclude employees with an employment category (Back Office).
+        ->whereNull('leave_date') // Exclude leavers.
+        ->whereNull('exceptions.hr_id') // Exclude employees with exceptions in the date range.
+        ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
+        ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
+        ->get();
+
+        $export['hours'] = DB::connection('apex_data')
+        ->table('timesheet_master')
+        ->leftJoin('wings_data.hr_details', 'hr_details.hr_id', '=', 'timesheet_master.hr_id')
+        ->select(
+            'timesheet_master.hr_id',
+            'hr_details.sage_id',
+            DB::raw('CAST(on_time AS DATE) as date'),
+            DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 / 60 as hours')
+        )
+        ->where('type', '!=', 'H')
+        ->whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->groupBy('timesheet_master.hr_id')
+        ->groupBy('date')
+        ->get();
+
+        $export['holiday'] = [];
+        foreach($export['employees'] as $employee){
+            $holiday = $this->calculateHoliday(
+                $employee->hr_id,
+                $startDate,
+                $endDate,
+                $employee->start_date,
+                $employee->leave_date,
+                $employee->days_of_week,
+            );
+
+            if( $holiday <= 0){
+                continue;
+            }
+
+            $export['holiday'][] = [
+                'hr_id' => $employee->hr_id,
+                'sage_id' => $employee->sage_id,
+                'days' => $holiday,
+                'holiday' => round($this->calculateHolidayPay(
+                    $employee->hr_id,
+                    $employee->days_of_week,
+                    $holiday,
+                    $employee->gross_pay,
+                    $employee->last_qty,
+                    $employee->leave_date,
+                    $employee->start_date
+                ), 2),
+            ];
+        }
+
+        $cpaData = $this->getCPAData($startDate, $endDate);
+        $haloData = $cpaData['halo_data'] ?? collect();
+        $apexData = $cpaData['apex_data'] ?? collect();
+
+        $export['bonus'] = [];
+        foreach($export['employees'] as $employee){
+            $employee->bonus = $this->calculateBonus(
+                $employee->hr_id,
+                $employee->halo_id,
+                $employee->is_cpa_agent,
+                $haloData,
+                $apexData,
+                $startDate,
+                $endDate
+            );
+
+            if($employee->bonus > 0){
+                $export['bonus'][] = [
+                    'hr_id' => $employee->hr_id,
+                    'sage_id' => $employee->sage_id,
+                    'bonus' => round($employee->bonus, 2)
+                ];
+            }
+        }
+
+        return response()->json($export); 
+    }
+
     public function payrollExport(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
-        $apexData = DB::connection('apex_data')
-        ->table('apex_data')
-        ->join(DB::raw('halo_config.ddi as ddis'), 'apex_data.ddi', '=', 'ddis.ddi')
-        ->where('ddis.wings_camp', 'LIKE', '%CPA%')
-        ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
-        ->where(function($query){
-            $query->where('apex_data.presented','=','1');
-            $query->orWhere('apex_data.type','<>','Dial');
-        })
-        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out'])
-        ->groupBy('date')
-        ->groupBy('hr_id')
-        ->orderBy('date')
-        ->select(DB::raw('count(apex_data.unq_id) as diallings, apex_data.date, apex_data.hr_id'));
-
-        $campaigns = DB::connection('halo_config')
-        ->table('ddi')
-        ->where('wings_camp','LIKE','%CPA%')
-        ->orderBy('client')
-        ->select('client', 'wings_camp', 'ddi')
-        ->get();
-
-        $campaigns = $campaigns->groupBy(function($item) {
-            return $item->client . '-' . $item->wings_camp;
-        })->map(function($group) {
-            return (object) [
-                'client' => $group[0]->client,
-                'wings_camp' => $group[0]->wings_camp,
-                'ddis' => $group->pluck('ddi')
-            ];
-        });
-
-        $clientConfiguration = DB::connection('halo_config')
-            ->table('client_tables')
-            ->wherein('clientref', $campaigns->pluck('client'))
-            ->select('clientref as client', 'orders', 'customers')
-            ->get()
-            ->mapWithKeys(function($item) {
-                return [$item->client => (object) $item];
-            });
-
-        $completed = [];
-
-        foreach($campaigns as $campaign){
-
-            $client = $clientConfiguration[$campaign->client] ?? null;
-
-            if($client){
-                $orders = $client->orders;
-                $customers = $client->customers;
-            }else{
-                continue;
-            }
-
-            $template = DB::connection('wings_config')
-            ->table('internal_reports')
-            ->where('client', $campaign->client)
-            ->where('campaign', $campaign->wings_camp)
-            ->value('template');
-
-            $template = json_decode($template, true);
-            if (is_null($template) || !is_array($template)) {
-                continue;
-            }
-
-            $key = array_search('total_sign_ups', array_column($template, 'id'));
-            if ($key !== false) {
-                $products = $template[$key]['where'];
-                if(!is_array($products)){
-                    $products = [$products];
-                }
-            }else{
-                $products = ['PDD'];
-            }
-
-            if(Schema::connection('halo_data')->hasTable($orders) && Schema::connection('halo_data')->hasTable($customers)){
-                $haloData = DB::connection('halo_data')
-                ->Table($orders.' as ords')
-                ->whereNotIn('cust.status',['DELE','TEST','NAUT'])
-                ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
-                ->whereIn('ords.ddi', $campaign->ddis)
-                ->whereIn('ords.product', $products)
-                ->join(DB::raw('halo_data.' . $customers . ' as cust'),'ords.orderref','=','cust.orderref')
-                ->select(
-                    DB::raw('count(ords.orderref) as sign_ups'),
-                    DB::raw('"' . $campaign->client . '" as client'),
-                    DB::raw('"' . $campaign->wings_camp . '" as campaign'),
-                    'ords.date',
-                    'ords.operator as halo_id'
-                )
-                ->groupBy('ords.date')
-                ->groupBy('ords.operator')
-                ->groupBy('client')
-                ->groupBy('campaign');
-
-                $masterHaloData = isset($masterHaloData) ? $masterHaloData->union($haloData) : $haloData;
-            }else{
-                continue;
-            }
-
-            $completed[] = $campaign->client . '-' . $campaign->wings_camp;
-        }
+        $cpaData = $this->getCPAData($startDate, $endDate);
+        $apexData = $cpaData['apex_data'] ?? collect();
+        $haloData = $cpaData['halo_data'] ?? collect();
 
         $data = Employee::select(
             'sage_id',
@@ -182,7 +242,7 @@ class PayrollController extends Controller
                 'hr_id',
                 DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 / 60 as total_hours')
             )
-            ->where('type', '!=', 'Holiday')
+            ->where('type', '!=', 'H')
             ->whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->groupBy('hr_id'), 
             'timesheet', 
@@ -255,10 +315,6 @@ class PayrollController extends Controller
         ->groupBy('hr_details.hr_id')
         ->get();
 
-        $haloData = isset($masterHaloData) ? $masterHaloData->get() : collect();
-
-        $apexData = $apexData->get();
-
         $data = $data->map(function($employee) use ($haloData, $apexData, $startDate, $endDate) {
             $employee->bonus += $this->calculateBonus(
                 $employee->hr_id,
@@ -318,8 +374,7 @@ class PayrollController extends Controller
             $incentives_earnt = 0;
         }
 
-        $weeks = $this->calculate_weekly_periods($startDate, $endDate);
-
+        $weeks = $this->calculateWeeklyPeriods($startDate, $endDate);
         foreach ($weeks as $week) {
             $weekStart = $week['startdate'];
             $weekEnd = $week['enddate'];
@@ -343,7 +398,7 @@ class PayrollController extends Controller
         return $incentives_earnt;
     }
 
-    function calculate_weekly_periods($startdate, $enddate) {
+    private function calculateWeeklyPeriods($startdate, $enddate) {
         $startdate = strtotime($startdate);
         $enddate = strtotime($enddate);
         $weeks = [];
@@ -495,6 +550,115 @@ class PayrollController extends Controller
         }
 
         return round($daily_rate * $holiday, 2);
+    }
+
+    private function getCPAData($startDate, $endDate) {
+        $apexData = DB::connection('apex_data')
+        ->table('apex_data')
+        ->join(DB::raw('halo_config.ddi as ddis'), 'apex_data.ddi', '=', 'ddis.ddi')
+        ->where('ddis.wings_camp', 'LIKE', '%CPA%')
+        ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
+        ->where(function($query){
+            $query->where('apex_data.presented','=','1');
+            $query->orWhere('apex_data.type','<>','Dial');
+        })
+        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out'])
+        ->groupBy('date')
+        ->groupBy('hr_id')
+        ->orderBy('date')
+        ->select(DB::raw('count(apex_data.unq_id) as diallings, apex_data.date, apex_data.hr_id'))
+        ->get();
+
+        $campaigns = DB::connection('halo_config')
+        ->table('ddi')
+        ->where('wings_camp','LIKE','%CPA%')
+        ->orderBy('client')
+        ->select('client', 'wings_camp', 'ddi')
+        ->get();
+
+        $campaigns = $campaigns->groupBy(function($item) {
+            return $item->client . '-' . $item->wings_camp;
+        })->map(function($group) {
+            return (object) [
+                'client' => $group[0]->client,
+                'wings_camp' => $group[0]->wings_camp,
+                'ddis' => $group->pluck('ddi')
+            ];
+        });
+
+        $clientConfiguration = DB::connection('halo_config')
+            ->table('client_tables')
+            ->wherein('clientref', $campaigns->pluck('client'))
+            ->select('clientref as client', 'orders', 'customers')
+            ->get()
+            ->mapWithKeys(function($item) {
+                return [$item->client => (object) $item];
+            });
+
+        foreach($campaigns as $campaign){
+
+            $client = $clientConfiguration[$campaign->client] ?? null;
+
+            if($client){
+                $orders = $client->orders;
+                $customers = $client->customers;
+            }else{
+                continue;
+            }
+
+            $template = DB::connection('wings_config')
+            ->table('internal_reports')
+            ->where('client', $campaign->client)
+            ->where('campaign', $campaign->wings_camp)
+            ->value('template');
+
+            $template = json_decode($template, true);
+            if (is_null($template) || !is_array($template)) {
+                continue;
+            }
+
+            $key = array_search('total_sign_ups', array_column($template, 'id'));
+            if ($key !== false) {
+                $products = $template[$key]['where'];
+                if(!is_array($products)){
+                    $products = [$products];
+                }
+            }else{
+                $products = ['PDD'];
+            }
+
+            if(Schema::connection('halo_data')->hasTable($orders) && Schema::connection('halo_data')->hasTable($customers)){
+                $haloData = DB::connection('halo_data')
+                ->Table($orders.' as ords')
+                ->whereNotIn('cust.status',['DELE','TEST','NAUT'])
+                ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
+                ->whereIn('ords.ddi', $campaign->ddis)
+                ->whereIn('ords.product', $products)
+                ->join(DB::raw('halo_data.' . $customers . ' as cust'),'ords.orderref','=','cust.orderref')
+                ->select(
+                    DB::raw('count(ords.orderref) as sign_ups'),
+                    DB::raw('"' . $campaign->client . '" as client'),
+                    DB::raw('"' . $campaign->wings_camp . '" as campaign'),
+                    'ords.date',
+                    'ords.operator as halo_id'
+                )
+                ->groupBy('ords.date')
+                ->groupBy('ords.operator')
+                ->groupBy('client')
+                ->groupBy('campaign');
+
+                $masterHaloData = isset($masterHaloData) ? $masterHaloData->union($haloData) : $haloData;
+            }else{
+                continue;
+            }
+        }
+
+        $haloData = isset($masterHaloData) ? $masterHaloData->get() : collect();
+
+        return [
+            'apex_data' => $apexData,
+            'halo_data' => $haloData
+        ];
     }
 
     public function setTargets(Request $request){       

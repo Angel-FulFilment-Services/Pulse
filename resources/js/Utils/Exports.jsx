@@ -1,5 +1,8 @@
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
+import axios from 'axios';
+import { getRateForDate } from '../Utils/minimumWage.jsx';
+import { differenceInYears } from 'date-fns';
 
 export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
     // Ensure the table reference is valid
@@ -195,5 +198,130 @@ export async function exportHTMLToImage(divRef, filename = 'capture.png') {
             progress: undefined,
             theme: 'light',
         });
+    }
+}
+
+export async function exportPayrollToCSV(startDate, endDate, setProgress = () => {}) {
+    let interval;
+    try {
+        let fakeProgress = 0;
+        setProgress(fakeProgress);
+
+        // Simulate progress up to 85% over 9 seconds
+        interval = setInterval(() => {
+            fakeProgress += 3;
+            if (fakeProgress < 85) setProgress(fakeProgress);
+        }, 200);
+
+        const { data } = await axios.get('/payroll/exports/generate/exp/payroll', {
+            params: { startDate, endDate }
+        });
+
+        clearInterval(interval);
+        setProgress(90);
+
+        const { employees = [], hours = [], holiday = [], bonus = [] } = data;
+
+        // 2. Index holiday and bonus by sage_id for quick lookup
+        const holidayMap = Object.fromEntries(holiday.map(h => [h.sage_id, h.holiday]));
+        const bonusMap = Object.fromEntries(bonus.map(b => [b.sage_id, b.bonus]));
+
+        // 3. Index employees by sage_id for DOB lookup
+        const employeeMap = Object.fromEntries(employees.map(e => [e.sage_id, e]));
+
+        // 4. Group hours by sage_id
+        const hoursBySage = {};
+        for (const h of hours) {
+            if (!hoursBySage[h.sage_id]) hoursBySage[h.sage_id] = [];
+            hoursBySage[h.sage_id].push(h);
+        }
+
+        // 5. Prepare CSV rows
+        const rows = [];
+        rows.push(['sage_id', 'pay_ref', 'hours', 'rate']); // header
+
+        for (const emp of employees) {
+            const sage_id = emp.sage_id;
+
+            // Holiday
+            if (holidayMap[sage_id]) {
+                rows.push([sage_id, 18, '1.00', Number(holidayMap[sage_id]).toFixed(2)]);
+            }
+
+            // Bonus
+            if (bonusMap[sage_id]) {
+                rows.push([sage_id, 100, '1.00', Number(bonusMap[sage_id]).toFixed(2)]);
+            }
+
+            // Hours
+            const empHours = hoursBySage[sage_id] || [];
+            if (empHours.length) {
+                // Sort by date ascending for rate change detection
+                empHours.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                // Calculate rate for each entry
+                const hoursWithRate = empHours.map(h => {
+                    const dob = employeeMap[sage_id]?.DOB || employeeMap[sage_id]?.dob;
+                    const age = dob ? differenceInYears(new Date(h.date), new Date(dob)) : null;
+
+                    const rate = getRateForDate(age, new Date(h.date));
+                    return { ...h, rate };
+                });
+
+                // Group by rate
+                const grouped = [];
+                let current = null;
+                for (const h of hoursWithRate) {
+                    if (!current || current.rate !== h.rate) {
+                        if (current) grouped.push(current);
+                        current = { rate: h.rate, hours: 0, pay_ref: null };
+                    }
+                    current.hours += Number(h.hours);
+                }
+                if (current) grouped.push(current);
+
+                // If only one rate, pay_ref 96; if more, lowest rate is 102, others 96
+                if (grouped.length === 1) {
+                    rows.push([
+                        sage_id,
+                        96,
+                        Number(grouped[0].hours).toFixed(2),
+                        Number(grouped[0].rate).toFixed(2)
+                    ]);
+                } else {
+                    const minRate = Math.min(...grouped.map(g => g.rate));
+                    for (const g of grouped) {
+                        rows.push([
+                            sage_id,
+                            g.rate === minRate ? 102 : 96,
+                            Number(g.hours).toFixed(2),
+                            Number(g.rate).toFixed(2)
+                        ]);
+                    }
+                }
+            }
+        }
+
+        setProgress(90);
+        // 6. Convert to CSV string
+        const csv = rows.map(row => row.join(',')).join('\r\n');
+
+        // 7. Trigger download
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payroll_export_${startDate}_to_${endDate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        setProgress(100);
+        return true;
+    } catch (error) {
+        if (interval) clearInterval(interval);
+        setProgress(100);
+        return false;
     }
 }
