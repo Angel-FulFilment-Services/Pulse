@@ -34,7 +34,7 @@ class PayrollController extends Controller
         ->table('apex_data')
         ->join(DB::raw('halo_config.ddi as ddis'), 'apex_data.ddi', '=', 'ddis.ddi')
         ->where('ddis.wings_camp', 'LIKE', '%CPA%')
-        ->whereBetween('date',[$startDate, $endDate])
+        ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
         ->where(function($query){
             $query->where('apex_data.presented','=','1');
             $query->orWhere('apex_data.type','<>','Dial');
@@ -102,14 +102,14 @@ class PayrollController extends Controller
                     $products = [$products];
                 }
             }else{
-                continue;
+                $products = ['PDD'];
             }
 
             if(Schema::connection('halo_data')->hasTable($orders) && Schema::connection('halo_data')->hasTable($customers)){
                 $haloData = DB::connection('halo_data')
                 ->Table($orders.' as ords')
                 ->whereNotIn('cust.status',['DELE','TEST','NAUT'])
-                ->whereBetween('date',[$startDate, $endDate])
+                ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
                 ->whereIn('ords.ddi', $campaign->ddis)
                 ->whereIn('ords.product', $products)
                 ->join(DB::raw('halo_data.' . $customers . ' as cust'),'ords.orderref','=','cust.orderref')
@@ -319,10 +319,11 @@ class PayrollController extends Controller
         }
 
         $weeks = $this->calculate_weekly_periods($startDate, $endDate);
+
         foreach ($weeks as $week) {
             $weekStart = $week['startdate'];
             $weekEnd = $week['enddate'];
-        
+
             $weekly_sign_ups = $haloData->where('halo_id', $halo_id)
                 ->whereBetween('date', [$weekStart, $weekEnd])
                 ->sum('sign_ups');
@@ -330,7 +331,7 @@ class PayrollController extends Controller
                 ->whereBetween('date', [$weekStart, $weekEnd])
                 ->sum('diallings');
             $weekly_dialling_percentage = ($weekly_diallings > 0) ? round(($weekly_sign_ups / $weekly_diallings) * 100, 2) : 0;
-        
+            
             if ($weekStart >= '2025-02-03' || $weekly_dialling_percentage > 0.75) {
                 if ($weekly_sign_ups >= 42) $incentives_earnt += 100;
                 elseif ($weekly_sign_ups >= 30) $incentives_earnt += 50;
