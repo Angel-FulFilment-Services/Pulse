@@ -6,30 +6,33 @@ import PopoverFlyout from '../Flyouts/PopoverFlyout.jsx';
 export default function StackedList({
   data,
   allowManagement = false,
-  actions= [],
+  actions = [],
   onRemove,
   onEdit,
   renderTitle,
   renderDescription,
   renderExpandableContent,
-  allowExpand = true, // New prop with default true
+  allowExpand = true,
+  placeholderCount = 0, // <-- Add this prop
 }) {
   const [expandedRow, setExpandedRow] = useState(null);
-  const contentRefs = useRef([]); // Array of refs for each row
-  const [heights, setHeights] = useState([]); // Array of heights for each row
+  const contentRefs = useRef([]);
+  const [heights, setHeights] = useState([]);
 
   const handleToggleExpand = (rowIndex) => {
     setExpandedRow((prev) => (prev === rowIndex ? null : rowIndex));
   };
 
   useEffect(() => {
-    // Update heights for all rows when expandedRow changes
     if (expandedRow !== null && contentRefs.current[expandedRow]) {
       const newHeights = [...heights];
       newHeights[expandedRow] = contentRefs.current[expandedRow].scrollHeight;
       setHeights(newHeights);
     }
   }, [expandedRow]);
+
+  // Calculate how many placeholders to show
+  const placeholdersToShow = Math.max(0, placeholderCount - data.length);
 
   return (
     <ul className="w-full">
@@ -48,7 +51,7 @@ export default function StackedList({
                   renderTitle(row, rowIndex)
                 ) : (
                   <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-dark-100">
-                    {row.title || row.category}
+                    {row.title || row.category || row.type}
                   </p>
                 )}
                 {/* Description section */}
@@ -86,33 +89,36 @@ export default function StackedList({
                     ))}
                   </div>
                   <div className="flex justify-center items-center w-full divide-x divide-gray-200 dark:divide-dark-700">
-                    <dt className="flex items-center pr-3">
-                      {row.resolved ? (
-                        <PopoverFlyout
-                        placement='top'
-                        className=""
-                        placementOffset={5}
-                        content={
-                          <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
-                            <p className="text-sm text-gray-900 dark:text-dark-100">Resolved</p>
-                          </div>
-                        }>
-                          <CheckCircleIcon className="h-6 w-6 text-green-500 dark:text-green-600" aria-hidden="true" />
-                        </PopoverFlyout>
-                      ) : (
-                        <PopoverFlyout
-                        placement='top'
-                        className=""
-                        placementOffset={5}
-                        content={
-                          <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
-                            <p className="text-sm text-gray-900 dark:text-dark-100">Unresolved</p>
-                          </div>
-                        }>
-                          <ExclamationCircleIcon className="h-6 w-6 text-red-600 dark:text-red-700" aria-hidden="true" />
-                        </PopoverFlyout>
-                      )}
-                    </dt>
+                    {row.resolved !== undefined ? (
+                      <dt className="flex items-center pr-3">
+                        {row.resolved ? (
+                          <PopoverFlyout
+                            placement='top'
+                            className=""
+                            placementOffset={5}
+                            content={
+                              <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                                <p className="text-sm text-gray-900 dark:text-dark-100">Resolved</p>
+                              </div>
+                            }>
+                            <CheckCircleIcon className="h-6 w-6 text-green-500 dark:text-green-600" aria-hidden="true" />
+                          </PopoverFlyout>
+                        ) : (
+                          <PopoverFlyout
+                            placement='top'
+                            className=""
+                            placementOffset={5}
+                            content={
+                              <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">  
+                                <p className="text-sm text-gray-900 dark:text-dark-100">Unresolved</p>
+                              </div>
+                            }>
+                            <ExclamationCircleIcon className="h-6 w-6 text-red-600 dark:text-red-700" aria-hidden="true" />
+                          </PopoverFlyout>
+                        )}
+                      </dt>)
+                      : <div />
+                    }
                     {allowManagement && (
                       <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
                         <button
@@ -193,6 +199,45 @@ export default function StackedList({
           </li>
         );
       })}
+
+      {/* Placeholder rows */}
+      {Array.from({ length: placeholdersToShow }).map((_, idx) => (
+        <li
+          key={`placeholder-${idx}`}
+          className="w-full border-b border-gray-200 dark:border-dark-700 pointer-events-none opacity-50"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-3 sm:flex-nowrap">
+            <div className="w-full">
+              <div className="h-4 bg-gray-100 dark:bg-dark-800 rounded-xl w-1/4 mb-2"></div>
+              <div className="h-3 bg-gray-100 dark:bg-dark-800 rounded-xl w-3/4"></div>
+            </div>
+            <div>
+              <dl className="flex w-full flex-none justify-between gap-x-4 sm:w-auto px-4">
+                <div className="flex">
+                  <div className="flex flex-row -space-x-0.5">
+                    <div className="rounded-full bg-gray-100 dark:bg-dark-800 size-6 ring-2 ring-white dark:ring-dark-900" />
+                    <div className="rounded-full bg-gray-100 dark:bg-dark-800 size-6 ring-2 ring-white dark:ring-dark-900" />
+                  </div>
+                </div>
+                <div className="flex justify-center items-center w-full divide-x divide-gray-200 dark:divide-dark-700">
+                  <div className="flex items-center" />
+                  {allowManagement && (
+                    <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
+                      <PencilIcon className="h-5 w-6 text-gray-300 dark:text-dark-700" aria-hidden="true" />
+                      <TrashIcon className="h-5 w-6 text-gray-300 dark:text-dark-700" aria-hidden="true" />
+                    </dt>
+                  )}
+                  {allowExpand && (
+                    <div className="pl-3 flex items-center">
+                      <ChevronDownIcon className="h-6 w-6 text-gray-300 dark:text-dark-700" aria-hidden="true" />
+                    </div>
+                  )}
+                </div>
+              </dl>
+            </div>
+          </div>
+        </li>
+      ))}
     </ul>
   );
 }

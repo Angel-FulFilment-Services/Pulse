@@ -49,7 +49,7 @@ class EncryptedWithCustomKey implements CastsAttributes
             return $decryptedData;
         } catch (Exception $e) {
             // Log the error for debugging
-            \Log::error('Decryption error: ' . $e->getMessage());
+            // \Log::error('Decryption error: ' . $e->getMessage());
             return null;
         }
     }

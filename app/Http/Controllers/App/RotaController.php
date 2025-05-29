@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Helper\Auditing;
 use App\Models\Rota\Shift;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 use App\Models\Rota\Event;
 use App\Models\HR\Meeting;
 use Illuminate\Support\Facades\DB;

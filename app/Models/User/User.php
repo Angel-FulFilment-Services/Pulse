@@ -9,7 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\User\AssignedPermissions;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 use App\Models\Client\Client;
 
 class User extends Authenticatable

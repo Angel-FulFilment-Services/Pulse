@@ -4,7 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 use App\Models\User\User;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;

@@ -7,8 +7,8 @@ const rotaReportsConfig = [
     label: 'Attendance Report',
     generate: generateAttendanceReport,
     parameters: {
-        targetAllowColumn: true,
-        targetAllowCell: false,
+        targetAllowColumn: false,
+        targetAllowCell: true,
         targetAllowRow: false,
         total: true,
         polling: 60000,

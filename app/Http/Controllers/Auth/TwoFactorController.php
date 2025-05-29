@@ -35,7 +35,7 @@ class TwoFactorController extends Controller
             return back()->withErrors(['error' => 'Please enter a valid passcode.'])->withInput();
         }
 
-        $passcode = $request->input('passcode');
+        $passcode = strtoupper($request->input('passcode'));
 
         $user = auth()->user();
         if ($passcode !== $user->pulse_two_factor_code) {

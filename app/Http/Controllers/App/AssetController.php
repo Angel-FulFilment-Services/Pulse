@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Asset\Event;
-use App\Models\Employee\Employee;
+use App\Models\HR\Employee;
 use App\Helper\Auditing;
 use Storage;
 use Log;

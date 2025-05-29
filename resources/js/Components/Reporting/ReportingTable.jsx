@@ -29,8 +29,22 @@ function applyFilters(data, filters = []) {
   });
 }
 
-export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange }) {
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // State to track sorting configuration
+function resolveColumnParameters(column, parameters, dateRange) {
+  if (!column.parameters) return undefined;
+  return Object.fromEntries(
+    Object.entries(column.parameters).map(([k, v]) => {
+      // Add more types as needed
+
+      if (v.type === 'endDate' && dateRange?.endDate) return [k, dateRange.endDate];
+      if (v.type === 'startDate' && dateRange?.startDate) return [k, dateRange.startDate];
+      // Add more custom logic for other types here
+      return [k, v.default];
+    })
+  );
+}
+
+export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, dateRange }) {
+  const [sortConfig, setSortConfig] = useState(parameters?.sorting?.default ? parameters.sorting.default : { key: null, direction: 'asc' }); // State to track sorting configuration
   const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
 
   useEffect(() => {
@@ -70,10 +84,42 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     };
   }, []);
 
+  const groupedData = useMemo(() => {
+    if (!parameters.grouping || !parameters.grouping.groupBy || parameters.grouping.groupBy.length === 0) {
+      return data;
+    }
+
+    // Helper to get a unique group key for each row
+    const getGroupKey = (row) =>
+      parameters.grouping.groupBy.map((col) => row[col]).join('||');
+
+    // Group rows by group key
+    const groups = {};
+    data.forEach((row) => {
+      const key = getGroupKey(row);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+
+    // For each group, build a new row using groupColumns logic
+    return Object.values(groups).map((groupRows) => {
+      const groupedRow = {};
+      parameters.grouping.groupColumns.forEach((col) => {
+        if (col.group && typeof col.group === 'function') {
+          groupedRow[col.id] = col.group(groupRows);
+        } else {
+          // Default: just take the first value
+          groupedRow[col.id] = groupRows[0][col.id];
+        }
+      });
+      return groupedRow;
+    });
+  }, [data, parameters.grouping]);
+
   // Apply filters to the data
   const filteredData = useMemo(() => {
-    return applyFilters(data, filters);
-  }, [data, filters]);
+    return applyFilters(groupedData, filters);
+  }, [groupedData, filters]);
 
   // Apply sorting to the filtered data
   const sortedData = useMemo(() => {
@@ -123,37 +169,45 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     // Find the target with the matching column ID
     const target = targets.find((t) => t.id === column.id);
 
-    if (target?.target) {
-      // If the target has a key prop, find the matching key value
-      if (target.key) {
-        const keyValue = row[target.key]; // Get the key value from the row
-        const keyTarget = target.values.find((v) => v.keyValue === keyValue); // Find the matching key value in the target
+    if (parameters.targetAllowCell && target) {
+      if (target?.target) {
+        // If the target has a key prop, find the matching key value
+        if (target.key) {
+          const keyValue = row[target.key]; // Get the key value from the row
+          const keyTarget = target.values.find((v) => v.keyValue === keyValue); // Find the matching key value in the target
 
-        if (keyTarget) {
-          // Use the high and low values from the keyTarget
-          const { high, low } = keyTarget;
+          if (keyTarget) {
+            // Use the high and low values from the keyTarget
+            const { high, low } = keyTarget;
+            const cellValue = parseFloat(row[column.id]);
+
+            if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
+            if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
+            if(low || high) {
+              return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
+            }
+          }
+        } else {
+          // Use the high and low values directly from the target
+          const { high, low } = target.target;
           const cellValue = parseFloat(row[column.id]);
-
           if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
           if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
           if(low || high) {
             return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
           }
         }
-      } else {
-        // Use the high and low values directly from the target
-        const { high, low } = target.target;
-        const cellValue = parseFloat(row[column.id]);
-        if ((high && target.targetDirection == "asc" && cellValue >= high) || (high && target.targetDirection == "desc" && cellValue <= high)) return 'bg-green-100 text-green-800 dark:bg-emerald-400 dark:text-emerald-200 dark:bg-opacity-25'; // High value
-        if ((low && target.targetDirection == "asc" && cellValue <= low) || (low && target.targetDirection == "desc" && cellValue >= low)) return 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25'; // Low value
-        if(low || high) {
-          return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25'; // Between high and low
-        }
       }
     }
 
     return ''; // Default color if no target is found
   };
+
+  const getRowColour = (row) => {
+    if (parameters.targetAllowRow && parameters.target) {
+      return parameters.target(row);
+    }
+  }
 
   return (
     <div className={`flex flex-col`} style={{ height: tableHeight, overflowY: 'auto', marginTop: '0.5rem' }}>
@@ -220,18 +274,34 @@ export default function ReportingTable({ parameters, structure, filters, data, t
           {/* Table Body */}
           <tbody className="bg-white dark:bg-dark-900">
             {sortedData.map((row, rowIndex) => (
-              <tr key={rowIndex} className="even:bg-gray-50 dark:even:bg-dark-800">
+              <tr key={rowIndex} className={`${getRowColour(row) || 'text-gray-800 dark:text-dark-200 even:bg-gray-50 dark:even:bg-dark-800'}`}>
                 {structure.map((column) =>
                   column.visible !== false ? (
                     <td
                       key={column.id}
-                      className={`whitespace-nowrap px-3 py-2 text-sm text-gray-800 dark:text-dark-200 ${getCellColour(column, row)} ${column.tdClass}`}
+                      className={`whitespace-nowrap px-3 py-2 text-sm ${getCellColour(column, row)} ${column.tdClass}`}
                     >
                       <div className={`${column.cellClass || ''}`}>
                         {column.prefix || ''}
-                        {column.format
-                          ? column.format(row[column.id])
-                          : row[column.id]}
+                        {column.control
+                          ? column.control(
+                            row, 
+                            rowIndex,
+                            resolveColumnParameters(column, parameters, dateRange)
+                          )
+                          : column.format
+                            ? (
+                                column.requires
+                                  ? column.format(
+                                      ...column.requires.map(field => row[field]),
+                                      resolveColumnParameters(column, parameters, dateRange)
+                                    )
+                                  : column.format(
+                                      row[column.id],
+                                      resolveColumnParameters(column, parameters, dateRange)
+                                    )
+                              )
+                            : row[column.id]}
                         {column.suffix || ''}
                       </div>
                     </td>
@@ -265,12 +335,35 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                                 const weightedAverage = totalDenominator
                                   ? ((totalNumerator / totalDenominator) * 100).toFixed(2)
                                   : 0;
-                                return `${column.format(weightedAverage)}%`;
+                                  return column.format
+                                  ? (
+                                      column.requires
+                                        ? column.format(
+                                            weightedAverage,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                        : column.format(
+                                            weightedAverage,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                    ) + '%'
+                                  : weightedAverage + '%';
                               } else {
-                                // Sum numeric columns
-                                return column.format(
-                                  sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0)
-                                );
+                                // Sum numeric columns, use format with parameters if present
+                                const totalValue = sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0);
+                                return column.format
+                                  ? (
+                                      column.requires
+                                        ? column.format(
+                                            totalValue,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                        : column.format(
+                                            totalValue,
+                                            resolveColumnParameters(column, parameters, dateRange)
+                                          )
+                                    )
+                                  : totalValue;
                               }
                             } else if (column.dataType === 'string') {
                               // Leave string columns empty or provide a label

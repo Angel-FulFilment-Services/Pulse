@@ -19,6 +19,7 @@ import {
   FolderIcon,
   HomeIcon,
   UsersIcon,
+  BanknotesIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
@@ -35,6 +36,7 @@ export default function NavBar({ page }) {
   const navigation = useMemo(() => [
     { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.includes('rota'), right: 'pulse_view_rota' },
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.includes('reporting'), right: 'pulse_view_reporting' },
+    { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.includes('payroll'), right: 'pulse_view_payroll' },
 ], [currentPath]);
 
   useEffect(() => {
