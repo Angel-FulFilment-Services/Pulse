@@ -234,8 +234,8 @@ class PayrollController extends Controller
                 });
         })
         ->where(function($query) use ($startDate, $endDate) {
-            $query->where('timesheet.total_hours', '>', 0)
-            ->where('sage_id', '>', 0);
+            $query->where('sage_id', '>', 0)
+            ->orWhere('timesheet.total_hours', '>', 0);
         })
         ->groupBy('hr_details.hr_id')
         ->orderBy('hr_details.hr_id')

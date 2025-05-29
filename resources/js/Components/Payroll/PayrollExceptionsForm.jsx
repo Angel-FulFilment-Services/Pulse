@@ -24,6 +24,8 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
     const [isSuccess, setIsSuccess] = useState(false);
     const [errors, setErrors] = useState({});
 
+    const isInitialising = useRef(true);
+
     const typeOptions = [
         { id: 'SSP', value: 'Statutory Sick Pay' },
         { id: 'SPP', value: 'Statutory Paternity Pay' },
@@ -85,26 +87,21 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                 exceptionID: initialData.id || '',
             });
         }
-    }, [initialData]);
+    }, [initialData, dateRange.startDate, dateRange.endDate]);
 
     useEffect(() => {
-        if(formData.startDate.startDate > formData.endDate.startDate) {
-            setFormData((prev) => ({
-                ...prev,
-                endDate: { startDate: formData.startDate.startDate, endDate: formData.startDate.startDate },
-            }));
+        if (formData.type && isInitialising.current) {
+            isInitialising.current = false;   
+            return;
         }
-
-    }, [formData.startDate])
-
-    useEffect(() => {
-        if(formData.type === 'Other Deductions') {
+        if (formData.type === 'Other Deductions') {
             setFormData((prev) => ({
                 ...prev,
                 days: '',
                 amount: '',
             }));
         }
+
     }, [formData.type]);
 
     const validate = (fieldsToValidate) => {
@@ -215,8 +212,9 @@ export default function PayrollExceptionsForm({ hrId, onCancel, initialData = nu
                 theme: 'light',
             });
 
-            // Dispatch the custom event to refresh timesheets, and events
+            // Dispatch the custom event to refresh exceptions and regenerate the report
             window.dispatchEvent(new Event('refreshExceptions'));
+            window.dispatchEvent(new Event('regenerate-report'));
 
             // Wait 3 seconds before triggering onCancel
             setTimeout(() => {

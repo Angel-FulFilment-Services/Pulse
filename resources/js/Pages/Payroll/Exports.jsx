@@ -29,6 +29,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     const pollingIntervalRef = useRef(null);
     const hasChangesRef = useRef(false);
     const tableRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     const handleTabChange = (path) => {
         setReport([]);
@@ -110,8 +111,16 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     };
 
     const generateReport = async (dateRange, report, updateTargets = true) => {
+        // Abort any ongoing request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        // Create a new controller for this request
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            const reports = await report.generate({ dateRange, report });
+            const reports = await report.generate({ dateRange, report }, controller);
             const reportData = reports.data;
             if(updateTargets) {
                 generateTargets(reports.targets);
@@ -120,6 +129,10 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
             setReportData(reportData);
             setReportError(false);
         } catch (error) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError') {
+                // Request was aborted, do not set error state
+                return;
+            }
             console.error('Error generating report:', error);
             setReportError(true);
         }
@@ -250,9 +263,38 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
             generateReport({ startDate: null, endDate: null }, report);
         }
 
-        return () => stopPolling(); // Cleanup polling on component unmount or report change
+        return () => stopPolling();
     }, [report]);
 
+    useEffect(() => {
+
+        const handleRegenerate = () => {
+            if (report && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
+                setReportError(false);
+                
+                if (report && report.parameters && report.parameters.dateRange) {
+                    generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
+                }
+
+                if(report && report.parameters && (!report.parameters.date && !report.parameters.dateRange)) {
+                    setDateRange({ startDate: null, endDate: null });
+                    generateReport({ startDate: null, endDate: null }, report);
+                }
+            }
+        };
+
+        window.addEventListener('regenerate-report', handleRegenerate);
+
+        return () => window.removeEventListener('regenerate-report', handleRegenerate);
+    }, [report, dateRange])
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {

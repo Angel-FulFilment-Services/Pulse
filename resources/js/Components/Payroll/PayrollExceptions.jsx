@@ -52,6 +52,7 @@ export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
       }
 
       window.dispatchEvent(new Event('refreshExceptions'));
+      window.dispatchEvent(new Event('regenerate-report'));
 
       toast.success('Exception removed successfully!', {
         position: 'top-center',
