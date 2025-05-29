@@ -508,7 +508,56 @@ const payrollReportsConfig = [
             },
           ],
           filters: [
-          ]
+            {
+              id: 'firstname',
+              name: 'Firstname',
+              expression: (data) => (filterValue) => {
+                return data?.firstname === filterValue;
+              },
+              calculateOptions: (reportData) =>
+                reportData
+                  .map((item) => ({
+                    value: item.firstname,
+                    label: item.firstname,
+                    checked: false,
+              }))
+              .sort((a, b) => a.label.localeCompare(b.label)),
+            },
+            {
+              id: 'surname',
+              name: 'Surname',
+              expression: (data) => (filterValue) => {
+                return data?.surname === filterValue;
+              },
+              calculateOptions: (reportData) =>
+                reportData
+                  .map((item) => ({
+                    value: item.surname,
+                    label: item.surname,
+                    checked: false,
+              }))
+              .sort((a, b) => a.label.localeCompare(b.label)),
+            },
+            {
+              id: 'status',
+              name: 'Status',
+              expression: (data) => (filterValue) => {
+                if (filterValue === 'leaver') {
+                  return data.leave_date;
+                } else if (filterValue === 'exceptions') {
+                  return data.exception_count && data.exception_count > 0;
+                } else if (filterValue === 'active') {
+                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0);
+                }
+                return true; // Default case, no filter applied
+              },
+              options: [
+                { value: 'exceptions', label: 'Has exceptions', checked: false },
+                { value: 'leaver', label: 'Is a leaver', checked: false },
+                { value: 'active', label: 'Is ready to export', checked: false } // Uncomment if needed
+              ]
+            }
+        ]
       },
   },
 ];
