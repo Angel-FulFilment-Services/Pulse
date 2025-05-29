@@ -514,14 +514,21 @@ const payrollReportsConfig = [
               expression: (data) => (filterValue) => {
                 return data?.firstname === filterValue;
               },
-              calculateOptions: (reportData) =>
-                reportData
-                  .map((item) => ({
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.firstname || seen.has(item.firstname)) return false;
+                    seen.add(item.firstname);
+                    return true;
+                  })
+                  .map(item => ({
                     value: item.firstname,
                     label: item.firstname,
                     checked: false,
-              }))
-              .sort((a, b) => a.label.localeCompare(b.label)),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
             },
             {
               id: 'surname',
@@ -529,14 +536,21 @@ const payrollReportsConfig = [
               expression: (data) => (filterValue) => {
                 return data?.surname === filterValue;
               },
-              calculateOptions: (reportData) =>
-                reportData
-                  .map((item) => ({
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.surname || seen.has(item.surname)) return false;
+                    seen.add(item.surname);
+                    return true;
+                  })
+                  .map(item => ({
                     value: item.surname,
                     label: item.surname,
                     checked: false,
-              }))
-              .sort((a, b) => a.label.localeCompare(b.label)),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
             },
             {
               id: 'status',
