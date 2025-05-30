@@ -4,12 +4,97 @@ import { getMinimumWageForPeriodByDOB } from '../Utils/minimumWage.jsx';
 import { FlagIcon, PauseIcon, PlayIcon } from '@heroicons/react/24/outline';
 import ClickedModal from '../Components/Modals/ClickedModal.jsx';
 import PayrollExceptions from '../Components/Payroll/PayrollExceptions.jsx';
+import { exportArrayToExcel, buildExportSheets } from '../Utils/Exports';
+
+const payrollSheetsConfig = [
+  {
+    name: "Salary",
+    fields: [
+      { key: "hr_id", label: "Employee Reference" },
+      { key: "firstname", label: "First Name" },
+      { key: "surname", label: "Surname" },
+      { key: "dob", label: "Date of Birth" },
+      { key: "age", label: "Age" },
+      { key: "start_date", label: "Start Date" },
+      { key: "hourly_rate", label: "Hourly Rate" },
+      { key: "total_hours", label: "Total Hours" },
+      { key: "bonus", label: "Bonus" },
+      { key: "holiday", label: "Holiday (No. of Days)" },
+      { key: "length_of_service", label: "LOS (Length of Service)" },
+      { key: "days_of_week", label: "DOW (Days of Week)" },
+      { key: "ssp_qty", label: "SSP (No. of Days)" },
+      { key: "spp_qty", label: "SPP (No. of Days)" },
+      { key: "pilon_qty", label: "PILON (No. of Days)" },
+      { key: "other_payment", label: "Other Payment" },
+      { key: "od_amount_qty", label: "Other Deductions" },
+      { key: "od_days_qty", label: "Other Deductions (No. of Days)" },
+    ],
+    fixed: { hourly_rate: "SALARY", total_hours: "SALARY", other_payment: "" },
+    filterFn: row => row.employment_category === "SALARY"
+  },
+  {
+    name: "Payroll Details",
+    fields: [
+      { key: "hr_id", label: "Employee Reference" },
+      { key: "firstname", label: "First Name" },
+      { key: "surname", label: "Surname" },
+      { key: "dob", label: "Date of Birth" },
+      { key: "age", label: "Age" },
+      { key: "start_date", label: "Start Date" },
+      { key: "rate_of_pay", label: "Rate of Pay" },
+      { key: "hours", label: "Hours" },
+      { key: "bonus", label: "Bonus" },
+      { key: "holiday", label: "Holiday (No. of Days)" },
+      { key: "length_of_service", label: "LOS (Length of Service)" },
+      { key: "days_of_week", label: "DOW (Days of Week)" },
+      { key: "ssp_qty", label: "SSP (No. of Days)" },
+      { key: "spp_qty", label: "SPP (No. of Days)" },
+      { key: "pilon_qty", label: "PILON (No. of Days)" },
+      { key: "other_payment", label: "Other Payment" },
+      { key: "od_amount_qty", label: "Other Deductions" },
+      { key: "od_days_qty", label: "Other Deductions (No. of Days)" },
+    ],
+    fixed: { other_payment: "" }
+    // No filterFn: includes all employees
+  },
+  {
+    name: "Leavers",
+    fields: [
+      { key: "hr_id", label: "Employee Reference" },
+      { key: "firstname", label: "First Name" },
+      { key: "surname", label: "Surname" },
+      { key: "start_date", label: "Start Date" },
+      { key: "leave_date", label: "Leave Date" },
+      { key: "hwk_returned", label: "HWK Returned?" },
+      { key: "notes", label: "Notes" },
+    ],
+    fixed: { hwk_returned: "", notes: "" },
+    filterFn: row => !!row.leave_date
+  }
+];
 
 const payrollReportsConfig = [
   {
       id: 'payroll_export',
       label: 'Payroll Export',
       generate: generatePayrollExport,
+      toExcel: (data, filename, startDate, endDate) => {
+
+        const config = payrollReportsConfig.find(cfg => cfg.id === 'payroll_export');
+        const structure = config.parameters.structure;
+        const targetFn = config.parameters.target;
+        const parameters = { startDate, endDate };  
+
+        const sheets = buildExportSheets({
+            payrollSheetsConfig,
+            data,
+            structure,
+            targetFn,
+            parameters
+        });
+
+        exportArrayToExcel(sheets, filename);
+      },
       parameters: {
           targetAllowColumn: false,
           targetAllowCell: false,
@@ -220,6 +305,26 @@ const payrollReportsConfig = [
               label: "Start Date",
               dataType: "date",
               visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => {
+                if (!value) return "";
+                return format(new Date(value), 'dd/MM/yyyy');
+              },
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "leave_date",
+              label: "Leave Date",
+              dataType: "date",
+              visible: false,
               allowTarget: true,
               target: 0,
               targetDirection: 'asc',
@@ -560,22 +665,36 @@ const payrollReportsConfig = [
               id: 'status',
               name: 'Status',
               expression: (data) => (filterValue) => {
-                if (filterValue === 'leaver') {
-                  return data.leave_date;
-                } else if (filterValue === 'exceptions') {
-                  return data.exception_count && data.exception_count > 0;
-                } else if (filterValue === 'issue') {
-                  return data.last_qty == 0 || data.days_of_week == 0;
-                } else if (filterValue === 'active') {
+                if (filterValue === 'not_exportable') {
+                  return  data.exception_count > 0 || data.last_qty == 0 || data.days_of_week == 0 || data.leave_date;
+                } else if (filterValue === 'exportable') {
                   return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && (data.last_qty > 0 || data.days_of_week > 0);
                 }
                 return true; // Default case, no filter applied
               },
               options: [
-                { value: 'exceptions', label: 'Has exceptions', checked: false },
-                { value: 'issue', label: 'Has data issues', checked: false },
-                { value: 'leaver', label: 'Is a leaver', checked: false },
-                { value: 'active', label: 'Is ready to export', checked: false } 
+                { value: 'not_exportable', label: 'Not Exportable', checked: false },
+                { value: 'exportable', label: 'Exportable', checked: false }
+              ]
+            },
+            {
+              id: 'include',
+              name: 'Include',
+              advanced: true,
+              expression: (data) => (filterValue) => {
+                if (filterValue === 'leaver') {
+                  return data.leave_date;
+                } else if (filterValue === 'salaried') {
+                  return data.employment_category === 'SALARY';
+                } else if (filterValue === 'hourly') {
+                  return data.employment_category === 'HOURLY';
+                }
+                return true; // Default case, no filter applied
+              },
+              options: [
+                { value: 'leaver', label: 'Leavers', checked: true, mode: 'solo' },
+                { value: 'hourly', label: 'Hourly Employees', checked: true, mode: 'and' },
+                { value: 'salaried', label: 'Salaried Employees', checked: false, mode: 'and' },
               ]
             }
         ]

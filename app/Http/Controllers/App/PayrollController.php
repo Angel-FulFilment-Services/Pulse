@@ -215,7 +215,8 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.adhoc_qty, 0) as adhoc_qty'),
             DB::raw('COALESCE(exceptions.adhoc_amount, 0) as bonus'),
             DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count'),
-            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent')
+            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent'),
+            DB::raw('COALESCE(hr_details.employment_category, "HOURLY") as employment_category')
         )
         ->leftJoinSub(
             DB::table('hr.dow_updates')
@@ -300,7 +301,6 @@ class PayrollController extends Controller
                 $join->on('hr_details.user_id', '=', 'angel_cpa_agents.user_id');
             }
         )
-        ->whereNull('employment_category')
         ->where(function($query) use ($startDate, $endDate) {
             $query->where('start_date', '>=', $startDate)
                 ->orWhere(function($query) use ($startDate, $endDate) {

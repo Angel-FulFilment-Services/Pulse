@@ -1,12 +1,73 @@
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style'; // <-- Use xlsx-js-style instead of xlsx
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { getRateForDate } from '../Utils/minimumWage.jsx';
 import { differenceInYears, format } from 'date-fns';
+import { rgbToHex } from '../Utils/Color.jsx'; // Ensure you have this utility function
+
+function getCellStyle(color) {
+    // Theme colors from CSS vars (fallbacks included)
+    const themeBg = (getComputedStyle(document.body).getPropertyValue('--theme-200') || '#FED7AA').replace('#', '').toUpperCase();
+    const themeText = (getComputedStyle(document.body).getPropertyValue('--theme-800') || '#B45309').replace('#', '').toUpperCase();
+
+    switch ((color || '').toLowerCase()) {
+        case 'green':
+            return {
+                fill: { patternType: 'solid', fgColor: { rgb: 'C6EFCE' } },
+                font: { color: { rgb: '006100' } }
+            };
+        case 'red':
+            return {
+                fill: { patternType: 'solid', fgColor: { rgb: 'FFC7CE' } },
+                font: { color: { rgb: '9C0006' } }
+            };
+        case 'yellow':
+            return {
+                fill: { patternType: 'solid', fgColor: { rgb: 'FFEB9C' } },
+                font: { color: { rgb: '9C6500' } }
+            };
+        case 'theme':
+            return {
+                fill: { patternType: 'solid', fgColor: { rgb: themeBg.length === 6 ? themeBg : 'FED7AA' } },
+                font: { color: { rgb: themeText.length === 6 ? themeText : 'B45309' } }
+            };
+        default:
+            return {};
+    }
+}
+
+// Helper: detect and format cell value
+function formatCell(cell) {
+    let v = cell.value;
+    let z = undefined;
+
+    if (typeof v === 'string' && v.includes('%')) {
+        const decimalPlaces = v.includes('.') ? v.split('.')[1].replace('%', '').length : 0;
+        const value = parseFloat(v.replace('%', '')) / 100;
+        z = value === 0 ? '0%' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}%` : '0%';
+        v = value;
+    } else if (typeof v === 'string' && v.includes('£')) {
+        const value = parseFloat(v.replace(/[^0-9.-]+/g, ''));
+        z = value === 0 ? '£#,##0' : '£#,##0.00';
+        v = value;
+    } else if (!isNaN(v) && v !== '' && v !== null && v !== undefined) {
+        const value = parseFloat(v);
+        if (!isNaN(value)) {
+            const decimalPlaces = (v.toString().includes('.') ? v.toString().split('.')[1].length : 0);
+            z = value === 0 ? '0' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}` : '0';
+            v = value;
+        }
+    }
+
+    return { v, z };
+}
 
 export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
     try {
         const table = tableRef.current || tableRef; // Support both ref and direct element
+
+        const themeBg = rgbToHex(getComputedStyle(document.body).getPropertyValue('--theme-200').trim());
+        const themeText = rgbToHex(getComputedStyle(document.body).getPropertyValue('--theme-800').trim());
 
         // Find indices of columns to exclude (those with "control" in their th class)
         const ths = table.querySelectorAll('thead th');
@@ -40,83 +101,95 @@ export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
         const worksheet = XLSX.utils.table_to_sheet(clonedTable);
 
         // Apply cell styles and formatting based on class names and content
-        const range = XLSX.utils.decode_range(worksheet['!ref']); // Get the range of the worksheet
-        for (let row = range.s.r; row <= range.e.r; row++) {
-            // Skip formatting for the header row
-            if (row === 0) continue;
-            const htmlRow = clonedTable.rows && clonedTable.rows[row];
-            if (!htmlRow) continue;
-            for (let col = range.s.c; col <= range.e.c; col++) {
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        
+        const allRows = Array.from(clonedTable.querySelectorAll('tr'));
+        for (let row = 1; row < allRows.length; row++) { // start at 1 to skip header
+            const htmlRow = allRows[row];
+            const rowClassName = htmlRow.className || '';
+
+            if (
+                rowClassName.includes('odd:bg-gray-50') ||
+                rowClassName.includes('dark:odd:bg-dark-800')
+            ) {
+                continue;
+            }
+
+            for (let col = 0; col < htmlRow.cells.length; col++) {
                 const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
                 const cellElement = htmlRow.cells[col];
-                if (!worksheet[cellAddress] || !cellElement) continue; // Skip if the cell doesn't exist
+                if (!worksheet[cellAddress] || !cellElement) continue;
 
-                // Skip formatting for the header row
-                if (row === 0) continue;
-
-                // Check the class name of the HTML cell
-                const className = cellElement.className || '';
+                // Combine row and cell class names
+                const className = `${rowClassName} ${cellElement.className || ''}`;
                 const cellContent = cellElement.textContent.trim();
 
-                // Apply styles based on the class name
+                // Apply styles based on the combined class name
                 if (className.includes('green')) {
                     worksheet[cellAddress].s = {
                         fill: {
                             patternType: 'solid',
-                            fgColor: { rgb: 'C6EFCE' }, // Light green background
+                            fgColor: { rgb: 'C6EFCE' },
                         },
                         font: {
-                            color: { rgb: '006100' }, // Dark green text
+                            color: { rgb: '006100' },
                         },
                     };
                 } else if (className.includes('red')) {
                     worksheet[cellAddress].s = {
                         fill: {
                             patternType: 'solid',
-                            fgColor: { rgb: 'FFC7CE' }, // Light red background
+                            fgColor: { rgb: 'FFC7CE' },
                         },
                         font: {
-                            color: { rgb: '9C0006' }, // Dark red text
+                            color: { rgb: '9C0006' },
                         },
                     };
-                } else if (className.includes('orange')) {
+                } else if (className.includes('yellow')) {
                     worksheet[cellAddress].s = {
                         fill: {
                             patternType: 'solid',
-                            fgColor: { rgb: 'FFEB9C' }, // Light orange background
+                            fgColor: { rgb: 'FFEB9C' },
                         },
                         font: {
-                            color: { rgb: '9C6500' }, // Dark orange text
+                            color: { rgb: '9C6500' },
+                        },
+                    };
+                } else if (className.includes('theme')) {
+
+                    const fallbackBg = 'FED7AA'; // Orange
+                    const fallbackText = 'B45309'; // Dark orange
+
+                    worksheet[cellAddress].s = {
+                        fill: {
+                            patternType: 'solid',
+                            fgColor: { rgb: themeBg.length === 6 ? themeBg.toUpperCase() : fallbackBg },
+                        },
+                        font: {
+                            color: { rgb: themeText.length === 6 ? themeText.toUpperCase() : fallbackText },
                         },
                     };
                 }
 
+                
+
                 // Apply formatting based on content
                 if (cellContent.includes('%')) {
-                    // Detect decimal places in the percentage
                     const decimalPlaces = cellContent.includes('.')
                         ? cellContent.split('.')[1].replace('%', '').length
                         : 0;
-                
-                    const value = parseFloat(cellContent.replace('%', '')) / 100; // Convert to decimal
-                
-                    // Format as percentage with detected decimal places, but remove decimals if the value is zero
+                    const value = parseFloat(cellContent.replace('%', '')) / 100;
                     worksheet[cellAddress].z = value === 0 ? '0%' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}%` : '0%';
                     worksheet[cellAddress].v = value;
                 } else if (cellContent.includes('£')) {
-                    // Format as currency
-                    const value = parseFloat(cellContent.replace(/[^0-9.-]+/g, '')); // Extract numeric value
-                    worksheet[cellAddress].z = value === 0 ? '£#,##0' : '£#,##0.00'; // Remove decimals if the value is zero
+                    const value = parseFloat(cellContent.replace(/[^0-9.-]+/g, ''));
+                    worksheet[cellAddress].z = value === 0 ? '£#,##0' : '£#,##0.00';
                     worksheet[cellAddress].v = value;
                 } else if (!isNaN(cellContent) && cellContent.trim() !== '') {
-                    // Detect decimal places for numeric values
                     const decimalPlaces = cellContent.includes('.')
                         ? cellContent.split('.')[1].length
                         : 0;
-                
-                    const value = parseFloat(cellContent); // Convert to a float
-                
-                    // Format as a float with detected decimal places, but remove decimals if the value is zero
+                    const value = parseFloat(cellContent);
                     worksheet[cellAddress].z = value === 0 ? '0' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}` : '0';
                     worksheet[cellAddress].v = value;
                 }
@@ -141,6 +214,50 @@ export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
             progress: undefined,
             theme: 'light',
         });
+    }
+}
+
+export async function exportArrayToExcel(sheets, filename = 'export.xlsx') {
+    try {
+        const workbook = XLSX.utils.book_new();
+
+        sheets.forEach(sheet => {
+            // Build worksheet data and styles
+            const aoa = sheet.data.map(row =>
+                row.map(cell =>
+                    typeof cell === 'object' && cell !== null && 'value' in cell
+                        ? cell
+                        : { value: cell }
+                )
+            );
+
+            // Create worksheet with just values
+            const worksheet = XLSX.utils.aoa_to_sheet(
+                aoa.map(row => row.map(cell => formatCell(cell).v))
+            );
+
+            // Apply styles and number formats
+            aoa.forEach((row, rIdx) => {
+                row.forEach((cell, cIdx) => {
+                    const addr = XLSX.utils.encode_cell({ r: rIdx, c: cIdx });
+                    if (worksheet[addr]) {
+                        // Style
+                        if (cell.color) {
+                            worksheet[addr].s = getCellStyle(cell.color);
+                        }
+                        // Number format
+                        const { z } = formatCell(cell);
+                        if (z) worksheet[addr].z = z;
+                    }
+                });
+            });
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+        });
+
+        XLSX.writeFile(workbook, filename);
+    } catch (error) {
+        console.error('Error exporting sheets to Excel:', error);
     }
 }
 
@@ -340,4 +457,76 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
         setProgress(100);
         return false;
     }
+}
+
+/**
+ * Build export-ready sheets from data and sheet configs.
+ * @param {Array} sheetsConfig - Array of { name, fields, fixed, filterFn }
+ * @param {Array} data - The data array
+ * @param {Object} structure - The column structure (from config)
+ * @param {Function} targetFn - Row color function (from config)
+ * @param {Object} parameters - { startDate, endDate, ... }
+ * @returns {Array} Array of { name, data }
+ */
+export function buildExportSheets({ sheetsConfig, data, structure, targetFn, parameters }) {
+    function buildColumnParameters(col, parameters) {
+        const params = {};
+        if (col.parameters) {
+            Object.entries(col.parameters).forEach(([paramKey, paramConfig]) => {
+                if (paramConfig.type === 'startDate') params[paramKey] = parameters.startDate;
+                if (paramConfig.type === 'endDate') params[paramKey] = parameters.endDate;
+            });
+        }
+        return params;
+    }
+
+    function getColByKey(key) {
+        return structure.find(col => col.id === key);
+    }
+
+    function buildRows(fields, filterFn = () => true, fixed = {}) {
+        // Header row
+        const header = fields.map(f => ({
+            value: f.label,
+            color: 'theme'
+        }));
+
+        // Data rows
+        const rows = data.filter(filterFn).map(row => {
+            const color = typeof targetFn === 'function' ? targetFn(row) : undefined;
+            return fields.map(f => {
+                if (fixed[f.key] !== undefined) return { value: fixed[f.key], color };
+                const col = getColByKey(f.key);
+                let value = row[f.key];
+
+                if (col && typeof col.format === 'function') {
+                    const params = buildColumnParameters(col, parameters);
+
+                    if (col.requires && Array.isArray(col.requires) && col.requires.length > 0) {
+                        value = col.format(
+                            ...col.requires.map(field => row[field]),
+                            params
+                        );
+                    } else {
+                        value = col.format(row[f.key], params);
+                    }
+                }
+
+                if (col) {
+                    if (col.prefix) value = `${col.prefix}${value ?? ""}`;
+                    if (col.suffix) value = `${value ?? ""}${col.suffix}`;
+                }
+
+                return { value, color };
+            });
+        });
+
+        return [header, ...rows];
+    }
+
+    // Build all sheets
+    return sheetsConfig.map(sheet => ({
+        name: sheet.name,
+        data: buildRows(sheet.fields, sheet.filterFn, sheet.fixed)
+    }));
 }

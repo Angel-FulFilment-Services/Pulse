@@ -17,8 +17,9 @@ export default function FilterControl(props) {
     setSearch(event[0].value);
   };
 
-  const activeFilters = filters
-  .flatMap((filter) =>
+  const activeFilters = filters.filter((filter) =>
+    filter.id !== 'include'
+  ).flatMap((filter) =>
     filter.options.filter((option) => option.checked).map((option) => ({
       id: filter.id,
       value: option.value,

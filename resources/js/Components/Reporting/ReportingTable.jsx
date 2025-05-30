@@ -16,6 +16,53 @@ function applyFilters(data, filters = []) {
   return data.filter((item) => {
     return filters.every((filter) => {
       const filterExpression = filter.expression(item);
+
+      // Group options by mode
+      if (filter.advanced) {
+        const checkedOptions = filter.options.filter(opt => opt.checked);
+        const uncheckedOptions = filter.options.filter(opt => !opt.checked);
+
+        if (checkedOptions.length === 0) return false;
+
+        // "solo" mode: always include if checked and matches
+        if (checkedOptions.some(opt => opt.mode === 'solo' && filterExpression(opt.value))) {
+          return true;
+        }
+
+        // "and" mode: must match at least one checked "and" and not match any unchecked
+        const checkedAndOptions = checkedOptions.filter(opt => opt.mode === 'and');
+        if (checkedAndOptions.length > 0) {
+          const matchesAnd = checkedAndOptions.some(opt => filterExpression(opt.value));
+          const matchesUnchecked = uncheckedOptions.some(opt => filterExpression(opt.value));
+          return matchesAnd && !matchesUnchecked;
+        }
+
+        // Fallback: must match at least one checked and not match any unchecked
+        const matchesChecked = checkedOptions.some(opt => filterExpression(opt.value));
+        const matchesUnchecked = uncheckedOptions.some(opt => filterExpression(opt.value));
+        return matchesChecked && !matchesUnchecked;
+      }
+
+      if (filter.id === 'include') {
+        // For "include" filters, check if the item matches any of the options
+        return filter.options.some((option) => {
+          if (option.checked) {
+            return filterExpression(option.value);
+          }
+          return false;
+        });
+      }
+
+      if (filter.id === 'exclude') {
+        // For "exclude" filters, check if the item does not match any of the options
+        return !filter.options.some((option) => {
+          if (option.checked) {
+            return filterExpression(option.value);
+          }
+          return false;
+        });
+      }
+
       const activeOptions = filter.options.filter((option) => option.checked);
 
       // If no options are checked, include all items

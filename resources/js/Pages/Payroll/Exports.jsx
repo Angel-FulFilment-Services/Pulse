@@ -332,7 +332,11 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
                         reports={reports}
                         report={report}
                         handleReportChange={handleReportChange}
-                        handleReportToExcel={() => exportTableToExcel(tableRef.current, `${report.label} - ${new Date(dateRange.startDate).toLocaleDateString('en-GB')} - ${new Date(dateRange.endDate).toLocaleDateString('en-GB')} .xlsx`)}
+                        handleReportToExcel={() => {
+                            const filename = `${report.label} - ${new Date(dateRange.startDate).toLocaleDateString('en-GB')} - ${new Date(dateRange.endDate).toLocaleDateString('en-GB')} .xlsx`
+                            report.toExcel ? 
+                                report.toExcel(reportData, filename, dateRange.startDate, dateRange.endDate) 
+                                : exportTableToExcel(tableRef.current, filename)}}
                         handleReportRegenerate={regenerateReport}
                         handleTogglePolling={togglePolling}
                         handleReportEdit={toggleEditing}
