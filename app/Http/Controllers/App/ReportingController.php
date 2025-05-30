@@ -200,6 +200,10 @@ class ReportingController extends Controller
                 IFNULL(SUM(timesheet_today.worked_minutes_today), 0) +
                 IFNULL(SUM(breaksheet.break_minutes), 0)
             ) / 60 AS worked_duration_hours,
+            (
+                IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
+                IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+            ) / 60 AS worked_duration_hours_excl_breaks,
             IFNULL(
                 (
                     (
@@ -214,6 +218,19 @@ class ReportingController extends Controller
                     )
                 ) * 100, 0
             ) AS worked_percentage,
+            IFNULL(
+                (
+                    (
+                        IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
+                        IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+                    ) /
+                    (
+                        IFNULL(SUM(shifts.shift_duration_hours), 0) +
+                        (IFNULL(SUM(timesheet_master.surplus_minutes_master), 0) + IFNULL(SUM(timesheet_today.surplus_minutes_today), 0)) -
+                        IFNULL(SUM(events.reduced_minutes), 0)
+                    )
+                ) * 100, 0
+            ) AS worked_percentage_excl_breaks,
             IFNULL(SUM(shifts.late_count), 0) AS shifts_late,
             IFNULL((SUM(shifts.late_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS late_percentage,
             IFNULL(SUM(events.sick_count), 0) AS shifts_sick,

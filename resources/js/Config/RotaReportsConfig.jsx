@@ -84,6 +84,28 @@ const rotaReportsConfig = [
             cellAction: (value) => value,
           },
           {
+            id: "worked_duration_hours_excl_breaks",
+            label: "Hours Worked",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(Excl. Breaks)",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return parseFloat(value).toFixed(2); // Convert to float and round to two decimal places
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
             id: "worked_percentage",
             label: "Hours Worked",
             dataType: "float",
@@ -98,6 +120,30 @@ const rotaReportsConfig = [
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "(%)",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return parseFloat(value).toFixed(2); // Convert to float and round to two decimal places
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "worked_percentage_excl_breaks",
+            label: "Hours Worked",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: {low: 60, high: 80},
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "%",
+            numeratorId: "worked_duration_hours", 
+            denominatorId: "shift_duration_hours",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(% Excl. Breaks)",
             format: (value) => {
               if (!isNaN(value)) {
                 return parseFloat(value).toFixed(2); // Convert to float and round to two decimal places
