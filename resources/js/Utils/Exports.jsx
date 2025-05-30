@@ -2,37 +2,53 @@ import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { getRateForDate } from '../Utils/minimumWage.jsx';
-import { differenceInYears } from 'date-fns';
+import { differenceInYears, format } from 'date-fns';
 
 export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
-    // Ensure the table reference is valid
-    const table = tableRef?.querySelector('table');
-
-    if (!table || !(table instanceof HTMLTableElement)) {
-        console.error('Error exporting table to Excel:', 'HTML Element not found');
-        toast.error('Failed to export this report to Excel. Please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-        return;
-    }
-
     try {
-        // Convert the table to a worksheet
-        const worksheet = XLSX.utils.table_to_sheet(table);
+        const table = tableRef.current || tableRef; // Support both ref and direct element
+
+        // Find indices of columns to exclude (those with "control" in their th class)
+        const ths = table.querySelectorAll('thead th');
+        const controlColumnIndices = [];
+        ths.forEach((th, idx) => {
+            if (th.className && th.className.includes('control')) {
+                controlColumnIndices.push(idx);
+            }
+        });
+
+        // Clone the table and remove control columns from header and all rows
+        const clonedTable = table.cloneNode(true);
+
+        // Remove from header
+        const headerRows = clonedTable.querySelectorAll('thead tr');
+        headerRows.forEach(row => {
+            controlColumnIndices.slice().reverse().forEach(idx => {
+                if (row.cells[idx]) row.deleteCell(idx);
+            });
+        });
+
+        // Remove from body
+        const bodyRows = clonedTable.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            controlColumnIndices.slice().reverse().forEach(idx => {
+                if (row.cells[idx]) row.deleteCell(idx);
+            });
+        });
+
+        // Now convert the cleaned table to a worksheet
+        const worksheet = XLSX.utils.table_to_sheet(clonedTable);
 
         // Apply cell styles and formatting based on class names and content
         const range = XLSX.utils.decode_range(worksheet['!ref']); // Get the range of the worksheet
         for (let row = range.s.r; row <= range.e.r; row++) {
+            // Skip formatting for the header row
+            if (row === 0) continue;
+            const htmlRow = clonedTable.rows && clonedTable.rows[row];
+            if (!htmlRow) continue;
             for (let col = range.s.c; col <= range.e.c; col++) {
                 const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                const cellElement = table.rows[row]?.cells[col]; // Get the corresponding HTML cell
+                const cellElement = htmlRow.cells[col];
                 if (!worksheet[cellAddress] || !cellElement) continue; // Skip if the cell doesn't exist
 
                 // Skip formatting for the header row
@@ -311,7 +327,7 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `payroll_export_${startDate}_to_${endDate}.csv`;
+        a.download = `payroll_export_${format(startDate, "dd.MM.yyyy")}_to_${format(endDate, "dd.MM.yyyy")}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

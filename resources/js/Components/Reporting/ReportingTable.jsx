@@ -157,6 +157,10 @@ export default function ReportingTable({ parameters, structure, filters, data, t
   }, [filteredData, sortConfig, structure]);
 
   const handleSort = (column) => {
+    if (column.dataType === 'control' || (column?.sortable && !column.sortable)) {
+      return ;
+    }
+
     const { id } = column;
 
     // Determine the new sort direction
@@ -228,7 +232,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                   <th
                     key={column.id}
                     scope="col"
-                    className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 dark:text-dark-50 dark:border-dark-600 relative ${column.thClass} ${!editing ? 'cursor-pointer' : 'cursor-default'}`}
+                    className={`py-3.5 px-3 text-sm font-semibold text-gray-900 border-b border-gray-300 dark:text-dark-50 dark:border-dark-600 relative ${column.thClass} ${!editing ? 'cursor-pointer' : 'cursor-default'} ${column.dataType === 'control' ? 'control' : ''}`}
                     onClick={() => {if(!editing) handleSort(column)}}
                   >
                     <div className={`${column.headerClass || ''} whitespace-nowrap`}>
