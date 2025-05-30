@@ -189,6 +189,7 @@ class ReportingController extends Controller
         )
         ->select(DB::raw("
             users.name AS agent,
+            IF(hr.leave_date IS NOT NULL, true, false) AS leaver,
             IFNULL(SUM(shifts.shifts_scheduled), 0) AS shifts_scheduled,
             (
                 IFNULL(SUM(shifts.shift_duration_hours), 0) +
