@@ -94,11 +94,10 @@ export default function Scanner({ handleScan, handleClose }) {
         <div className="relative">
           <video
             ref={videoRef}
-            className="w-96 h-96 border-4 border-gray-300 dark:border-dark-500 rounded-md"
+            className="w-96 h-96 border-4 border-theme-500 dark:border-theme-600 rounded-md"
             muted
             playsInline
           />
-          <div className="absolute inset-0 border-4 border-dashed border-theme-500 dark:border-theme-600 rounded-md pointer-events-none" />
         </div>
       )}
 
