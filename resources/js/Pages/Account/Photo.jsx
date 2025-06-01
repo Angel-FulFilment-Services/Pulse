@@ -9,8 +9,6 @@ import { usePage } from '@inertiajs/react';
 export default function Photo({ account }) {
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log('Account:', account);
-
   const setProfilePhoto = async (image) => {
     try {
       setIsLoading(true);

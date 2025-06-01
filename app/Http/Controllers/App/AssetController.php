@@ -25,6 +25,10 @@ class AssetController extends Controller
         return Inertia::render('Dashboard/Dashboard');
     }
 
+    public function scan(Request $request){
+        return Inertia::render('Assets/Scan');
+    }
+
     public function kit(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
