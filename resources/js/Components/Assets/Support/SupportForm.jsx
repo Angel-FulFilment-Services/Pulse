@@ -296,7 +296,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full xl:w-2/3">
-                    <div className="sm:col-span-2">
+                    <div className="sm:col-span-3">
                         <TextInput
                             id="title"
                             label="Title"
@@ -310,7 +310,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     </div>
 
                     {/* Description Field */}
-                    <div className="sm:col-span-4">
+                    <div className="sm:col-span-6 sm:row-start-2">
                         <TextAreaInput
                             id="description"
                             label="Description"
@@ -327,7 +327,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     </div>
 
                     {/* Started Time Field */}
-                    <div className="sm:row-start-2 sm:col-span-3">
+                    <div className="sm:row-start-3 sm:col-span-3">
                     <TimeInput
                         id="started"
                         label="Started"
@@ -341,7 +341,7 @@ export default function SupportForm({ hrId, allowSupportManagement, onCancel, in
                     </div>
 
                     {/* Ended Time Field */}
-                    <div className="sm:row-start-2 sm:col-span-3">
+                    <div className="sm:row-start-3 sm:col-span-3">
                     <TimeInput
                         id="ended"
                         label="Ended"

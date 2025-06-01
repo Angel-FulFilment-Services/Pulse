@@ -77,7 +77,7 @@ class LoginController extends Controller
 
         $user->update(['login_attempt' => 0]);
 
-        if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055)) {
+        if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055) && app()->environment(['production', 'staging'])) {
             if (Permissions::hasPermission('sms_2fa_enabled') || Permissions::hasPermission('email_2fa_enabled')) {
                 auth()->user()->generate_two_factor_code();
             }

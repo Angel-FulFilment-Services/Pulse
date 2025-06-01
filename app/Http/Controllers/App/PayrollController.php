@@ -215,7 +215,9 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.adhoc_qty, 0) as adhoc_qty'),
             DB::raw('COALESCE(exceptions.adhoc_amount, 0) as bonus'),
             DB::raw('COALESCE(exceptions.exception_count, 0) as exception_count'),
-            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent')
+            DB::raw('COALESCE(angel_cpa_agents.is_cpa_agent, false) as is_cpa_agent'),
+            DB::raw('COALESCE(hr_details.employment_category, "HOURLY") as employment_category'),
+            DB::raw('COALESCE(exceptions.items, JSON_ARRAY()) as items')
         )
         ->leftJoinSub(
             DB::table('hr.dow_updates')
@@ -277,7 +279,31 @@ class PayrollController extends Controller
                 DB::raw('SUM(IF(type = "Other Deductions", days, 0)) as od_days_qty'),
                 DB::raw('SUM(IF(type = "Adhoc Bonus", 1, 0)) as adhoc_qty'),
                 DB::raw('SUM(IF(type = "Adhoc Bonus", amount, 0)) as adhoc_amount'),
-                DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count')
+                DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count'),
+                DB::raw('
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            "id", id, 
+                            "notes", COALESCE(notes, type),
+                            "payment", IF(
+                                type = "Adhoc Bonus", 
+                                IF(amount > 0, 
+                                    CONCAT("£", COALESCE(amount, 0)),
+                                    CONCAT(COALESCE(days, 0), " days") 
+                                ), 
+                                NULL
+                            ),
+                            "deduction", IF(
+                                type <> "Adhoc Bonus",
+                                IF(amount > 0, 
+                                    CONCAT("-£", COALESCE(amount, 0)),
+                                    CONCAT("-", COALESCE(days, 0), " days")
+                                ), 
+                                NULL
+                            )
+                        )
+                    ) AS items'
+                )
             )
             ->whereBetween('startdate', [$startDate, $endDate])
             ->groupBy('hr_id'),
@@ -300,7 +326,6 @@ class PayrollController extends Controller
                 $join->on('hr_details.user_id', '=', 'angel_cpa_agents.user_id');
             }
         )
-        ->whereNull('employment_category')
         ->where(function($query) use ($startDate, $endDate) {
             $query->where('start_date', '>=', $startDate)
                 ->orWhere(function($query) use ($startDate, $endDate) {
@@ -333,15 +358,20 @@ class PayrollController extends Controller
                 $employee->leave_date,
                 $employee->days_of_week,
             );
-            $employee->holiday_pay = $this->calculateHolidayPay(
-                $employee->hr_id,
-                $employee->days_of_week,
-                $employee->holiday,
-                $employee->gross_pay,
-                $employee->last_qty,
-                $employee->leave_date,
-                $employee->start_date,
-            );
+
+            if ( $employee->employment_category == 'HOURLY' ){
+                $employee->holiday_pay = $this->calculateHolidayPay(
+                    $employee->hr_id,
+                    $employee->days_of_week,
+                    $employee->holiday,
+                    $employee->gross_pay,
+                    $employee->last_qty,
+                    $employee->leave_date,
+                    $employee->start_date,
+                );
+            }else{
+                $employee->holiday_pay = 0;
+            }
 
             return $employee;
         });
@@ -349,29 +379,29 @@ class PayrollController extends Controller
         return response()->json(['data' => $data]); 
     }
 
-    private function calculateBonus($hr_id, $halo_id, $is_cpa_agent, $haloData, $apexData, $startDate, $endDate){   
+    private function calculateBonus($hrId, $haloId, $isCpaAgent, $haloData, $apexData, $startDate, $endDate){   
 
         // Filter for this hr_id and date range
-        $sign_ups = $haloData->where('halo_id', $halo_id)
+        $signUps = $haloData->where('halo_id', $haloId)
             ->whereBetween('date', [$startDate, $endDate])
             ->sum('sign_ups');
-        $diallings = $apexData->where('hr_id', $hr_id)
+        $diallings = $apexData->where('hr_id', $hrId)
             ->whereBetween('date', [$startDate, $endDate])
             ->sum('diallings');
 
-        if (!$is_cpa_agent) {
-            return $sign_ups * 0.75; // Base bonus for non-CPA agents
+        if (!$isCpaAgent) {
+            return $signUps * 0.75; // Base bonus for non-CPA agents
         }
 
-        $dialling_percentage = ($diallings > 0) ? round(($sign_ups / $diallings) * 100, 2) : 0;
+        $diallingPercentage = ($diallings > 0) ? round(($signUps / $diallings) * 100, 2) : 0;
 
         // Monthly incentive logic
-        if ($dialling_percentage >= 1) {
-            $incentives_earnt = $sign_ups * 1.5;
-        } elseif ($dialling_percentage >= 0.75) {
-            $incentives_earnt = $sign_ups * 1;
+        if ($diallingPercentage >= 1) {
+            $incentivesEarnt = $signUps * 1.5;
+        } elseif ($diallingPercentage >= 0.75) {
+            $incentivesEarnt = $signUps * 1;
         } else {
-            $incentives_earnt = 0;
+            $incentivesEarnt = 0;
         }
 
         $weeks = $this->calculateWeeklyPeriods($startDate, $endDate);
@@ -379,23 +409,23 @@ class PayrollController extends Controller
             $weekStart = $week['startdate'];
             $weekEnd = $week['enddate'];
 
-            $weekly_sign_ups = $haloData->where('halo_id', $halo_id)
+            $weeklySignUps = $haloData->where('halo_id', $haloId)
                 ->whereBetween('date', [$weekStart, $weekEnd])
                 ->sum('sign_ups');
-            $weekly_diallings = $apexData->where('hr_id', $hr_id)
+            $weeklyDiallings = $apexData->where('hr_id', $hrId)
                 ->whereBetween('date', [$weekStart, $weekEnd])
                 ->sum('diallings');
-            $weekly_dialling_percentage = ($weekly_diallings > 0) ? round(($weekly_sign_ups / $weekly_diallings) * 100, 2) : 0;
+            $weeklyDiallingPercentage = ($weeklyDiallings > 0) ? round(($weeklySignUps / $weeklyDiallings) * 100, 2) : 0;
             
-            if ($weekStart >= '2025-02-03' || $weekly_dialling_percentage > 0.75) {
-                if ($weekly_sign_ups >= 42) $incentives_earnt += 100;
-                elseif ($weekly_sign_ups >= 30) $incentives_earnt += 50;
-                elseif ($weekly_sign_ups >= 25) $incentives_earnt += 25;
-                elseif ($weekly_sign_ups >= 20) $incentives_earnt += 20;
+            if ($weekStart >= '2025-02-03' || $weeklyDiallingPercentage > 0.75) {
+                if ($weeklySignUps >= 42) $incentivesEarnt += 100;
+                elseif ($weeklySignUps >= 30) $incentivesEarnt += 50;
+                elseif ($weeklySignUps >= 25) $incentivesEarnt += 25;
+                elseif ($weeklySignUps >= 20) $incentivesEarnt += 20;
             }
         }
 
-        return $incentives_earnt;
+        return $incentivesEarnt;
     }
 
     private function calculateWeeklyPeriods($startdate, $enddate) {
@@ -404,24 +434,24 @@ class PayrollController extends Controller
         $weeks = [];
     
         // Adjust the start date to the beginning of the week (Monday)
-        $current_startdate = strtotime('monday this week', $startdate);
+        $currentStartdate = strtotime('monday this week', $startdate);
     
-        while (strtotime('sunday this week', $current_startdate) <= $enddate) {
-            $current_enddate = strtotime('sunday this week', $current_startdate);
+        while (strtotime('sunday this week', $currentStartdate) <= $enddate) {
+            $currentEnddate = strtotime('sunday this week', $currentStartdate);
     
             $weeks[] = [
-                'startdate' => date('Y-m-d', $current_startdate),
-                'enddate' => date('Y-m-d', $current_enddate)
+                'startdate' => date('Y-m-d', $currentStartdate),
+                'enddate' => date('Y-m-d', $currentEnddate)
             ];
     
             // Move to the next week
-            $current_startdate = strtotime('monday next week', $current_startdate);
+            $currentStartdate = strtotime('monday next week', $currentStartdate);
         }
     
         return $weeks;
     }
 
-    private function calculateHoliday($hr_id, $startDate, $endDate, $startedDate, $leftDate, $dow = 0) {
+    private function calculateHoliday($hrId, $startDate, $endDate, $startedDate, $leftDate, $dow = 0) {
         $holidays = DB::connection('hr')
         ->table('holiday_requests')
         ->select(
@@ -429,7 +459,7 @@ class PayrollController extends Controller
             'enddate',
             'days_off'
         )
-        ->where('hr_id', $hr_id)
+        ->where('hr_id', $hrId)
         ->where(function ($query) use ($startDate, $endDate) {
             $query->where('startdate', '<=', $endDate)
                 ->where('enddate', '>=', $startDate);
@@ -439,45 +469,45 @@ class PayrollController extends Controller
         ->get();
 
         $holidays = $holidays->map(function($holiday) use ($startDate, $endDate) {
-            $lv_days = 0;
-            $lv_decimal = false;
-            $lv_adjustment = false;
-            $original_days_off = $holiday->days_off;
+            $days = 0;
+            $decimal = false;
+            $adjustment = false;
+            $originalDaysOff = $holiday->days_off;
         
             $start = strtotime($holiday->startdate);
             $end = strtotime($holiday->enddate);
-            $real_start = strtotime($startDate);
-            $real_end = strtotime($endDate);
+            $realStart = strtotime($startDate);
+            $realEnd = strtotime($endDate);
         
-            // If enddate > lp_real_enddate
-            if ($end > $real_end) {
-                for ($i = 0; $i < ($real_end + 86400) - $start; $i += 86400) { // +1 day for inclusive
-                    if ($lv_days < $original_days_off) {
-                        $lv_days++;
+            // If enddate > real_enddate
+            if ($end > $realEnd) {
+                for ($i = 0; $i < ($realEnd + 86400) - $start; $i += 86400) { // +1 day for inclusive
+                    if ($days < $originalDaysOff) {
+                        $days++;
                     }
                 }
-                $lv_decimal = true;
-                $lv_adjustment = true;
+                $decimal = true;
+                $adjustment = true;
             }
         
-            // If startdate <= lp_real_startdate
-            if ($start <= $real_start) {
-                for ($i = 0; $i < ($real_start - $start); $i += 86400) {
-                    if ($lv_days < $original_days_off) {
-                        $lv_days++;
+            // If startdate <= real_startdate
+            if ($start <= $realStart) {
+                for ($i = 0; $i < ($realStart - $start); $i += 86400) {
+                    if ($days < $originalDaysOff) {
+                        $days++;
                     }
                 }
-                $lv_days = ($original_days_off - $lv_days);
-                $lv_adjustment = true;
+                $days = ($originalDaysOff - $days);
+                $adjustment = true;
             }
         
             // Final adjustment
-            if ($lv_adjustment && $lv_days != $original_days_off) {
-                $decimal_part = $original_days_off - intval($original_days_off);
-                if ($lv_decimal && $decimal_part >= 0.01 && $decimal_part <= 0.99) {
-                    $holiday->days_off = $lv_days + $decimal_part;
+            if ($adjustment && $days != $originalDaysOff) {
+                $decimalPart = $originalDaysOff - intval($originalDaysOff);
+                if ($decimal && $decimalPart >= 0.01 && $decimalPart <= 0.99) {
+                    $holiday->days_off = $days + $decimalPart;
                 } else {
-                    $holiday->days_off = $lv_days;
+                    $holiday->days_off = $days;
                 }
             }
         
@@ -520,36 +550,36 @@ class PayrollController extends Controller
         return $holidays->sum('days_off');
     }
 
-    private function calculateHolidayPay($hr_id, $dow, $holiday, $gross_pay, $last_qty, $leftDate = null, $startDate = null) {
-        if ($holiday <= 0 || $last_qty <= 0) {
+    private function calculateHolidayPay($hrId, $dow, $holiday, $grossPay, $lastQty, $leftDate = null, $startDate = null) {
+        if ($holiday <= 0 || $lastQty <= 0) {
             return 0;
         }
 
-        $daily_rate = 0;
+        $dailyRate = 0;
 
-        switch ($last_qty) {
+        switch ($lastQty) {
             case 3:
-                $average_monthly_pay = $gross_pay / 3;
-                $annual_pay = $average_monthly_pay * 12;
-                $weekly_pay = $annual_pay / 52;
-                $daily_rate = $weekly_pay / $dow;
+                $averageMonthlyPay = $grossPay / 3;
+                $annualPay = $averageMonthlyPay * 12;
+                $weeklyPay = $annualPay / 52;
+                $dailyRate = $weeklyPay / $dow;
                 break;    
             case 2:
-                $average_monthly_pay = $gross_pay / 2;
-                $annual_pay = $average_monthly_pay * 12;
-                $weekly_pay = $annual_pay / 52;
-                $daily_rate = $weekly_pay / $dow;
+                $averageMonthlyPay = $grossPay / 2;
+                $annualPay = $averageMonthlyPay * 12;
+                $weeklyPay = $annualPay / 52;
+                $dailyRate = $weeklyPay / $dow;
                 break;
-            case $last_qty == 1 && $leftDate && strtotime($leftDate) > strtotime($startDate):
-                $daily_rate = $gross_pay * 0.1207;
+            case $lastQty == 1 && $leftDate && strtotime($leftDate) > strtotime($startDate):
+                $dailyRate = $grossPay * 0.1207;
                 break;
         }
 
-        if($daily_rate <= 0){
+        if($dailyRate <= 0){
             return 0;
         }
 
-        return round($daily_rate * $holiday, 2);
+        return round($dailyRate * $holiday, 2);
     }
 
     private function getCPAData($startDate, $endDate) {

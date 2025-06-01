@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export const generatePayrollExport = async (parameters, abortController = null) => {
     const { dateRange, report } = parameters;
@@ -13,6 +14,16 @@ export const generatePayrollExport = async (parameters, abortController = null) 
         return response.data; // Return the generated report data
     } catch (error) {
         if (axios.isCancel(error)) {
+            toast.info('Previous report generation request aborted. Initiating a new request with updated parameters...',{
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
         } else {
             console.error('Error generating attendance report:', error);
         }

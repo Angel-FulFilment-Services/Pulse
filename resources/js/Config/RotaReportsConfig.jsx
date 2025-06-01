@@ -352,16 +352,16 @@ const rotaReportsConfig = [
               .sort((a, b) => a.label.localeCompare(b.label)),
             },
             {
-              'id': 'status',
-              'name': 'Status',
+              id: 'exclude',
+              name: 'Exclude',
               expression: (data) => (filterValue) => {
                 if (filterValue === 'leavers') {
-                  return data.leaver != true;
+                  return data.leaver == true;
                 }
                 return true; // Default case, no filter applied
               },
               options: [
-                { value: 'leavers', label: 'Exclude leavers', checked: true },
+                { value: 'leavers', label: 'Leavers', checked: true, mode: 'exclude' },
               ]
             }
         ]

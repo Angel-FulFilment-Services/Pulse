@@ -25,3 +25,33 @@ export function getNextColor() {
   colorIndex = (colorIndex + 1) % colors.length;
   return color;
 }
+
+
+export function rgbToHex(rgb) {
+    // If the input is like "254 215 170"
+    if (/^\d+\s+\d+\s+\d+$/.test(rgb)) {
+        const [r, g, b] = rgb.split(/\s+/).map(Number);
+        return (
+            (1 << 24) +
+            (r << 16) +
+            (g << 8) +
+            b
+        )
+            .toString(16)
+            .slice(1)
+            .toUpperCase();
+    }
+    // If the input is like "rgb(254, 215, 170)"
+    const result = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(rgb);
+    return result
+        ? (
+            (1 << 24) +
+            (parseInt(result[1]) << 16) +
+            (parseInt(result[2]) << 8) +
+            parseInt(result[3])
+        )
+            .toString(16)
+            .slice(1)
+            .toUpperCase()
+        : null;
+}

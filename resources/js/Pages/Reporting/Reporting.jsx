@@ -24,6 +24,7 @@ const Reporting = () => {
     const [reportError, setReportError] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const pollingIntervalRef = useRef(null);
@@ -124,6 +125,19 @@ const Reporting = () => {
     }
 
     const regenerateReport = () => {
+        if (isGenerating) {
+            toast.info('Report generation is already in progress. Please wait...', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+            return;
+        }
         setReportData([]);
         setReportError(false);
         if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
@@ -132,6 +146,7 @@ const Reporting = () => {
     };
 
     const generateReport = async (dateRange, report, updateTargets = true) => {
+        setIsGenerating(true);
         try {
             const reports = await report.generate({ dateRange, report });
             const reportData = reports.data;
@@ -145,6 +160,7 @@ const Reporting = () => {
             console.error('Error generating report:', error);
             setReportError(true);
         }
+        setIsGenerating(false);
     };
 
     const generateTargets = (targets) => {
@@ -170,6 +186,9 @@ const Reporting = () => {
         }
 
         pollingIntervalRef.current = setInterval(() => {
+            if (isGenerating) {
+                return;
+            }
             if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
                 setReportError(false);
                 generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
@@ -245,17 +264,67 @@ const Reporting = () => {
     }
 
     const clearFilters = () => {
-        const updatedFilters = filters.map((section) => ({
-            ...section,
-            options: section.options.map((option) => ({ ...option, checked: false })),
-        }));
+        const updatedFilters = filters.map((section) => {
+            if (section.id === "include") {
+                return section;
+            }
+    
+            return {
+                ...section,
+                options: section.options.map((option) => ({ ...option, checked: false })),
+            };
+        });
         setFilters(updatedFilters);
     };
 
     useEffect(() => {
+        if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
+            if (report.parameters.polling) {
+                startPolling(report.parameters.polling);
+            } else {
+                stopPolling(); // Stop polling if the new report doesn't have polling
+            }
+        }
+    }, [dateRange])
+
+    useEffect(() => {
+        if (report && report.parameters && report.parameters.filters) {
+            const updatedFilters = report.parameters.filters.map((filter) => {
+                const existingFilter = filters.find((f) => f.id === filter.id);
+    
+                // Calculate new options if a calculateOptions function exists
+                const newOptions = filter.calculateOptions
+                    ? filter.calculateOptions(reportData)
+                    : filter.options;
+
+                // Merge new options with existing options
+                const mergedOptions = newOptions.map((newOption) => {
+                    const existingOption = existingFilter?.options.find((opt) => opt.value === newOption.value);
+                    return {
+                        ...newOption,
+                        checked: existingOption ? existingOption.checked : newOption.checked || false, // Preserve `checked` state
+                    };
+                });
+    
+                // Include any existing options that are not in the new options
+                const additionalOptions = existingFilter?.options.filter(
+                    (existingOption) => !newOptions.some((newOption) => newOption.value === existingOption.value)
+                ) || [];
+    
+                return {
+                    ...filter,
+                    options: [...mergedOptions, ...additionalOptions], // Combine merged and additional options
+                };
+            });
+    
+            setFilters(updatedFilters);
+        }
+    }, [report, reportData]);
+
+    useEffect(() => {
+        setFilters([]);
         setReportData([]);
         setReportError(false);
-        setFilters([]);
 
         if (report && report.parameters && report.parameters.dateRange && report.parameters.dateRange.default) {
             const { startDate, endDate } = report.parameters.dateRange.default;
@@ -274,30 +343,6 @@ const Reporting = () => {
 
         return () => stopPolling(); // Cleanup polling on component unmount or report change
     }, [report]);
-
-
-    useEffect(() => {
-        if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
-            if (report.parameters.polling) {
-                startPolling(report.parameters.polling);
-            } else {
-                stopPolling(); // Stop polling if the new report doesn't have polling
-            }
-        }
-    }, [dateRange])
-
-    useEffect(() => {
-        if (report && report.parameters && report.parameters.filters) {
-            if (!filters.some((filter) => filter.options.some((option) => option.checked))) {
-                const calculatedFilters = report.parameters.filters.map((filter) => ({
-                    ...filter,
-                    options: filter.calculateOptions ? filter.calculateOptions(reportData) : filter.options,
-                }));
-
-                setFilters(calculatedFilters);
-            }
-        }
-    }, [report, reportData]);
 
     useEffect(() => {
         switch (activeTab) {
@@ -357,7 +402,7 @@ const Reporting = () => {
                     />
                 </div>
                 { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
-                    <div className="px-6 py-4 bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 shadow-sm slide-down z-20">
+                    <div className={`px-6 py-4 bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 shadow-sm slide-down z-20 ${isGenerating ? 'pointer-events-none' : ''}`}>
                         <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
                     </div>
                 }

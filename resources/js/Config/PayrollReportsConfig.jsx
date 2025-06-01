@@ -4,12 +4,353 @@ import { getMinimumWageForPeriodByDOB } from '../Utils/minimumWage.jsx';
 import { FlagIcon, PauseIcon, PlayIcon } from '@heroicons/react/24/outline';
 import ClickedModal from '../Components/Modals/ClickedModal.jsx';
 import PayrollExceptions from '../Components/Payroll/PayrollExceptions.jsx';
+import { exportArrayToExcel, buildExportSheets } from '../Utils/Exports';
+
+const payrollSheetsConfig = [
+    {
+      name: "Salary",
+      fields: [
+          [
+              { label: "EMPLOYEE INFORMATION", merge: { r: 1, c: 6 }, headerStyle: { bgColor: "A9D08E", border: "all" } },
+              { label: "HOURS", merge: { r: 1, c: 2 }, headerStyle: { bgColor: "FFE699", border: "all", bold: false } },
+              { label: "Bonuses", headerStyle: { bgColor: "00B0F0", border: "all", bold: false, fontSize: 10 } },
+              { label: "HOLIDAY", headerStyle: { bgColor: "CCFF66", border: "all" } },
+              { label: "LOS", headerStyle: { bgColor: "CCFF66", border: "all" } },
+              { label: "", headerStyle: { bgColor: "CCFF66", border: "all" } }, // Blank cell
+              { label: "OTHER PAYMENTS", merge: { r: 1, c: 4 }, headerStyle: { bgColor: "66FF66", border: "all" } },
+              { label: "Deductions", merge: { r: 1, c: 2}, headerStyle: { bgColor: "FFFF00", border: "all" } },
+          ],
+          [
+              { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left", }, dataStyle: { border: "all", horizontal: "left", } },
+              { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left", } },
+              { key: "dob", label: "DOB", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "age", label: "Age", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "start_date", label: "Start Date", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "hourly_rate", label: "Hourly Rate", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "total_hours", label: "Total Hours", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "bonus", label: "TOTAL BONUSES", format: "currency", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "holiday", label: "Holiday (No of Days)", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00" };
+                  }
+                  return null;
+                }
+              },
+              { key: "length_of_service", label: "Length of Service", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "days_of_week", label: "Days worked per week", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "ssp_qty", label: "SSP (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00" };
+                  }
+                  return null;
+                }
+              },
+              { key: "spp_qty", label: "SPP (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00" };
+                  }
+                  return null;
+                }
+              },
+              { key: "pilon_qty", label: "PILON (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00" };
+                  }
+                  return null;
+                }
+              },
+              { key: "other_payment", label: "Other Payment", format: "currency", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00" };
+                  }
+                  return null;
+                }
+              },
+              { key: "od_amount_qty", label: "Other Deductions (£)", format: "currency", forceEmptyIfZero: true, headerStyle: { bgColor: "FFFF00", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value !== '-£0') {
+                      return { bgColor: "FFFF00", fontColor: "FF0000" };
+                  }
+                  return null;
+                }
+              },
+              { key: "od_days_qty", label: "Other Deductions (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "FFFF00", border: "all", wrapText: true }, dataStyle: { border: "all" },
+                colorFn: (cell) => {
+                  if (cell.value > 0) {
+                      return { bgColor: "FFFF00", fontColor: "FF0000" };
+                  }
+                  return null;
+                }
+              },
+              { key: "leave_date", visible: false },
+          ],
+      ],
+      rowHeights: [12.75, 31.50, 10.50],
+      columnWidths: [9.00, 8.14, 8.86, 8.86, 3.57, 8.86, 20.57, 6.14, 7.86, 11.14, 14.13, 8.14, 8.14, 8.57, 8.00, 10.57, 13.57, 16.00],
+      fixed: { hourly_rate: "SALARY", total_hours: "SALARY", other_payment: "" },
+      filterFn: row => row.employment_category === "SALARY",
+      rowColorFn: (row) => {
+        if (row.find((cell) => cell.key === 'leave_date').value) {
+          return { bgColor: "FF8080" };
+        }
+      },
+      sortFn: (a, b) => {
+        const aValue = a.find((cell) => cell.key === 'surname')?.value || '';
+        const bValue = b.find((cell) => cell.key === 'surname')?.value || '';
+        return aValue.localeCompare(bValue);
+      },
+      styles: {
+          headerStyles: {
+              fontColor: "000000",
+              fontSize: 8,
+              vertical: "bottom",
+              horizontal: "center",
+              bold: true,
+              fontFamily: "Tahoma"
+          },
+          dataStyles: {
+              fontColor: "000000",
+              fontSize: 8,
+              vertical: "center",
+              horizontal: "center",
+              fontFamily: "Tahoma"
+          },
+      },
+  },
+  {
+    name: "Payroll Details",
+    fields: [
+      [
+          { label: "EMPLOYEE INFORMATION", merge: { r: 1, c: 6 }, headerStyle: { bgColor: "A9D08E", border: "all" } },
+          { label: "HOURS", merge: { r: 1, c: 2 }, headerStyle: { bgColor: "FFE699", border: "all", bold: false } },
+          { label: "Bonuses", headerStyle: { bgColor: "00B0F0", border: "all", bold: false, fontSize: 10, } },
+          { label: "HOLIDAY", merge: { r: 1, c: 2}, headerStyle: { bgColor: "CCFF66", border: "all" } },
+          { label: "LOS", headerStyle: { bgColor: "CCFF66", border: "all" } },
+          { label: "", headerStyle: { bgColor: "CCFF66", border: "all" } }, // Blank cell
+          { label: "OTHER PAYMENTS", merge: { r: 1, c: 4 }, headerStyle: { bgColor: "66FF66", border: "all" } },
+          { label: "Deductions", merge: { r: 1, c: 2}, headerStyle: { bgColor: "FFFF00", border: "all" } },
+      ],
+      [
+          { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "dob", label: "DOB", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "age", label: "Age", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "start_date", label: "Start Date", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "rate_of_pay", label: "Hourly Rate", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "hours", label: "Total Hours", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "bonus", label: "TOTAL BONUSES", format: "currency", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "holiday", label: "Holiday (No of Days)", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "holiday_pay", label: "Total Holiday", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "length_of_service", label: "Length of Service", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "days_of_week", label: "Days worked per week", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "ssp_qty", label: "SSP (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "spp_qty", label: "SPP (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "pilon_qty", label: "PILON (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "other_payment", label: "Other Payment", format: "currency", forceEmptyIfZero: true, headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00" };
+              }
+              return null;
+            }
+          },
+          { key: "od_amount_qty", label: "Other Deductions (£)", format: "currency", forceEmptyIfZero: true, headerStyle: { bgColor: "FFFF00", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value !== '-£0') {
+                  return { bgColor: "FFFF00", fontColor: "FF0000"};
+              }
+              return null;
+            }
+          },
+          { key: "od_days_qty", label: "Other Deductions (No of Days)", forceEmptyIfZero: true, headerStyle: { bgColor: "FFFF00", border: "all", wrapText: true }, dataStyle: { border: "all" },
+            colorFn: (cell) => {
+              if (cell.value > 0) {
+                  return { bgColor: "FFFF00", fontColor: "FF0000"};
+              }
+              return null;
+            }
+          },
+          { key: "leave_date", visible: false },
+      ],
+    ],
+    rowHeights: [12.75, 31.50, 10.50],
+    columnWidths: [9.00, 8.14, 8.86, 8.86, 3.57, 8.86, 20.57, 6.14, 7.86, 11.14, 14.13, 14.13, 8.14, 8.14, 8.57, 8.00, 10.57, 13.57, 16.00],
+    fixed: { other_payment: "" },
+    filterFn: row => row.employment_category === "HOURLY",
+    rowColorFn: (row) => {
+      if (row.find((cell) => cell.key === 'leave_date').value) {
+        return { bgColor: "FF8080" };
+      }
+    },
+    sortFn: (a, b) => {
+      const aValue = a.find((cell) => cell.key === 'surname')?.value || '';
+      const bValue = b.find((cell) => cell.key === 'surname')?.value || '';
+      return aValue.localeCompare(bValue);
+    },
+    styles: {
+      headerStyles: {
+          fontColor: "000000",
+          fontSize: 8,
+          vertical: "bottom",
+          horizontal: "center",
+          bold: true,
+          fontFamily: "Tahoma"
+      },
+      dataStyles: {
+          fontColor: "000000",
+          fontSize: 8,
+          vertical: "center",
+          horizontal: "center",
+          fontFamily: "Tahoma"
+      },
+    },
+  },
+  {
+    name: "Leavers",
+    fields: [
+        [
+            { label: "EMPLOYEE INFORMATION", merge: { r: 1, c: 7 }, headerStyle: { bgColor: "A9D08E", border: "all" } },
+        ],
+        [
+            { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+            { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
+            { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
+            { key: "start_date", format: "date", label: "Start Date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
+            { key: "leave_date", format: "date", label: "Leave Date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+            { key: "hwk_returned", label: "HWK Returned?", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+            { key: "notes", label: "Notes", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+        ],
+    ],
+    rowHeights: [12.75, 24, 10.50],
+    columnWidths: [8.57, 13.43, 10.57, 12.71, 13.00, 13.43, 7.86],
+    fixed: { hwk_returned: "", notes: "" },
+    filterFn: row => !!row.leave_date,
+    sortFn: (a, b) => {
+      const aValue = a.find((cell) => cell.key === 'firstname')?.value || '';
+      const bValue = b.find((cell) => cell.key === 'firstname')?.value || '';
+      return aValue.localeCompare(bValue);
+    },
+    styles: {
+      headerStyles: {
+          fontColor: "000000",
+          fontSize: 8,
+          vertical: "bottom",
+          horizontal: "center",
+          bold: true,
+          fontFamily: "Tahoma"
+      },
+      dataStyles: {
+          fontColor: "000000",
+          fontSize: 8,
+          vertical: "center",
+          horizontal: "center",
+          fontFamily: "Tahoma"
+      },
+    },
+  },
+  {
+    name: "Adjustments",
+    fields: [
+        [
+            { key: "hr_id", label: "Emp No", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "right" } },
+            { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "left" } },
+            { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "left" } },
+            { key: "adjustment", label: "Adjustment Amount", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10 } },
+            { label: "", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10 } },
+            { key: "items.deduction", label: "Deduction", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10 } },
+            { key: "items.payment", label: "Additional Payment", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10 } },
+            { key: "items.notes", label: "Details", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10, wrapText: true } },
+        ],
+    ],
+    rowHeights: [12.75],
+    subData: 'items',
+    columnWidths: [8, 11, 9, 20, 26, 11, 20, 22],
+    fixed: { adjustment: "" },
+    filterFn: row => row.exception_count || row.adhoc_qty,
+    styles: {
+      headerStyles: {
+          fontColor: "000000",
+          fontSize: 10,
+          vertical: "bottom",
+          horizontal: "center",
+          bold: true,
+          fontFamily: "Tahoma"
+      },
+      dataStyles: {
+          fontColor: "000000",
+          fontSize: 8,
+          vertical: "center",
+          horizontal: "center",
+          fontFamily: "Tahoma"
+      },
+    },
+  }
+];
 
 const payrollReportsConfig = [
   {
       id: 'payroll_export',
       label: 'Payroll Export',
       generate: generatePayrollExport,
+      toExcel: (data, filename, startDate, endDate) => {
+
+        const config = payrollReportsConfig.find(cfg => cfg.id === 'payroll_export');
+        const structure = config.parameters.structure;
+        const targetFn = config.parameters.target;
+        const parameters = { startDate, endDate };
+
+        const sheets = buildExportSheets({
+            sheetsConfig: payrollSheetsConfig,
+            data,
+            structure,
+            targetFn,
+            parameters
+        });
+
+        exportArrayToExcel(sheets, filename);
+      },
       parameters: {
           targetAllowColumn: false,
           targetAllowCell: false,
@@ -53,13 +394,19 @@ const payrollReportsConfig = [
               dataType: "control",
               visible: true,
               control: (row, rowIndex, { startDate, endDate } = {}) => (
-                <div className="flex flex-row items-center justify-start gap-x-2">
+                <div className={`flex flex-row items-center justify-start gap-x-2`}>
+                  <div className="flex items-center justify-center h-6 w-6">
+                    <PauseIcon
+                      className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-not-allowed transition-all ease-in-out"
+                      aria-hidden="true"
+                    />
+                  </div>
                   <ClickedModal
                       overlay={true}
                       size={"xs"}
                       className={`w-full h-full justify-center items-center flex`}
                       onClose={() => null} // Clear the message when the flyout closes
-                      content={(handleSubmit, handleClose) => <PayrollExceptions hrId={row.hr_id} dateRange={{startDate: startDate, endDate: endDate}} handleClose={handleClose} /> 
+                      content={(handleSubmit, handleClose) => <PayrollExceptions hrId={row.hr_id} dateRange={{startDate: startDate, endDate: endDate}} handleClose={handleClose} />
                     }
                   >
                     <FlagIcon
@@ -67,22 +414,15 @@ const payrollReportsConfig = [
                       aria-hidden="true"
                     />
                   </ClickedModal>
-                  {/* <div className="w-full h-full justify-center items-center flex">
-                    <PauseIcon
-                        className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
-                        aria-hidden="true"
-                    />
-                  </div> */}
-                  {
-                    (row.exception_count > 0 || row.adhoc_qty > 0) &&
-                    <div className="text-red-600 dark:text-red-700 text-xs font-semibold rounded-full ring-red-600 ring-1 dark:ring-red-700 w-4 h-4 flex items-center justify-center flex-shrink-0">
-                      {(Number(row.exception_count) || 0) + (Number(row.adhoc_qty) || 0)}
-                    </div>
-                  }
+                  <div className={`text-theme-600 dark:text-theme-700 text-sm font-semibold rounded-full ring-theme-600 ring-1 dark:ring-theme-700 w-5 h-5 flex items-center justify-center flex-shrink-0 ml-1 ${(Number(row.exception_count) || 0) + (Number(row.adhoc_qty) || 0) === 1 ? 'pr-0.5' : null}`}>
+                    {(Number(row.exception_count) || 0) + (Number(row.adhoc_qty) || 0)}
+                  </div>
                 </div>
               ),
               headerClass: "text-center flex flex-row items-center justify-center w-full",
               cellClass: "text-center flex flex-row items-center justify-center w-full",
+              tdClass: "bg-gray-50 dark:bg-dark-800 border-x border-gray-300 dark:border-dark-600",
+              thClass: "bg-gray-50 dark:bg-dark-800 border-x border-gray-300 dark:border-dark-600 border-b-0",
               parameters: {
                 startDate: {
                   type: 'startDate',
@@ -220,6 +560,26 @@ const payrollReportsConfig = [
               label: "Start Date",
               dataType: "date",
               visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => {
+                if (!value) return "";
+                return format(new Date(value), 'dd/MM/yyyy');
+              },
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "leave_date",
+              label: "Leave Date",
+              dataType: "date",
+              visible: false,
               allowTarget: true,
               target: 0,
               targetDirection: 'asc',
@@ -376,7 +736,7 @@ const payrollReportsConfig = [
               headerAnnotation: "",
               format: (days, { startDate } = {} ) => {
                 if (!days || isNaN(days)) return "";
-                
+
                 const duration = intervalToDuration({
                   start: subDays(new Date(startDate), Number(days)),
                   end: new Date(startDate),
@@ -560,22 +920,36 @@ const payrollReportsConfig = [
               id: 'status',
               name: 'Status',
               expression: (data) => (filterValue) => {
-                if (filterValue === 'leaver') {
-                  return data.leave_date;
-                } else if (filterValue === 'exceptions') {
-                  return data.exception_count && data.exception_count > 0;
-                } else if (filterValue === 'issue') {
-                  return data.last_qty == 0 || data.days_of_week == 0;
-                } else if (filterValue === 'active') {
+                if (filterValue === 'not_exportable') {
+                  return  data.exception_count > 0 || data.last_qty == 0 || data.days_of_week == 0 || data.leave_date;
+                } else if (filterValue === 'exportable') {
                   return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && (data.last_qty > 0 || data.days_of_week > 0);
                 }
                 return true; // Default case, no filter applied
               },
               options: [
-                { value: 'exceptions', label: 'Has exceptions', checked: false },
-                { value: 'issue', label: 'Has data issues', checked: false },
-                { value: 'leaver', label: 'Is a leaver', checked: false },
-                { value: 'active', label: 'Is ready to export', checked: false } 
+                { value: 'not_exportable', label: 'Not Exportable', checked: false },
+                { value: 'exportable', label: 'Exportable', checked: false }
+              ]
+            },
+            {
+              id: 'include',
+              name: 'Include',
+              advanced: true,
+              expression: (data) => (filterValue) => {
+                if (filterValue === 'leaver') {
+                  return data.leave_date;
+                } else if (filterValue === 'salaried') {
+                  return data.employment_category === 'SALARY';
+                } else if (filterValue === 'hourly') {
+                  return data.employment_category === 'HOURLY';
+                }
+                return true; // Default case, no filter applied
+              },
+              options: [
+                { value: 'leaver', label: 'Leavers', checked: true, mode: 'solo' },
+                { value: 'hourly', label: 'Hourly Employees', checked: true, mode: 'and' },
+                { value: 'salaried', label: 'Salaried Employees', checked: false, mode: 'and' },
               ]
             }
         ]
