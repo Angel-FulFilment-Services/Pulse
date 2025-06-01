@@ -134,7 +134,7 @@ export default function FilterControl(props) {
                       </div>
                     ))}
                     {section.options.filter((option) => !search || option.label.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-                      <div className="flex items-center justify-center text-sm text-gray-600 dark:bg-dark-400">
+                      <div className="flex items-center justify-center text-sm text-gray-600 dark:text-dark-400">
                         <span>No results found . . .</span>
                       </div>
                     )}

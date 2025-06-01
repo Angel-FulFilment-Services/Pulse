@@ -5,61 +5,448 @@ import { getRateForDate } from '../Utils/minimumWage.jsx';
 import { differenceInYears, format } from 'date-fns';
 import { rgbToHex } from '../Utils/Color.jsx'; // Ensure you have this utility function
 
-function getCellStyle(color) {
-    // Theme colors from CSS vars (fallbacks included)
-    const themeBg = (getComputedStyle(document.body).getPropertyValue('--theme-200') || '#FED7AA').replace('#', '').toUpperCase();
-    const themeText = (getComputedStyle(document.body).getPropertyValue('--theme-800') || '#B45309').replace('#', '').toUpperCase();
-
-    switch ((color || '').toLowerCase()) {
-        case 'green':
-            return {
-                fill: { patternType: 'solid', fgColor: { rgb: 'C6EFCE' } },
-                font: { color: { rgb: '006100' } }
-            };
-        case 'red':
-            return {
-                fill: { patternType: 'solid', fgColor: { rgb: 'FFC7CE' } },
-                font: { color: { rgb: '9C0006' } }
-            };
-        case 'yellow':
-            return {
-                fill: { patternType: 'solid', fgColor: { rgb: 'FFEB9C' } },
-                font: { color: { rgb: '9C6500' } }
-            };
-        case 'theme':
-            return {
-                fill: { patternType: 'solid', fgColor: { rgb: themeBg.length === 6 ? themeBg : 'FED7AA' } },
-                font: { color: { rgb: themeText.length === 6 ? themeText : 'B45309' } }
-            };
-        default:
-            return {};
+/**
+ * Build export-ready sheets from data and sheet configs.
+ * @param {Array} sheetsConfig - Array of { name, fields, fixed, filterFn }
+ * @param {Array} data - The data array
+ * @param {Object} structure - The column structure (from config)
+ * @param {Function} targetFn - Row color function (from config)
+ * @param {Object} parameters - { startDate, endDate, ... }
+ * @returns {Array} Array of { name, data }
+ */
+export function buildExportSheets({ sheetsConfig, data, structure, targetFn, parameters }) {
+    function buildColumnParameters(col, parameters) {
+        const params = {};
+        if (col.parameters) {
+            Object.entries(col.parameters).forEach(([paramKey, paramConfig]) => {
+                if (paramConfig.type === 'startDate') params[paramKey] = parameters.startDate;
+                if (paramConfig.type === 'endDate') params[paramKey] = parameters.endDate;
+            });
+        }
+        return params;
     }
+
+    function getColByKey(key) {
+        return structure.find((col) => col.id === key);
+    }
+
+    function buildRows(fields, filterFn = () => true, fixed = {}, styles = {}, sortFn = null, subDataField = null) {
+        const { headerStyles = {}, dataStyles = {} } = styles;
+    
+        // Build header rows
+        const headerRows = fields.map((headerRow) => {
+            const row = [];
+            let currentColumn = 0; // Track the next available column index
+    
+            headerRow.forEach((cell) => {
+                // Skip cells with `visible: false`
+                if (cell?.visible === false) {
+                    return;
+                }
+    
+                // Ensure the current column is available
+                while (row[currentColumn]) {
+                    currentColumn++;
+                }
+    
+                const merge = cell.merge || undefined;
+    
+                // Place the cell at the current column
+                row[currentColumn] = {
+                    value: cell.label,
+                    style: {
+                        ...headerStyles,
+                        ...cell.headerStyle, // Allow per-cell styles
+                    },
+                    merge, // Handle cell merging
+                };
+    
+                // If the cell has a merge, adjust the currentColumn to skip the merged range
+                if (merge) {
+                    currentColumn += merge.c;
+                } else {
+                    currentColumn++;
+                }
+            });
+    
+            return row;
+        });
+    
+        // Build data rows
+        let dataRows = data.filter(filterFn).flatMap((row) => {
+            // If subDataField is specified, use sub-data to generate rows
+            let subData = subDataField ? row[subDataField] || [] : [row];
+            
+            if (typeof subData === 'string') {
+                try {
+                    subData = JSON.parse(subData);
+                } catch (error) {
+                    subData = [];
+                }
+            }
+
+            return subData.map((subRow) => {
+                return fields[fields.length - 1].map((f) => {
+                    const isSubDataField = f.key?.includes('.'); // Check if the field references sub-data
+                    const [topLevelKey, subKey] = isSubDataField ? f.key.split('.') : [f.key, null];
+    
+                    let value;
+                    if (fixed[f.key] !== undefined) {
+                        value = fixed[f.key];
+                    } else if (isSubDataField) {
+                        value = subRow[subKey]; // Use sub-data field
+                    } else {
+                        value = row[topLevelKey]; // Use top-level field
+                    }
+    
+                    const col = getColByKey(f.key);
+    
+                    if (col && typeof col.format === 'function') {
+                        const params = buildColumnParameters(col, parameters);
+    
+                        if (col.requires && Array.isArray(col.requires) && col.requires.length > 0) {
+                            value = col.format(
+                                ...col.requires.map((field) => (isSubDataField ? subRow[field] : row[field])),
+                                params
+                            );
+                        } else {
+                            value = col.format(value, params);
+                        }
+                    }
+    
+                    if (col) {
+                        if (col.prefix) value = `${col.prefix}${value ?? ''}`;
+                        if (col.suffix) value = `${value ?? ''}${col.suffix}`;
+                    }
+    
+                    return {
+                        key: f.key,
+                        value,
+                        style: {
+                            ...dataStyles,
+                            ...f.dataStyle, // Allow per-cell styles
+                        },
+                        visible: f.visible !== false, // Ensure the cell is visible unless explicitly set to false
+                    };
+                });
+            });
+        });
+    
+        // Apply sorting if a sort function is provided
+        if (sortFn) {
+            dataRows = dataRows.sort((a, b) => sortFn(a, b));
+        }
+    
+        return [...headerRows, ...dataRows];
+    }
+    
+    // Build all sheets
+    return sheetsConfig.map((sheet) => {
+        const rows = buildRows(
+            sheet.fields,
+            sheet.filterFn,
+            sheet.fixed,
+            sheet.styles,
+            sheet.sortFn,
+            sheet.subData // Pass the subData field name
+        );
+    
+        // Handle cell merging
+        const merges = [];
+        rows.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                if (cell.merge) {
+                    merges.push({
+                        s: { r: rowIndex, c: colIndex },
+                        e: { r: rowIndex + cell.merge.r - 1, c: colIndex + cell.merge.c - 1 },
+                    });
+                }
+            });
+        });
+    
+        return {
+            name: sheet.name,
+            data: rows,
+            rowHeights: sheet.rowHeights || [],
+            columnWidths: sheet.columnWidths || [],
+            fields: sheet.fields,
+            rowColorFn: sheet.rowColorFn,
+            merges,
+        };
+    });
+}
+
+function getCellStyle(style = {}) {
+    const { bgColor, fontColor, fontSize, bold, horizontal, vertical, border, wrapText, fontFamily } = style;
+
+    const borders = border === 'all' ? {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+    } : undefined;
+
+    return {
+        fill: bgColor ? { patternType: 'solid', fgColor: { rgb: bgColor } } : undefined,
+        font: {
+            color: fontColor ? { rgb: fontColor } : undefined,
+            bold: bold || false,
+            sz: fontSize || 10,
+            name: fontFamily || 'Calibri', // Default to 'Calibri' if no font family is provided
+        },
+        alignment: {
+            horizontal: horizontal || 'left',
+            vertical: vertical || 'center',
+            wrapText: wrapText || false, // Enable or disable text wrapping
+        },
+        border: borders,
+    };
 }
 
 // Helper: detect and format cell value
-function formatCell(cell) {
+function formatCell(cell, columnConfig = {}) {
     let v = cell.value;
     let z = undefined;
 
-    if (typeof v === 'string' && v.includes('%')) {
-        const decimalPlaces = v.includes('.') ? v.split('.')[1].replace('%', '').length : 0;
-        const value = parseFloat(v.replace('%', '')) / 100;
-        z = value === 0 ? '0%' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}%` : '0%';
-        v = value;
-    } else if (typeof v === 'string' && v.includes('£')) {
-        const value = parseFloat(v.replace(/[^0-9.-]+/g, ''));
-        z = value === 0 ? '£#,##0' : '£#,##0.00';
-        v = value;
-    } else if (!isNaN(v) && v !== '' && v !== null && v !== undefined) {
-        const value = parseFloat(v);
-        if (!isNaN(value)) {
-            const decimalPlaces = (v.toString().includes('.') ? v.toString().split('.')[1].length : 0);
-            z = value === 0 ? '0' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}` : '0';
-            v = value;
+    // Apply formatting based on the column's `format` property
+    if (columnConfig.format) {
+        switch (columnConfig.format) {
+            case 'date':
+                if (v) {
+                    let date;
+                    // Check if the value is in yyyy-mm-dd format
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        date = new Date(v);
+                    }
+                    // Check if the value is in dd/mm/yyyy format
+                    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+                        const [day, month, year] = v.split('/');
+                        date = new Date(`${year}-${month}-${day}`);
+                    } else {
+                        date = new Date(v); // Fallback for other formats
+                    }
+
+                    if (!isNaN(date)) {
+                        v = format(date, 'dd/MM/yyyy'); // Format as dd/MM/yyyy
+                        z = 'dd/mm/yyyy'; // Excel date format
+                    } else {
+                        v = ''; // Invalid date, set to empty
+                    }
+                }
+                break;
+            case 'currency':
+                if (v !== null && v !== undefined || !isNaN(v)) {
+                    if (v.includes('-')) {
+                        v = parseFloat(v.split('-£')[1]); // Handle negative values
+                        z = '-£#,##0.00'; // Format negative values in red with parentheses
+                    } else {
+                        v = parseFloat(v.split('£')[1]);
+                        z = '£#,##0.00'; // Format positive values normally
+                    }
+                } else {
+                    v = 0; // Default to 0 if invalid
+                    z = '£#,##0.00'
+                }
+                break;
+            case 'percentage':
+                if (v !== null && v !== undefined && !isNaN(v)) {
+                    v = parseFloat(v) / 100;
+                    z = '0.00%'; // Percentage format
+                } else {
+                    v = 0; // Default to 0 if invalid
+                    z = '0.00%'; // Percentage format
+                }
+                break;
+            case 'float':
+                if (v !== null && v !== undefined && !isNaN(v)) {
+                    v = parseFloat(v);
+                    z = '0.00'; // Number with two decimal places
+                } else {
+                    v = 0; // Default to 0 if invalid
+                    z = '0.00'; // Number with two decimal places
+                }
+                break;
+            case 'number':
+                if (v !== null && v !== undefined && !isNaN(v)) {
+                    v = parseFloat(v);
+                    z = '0'; // Number with two decimal places
+                } else {
+                    v = 0; // Default to 0 if invalid
+                    z = '0'; // Number with two decimal places
+                }
+                break;
+            default:
+                break; // Fallback to best-guess approach
         }
     }
 
-    return { v, z };
+    // Fallback to current best-guess approach if no format is provided
+    if (z === undefined) {
+        if (typeof v === 'string' && v.includes('%')) {
+            const decimalPlaces = v.includes('.') ? v.split('.')[1].replace('%', '').length : 0;
+            const value = parseFloat(v.replace('%', '')) / 100;
+            z = value === 0 ? '0%' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}%` : '0%';
+            v = value;
+        } else if (typeof v === 'string' && v.includes('£')) {
+            const value = parseFloat(v.replace(/[^0-9.-]+/g, ''));
+            z = value === 0 ? '£#,##0' : '£#,##0.00';
+            v = value;
+        } else if (!isNaN(v) && v !== '' && v !== null && v !== undefined) {
+            const value = parseFloat(v);
+            if (!isNaN(value)) {
+                const decimalPlaces = (v.toString().includes('.') ? v.toString().split('.')[1].length : 0);
+                z = value === 0 ? '0' : decimalPlaces > 0 ? `0.${'0'.repeat(decimalPlaces)}` : '0';
+                v = value;
+            }
+        }
+    }
+
+    // Force cell to be empty if `forceEmptyIfZero` is true and value is zero
+    if (columnConfig.forceEmptyIfZero && (v === 0 || isNaN(v))) {
+        v = '';
+    }
+
+    if (v === undefined || v === null) {
+        v = ''; // Ensure null or undefined values are set to empty string
+    }
+
+    return { v, z, style: cell.style || {} };
+}
+
+export async function exportArrayToExcel(sheets, filename = 'export.xlsx') {
+    try {
+        const workbook = XLSX.utils.book_new();
+
+        sheets.forEach((sheet) => {
+            // Build worksheet data and styles
+            const aoa = sheet.data.map((row) =>
+                row.map((cell) =>
+                    typeof cell === 'object' && cell !== null && 'value' in cell
+                        ? cell
+                        : { value: cell }
+                )
+            );
+
+            // Create worksheet with just values
+            const worksheet = XLSX.utils.aoa_to_sheet(
+                aoa.map((row, rIdx) =>
+                    row.map((cell, cIdx) => {
+                        if (cell.visible === false) {
+                            return ''; // Skip invisible cells
+                        }
+
+                        // Skip formatting for header rows
+                        if (rIdx < sheet.fields.length) {
+                            return cell.value;
+                        }
+
+                        // Format data rows
+                        const columnConfig = sheet.fields[sheet.fields.length - 1][cIdx] || {};
+                        const { v } = formatCell(cell, columnConfig);
+                        return v;
+                    })
+                )
+            );
+
+            // Apply styles and number formats
+            aoa.forEach((row, rIdx) => {
+                const rowColorStyle = sheet.rowColorFn && rIdx >= sheet.fields.length ? sheet.rowColorFn(row) : null;
+
+                row.forEach((cell, cIdx) => {
+                    if (cell.visible === false) {
+                        return; // Skip invisible cells
+                    }
+
+                    const addr = XLSX.utils.encode_cell({ r: rIdx, c: cIdx });
+                    if (worksheet[addr]) {
+                        // Get column configuration
+                        const columnConfig = sheet.fields[sheet.fields.length - 1][cIdx] || {};
+
+                        // Apply custom styles
+                        const { style } = cell;
+                        if (style) {
+                            worksheet[addr].s = getCellStyle(style);
+                        }
+
+                        // Apply row-level coloration
+                        if (rowColorStyle) {
+                            worksheet[addr].s = {
+                                ...worksheet[addr].s,
+                                fill: {
+                                    ...worksheet[addr].s?.fill,
+                                    patternType: 'solid',
+                                    fgColor: { rgb: rowColorStyle.bgColor || worksheet[addr].s?.fill?.fgColor?.rgb || 'FFFFFF' },
+                                },
+                                font: {
+                                    ...worksheet[addr].s?.font,
+                                    color: { rgb: rowColorStyle.fontColor || worksheet[addr].s?.font?.color?.rgb || '000000' },
+                                },
+                            };
+                        }
+
+                        // Apply dynamic coloration
+                        if (columnConfig.colorFn && rIdx >= sheet.fields.length) {
+                            const colorStyle = columnConfig.colorFn(cell);
+                            if (colorStyle) {
+                                worksheet[addr].s = {
+                                    ...worksheet[addr].s,
+                                    fill: {
+                                        ...worksheet[addr].s?.fill,
+                                        patternType: 'solid',
+                                        fgColor: { rgb: colorStyle.bgColor || worksheet[addr].s?.fill?.fgColor?.rgb || 'FFFFFF'},
+                                    },
+                                    font: {
+                                        ...worksheet[addr].s?.font,
+                                        color: { rgb: colorStyle.fontColor || worksheet[addr].s?.font?.color?.rgb || '000000' },
+                                    },
+                                };
+                            }
+                        }
+
+                        // Apply number format
+                        const { z } = formatCell(cell, columnConfig);
+                        if (rIdx < sheet.fields.length) return; // Skip header rows
+                        if (z) worksheet[addr].z = z;
+                    }
+                });
+            });
+
+            // Add merges to the worksheet
+            if (sheet.merges && sheet.merges.length > 0) {
+                worksheet['!merges'] = sheet.merges.map((merge) => ({
+                    s: { r: merge.s.r, c: merge.s.c }, // Start cell
+                    e: { r: merge.e.r, c: merge.e.c }, // End cell
+                }));
+            }
+
+            // Set row heights (if provided in the sheet config)
+            if (sheet.rowHeights) {
+                const headerRowCount = sheet.fields.length; // Number of header rows
+                const dataRowHeight = sheet.rowHeights[headerRowCount] || sheet.rowHeights[headerRowCount - 1]; // Default to the last header height if not provided
+            
+                worksheet['!rows'] = Array.from({ length: aoa.length }, (_, index) => {
+                    if (index < headerRowCount) {
+                        // Use the specified height for header rows
+                        return { hpx: sheet.rowHeights[index] || sheet.rowHeights[sheet.rowHeights.length - 1] };
+                    } else {
+                        // Apply the same height to all data rows
+                        return { hpx: dataRowHeight };
+                    }
+                });
+            }
+
+            // Set column widths (if provided in the sheet config)
+            if (sheet.columnWidths) {
+                worksheet['!cols'] = sheet.columnWidths.map((width) => ({ wch: width }));
+            }
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+        });
+
+        XLSX.writeFile(workbook, filename);
+    } catch (error) {
+        console.error('Error exporting sheets to Excel:', error);
+    }
 }
 
 export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
@@ -217,50 +604,6 @@ export async function exportTableToExcel(tableRef, filename = 'table.xlsx') {
     }
 }
 
-export async function exportArrayToExcel(sheets, filename = 'export.xlsx') {
-    try {
-        const workbook = XLSX.utils.book_new();
-
-        sheets.forEach(sheet => {
-            // Build worksheet data and styles
-            const aoa = sheet.data.map(row =>
-                row.map(cell =>
-                    typeof cell === 'object' && cell !== null && 'value' in cell
-                        ? cell
-                        : { value: cell }
-                )
-            );
-
-            // Create worksheet with just values
-            const worksheet = XLSX.utils.aoa_to_sheet(
-                aoa.map(row => row.map(cell => formatCell(cell).v))
-            );
-
-            // Apply styles and number formats
-            aoa.forEach((row, rIdx) => {
-                row.forEach((cell, cIdx) => {
-                    const addr = XLSX.utils.encode_cell({ r: rIdx, c: cIdx });
-                    if (worksheet[addr]) {
-                        // Style
-                        if (cell.color) {
-                            worksheet[addr].s = getCellStyle(cell.color);
-                        }
-                        // Number format
-                        const { z } = formatCell(cell);
-                        if (z) worksheet[addr].z = z;
-                    }
-                });
-            });
-
-            XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
-        });
-
-        XLSX.writeFile(workbook, filename);
-    } catch (error) {
-        console.error('Error exporting sheets to Excel:', error);
-    }
-}
-
 import { toPng } from 'html-to-image';
 
 export async function exportHTMLToImage(divRef, filename = 'capture.png') {
@@ -346,7 +689,7 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
             if (fakeProgress < 85) setProgress(fakeProgress);
         }, 200);
 
-        const { data } = await axios.get('/payroll/exports/generate/exp/payroll', {
+        const { data } = await axios.get('/payroll/export/payroll', {
             params: { startDate, endDate }
         });
 
@@ -457,76 +800,4 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
         setProgress(100);
         return false;
     }
-}
-
-/**
- * Build export-ready sheets from data and sheet configs.
- * @param {Array} sheetsConfig - Array of { name, fields, fixed, filterFn }
- * @param {Array} data - The data array
- * @param {Object} structure - The column structure (from config)
- * @param {Function} targetFn - Row color function (from config)
- * @param {Object} parameters - { startDate, endDate, ... }
- * @returns {Array} Array of { name, data }
- */
-export function buildExportSheets({ sheetsConfig, data, structure, targetFn, parameters }) {
-    function buildColumnParameters(col, parameters) {
-        const params = {};
-        if (col.parameters) {
-            Object.entries(col.parameters).forEach(([paramKey, paramConfig]) => {
-                if (paramConfig.type === 'startDate') params[paramKey] = parameters.startDate;
-                if (paramConfig.type === 'endDate') params[paramKey] = parameters.endDate;
-            });
-        }
-        return params;
-    }
-
-    function getColByKey(key) {
-        return structure.find(col => col.id === key);
-    }
-
-    function buildRows(fields, filterFn = () => true, fixed = {}) {
-        // Header row
-        const header = fields.map(f => ({
-            value: f.label,
-            color: 'theme'
-        }));
-
-        // Data rows
-        const rows = data.filter(filterFn).map(row => {
-            const color = typeof targetFn === 'function' ? targetFn(row) : undefined;
-            return fields.map(f => {
-                if (fixed[f.key] !== undefined) return { value: fixed[f.key], color };
-                const col = getColByKey(f.key);
-                let value = row[f.key];
-
-                if (col && typeof col.format === 'function') {
-                    const params = buildColumnParameters(col, parameters);
-
-                    if (col.requires && Array.isArray(col.requires) && col.requires.length > 0) {
-                        value = col.format(
-                            ...col.requires.map(field => row[field]),
-                            params
-                        );
-                    } else {
-                        value = col.format(row[f.key], params);
-                    }
-                }
-
-                if (col) {
-                    if (col.prefix) value = `${col.prefix}${value ?? ""}`;
-                    if (col.suffix) value = `${value ?? ""}${col.suffix}`;
-                }
-
-                return { value, color };
-            });
-        });
-
-        return [header, ...rows];
-    }
-
-    // Build all sheets
-    return sheetsConfig.map(sheet => ({
-        name: sheet.name,
-        data: buildRows(sheet.fields, sheet.filterFn, sheet.fixed)
-    }));
 }

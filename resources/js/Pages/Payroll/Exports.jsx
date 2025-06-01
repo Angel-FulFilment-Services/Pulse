@@ -19,6 +19,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     const [reportError, setReportError] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [reports, setReports] = useState(
         payrollReportsConfig.map((report) => ({
             id: report.id,
@@ -103,6 +104,19 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     }
 
     const regenerateReport = () => {
+        if (isGenerating) {
+            toast.info('Report generation is already in progress. Please wait...', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+            return;
+        }
         setReportData([]);
         setReportError(false);
         if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
@@ -111,6 +125,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     };
 
     const generateReport = async (dateRange, report, updateTargets = true) => {
+        setIsGenerating(true);
         // Abort any ongoing request
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -136,6 +151,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
             console.error('Error generating report:', error);
             setReportError(true);
         }
+        setIsGenerating(false);
     };
 
     const generateTargets = (targets) => {
@@ -161,6 +177,10 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
         }
 
         pollingIntervalRef.current = setInterval(() => {
+            if (isGenerating) {
+                return;
+            }
+
             if (Object.values(report).length && ((dateRange.startDate && dateRange.endDate) || (!report.parameters.date && !report.parameters.dateRange))) {
                 setReportError(false);
                 generateReport({ startDate: dateRange.startDate, endDate: dateRange.endDate }, report, false);
@@ -236,17 +256,57 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
     }
 
     const clearFilters = () => {
-        const updatedFilters = filters.map((section) => ({
-            ...section,
-            options: section.options.map((option) => ({ ...option, checked: false })),
-        }));
+        const updatedFilters = filters.map((section) => {
+            if (section.id === "include") {
+                return section;
+            }
+    
+            return {
+                ...section,
+                options: section.options.map((option) => ({ ...option, checked: false })),
+            };
+        });
         setFilters(updatedFilters);
     };
 
     useEffect(() => {
+        if (report && report.parameters && report.parameters.filters) {
+            const updatedFilters = report.parameters.filters.map((filter) => {
+                const existingFilter = filters.find((f) => f.id === filter.id);
+    
+                // Calculate new options if a calculateOptions function exists
+                const newOptions = filter.calculateOptions
+                    ? filter.calculateOptions(reportData)
+                    : filter.options;
+
+                // Merge new options with existing options
+                const mergedOptions = newOptions.map((newOption) => {
+                    const existingOption = existingFilter?.options.find((opt) => opt.value === newOption.value);
+                    return {
+                        ...newOption,
+                        checked: existingOption ? existingOption.checked : newOption.checked || false, // Preserve `checked` state
+                    };
+                });
+    
+                // Include any existing options that are not in the new options
+                const additionalOptions = existingFilter?.options.filter(
+                    (existingOption) => !newOptions.some((newOption) => newOption.value === existingOption.value)
+                ) || [];
+    
+                return {
+                    ...filter,
+                    options: [...mergedOptions, ...additionalOptions], // Combine merged and additional options
+                };
+            });
+    
+            setFilters(updatedFilters);
+        }
+    }, [report, reportData]);
+
+    useEffect(() => {
+        setFilters([]);
         setReportData([]);
         setReportError(false);
-        setFilters([]);
 
         if (report && report.parameters && report.parameters.dateRange && report.parameters.dateRange.default) {
             const { startDate, endDate } = report.parameters.dateRange.default;
@@ -306,19 +366,6 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
         }
     }, [dateRange])
 
-    useEffect(() => {
-        if (report && report.parameters && report.parameters.filters) {
-            if (!filters.some((filter) => filter.options.some((option) => option.checked))) {
-                const calculatedFilters = report.parameters.filters.map((filter) => ({
-                    ...filter,
-                    options: filter.calculateOptions ? filter.calculateOptions(reportData) : filter.options,
-                }));
-
-                setFilters(calculatedFilters);
-            }
-        }
-    }, [report, reportData]);
-
     return (
         <>
             <div id="reporting_header" className="z-30">
@@ -342,11 +389,12 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
                         handleReportEdit={toggleEditing}
                         isPolling={isPolling}
                         isEditing={isEditing}
+                        isGenerating={isGenerating}
                         lastUpdated={lastUpdated}
                     />
                 </div>
                 { report && report.parameters && report.parameters.filters && report.parameters.filters.length > 0 &&
-                    <div className="px-6 py-4 bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 shadow-sm slide-down z-20">
+                    <div className={`px-6 py-4 bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 shadow-sm slide-down z-20 ${isGenerating ? 'pointer-events-none' : ''}`}>
                         <FilterControl filters={filters} onFilterChange={handleFilterChange} clearFilters={clearFilters} />
                     </div>
                 }
