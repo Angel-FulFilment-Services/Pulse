@@ -91,13 +91,14 @@ export default function Scanner({ handleScan, handleClose }) {
       {cameraError ? (
         <p className="text-sm text-red-500">Unable to access the camera. Please check your permissions.</p>
       ) : (
-        <div className="relative">
+        <div className="relative w-96 h-48">
           <video
             ref={videoRef}
             className="w-96 h-48 object-cover border-4 border-theme-500 dark:border-theme-600 rounded-md"
             muted
             playsInline
           />
+          <div className="absolute inset-0 border-4 h-1 w-72 top-1/2 left-1/2 border-theme-500 dark:border-theme-600 rounded-md pointer-events-none" />
         </div>
       )}
 
