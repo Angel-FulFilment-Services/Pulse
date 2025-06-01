@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 // Simple spinner component
 function Spinner() {
