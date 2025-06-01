@@ -20,7 +20,7 @@ export default function Scan() {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-800 gap-y-8">
-        <div className="hidden sm:flex flex-col items-center justify-center scale-150 mb-10">
+        <div className="hidden sm:flex flex-col items-center justify-center scale-150 mb-0 sm:mb-10">
             <Logo/>
         </div>
 
