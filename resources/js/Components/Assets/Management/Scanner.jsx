@@ -35,7 +35,7 @@ export default function Scanner({ handleScan, handleClose }) {
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
     if (codeReader.current) {
-      codeReader.current.reset();
+      // codeReader.current.reset();
       codeReader.current = null;
     }
   }, []);
