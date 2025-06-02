@@ -36,8 +36,14 @@ export default function Scanner({ handleScan, handleClose }) {
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
     if (codeReader.current) {
-      // codeReader.current.reset();
+      codeReader.current.stopContinuousDecode(); // Stop the continuous decoding process
       codeReader.current = null;
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject;
+      const tracks = stream.getTracks();
+      tracks.forEach((track) => track.stop()); // Stop all tracks in the stream
+      videoRef.current.srcObject = null;
     }
   }, []);
 
