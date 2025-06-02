@@ -165,6 +165,7 @@ Route::post('/asset-management/support/events/save', [AssetController::class, 's
 Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
 Route::get('/asset-management/support/kit', [AssetController::class, 'kit']);
 Route::get('/asset-management/assets/scan', [AssetController::class, 'scan']);
+Route::get('/asset-management/assets/find', [AssetController::class, 'find']);
 
 /*
 |-----------------------

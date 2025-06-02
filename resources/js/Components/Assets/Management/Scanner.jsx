@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { MagnifyingGlassIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 // Simple spinner component
 function Spinner() {
@@ -80,17 +81,40 @@ export default function Scanner({ handleScan, handleClose }) {
   return (
     <div className="flex flex-col items-center gap-4 h-full justify-center w-full">
       <div className="mb-4 text-center w-full">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Scan Barcode</h1>
-        <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
-          Align the barcode within the frame to scan.
-        </p>
+        {cameraError ? (
+          <>
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-red-600 dark:text-red-600 bg-red-100 dark:bg-red-200/20 ring ring-red-600/20 mb-6">
+              <ExclamationTriangleIcon className="h-12 w-12" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Unable to initialise camera</h1>
+            <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+              Please check your camera permissions and try again... 
+            </p>
+            <button
+              className="mt-4 px-4 py-2 rounded-md text-white bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500"  
+              onClick={() => {
+                handleScan(10)
+              }}
+            >
+              Simulate Scan
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-6">
+              <MagnifyingGlassIcon className="h-12 w-12" />
+            </div>  
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Scan Barcode</h1>
+            <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+              Align the barcode within the frame to scan.
+            </p>
+          </>
+        )}
       </div>
 
       {isLoading && <Spinner />}
 
-      {cameraError ? (
-        <p className="text-sm text-red-500">Unable to access the camera. Please check your permissions.</p>
-      ) : (
+      {!cameraError && (
         <div className="relative w-96 h-48">
           <video
             ref={videoRef}
@@ -104,16 +128,6 @@ export default function Scanner({ handleScan, handleClose }) {
           <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
         </div>
       )}
-
-      <div className="flex justify-end gap-4 w-full mt-4">
-        <button
-          type="button"
-          className="text-sm font-semibold text-gray-900 dark:text-dark-100 px-4 py-2 rounded-md"
-          onClick={handleClose}
-        >
-          Cancel
-        </button>
-      </div>
     </div>
   );
 }

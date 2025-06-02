@@ -1,34 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import Logo from '../../Components/Branding/Logo';
 import Scanner from '../../Components/Assets/Management/Scanner';
+import ClickedModal from '../../Components/Modals/ClickedModal';
+import Find from '../../Components/Assets/Management/Find';
 
 export default function Scan() {
-  const find = (assetId) => {
-    if (!assetId) {
-      toast.error('No asset found with this ID.');
-      return;
-    }
-
-    if (assetId){
-      toast.success(`${assetId}`);
-    }
-
-    // window.location.href = `/assets/${assetId}`;
-  };
-
-
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-800 gap-y-8">
-        <div className="hidden sm:flex flex-col items-center justify-center scale-150 mb-0 sm:mb-10">
-            <Logo/>
-        </div>
 
-        <div className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-lg -mt-18 sm:mt-0">
-          <Scanner
-            handleScan={(assetId) => find(assetId)}
-          />
-        </div>
+      <ClickedModal
+          overlay={true}
+          customSize={"max-w-full w-[40rem] max-h-screen h-[40rem] px-8 pt-8 pb-4"}
+          className={`rounded-md bg-white dark:bg-dark-900 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-xs ring-1 ring-gray-300 dark:ring-dark-500 ring-inset hover:bg-gray-50 dark:hover:bg-dark-800 text-center cursor-pointer`}
+          onClose={() => {
+
+          }}
+          onSubmit={() => {
+              console.log('Done')
+          }}
+          content={(handleSubmit, handleClose) => <Find handleClose={handleClose}/>
+          }
+      >
+          Launch
+      </ClickedModal>
     </div>
   );
 }

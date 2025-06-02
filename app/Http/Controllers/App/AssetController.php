@@ -29,6 +29,23 @@ class AssetController extends Controller
         return Inertia::render('Assets/Scan');
     }
 
+    public function find(Request $request){
+
+        Log::info('Asset Find Request', [
+            'afs_id' => $request->afs_id,
+        ]);
+
+        $asset = DB::table('assets.assets')
+        ->where('afs_id', $request->afs_id)
+        ->first();
+
+        if ($asset) {
+            return response()->json(['asset' => $asset], 200);
+        } else {
+            return response()->json(['message' => 'Asset not found.'], 404);
+        }
+    }
+
     public function kit(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
