@@ -55,8 +55,8 @@ export default function Scanner({ handleScan, handleClose }) {
         videoElement,
         (result, error) => {
           if (result) {
-            handleScan(result.getText()); // Pass the scanned barcode to the parent
-            stopCamera(); // Stop the camera after a successful scan
+            stopCamera();
+            handleScan(result.getText()); // Pass the scanned barcode to the parent // Stop the camera after a successful scan
           }
           if (error) {
             console.warn(error); // Log errors (e.g., no barcode detected)
@@ -98,6 +98,8 @@ export default function Scanner({ handleScan, handleClose }) {
             autoPlay
             muted
             playsInline
+            disablePictureInPicture
+            controls={false}
           />
           <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
         </div>

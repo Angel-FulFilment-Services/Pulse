@@ -4,7 +4,7 @@ import Logo from '../../Components/Branding/Logo';
 import Scanner from '../../Components/Assets/Management/Scanner';
 
 export default function Scan() {
-  const findAsset = (assetId) => {
+  const find = (assetId) => {
     if (!assetId) {
       toast.error('No asset found with this ID.');
       return;
@@ -26,7 +26,7 @@ export default function Scan() {
 
         <div className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-lg -mt-18 sm:mt-0">
           <Scanner
-            handleScan={(assetId) => findAsset(assetId)}
+            handleScan={(assetId) => find(assetId)}
           />
         </div>
     </div>
