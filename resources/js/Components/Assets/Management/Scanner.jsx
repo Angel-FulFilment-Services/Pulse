@@ -95,10 +95,11 @@ export default function Scanner({ handleScan, handleClose }) {
           <video
             ref={videoRef}
             className="w-96 h-48 object-cover border-4 border-theme-500 dark:border-theme-600 rounded-md"
+            autoPlay
             muted
             playsInline
           />
-          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
+          <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
         </div>
       )}
 
