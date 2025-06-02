@@ -98,7 +98,7 @@ export default function Scanner({ handleScan, handleClose }) {
             muted
             playsInline
           />
-          <div className="absolute inset-0 border-4 h-1 w-72 top-1/2 left-1/2 border-theme-500 dark:border-theme-600 rounded-md pointer-events-none" />
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
         </div>
       )}
 

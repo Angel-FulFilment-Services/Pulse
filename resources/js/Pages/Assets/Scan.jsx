@@ -24,7 +24,7 @@ export default function Scan() {
             <Logo/>
         </div>
 
-        <div className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-lg -mt-10 sm:mt-0">
+        <div className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-lg -mt-18 sm:mt-0">
           <Scanner
             handleScan={(assetId) => findAsset(assetId)}
           />
