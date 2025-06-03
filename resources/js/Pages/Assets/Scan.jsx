@@ -10,7 +10,7 @@ export default function Scan() {
 
       <ClickedModal
           overlay={true}
-          customSize={"max-w-full w-[40rem] max-h-screen h-[40rem] px-8 pt-8 pb-4"}
+          customSize={"max-w-full w-[90%] max-h-screen h-[90%] px-8 pt-8 pb-4"}
           className={`rounded-md bg-white dark:bg-dark-900 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-xs ring-1 ring-gray-300 dark:ring-dark-500 ring-inset hover:bg-gray-50 dark:hover:bg-dark-800 text-center cursor-pointer`}
           onClose={() => {
 

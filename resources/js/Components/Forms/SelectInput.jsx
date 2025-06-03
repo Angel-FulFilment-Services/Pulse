@@ -8,7 +8,7 @@ function classNames(...classes) {
 }
 
 export default function SelectInput(props) {
-  const { id, label, currentState, items, onSelectChange, onBlur, placeholder, error, clearErrors } = props;
+  const { id, label, currentState, items, onSelectChange, onBlur, placeholder, error, clearErrors, annotation } = props;
   
   const [selected, setSelected] = useState({id: id, value: currentState || ''});
 
@@ -30,7 +30,15 @@ export default function SelectInput(props) {
     <Listbox key={id} value={currentState} onChange={ e => { setSelected(e); handleSelectChange(e);}}>
       {({ open }) => (
         <>
-          <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">{label}</Listbox.Label>
+          { (label || annotation) &&
+            <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">
+              {label}
+              { annotation && 
+                <span className='text-neutral-500 dark:text-dark-400 font-normal'> {annotation} </span>
+              }
+            </Listbox.Label>
+          }
+          
           <div className="relative mt-2">
               <Listbox.Button className={`relative w-full cursor-default rounded-md bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 text-left text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800 dark:ring-red-700 dark:text-red-900" : "ring-gray-300 dark:ring-dark-600"} focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6`}>
                 <span className={`block truncate ${(typeof selected == "undefined" || !selected.value) && "text-gray-400 dark:text-dark-500"}`}>{typeof selected !== "undefined" && selected.value ? selected.value : `${placeholder}`}</span>

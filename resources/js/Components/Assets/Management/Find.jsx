@@ -5,12 +5,15 @@ import Scanner from './Scanner';
 import { Bouncy } from 'ldrs/react'
 import 'ldrs/react/Bouncy.css'
 import { ExclamationTriangleIcon, CheckIcon } from '@heroicons/react/24/outline';
+import Create from './Create';
 
 export default function Find({ handleClose }) {
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [assetId, setAssetId] = useState('');
   const [asset, setAsset] = useState(null);
   const [assetFound, setAssetFound] = useState(null);
+  const [createAsset, setCreateAsset] = useState(false);
 
   const find = async (assetId) => {
     setAssetFound(null);
@@ -22,11 +25,13 @@ export default function Find({ handleClose }) {
         });
 
         setIsProcessing(false);
+        setAssetId(assetId);
         setAsset(response.data.asset);
         setAssetFound(true);
     } catch (error) {
         if (error.response && error.response.status === 404) {
             setIsProcessing(false);
+            setAssetId(assetId);
             setAssetFound(false);
             setAsset(null);
             return;
@@ -44,6 +49,7 @@ export default function Find({ handleClose }) {
             theme: 'light',
         });
         setIsProcessing(false);
+        setAssetId(null);
         setAsset(null);
         setAssetFound(null);
     }
@@ -82,6 +88,17 @@ export default function Find({ handleClose }) {
                         </p>
                     </div>
                 </div>
+            ) : createAsset ? (
+                <Create 
+                    onCancel={() => {
+                        setCreateAsset(false);
+                        setAssetFound(null);
+                        setIsProcessing(false);
+                        setAssetId(null);
+                        setAsset(null);
+                    }} 
+                    assetId={assetId}
+                />
             ) : assetFound === false ? (
                 <div className="flex flex-col items-center gap-2 h-full justify-center w-full max-w-fit">
                     <div className="mb-2 text-center w-full">
@@ -100,6 +117,7 @@ export default function Find({ handleClose }) {
                             onClick={() => {
                                 setAssetFound(null);
                                 setIsProcessing(false);
+                                setAssetId(null);
                                 setAsset(null);
                             }}
                         >
@@ -107,7 +125,9 @@ export default function Find({ handleClose }) {
                         </button>
                         <button
                             className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
-                            onClick={() => {}}
+                            onClick={() => {
+                                setCreateAsset(true)
+                            }}
                         >
                             Create Asset
                         </button>
