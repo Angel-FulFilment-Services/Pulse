@@ -381,7 +381,7 @@ const payrollReportsConfig = [
               return `bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-200 dark:bg-opacity-25`;
             }
 
-            if(row.last_qty == 0 || row.days_of_week == 0) {
+            if(row.last_qty <= 1 || row.days_of_week == 0) {
               return `bg-theme-100 text-theme-800 dark:bg-theme-400 dark:text-theme-200 dark:bg-opacity-25`;
             }
           },
@@ -886,7 +886,7 @@ const payrollReportsConfig = [
               headerAnnotation: "",
               format: (leave_date, exception_count, last_qty, days_of_week) => {
                 if (leave_date) return "";
-                if (exception_count > 0 || last_qty == 0 || days_of_week == 0) return "";
+                if (exception_count > 0 || last_qty <= 1 || days_of_week == 0) return "";
                 return "Yes";
               },
               requires: ['leave_date', 'exception_count', 'last_qty', 'days_of_week'],
@@ -944,9 +944,9 @@ const payrollReportsConfig = [
               name: 'Status',
               expression: (data) => (filterValue) => {
                 if (filterValue === 'not_exportable') {
-                  return  data.exception_count > 0 || data.last_qty == 0 || data.days_of_week == 0 || data.leave_date;
+                  return  data.exception_count > 0 || data.last_qty <= 1 || data.days_of_week == 0 || data.leave_date;
                 } else if (filterValue === 'exportable') {
-                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && (data.last_qty > 0 || data.days_of_week > 0);
+                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && (data.last_qty > 1 || data.days_of_week > 0);
                 }
                 return true; // Default case, no filter applied
               },
