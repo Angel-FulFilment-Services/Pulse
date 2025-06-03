@@ -107,8 +107,9 @@ class PayrollController extends Controller
         ->whereNull('employment_category') // Exclude employees with an employment category (Back Office).
         ->whereNull('leave_date') // Exclude leavers.
         ->whereNull('exceptions.hr_id') // Exclude employees with exceptions in the date range.
-        ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
-        ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
+        ->where('hr_details.sage_id', '>', 0) // Exclude employees without a Sage ID.
+        // ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
+        // ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
         ->get();
 
         $export['hours'] = DB::connection('apex_data')
@@ -127,7 +128,7 @@ class PayrollController extends Controller
         ->get();
 
         $export['holiday'] = [];
-        foreach($export['employees'] as $employee){
+        foreach($export['employees'] as $key => $employee){
             $holiday = $this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
@@ -138,6 +139,11 @@ class PayrollController extends Controller
             );
 
             if( $holiday <= 0){
+                continue;
+            }
+
+            if( $employee->days_of_week == 0 || $employee->last_qty <= 1 ){
+                $export['employees']->forget($key);
                 continue;
             }
 
@@ -156,6 +162,8 @@ class PayrollController extends Controller
                 ), 2),
             ];
         }
+
+        $export['employees'] = $export['employees']->values();
 
         $cpaData = $this->getCPAData($startDate, $endDate);
         $haloData = $cpaData['halo_data'] ?? collect();
