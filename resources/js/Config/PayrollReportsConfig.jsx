@@ -21,7 +21,7 @@ const payrollSheetsConfig = [
               { label: "Deductions", merge: { r: 1, c: 2}, headerStyle: { bgColor: "FFFF00", border: "all" } },
           ],
           [
-              { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+              { key: "sage_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
               { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left", }, dataStyle: { border: "all", horizontal: "left", } },
               { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left", } },
               { key: "dob", label: "DOB", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
@@ -137,7 +137,7 @@ const payrollSheetsConfig = [
           { label: "Deductions", merge: { r: 1, c: 2}, headerStyle: { bgColor: "FFFF00", border: "all" } },
       ],
       [
-          { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+          { key: "sage_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
           { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
           { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
           { key: "dob", label: "DOB", format: "date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
@@ -254,7 +254,7 @@ const payrollSheetsConfig = [
             { label: "EMPLOYEE INFORMATION", merge: { r: 1, c: 7 }, headerStyle: { bgColor: "A9D08E", border: "all" } },
         ],
         [
-            { key: "hr_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
+            { key: "sage_id", label: "Employee Reference", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
             { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
             { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
             { key: "start_date", format: "date", label: "Start Date", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true, horizontal: "left" }, dataStyle: { border: "all", horizontal: "left" } },
@@ -294,7 +294,7 @@ const payrollSheetsConfig = [
     name: "Adjustments",
     fields: [
         [
-            { key: "hr_id", label: "Emp No", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "right" } },
+            { key: "sage_id", label: "Emp No", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "right" } },
             { key: "firstname", label: "First Name", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "left" } },
             { key: "surname", label: "Surname", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", horizontal: "left" } },
             { key: "adjustment", label: "Adjustment Amount", headerStyle: { bgColor: "D9D9D9", border: "all" }, dataStyle: { border: "all", fontSize: 10 } },
