@@ -25,8 +25,6 @@ export default function Find({ handleClose }) {
         setAsset(response.data.asset);
         setAssetFound(true);
     } catch (error) {
-        console.log(error.status);
-
         if (error.response && error.response.status === 404) {
             setIsProcessing(false);
             setAssetFound(false);
@@ -56,7 +54,7 @@ export default function Find({ handleClose }) {
         {isProcessing ? ( 
             <div className="flex flex-col items-center gap-4 h-full justify-center w-full">
                 <div className="mb-4 text-center w-full">
-                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-theme-600 dark:text-theme-600 bg-theme-100 dark:bg-theme-200/20 mb-3 pt-4">
+                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-theme-600 dark:text-theme-600 bg-theme-100 dark:bg-theme-200/20 ring ring-theme-600/20 mb-3 pt-4">
                         <Bouncy size="50" color="rgb(var(--theme-600) / 1)"/>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Finding Asset

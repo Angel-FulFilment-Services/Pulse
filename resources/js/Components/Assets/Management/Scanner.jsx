@@ -36,7 +36,6 @@ export default function Scanner({ handleScan, handleClose }) {
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
     if (codeReader.current) {
-      codeReader.current.stopContinuousDecode(); // Stop the continuous decoding process
       codeReader.current = null;
     }
     if (videoRef.current && videoRef.current.srcObject) {
@@ -45,6 +44,7 @@ export default function Scanner({ handleScan, handleClose }) {
       tracks.forEach((track) => track.stop()); // Stop all tracks in the stream
       videoRef.current.srcObject = null;
     }
+    
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -62,8 +62,9 @@ export default function Scanner({ handleScan, handleClose }) {
         videoElement,
         (result, error) => {
           if (result) {
-            stopCamera();
-            handleScan(result.getText()); // Pass the scanned barcode to the parent // Stop the camera after a successful scan
+            handleScan(result.getText());
+            codeReader.current.stop(); // Stop continuous decoding
+            stopCamera(); // Pass the scanned barcode to the parent // Stop the camera after a successful scan
           }
           if (error) {
             console.warn(error); // Log errors (e.g., no barcode detected)
@@ -99,7 +100,7 @@ export default function Scanner({ handleScan, handleClose }) {
             <button
               className="mt-4 px-4 py-2 rounded-md text-white bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500"  
               onClick={() => {
-                handleScan(10)
+                handleScan(576)
               }}
             >
               Simulate Scan
@@ -131,7 +132,7 @@ export default function Scanner({ handleScan, handleClose }) {
             disablePictureInPicture
             controls={false}
           />
-          <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none animate-pulse" />
+          <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none" />
         </div>
       )}
     </div>
