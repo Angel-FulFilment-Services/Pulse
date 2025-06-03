@@ -80,6 +80,7 @@ export function buildExportSheets({ sheetsConfig, data, structure, targetFn, par
             if (typeof subData === 'string') {
                 try {
                     subData = JSON.parse(subData);
+                    subData = subData.filter((subRow) => subRow !== null && subRow !== undefined); // Filter out null/undefined entries
                 } catch (error) {
                     subData = [];
                 }

@@ -282,26 +282,29 @@ class PayrollController extends Controller
                 DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count'),
                 DB::raw('
                     JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            "id", id, 
-                            "notes", COALESCE(notes, type),
-                            "payment", IF(
-                                type = "Adhoc Bonus", 
-                                IF(amount > 0, 
-                                    CONCAT("£", COALESCE(amount, 0)),
-                                    CONCAT(COALESCE(days, 0), " days") 
-                                ), 
-                                NULL
-                            ),
-                            "deduction", IF(
-                                type <> "Adhoc Bonus",
-                                IF(amount > 0, 
-                                    CONCAT("-£", COALESCE(amount, 0)),
-                                    CONCAT("-", COALESCE(days, 0), " days")
-                                ), 
-                                NULL
+                        CASE 
+                            WHEN type != "Adhoc Bonus" 
+                            THEN JSON_OBJECT(
+                                "id", id, 
+                                "notes", COALESCE(notes, type),
+                                "payment", IF(
+                                    type IN ("Statutory Sick Pay", "Statutory Paternity Pay", "Payment In Lieu of Notice"), 
+                                    IF(amount > 0, 
+                                        CONCAT("£", COALESCE(amount, 0)),
+                                        CONCAT(COALESCE(days, 0), " days") 
+                                    ), 
+                                    NULL
+                                ),
+                                "deduction", IF(
+                                    type NOT IN ("Statutory Sick Pay", "Statutory Paternity Pay", "Payment In Lieu of Notice", "Adhoc Bonus"), 
+                                    IF(amount > 0, 
+                                        CONCAT("-£", COALESCE(amount, 0)),
+                                        CONCAT("-", COALESCE(days, 0), " days")
+                                    ), 
+                                    NULL
+                                )
                             )
-                        )
+                        END
                     ) AS items'
                 )
             )
