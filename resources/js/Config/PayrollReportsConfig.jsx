@@ -212,6 +212,7 @@ const payrollSheetsConfig = [
               return null;
             }
           },
+          { key: "included", label: "Included in Sage Import File", headerStyle: { bgColor: "D9D9D9", border: "all", wrapText: true }, dataStyle: { border: "all" } },
           { key: "leave_date", visible: false },
       ],
     ],
@@ -870,6 +871,28 @@ const payrollReportsConfig = [
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
             },
+            {
+              id: "included",
+              label: "Included",
+              dataType: "string",
+              visible: false,
+              allowTarget: false,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (leave_date, exception_count, last_qty, days_of_week) => {
+                if (leave_date) return "";
+                if (exception_count > 0 || last_qty == 0 || days_of_week == 0) return "";
+                return "Yes";
+              },
+              requires: ['leave_date', 'exception_count', 'last_qty', 'days_of_week'],
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            }
           ],
           filters: [
             {
