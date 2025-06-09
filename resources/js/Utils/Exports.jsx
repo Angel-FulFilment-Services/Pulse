@@ -80,6 +80,7 @@ export function buildExportSheets({ sheetsConfig, data, structure, targetFn, par
             if (typeof subData === 'string') {
                 try {
                     subData = JSON.parse(subData);
+                    subData = subData.filter((subRow) => subRow !== null && subRow !== undefined); // Filter out null/undefined entries
                 } catch (error) {
                     subData = [];
                 }
@@ -787,7 +788,7 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `payroll_export_${format(startDate, "dd.MM.yyyy")}_to_${format(endDate, "dd.MM.yyyy")}.csv`;
+        a.download = `Sage Import ${format(startDate, "dd_MM_yyyy")} - ${format(endDate, "dd_MM_yyyy")}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

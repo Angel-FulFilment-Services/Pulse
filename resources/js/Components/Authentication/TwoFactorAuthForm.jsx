@@ -162,9 +162,9 @@ export default function TwoFactorAuthForm() {
           </button>
           {resending && (
             <span className="text-md font-medium text-theme-500 dark:text-theme-400 -mr-4 -mt-1">
-              <span className="inline-block animate-dot-sequence">.</span>
-              <span className="inline-block animation-delay-200 animate-dot-sequence">.</span>
-              <span className="inline-block animation-delay-500 animate-dot-sequence">.</span>
+              <span className="inline-block animate-dot-squence">.</span>
+              <span className="inline-block animation-delay-200 animate-dot-squence">.</span>
+              <span className="inline-block animation-delay-500 animate-dot-squence">.</span>
             </span>
           )}
         </div>

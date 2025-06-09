@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Asset\Event;
+use App\Models\Asset\Asset;
+use App\Models\Asset\Kit;
+use App\Models\Asset\Item;
 use App\Models\HR\Employee;
 use App\Helper\Auditing;
 use Storage;
@@ -25,15 +28,31 @@ class AssetController extends Controller
         return Inertia::render('Dashboard/Dashboard');
     }
 
+    public function scan(Request $request){
+        return Inertia::render('Assets/Scan');
+    }
+
+    public function find(Request $request){
+        $asset = DB::table('assets.assets')
+        ->where('afs_id', $request->afs_id)
+        ->first();
+
+        if ($asset) {
+            return response()->json(['asset' => $asset], 200);
+        } else {
+            return response()->json(['message' => 'Asset not found.'], 404);
+        }
+    }
+
     public function kit(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $hrId = $request->query('hr_id');
 
         $items = DB::table('assets.assets_issued')
-            ->join('assets.kits', 'kits.kit_id', '=', 'assets_issued.kit_id')
-            ->join('assets.assets', 'assets.id', '=', 'kits.asset_id')
-            // ->join('assets.kit_items', 'kit_items.kit_id', '=', 'assets.kit_id')
+            ->join('assets.kits', 'kits.id', '=', 'assets_issued.kit_id')
+            ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
+            ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
             ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
             ->where('hr_id', $hrId)
             ->where('assets_issued.returned', null)
@@ -49,6 +68,79 @@ class AssetController extends Controller
                 ->get();
 
         return response()->json(array("items" => $items, "device" => $device, "response" => $response ?? []));
+    }
+
+    public function kits(Request $request){
+        $kits = DB::table('assets.kits')
+            ->select('kits.id', 'kits.alias')
+            ->get();
+
+        return response()->json($kits);
+    }
+
+    public function createAsset(Request $request){
+
+        Log::debug('Creating asset with data: ' . json_encode($request->all()));
+
+        // Define validation rules
+        $rules = [
+            'assetId' => 'required|numeric',
+            'alias' => 'required|string|max:50',
+        ];
+
+        // Define custom validation messages
+        $messages = [
+            'alias.required' => 'Please enter an alias.',
+            'alias.string' => 'The alias must be a valid string.',
+            'alias.max' => 'The alias must not exceed 50 characters.',
+        ];
+
+        try {
+            $request->validate($rules, $messages);
+
+            Asset::create([
+                'afs_id' => $request->assetId,
+                'alias' => $request->alias,
+                'type' => $request->type,
+                'make' => $request->make,
+                'model' => $request->model,
+            ]);
+
+            if($request->has('kit') && $request->kit){
+                // Create a new kit if it doesn't exist
+                $kit = Kit::firstOrCreate([
+                    'alias' => $request->kit,
+                ]);
+
+                Log::debug('Kit created or found: ' . $kit->alias . ' (ID: ' . $kit->id . ')');
+
+                // Create the kit item.
+                Item::create([
+                    'kit_id' => $kit->id,
+                    'asset_id' => $request->assetId,
+                ]);
+
+                // Create the preset kit items if provided
+                if(isset($request->items) && is_array($request->items) && count($request->items) > 0){
+                    foreach($request->items as $item){
+                        Item::create([
+                            'kit_id' => $kit->id,
+                            'asset_id' => $item,
+                        ]);
+                    }
+                }
+            }
+        
+            return response()->json(['message' => 'Asset created successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to create asset: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to create asset.'], 500);
+        }
     }
 
     public function events(Request $request){

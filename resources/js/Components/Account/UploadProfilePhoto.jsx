@@ -297,9 +297,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.clip();
 
           // Use "contain" for uploads, "cover" for camera
-          const baseScale = lastSource === "upload"
-            ? Math.min(previewSize / img.width, previewSize / img.height)
-            : Math.max(previewSize / img.width, previewSize / img.height);
+          const baseScale = Math.max(previewSize / img.width, previewSize / img.height);
 
           const scale = baseScale * zoom;
           const displayWidth = img.width * scale;

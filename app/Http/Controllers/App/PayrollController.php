@@ -107,8 +107,9 @@ class PayrollController extends Controller
         ->whereNull('employment_category') // Exclude employees with an employment category (Back Office).
         ->whereNull('leave_date') // Exclude leavers.
         ->whereNull('exceptions.hr_id') // Exclude employees with exceptions in the date range.
-        ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
-        ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
+        ->where('hr_details.sage_id', '>', 0) // Exclude employees without a Sage ID.
+        // ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
+        // ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
         ->get();
 
         $export['hours'] = DB::connection('apex_data')
@@ -127,7 +128,7 @@ class PayrollController extends Controller
         ->get();
 
         $export['holiday'] = [];
-        foreach($export['employees'] as $employee){
+        foreach($export['employees'] as $key => $employee){
             $holiday = $this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
@@ -138,6 +139,11 @@ class PayrollController extends Controller
             );
 
             if( $holiday <= 0){
+                continue;
+            }
+
+            if( $employee->days_of_week == 0 || $employee->last_qty <= 1 ){
+                $export['employees']->forget($key);
                 continue;
             }
 
@@ -156,6 +162,8 @@ class PayrollController extends Controller
                 ), 2),
             ];
         }
+
+        $export['employees'] = $export['employees']->values();
 
         $cpaData = $this->getCPAData($startDate, $endDate);
         $haloData = $cpaData['halo_data'] ?? collect();
@@ -282,26 +290,29 @@ class PayrollController extends Controller
                 DB::raw('SUM(IF(type <> "Adhoc Bonus", 1, 0)) as exception_count'),
                 DB::raw('
                     JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            "id", id, 
-                            "notes", COALESCE(notes, type),
-                            "payment", IF(
-                                type = "Adhoc Bonus", 
-                                IF(amount > 0, 
-                                    CONCAT("£", COALESCE(amount, 0)),
-                                    CONCAT(COALESCE(days, 0), " days") 
-                                ), 
-                                NULL
-                            ),
-                            "deduction", IF(
-                                type <> "Adhoc Bonus",
-                                IF(amount > 0, 
-                                    CONCAT("-£", COALESCE(amount, 0)),
-                                    CONCAT("-", COALESCE(days, 0), " days")
-                                ), 
-                                NULL
+                        CASE 
+                            WHEN type != "Adhoc Bonus" 
+                            THEN JSON_OBJECT(
+                                "id", id, 
+                                "notes", COALESCE(notes, type),
+                                "payment", IF(
+                                    type IN ("Statutory Sick Pay", "Statutory Paternity Pay", "Payment In Lieu of Notice"), 
+                                    IF(amount > 0, 
+                                        CONCAT("£", COALESCE(amount, 0)),
+                                        CONCAT(COALESCE(days, 0), " days") 
+                                    ), 
+                                    NULL
+                                ),
+                                "deduction", IF(
+                                    type NOT IN ("Statutory Sick Pay", "Statutory Paternity Pay", "Payment In Lieu of Notice", "Adhoc Bonus"), 
+                                    IF(amount > 0, 
+                                        CONCAT("-£", COALESCE(amount, 0)),
+                                        CONCAT("-", COALESCE(days, 0), " days")
+                                    ), 
+                                    NULL
+                                )
                             )
-                        )
+                        END
                     ) AS items'
                 )
             )
@@ -563,23 +574,28 @@ class PayrollController extends Controller
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
                 $dailyRate = $weeklyPay / $dow;
+
+                $pay = $dailyRate * $holiday;
                 break;    
             case 2:
                 $averageMonthlyPay = $grossPay / 2;
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
                 $dailyRate = $weeklyPay / $dow;
+
+                $pay = $dailyRate * $holiday;
                 break;
             case $lastQty == 1 && $leftDate && strtotime($leftDate) > strtotime($startDate):
-                $dailyRate = $grossPay * 0.1207;
+                $pay = $grossPay * 0.1207;
+
                 break;
         }
 
-        if($dailyRate <= 0){
+        if($pay <= 0){
             return 0;
         }
 
-        return round($dailyRate * $holiday, 2);
+        return round($pay, 2);
     }
 
     private function getCPAData($startDate, $endDate) {
