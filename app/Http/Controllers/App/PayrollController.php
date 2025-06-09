@@ -574,23 +574,28 @@ class PayrollController extends Controller
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
                 $dailyRate = $weeklyPay / $dow;
+
+                $pay = $dailyRate * $holiday;
                 break;    
             case 2:
                 $averageMonthlyPay = $grossPay / 2;
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
                 $dailyRate = $weeklyPay / $dow;
+
+                $pay = $dailyRate * $holiday;
                 break;
             case $lastQty == 1 && $leftDate && strtotime($leftDate) > strtotime($startDate):
-                $dailyRate = $grossPay * 0.1207;
+                $pay = $grossPay * 0.1207;
+
                 break;
         }
 
-        if($dailyRate <= 0){
+        if($pay <= 0){
             return 0;
         }
 
-        return round($dailyRate * $holiday, 2);
+        return round($pay, 2);
     }
 
     private function getCPAData($startDate, $endDate) {
