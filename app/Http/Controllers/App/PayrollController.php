@@ -568,6 +568,7 @@ class PayrollController extends Controller
         }
 
         $dailyRate = 0;
+        $pay = 0;
 
         switch ($lastQty) {
             case 3:

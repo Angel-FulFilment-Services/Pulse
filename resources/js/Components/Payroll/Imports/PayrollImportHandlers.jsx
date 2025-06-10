@@ -57,7 +57,7 @@ export async function handleGrossPayImport(file, abortController = null, setProg
         }
 
         // Structure check on the first line only
-        const firstColumns = lines[0].split(',');
+        const firstColumns = lines[0].split(',').map(col => col.replace(/^"(.*)"$/, '$1').replace(/"/g, ''));
 
         // Check column 1: String (not empty)
         const empId = firstColumns[0] ? firstColumns[0].split('-')[0].replace(/\D/g, '') : '';
@@ -88,7 +88,7 @@ export async function handleGrossPayImport(file, abortController = null, setProg
         const cleanedLines = [];
 
         lines.forEach((line, idx) => {
-            const columns = line.split(',');
+            let columns = line.split(',').map(col => col.replace(/^"(.*)"$/, '$1').replace(/"/g, ''));
 
             // Remove duplicates based on empId and payrollDate
             const empId = columns[0] ? columns[0].split('-')[0].replace(/\D/g, '') : '';
