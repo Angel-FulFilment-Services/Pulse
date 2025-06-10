@@ -105,14 +105,25 @@ export async function handleGrossPayImport(file, abortController = null, setProg
             let endDate = '';
             try {
                 const parsedDate = parse(payrollDate, 'dd/MM/yyyy', new Date());
-                const start = subMonths(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 29), 2);
-                const end = subMonths(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 28), 1);
-                let startDateObj = new Date(start.getFullYear(), start.getMonth(), 29);
-                if (startDateObj.getMonth() !== start.getMonth()) {
-                    startDateObj = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+
+                // Calculate the raw start and end months
+                const startMonth = subMonths(parsedDate, 2);
+                const endMonth = subMonths(parsedDate, 1);
+
+                // Try to create the 29th of the start month
+                let startDateObj = new Date(startMonth.getFullYear(), startMonth.getMonth(), 29);
+
+                // If invalid (e.g., Feb 29 on a non-leap year), move to March 1st
+                if (!isValid(startDateObj) || startDateObj.getDate() !== 29) {
+                    startDateObj = new Date(startMonth.getFullYear(), startMonth.getMonth() + 1, 1);
                 }
+
+                // Create the 28th of the end month
+                const endDateObj = new Date(endMonth.getFullYear(), endMonth.getMonth(), 28);
+
+                // Format the dates
                 startDate = format(startDateObj, 'dd/MM/yyyy');
-                endDate = format(end, 'dd/MM/yyyy');
+                endDate = format(endDateObj, 'dd/MM/yyyy');
             } catch {}
 
             // Insert start/end date after payroll date
