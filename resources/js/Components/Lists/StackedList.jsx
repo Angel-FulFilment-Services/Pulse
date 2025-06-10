@@ -81,7 +81,7 @@ export default function StackedList({
                             userId={user.userId}
                             searchState={'userId'}
                             showState={false}
-                            customClass={'ring-2 ring-white dark:ring-dark-900'}
+                            customClass={'ring-2 ring-white dark:ring-dark-900 bg-white dark:bg-dark-900'}
                             size="extra-small"
                           />
                         </PopoverFlyout>

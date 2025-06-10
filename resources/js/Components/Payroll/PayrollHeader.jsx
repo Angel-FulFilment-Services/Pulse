@@ -3,7 +3,7 @@ import SelectControl from '../../Components/Controls/SelectControl';
 import ButtonControl from '../../Components/Controls/ButtonControl';
 import PopoverFlyout from '../../Components/Flyouts/PopoverFlyout';
 import DateInput from '../../Components/Forms/DateInput';
-import { ArrowPathIcon, Cog8ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, Cog8ToothIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { RiFileExcel2Line } from "@remixicon/react";
 import LastUpdated from '../Reporting/ReportLastUpdated';
 import { toWords } from 'number-to-words';
@@ -28,7 +28,28 @@ const SageIcon = ({ className = '', ...props }) => (
   </div>
 );
 
-export default function PayrollHeader({ dateRange, tabs, activeTab, handleTabClick, handleDateChange, report, handleReportChange, handleReportRegenerate, handleReportEdit, handleReportToExcel, handleReportExport, handleTogglePolling, isPolling, isEditing, isGenerating, lastUpdated, reports }) {
+export default function PayrollHeader({ 
+    dateRange, 
+    tabs, 
+    activeTab, 
+    handleTabClick, 
+    handleDateChange, 
+    selectPlaceholder = "Select Report", 
+    report = [], 
+    reports = [],
+    handleReportChange, 
+    handleReportRegenerate, 
+    handleReportEdit, 
+    handleReportToExcel, 
+    handleReportExport, 
+    handleTogglePolling, 
+    handleImport,
+    isPolling, 
+    isEditing, 
+    isGenerating, 
+    lastUpdated, 
+  }) {
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -64,15 +85,15 @@ export default function PayrollHeader({ dateRange, tabs, activeTab, handleTabCli
         <TabControls tabs={tabs} activeTab={activeTab} handleTabClick={handleTabClick} />
         <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
           <div className="w-full flex items-center gap-x-2">
-            <div className="max-w-56 w-full relative">
-              {reports.length &&
+            <div className="max-w-56 w-full relative h-9">
+              {reports.length ? (
                 <>
                   <SelectControl
                     id="view-select"
                     items={reports}
                     onSelectChange={handleReportChange}
                     defaultSelected={report ? reports.find(r => r.id === report.id) : null}
-                    placeholder={`Select Report`}
+                    placeholder={selectPlaceholder}
                   />
                     {report?.parameters?.polling &&
                       <div className="absolute top-[-0.200rem] right-[-0.200rem] w-2.5 h-2.5 rounded-full">
@@ -106,22 +127,41 @@ export default function PayrollHeader({ dateRange, tabs, activeTab, handleTabCli
                       </div>
                     }
                 </>
+              ) : null
               }
             </div>
             <div className="flex gap-x-2">
               {(Object.values(report).length) ? 
                 <>
-                  <ButtonControl id="refresh_button" Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/>
-                  <ButtonControl id="refresh_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportEdit}/> 
-                  <ButtonControl id="refresh_button" disabled={isGenerating} Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
-                  <ButtonControl
-                    id="sage_export_button"
-                    disabled={isGenerating}
-                    Icon={SageIcon}
-                    customClass="w-5 h-5 px-1.5 focus:outline-none"
-                    iconClass="w-9 h-8 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
-                    onButtonClick={handleSageExport}
-                  />
+                    {handleReportRegenerate ? (
+                      <ButtonControl id="refresh_button" disabled={isGenerating} Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/>
+                    ) : null}
+                    { handleReportEdit ? (
+                      <ButtonControl id="settings_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportEdit}/> 
+                    ) : null}
+                    { handleReportToExcel ? (
+                      <ButtonControl id="excel_export_button" disabled={isGenerating} Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
+                    ) : null}
+                    { handleReportToExcel ? (
+                      <ButtonControl 
+                        id="sage_export_button"
+                        disabled={isGenerating}
+                        Icon={SageIcon}
+                        customClass="w-5 h-5 px-1.5 focus:outline-none"
+                        iconClass="w-9 h-8 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
+                        onButtonClick={handleSageExport}
+                      />
+                    ) : null} 
+                    { handleImport ? (
+                      <ButtonControl 
+                        id="import_button"
+                        disabled={isGenerating}
+                        Icon={ArrowDownTrayIcon}
+                        customClass="w-6 h-6 px-1"
+                        iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
+                        onButtonClick={handleImport}
+                      />
+                    ) : null}
                 </>
                 : null
               }

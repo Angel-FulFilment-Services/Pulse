@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use DB;
 use Str;
 use Log;
+use DateTime;
 use App\Helper\Auditing;
 use App\Models\HR\Employee;
 use App\Models\Payroll\Exception;
@@ -81,8 +82,8 @@ class PayrollController extends Controller
             ->table('gross_pay')
             ->select(
                 'hr_id',
-                DB::raw('SUM(amount) as gross_pay'),
-                DB::raw('COUNT(amount) as last_qty')
+                DB::raw('ROUND(SUM(gross_pay_pre_sacrifice), 2) as gross_pay'),
+                DB::raw('COUNT(gross_pay_pre_sacrifice) as last_qty')
             )
             ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
             ->groupBy('hr_id'),
@@ -129,14 +130,14 @@ class PayrollController extends Controller
 
         $export['holiday'] = [];
         foreach($export['employees'] as $key => $employee){
-            $holiday = $this->calculateHoliday(
+            $holiday = round($this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
                 $endDate,
                 $employee->start_date,
                 $employee->leave_date,
                 $employee->days_of_week,
-            );
+            ), 2);
 
             if( $holiday <= 0){
                 continue;
@@ -265,8 +266,8 @@ class PayrollController extends Controller
             ->table('gross_pay')
             ->select(
                 'hr_id',
-                DB::raw('SUM(amount) as gross_pay'),
-                DB::raw('COUNT(amount) as last_qty')
+                DB::raw('ROUND(SUM(gross_pay_pre_sacrifice), 2) as gross_pay'),
+                DB::raw('COUNT(gross_pay_pre_sacrifice) as last_qty')
             )
             ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
             ->groupBy('hr_id'),
@@ -361,14 +362,14 @@ class PayrollController extends Controller
                 $startDate,
                 $endDate
             );
-            $employee->holiday = $this->calculateHoliday(
+            $employee->holiday = round($this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
                 $endDate,
                 $employee->start_date,
                 $employee->leave_date,
                 $employee->days_of_week,
-            );
+            ), 2);
 
             if ( $employee->employment_category == 'HOURLY' ){
                 $employee->holiday_pay = $this->calculateHolidayPay(
@@ -472,8 +473,8 @@ class PayrollController extends Controller
         )
         ->where('hr_id', $hrId)
         ->where(function ($query) use ($startDate, $endDate) {
-            $query->where('startdate', '<=', $endDate)
-                ->where('enddate', '>=', $startDate);
+            $query->whereBetween('enddate', [$startDate, $endDate])
+                ->orWhereBetween('startdate', [$startDate, $endDate]);
         })
         ->where('approved', 'Y')
         ->where('type', '=', 'Paid Annual Leave')
@@ -533,32 +534,50 @@ class PayrollController extends Controller
             return $holiday;
         });
         
+        $holiday = $holidays->sum('days_off');
+
         // Leaver calculate add in remaining entitlement
         if( $leftDate && strtotime($leftDate) > strtotime($startDate) ){
             if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)))) ){
                 $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)));
             }
 
+            $holidays = DB::connection('hr')
+            ->table('holiday_requests')
+            ->select(
+                'startdate',
+                'enddate',
+                'days_off'
+            )
+            ->where('hr_id', $hrId)
+            ->where(function ($query) use ($startedDate, $endDate) {
+                $query->whereBetween('enddate', [$startedDate, $endDate])
+                    ->orWhereBetween('startdate', [$startedDate, $endDate]);
+            })
+            ->where('approved', 'Y')
+            ->where('type', '=', 'Paid Annual Leave')
+            ->get();
+
             switch ($dow) {
                 case 5:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 4: 
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 3:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 2:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 1:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off') + $holiday;
                     break;
             }
         }
 
-        return $holidays->sum('days_off');
+        return $holiday;
     }
 
     private function calculateHolidayPay($hrId, $dow, $holiday, $grossPay, $lastQty, $leftDate = null, $startDate = null) {
@@ -567,10 +586,11 @@ class PayrollController extends Controller
         }
 
         $dailyRate = 0;
+        $pay = 0;
 
         switch ($lastQty) {
-            case 3:
-                $averageMonthlyPay = $grossPay / 3;
+            case $lastQty >= 3:
+                $averageMonthlyPay = $grossPay / $lastQty;
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
                 $dailyRate = $weeklyPay / $dow;
@@ -852,5 +872,134 @@ class PayrollController extends Controller
             Log::error('Error removing exception: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to remove the exception.'], 500);
         }
+    }
+
+    public function importLog(Request $request){
+        $data = DB::connection('wings_config')
+        ->table('audit_log_pulse as audit_log')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'audit_log.user_id')
+        ->select(DB::raw("
+            users.name AS user,
+            users.id as user_id,
+            audit_log.created_at as created_at,
+            audit_log.type as type,
+            audit_log.action as action,
+            audit_log.notes
+        "))
+        ->where('audit_log.type', '=', 'Payroll Import')
+        ->orderBy('audit_log.created_at', 'desc')
+        ->get();
+
+        return response()->json($data);
+    }
+
+    public function importGrossPay(Request $request)
+    {
+        $data = $request->input('data', []);
+
+        if (!is_array($data) || empty($data)) {
+            return response()->json(['message' => 'No data provided.'], 400);
+        }
+
+        $imported = 0;
+        $updated = 0;
+        $errors = [];
+
+        foreach ($data as $row) {
+            // Basic validation
+            if (
+                empty($row['empId']) ||
+                empty($row['startDate']) ||
+                empty($row['endDate']) ||
+                empty($row['payrollDate'])
+            ) {
+                continue; // skip invalid rows
+            }
+
+            // 1. Find hr_id by sage_id
+            $hr = DB::connection('wings_data')
+                ->table('hr_details')
+                ->where('sage_id', $row['empId'])
+                ->first();
+
+            if (!$hr) {
+                $errors[] = "No hr_id found for sage_id: {$row['empId']}";
+                continue;
+            }
+
+            $hrId = $hr->hr_id;
+            $userId = $hr->user_id;
+
+            // 2. Check if entry exists for this hr_id and payroll period
+            $existing = DB::connection('hr')
+                ->table('gross_pay')
+                ->where('hr_id', $hrId)
+                ->where('startdate', $this->formatDate($row['startDate']))
+                ->where('enddate', $this->formatDate($row['endDate']))
+                ->first();
+
+            $fields = [
+                'hr_id'                     => $hrId,
+                'user_id'                   => $userId, 
+                'sage_id'                   => $row['empId'],
+                'startdate'                 => $this->formatDate($row['startDate']),
+                'enddate'                   => $this->formatDate($row['endDate']),
+                'gross_pay_pre_sacrifice'   => $row['grossPayPreSacrifice'] ?? 0,
+                'gross_pay_post_sacrifice'  => $row['grossPayPostSacrifice'] ?? 0,
+                'taxible_gross_pay'         => $row['grossPayTaxible'] ?? 0,
+                'paye_tax'                  => $row['payeTax'] ?? 0,
+                'employee_nic'              => $row['payeNi'] ?? 0,
+                'employer_nic'              => $row['employerNi'] ?? 0,
+                'employee_pension'          => $row['payePension'] ?? 0,
+                'employer_pension'          => $row['employerPension'] ?? 0,
+                'student_loan'              => $row['studentLoan'] ?? 0,
+                'ssp'                       => $row['ssp'] ?? 0,
+                'spp'                       => $row['spp'] ?? 0,
+                'net_pay'                   => $row['netPay'] ?? 0,
+                'processed_date'            => $this->formatDate($row['payrollDate']),
+            ];
+
+            try {
+                if ($existing) {
+                    // Update existing
+                    DB::connection('hr')
+                        ->table('gross_pay')
+                        ->where('id', $existing->id)
+                        ->update($fields);
+                    $updated++;
+                } else {
+                    // Insert new
+                    DB::connection('hr')
+                        ->table('gross_pay')
+                        ->insert($fields);
+                    $imported++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Error for sage_id {$row['empId']}: " . $e->getMessage();
+            }
+        }
+
+        Auditing::log('Payroll Import', auth()->user()->id, 'Payroll Import - Gross Pay', json_encode([
+            'imported' => $imported,
+            'updated' => $updated,
+            'errors' => $errors
+        ]));
+
+        return response()->json([
+            'message' => 'Gross pay data processed.',
+            'imported' => $imported,
+            'updated' => $updated,
+            'errors' => $errors,
+        ]);
+    }
+
+    /**
+     * Helper to format dates as Y-m-d
+     */
+    private function formatDate($date)
+    {
+        if (!$date) return null;
+        $dt = DateTime::createFromFormat('d/m/Y', $date);
+        return $dt ? $dt->format('Y-m-d') : null;
     }
 }
