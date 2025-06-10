@@ -571,7 +571,7 @@ class PayrollController extends Controller
         $pay = 0;
 
         switch ($lastQty) {
-            case 3:
+            case $lastQty >= 3:
                 $averageMonthlyPay = $grossPay / 3;
                 $annualPay = $averageMonthlyPay * 12;
                 $weeklyPay = $annualPay / 52;
