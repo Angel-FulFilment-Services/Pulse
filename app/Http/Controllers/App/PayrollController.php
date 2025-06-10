@@ -82,7 +82,7 @@ class PayrollController extends Controller
             ->table('gross_pay')
             ->select(
                 'hr_id',
-                DB::raw('SUM(gross_pay_pre_sacrifice) as gross_pay'),
+                DB::raw('ROUND(SUM(gross_pay_pre_sacrifice), 2) as gross_pay'),
                 DB::raw('COUNT(gross_pay_pre_sacrifice) as last_qty')
             )
             ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
@@ -130,14 +130,14 @@ class PayrollController extends Controller
 
         $export['holiday'] = [];
         foreach($export['employees'] as $key => $employee){
-            $holiday = $this->calculateHoliday(
+            $holiday = round($this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
                 $endDate,
                 $employee->start_date,
                 $employee->leave_date,
                 $employee->days_of_week,
-            );
+            ), 2);
 
             if( $holiday <= 0){
                 continue;
@@ -266,7 +266,7 @@ class PayrollController extends Controller
             ->table('gross_pay')
             ->select(
                 'hr_id',
-                DB::raw('SUM(gross_pay_pre_sacrifice) as gross_pay'),
+                DB::raw('ROUND(SUM(gross_pay_pre_sacrifice), 2) as gross_pay'),
                 DB::raw('COUNT(gross_pay_pre_sacrifice) as last_qty')
             )
             ->whereBetween('startdate', [date('Y-m-d', strtotime('-4 months', strtotime($endDate))), date('Y-m-d', strtotime('-1 month', strtotime($endDate)))])
@@ -362,14 +362,14 @@ class PayrollController extends Controller
                 $startDate,
                 $endDate
             );
-            $employee->holiday = $this->calculateHoliday(
+            $employee->holiday = round($this->calculateHoliday(
                 $employee->hr_id,
                 $startDate,
                 $endDate,
                 $employee->start_date,
                 $employee->leave_date,
                 $employee->days_of_week,
-            );
+            ), 2);
 
             if ( $employee->employment_category == 'HOURLY' ){
                 $employee->holiday_pay = $this->calculateHolidayPay(
