@@ -540,6 +540,22 @@ class PayrollController extends Controller
                 $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)));
             }
 
+            $holidays = DB::connection('hr')
+            ->table('holiday_requests')
+            ->select(
+                'startdate',
+                'enddate',
+                'days_off'
+            )
+            ->where('hr_id', $hrId)
+            ->where(function ($query) use ($startedDate, $endDate) {
+                $query->where('startdate', '<=', $endDate)
+                    ->where('enddate', '>=', $startedDate);
+            })
+            ->where('approved', 'Y')
+            ->where('type', '=', 'Paid Annual Leave')
+            ->get();
+
             switch ($dow) {
                 case 5:
                     return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off');
