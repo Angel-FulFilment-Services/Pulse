@@ -142,7 +142,7 @@ export default function PayrollHeader({
                     { handleReportToExcel ? (
                       <ButtonControl id="excel_export_button" disabled={isGenerating} Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
                     ) : null}
-                    { handleReportExport ? (
+                    { handleReportToExcel ? (
                       <ButtonControl 
                         id="sage_export_button"
                         disabled={isGenerating}
