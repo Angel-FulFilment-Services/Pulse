@@ -473,8 +473,8 @@ class PayrollController extends Controller
         )
         ->where('hr_id', $hrId)
         ->where(function ($query) use ($startDate, $endDate) {
-            $query->where('startdate', '<=', $endDate)
-                ->where('enddate', '>=', $startDate);
+            $query->whereBetween('enddate', [$startDate, $endDate])
+                ->orWhereBetween('startdate', [$startDate, $endDate]);
         })
         ->where('approved', 'Y')
         ->where('type', '=', 'Paid Annual Leave')
@@ -534,6 +534,8 @@ class PayrollController extends Controller
             return $holiday;
         });
         
+        $holiday = $holidays->sum('days_off');
+
         // Leaver calculate add in remaining entitlement
         if( $leftDate && strtotime($leftDate) > strtotime($startDate) ){
             if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)))) ){
@@ -549,8 +551,8 @@ class PayrollController extends Controller
             )
             ->where('hr_id', $hrId)
             ->where(function ($query) use ($startedDate, $endDate) {
-                $query->where('startdate', '<=', $endDate)
-                    ->where('enddate', '>=', $startedDate);
+                $query->whereBetween('enddate', [$startedDate, $endDate])
+                    ->orWhereBetween('startdate', [$startedDate, $endDate]);
             })
             ->where('approved', 'Y')
             ->where('type', '=', 'Paid Annual Leave')
@@ -558,24 +560,24 @@ class PayrollController extends Controller
 
             switch ($dow) {
                 case 5:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 4: 
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 3:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 2:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off') + $holiday;
                     break;
                 case 1:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off');
+                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off') + $holiday;
                     break;
             }
         }
 
-        return $holidays->sum('days_off');
+        return $holiday;
     }
 
     private function calculateHolidayPay($hrId, $dow, $holiday, $grossPay, $lastQty, $leftDate = null, $startDate = null) {
