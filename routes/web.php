@@ -128,6 +128,8 @@ Route::post('/payroll/exports/exceptions/save', [PayrollController::class, 'save
 Route::post('/payroll/exports/exceptions/remove', [PayrollController::class, 'removeException']);
 Route::get('/payroll/exports/generate/payroll', [PayrollController::class, 'payrollExport']);
 Route::get('/payroll/export/payroll', [PayrollController::class, 'payrollExportSage']);
+Route::post('/payroll/imports/gross-pay', [PayrollController::class, 'importGrossPay'])->withoutMiddleware('log.access');
+Route::get('/payroll/imports/log', [PayrollController::class, 'importLog']);
 
 /*
 |-----------------------
