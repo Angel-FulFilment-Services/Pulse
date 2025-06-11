@@ -63,20 +63,24 @@ class AssetController extends Controller
         )
         ->get();
 
+        $pat = DB::table('assets.pat_testing')
+        ->join('wings_config.users', 'users.id', '=', 'pat_testing.user_id')
+        ->where('asset_id', $asset->id)
+        ->orderBy('datetime', 'desc')
+        ->get();
+            
+        $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
+
+        if(!$kitHistory->count()){
+            return response()->json(['asset' => $asset, 'history' => $history, 'kit' => collect([]), 'pat' => $pat], 200);
+        }
+
         $kit = DB::table('assets.kits')
         ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
         ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
         ->where('kit_items.kit_id', $kitHistory->first()->kit_id)
         ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
         ->get();
-
-        $pat = DB::table('assets.pat_testing')
-        ->join('wings_config.users', 'users.id', '=', 'pat_testing.user_id')
-        ->where('asset_id', $asset->id)
-        ->orderBy('datetime', 'desc')
-        ->get();
-
-        $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
 
         if ($asset) {
             return response()->json(['asset' => $asset, 'history' => $history, 'kit' => $kit, 'pat' => $pat], 200);

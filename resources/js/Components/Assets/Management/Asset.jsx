@@ -7,7 +7,7 @@ import { Fragment } from 'react'
 import { Description, Menu, Transition } from '@headlessui/react'
 import { EllipsisVerticalIcon } from '@heroicons/react/20/solid'
 import SimpleFeed from '../../Lists/SimpleFeed';
-import { format, addYears } from 'date-fns';
+import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 
@@ -15,8 +15,26 @@ export default function Asset({ assetId, onCancel, data = {} }) {
     const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
     const [kit, setKit] = useState([]);
+    const [kitAlias, setKitAlias] = useState('Unknown Kit');
     const [pat, setPat] = useState([]);
     const [nextPatDue, setNextPatDue] = useState(null);
+
+    function formatDueInterval(dueDate) {
+        if (!dueDate) return 'N/A';
+        const now = new Date();
+        const due = new Date(dueDate);
+
+        // If due date is in the past, show "Due now"
+        if (isBefore(due, now)) return 'Now';
+
+        const { months, days } = intervalToDuration({ start: now, end: due });
+
+        let parts = [];
+        if (months) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+        if (days) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+        if (parts.length === 0) return 'Today';
+        return parts.join(', ');
+    }
 
     useEffect(() => {
         const { asset, history, kit, pat} = data || {};
@@ -50,6 +68,8 @@ export default function Asset({ assetId, onCancel, data = {} }) {
         }
 
         if(kit && kit.length > 0){
+            const kitAlias = kit[0].alias || 'Unknown Kit';
+            setKitAlias(kitAlias);
             setKit(kit);
         }
 
@@ -269,7 +289,7 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                                         Icon={BoltIcon} 
                                         iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
                                         customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
-                                        buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? format(new Date(nextPatDue), "dd MMM, yyyy") : 'N/A')} 
+                                        buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? formatDueInterval(nextPatDue) : 'N/A')} 
                                     />
                                 </div>
                             </div>
@@ -299,7 +319,7 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                     { kit && kit.length > 0 ? (
                         <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
                             <div className="w-full">
-                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit -</h3>
+                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit - {kitAlias} </h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
                                     <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>
                                         <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
@@ -340,7 +360,7 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                     ) : (
                         <div className="flex flex-col gap-y-4 gap-x-8">
                             <div className="w-full">
-                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
+                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit</h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
                                     <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
                                         <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
