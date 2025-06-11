@@ -75,7 +75,18 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                 setNextPatDue(new Date());
             }
         } else {
-            setNextPatDue(new Date());
+            let patRequired = [
+                'Desktop Computer',
+                'Monitor',
+                'Power Lead',
+                'Laptop Charger',
+                'Laptop',
+            ]
+            if( patRequired.includes(asset.type) ){
+                setNextPatDue(new Date());
+            } else {
+                setNextPatDue(null);
+            }
         }
     }, [data]);
 
@@ -204,104 +215,148 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
-                        <div className="w-full">
-                            <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
-                            <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                {/* Leave this section blank for now */}
-                                <div className={`overflow-x-auto min-h-24 max-h-28 h-28 overflow-y-auto`}>
-                                    <StackedList 
-                                        data={pat || []}
-                                        allowExpand={false}
-                                        actions={[
-                                            {
-                                                icon: (row) => (<DocumentIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" />),
-                                                onClick: (row) => {
-                                                    () => {}
-                                                },
-                                                tooltip: 'Export to PDF',
-                                            },
-                                        ]}
-                                        renderDescription={(item) => (
-                                            <>    
-                                                <p>Technician: {item.name}</p>
-                                                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                                                    <circle cx={1} cy={1} r={1} />
-                                                </svg>
-                                                <p>Result: {item.result === 'Pass' ? 'Passed' : 'Failed'}</p>
-                                                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                                                    <circle cx={1} cy={1} r={1} />
-                                                </svg>
-                                                <p>
-                                                    Completed: <time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yyyy h:mm a")}</time>
+                    { nextPatDue ? (
+                        <div className="mt-3 flex flex-col gap-y-4 gap-x-8 mb-3">
+                            <div className="w-full">
+                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
+                                <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                    {/* Leave this section blank for now */}
+                                    <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                        { pat && pat.length > 0 ? (
+                                            <StackedList 
+                                                data={pat || []}
+                                                allowExpand={false}
+                                                actions={[
+                                                    {
+                                                        icon: (row) => (<DocumentIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" />),
+                                                        onClick: (row) => {
+                                                            () => {}
+                                                        },
+                                                        tooltip: 'Export to PDF',
+                                                    },
+                                                ]}
+                                                renderDescription={(item) => (
+                                                    <>    
+                                                        <p>Technician: {item.name}</p>
+                                                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                            <circle cx={1} cy={1} r={1} />
+                                                        </svg>
+                                                        <p>Result: {item.result === 'Pass' ? 'Passed' : 'Failed'}</p>
+                                                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                            <circle cx={1} cy={1} r={1} />
+                                                        </svg>
+                                                        <p>
+                                                            Completed: <time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yy - HH:mm")}</time>
+                                                        </p>
+                                                    </>
+                                                )}
+                                            />    
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
+                                                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
+                                                    <BoltIcon className="h-6 w-6 text-yellow-500" />
+                                                </div>
+                                                <h1 className="text-xl mt-1 font-bold text-gray-900 dark:text-dark-100">No PAT Tests Conducted</h1>
+                                                <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+                                                    This asset has not been tested for PAT compliance yet.
                                                 </p>
-                                            </>
+                                            </div>
                                         )}
+                                    </div>
+                                </div>
+                                <div className="w-full flex items-center justify-between gap-x-4">
+                                    <ButtonControl 
+                                        Icon={BoltIcon} 
+                                        iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
+                                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
+                                        buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? format(new Date(nextPatDue), "dd MMM, yyyy") : 'N/A')} 
                                     />
                                 </div>
                             </div>
+                        </div>
+                        ) : (
+                            <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
+                                <div className="w-full">
+                                    <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
+                                    <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                        {/* Leave this section blank for now */}
+                                        <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                            <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
+                                                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
+                                                    <BoltIcon className="h-6 w-6 text-yellow-500" />
+                                                </div>
+                                                <h1 className="text-xl mt-1 font-bold text-gray-900 dark:text-dark-100">PAT Testing Not Required</h1>
+                                                <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+                                                    This asset does not require PAT testing.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                    { kit && kit.length > 0 ? (
+                        <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
+                            <div className="w-full">
+                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit -</h3>
+                                <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>
+                                        <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
+                                            <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Alias</th>
+                                                    <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200 w-full">Asset ID</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white dark:bg-dark-900">
+                                                {kit && kit.length > 0 ? (
+                                                    kit.map((row, idx) => {
+                                                        return (
+                                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs">
+                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                ) : (
+                                                <tr>
+                                                    <td colSpan={7} className="px-3 py-4 text-center text-gray-400 dark:text-dark-500">
+                                                    No ping results found for the last week.
+                                                    </td>
+                                                </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="w-full flex items-center justify-between gap-x-4">
-                                <ButtonControl 
-                                    Icon={BoltIcon} 
-                                    iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
-                                    customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
-                                    buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? format(new Date(nextPatDue), "dd MMM, yyyy") : 'N/A')} 
-                                />
+                                <ButtonControl Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" />
+                                <ButtonControl Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" />
+                                <ButtonControl Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" />
                             </div>
                         </div>
-                    </div>
-                    <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
-                        <div className="w-full">
-                            <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit -</h3>
-                            <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                {/* Leave this section blank for now */}
-                                <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>
-                                    <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
-                                        <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Alias</th>
-                                                <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200 w-full">Asset ID</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white dark:bg-dark-900">
-                                            {kit && kit.length > 0 ? (
-                                                kit.map((row, idx) => {
-                                                    return (
-                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs">
-                                                            <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                            <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            ) : (
-                                            <tr>
-                                                <td colSpan={7} className="px-3 py-4 text-center text-gray-400 dark:text-dark-500">
-                                                No ping results found for the last week.
-                                                </td>
-                                            </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                    ) : (
+                        <div className="flex flex-col gap-y-4 gap-x-8">
+                            <div className="w-full">
+                                <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
+                                <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                    <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                        <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
+                                            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
+                                                <Square3Stack3DIcon className="h-6 w-6" />
+                                            </div>
+                                            <h1 className="text-xl font-bold text-gray-900 dark:text-dark-100">No Kit Assigned</h1>
+                                            <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+                                                This asset is not part of any kit.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="w-full flex items-center justify-between gap-x-4">
-                            <ButtonControl Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" />
-                            <ButtonControl Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" />
-                            <ButtonControl Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Submit and Cancel Buttons */}
-                <div className="mt-6 flex items-center justify-end gap-x-6 w-full">
-                    <button
-                        type="button"
-                        className="text-sm font-semibold text-gray-900 dark:text-dark-100"
-                        onClick={handleCancel}
-                    >
-                        Cancel
-                    </button>
+                    )}
                 </div>
             </div>
         </div>
