@@ -82,6 +82,7 @@ export default function Find({ handleClose }) {
                 <Asset 
                     data={asset} 
                     assetId={assetId} 
+                    changeAsset={(assetId) => find(assetId)}
                     onCancel={() => {
                         setAssetFound(null);
                         setIsProcessing(false);

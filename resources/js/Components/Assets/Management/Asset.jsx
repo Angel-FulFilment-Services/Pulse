@@ -11,7 +11,7 @@ import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 
-export default function Asset({ assetId, onCancel, data = {} }) {    
+export default function Asset({ assetId, onCancel, changeAsset, data = {} }) {    
     const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
     const [kit, setKit] = useState([]);
@@ -333,10 +333,17 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                                                 {kit && kit.length > 0 ? (
                                                     kit.map((row, idx) => {
                                                         return (
-                                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs">
-                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
-                                                            </tr>
+                                                            {...row.afs_id ? (
+                                                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs" onClick={() => {changeAsset(row.afs_id)}}>
+                                                                    <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                                    <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
+                                                                </tr>
+                                                            ) : (
+                                                                <tr key={idx} className="text-xs">
+                                                                    <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                                    <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">N/A</td>
+                                                                </tr>
+                                                            )}
                                                         );
                                                     })
                                                 ) : (
