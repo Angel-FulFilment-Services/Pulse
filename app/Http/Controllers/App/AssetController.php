@@ -70,10 +70,16 @@ class AssetController extends Controller
         ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
         ->get();
 
+        $pat = DB::table('assets.pat_testing')
+        ->join('wings_config.users', 'users.id', '=', 'pat_testing.user_id')
+        ->where('asset_id', $asset->id)
+        ->orderBy('datetime', 'desc')
+        ->get();
+
         $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
 
         if ($asset) {
-            return response()->json(['asset' => $asset, 'history' => $history, 'kit' => $kit], 200);
+            return response()->json(['asset' => $asset, 'history' => $history, 'kit' => $kit, 'pat' => $pat], 200);
         }
     }
 

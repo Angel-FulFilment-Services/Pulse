@@ -1,22 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { PlusIcon, Square3Stack3DIcon, ArrowsRightLeftIcon } from '@heroicons/react/20/solid'
-import { TrashIcon, ArrowUturnLeftIcon, EyeIcon } from '@heroicons/react/24/solid';
+import { TrashIcon, ArrowUturnLeftIcon, EyeIcon, BoltIcon } from '@heroicons/react/24/solid';
+import { DocumentIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
-import useFetchKit from '../../Fetches/Assets/useFetchKit';
 import { Fragment } from 'react'
-import { Menu, Transition } from '@headlessui/react'
+import { Description, Menu, Transition } from '@headlessui/react'
 import { EllipsisVerticalIcon } from '@heroicons/react/20/solid'
 import SimpleFeed from '../../Lists/SimpleFeed';
-import { format } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
+import StackedList from '../../Lists/StackedList';
 
 export default function Asset({ assetId, onCancel, data = {} }) {    
+    const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
-
-    const { asset, history: assetHistory, kit} = data || {};
+    const [kit, setKit] = useState([]);
+    const [pat, setPat] = useState([]);
+    const [nextPatDue, setNextPatDue] = useState(null);
 
     useEffect(() => {
+        const { asset, history, kit, pat} = data || {};
+
         if(asset){
+            setAsset(asset);
+
             setHistory([
                 {
                     id: 1,
@@ -28,11 +35,9 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                 },
             ]);
         }
-    }, [asset]);
 
-    useEffect(() => {
-        if(assetHistory && assetHistory.length > 0){
-            const formattedHistory = assetHistory.map((event, index) => ({
+        if(history && history.length > 0){
+            const formattedHistory = history.map((event, index) => ({
                 id: index + 2, // Start from 2 since we already have one event
                 content: event.content,
                 target: event.target,
@@ -43,7 +48,36 @@ export default function Asset({ assetId, onCancel, data = {} }) {
             }));
             setHistory(prevHistory => [...prevHistory, ...formattedHistory]);
         }
-    }, [assetHistory]);
+
+        if(kit && kit.length > 0){
+            setKit(kit);
+        }
+
+        if (pat && pat.length > 0) {
+            const formattedPat = pat.map((item, index) => ({
+                id: index + 1,
+                title: `Test -  (${item.class ? item.class : 'Unknown'})`,
+                users: [{ name: item.name, user_id: item.user_id }],
+                resolved: item.result === 'Pass' ? true : false,
+                ...item,
+            }));
+            setPat(formattedPat);
+
+            // Find latest PAT test date
+            const latestPat = pat.reduce((latest, item) => {
+                const date = new Date(item.datetime);
+                return (!latest || date > new Date(latest.datetime)) ? item : latest;
+            }, null);
+
+            if (latestPat && latestPat.datetime) {
+                setNextPatDue(addYears(new Date(latestPat.datetime), 1));
+            } else {
+                setNextPatDue(new Date());
+            }
+        } else {
+            setNextPatDue(new Date());
+        }
+    }, [data]);
 
     // Handle form submission
     const handleCancel = () => {
@@ -137,29 +171,29 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                         </div>
                     </div>
                     
-                    <div className="mt-6 flex gap-x-8">
+                    <div className="mt-3 flex gap-x-8">
                         <div className="w-1/2">
                             <h3 className="font-medium text-gray-900 dark:text-dark-50">Asset Information</h3>
                             <div className="mt-2 flex flex-col divide-y divide-gray-900/10 dark:divide-dark-50/10 border-t border-gray-900/10 dark:border-dark-50/10">
                                 <div className="flex justify-between py-2 text-sm font-medium">
                                     <dt className="text-gray-500">Asset ID</dt>
-                                    <dd className="text-gray-900">#{asset.assetId || assetId || 'Not provided'}</dd>
+                                    <dd className="text-gray-900">#{asset.assetId || assetId || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
                                     <dt className="text-gray-500">Alias</dt>
-                                    <dd className="text-gray-900">{asset.alias || 'Not provided'}</dd>
+                                    <dd className="text-gray-900">{asset.alias || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
                                     <dt className="text-gray-500">Type</dt>
-                                    <dd className="text-gray-900">{asset.type || 'Not provided'}</dd>
+                                    <dd className="text-gray-900">{asset.type || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
                                     <dt className="text-gray-500">Make</dt>
-                                    <dd className="text-gray-900">{asset.make || 'Not provided'}</dd>
+                                    <dd className="text-gray-900">{asset.make || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
                                     <dt className="text-gray-500">Model</dt>
-                                    <dd className="text-gray-900">{asset.model || 'Not provided'}</dd>
+                                    <dd className="text-gray-900">{asset.model || '~'}</dd>
                                 </div>
                             </div>
                         </div>
@@ -170,9 +204,55 @@ export default function Asset({ assetId, onCancel, data = {} }) {
                             </div>
                         </div>
                     </div>
-                    <div className="mt-6 flex flex-col gap-y-4 gap-x-8">
+                    <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
                         <div className="w-full">
-                            <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit - {kit[0].alias}</h3>
+                            <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
+                            <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                {/* Leave this section blank for now */}
+                                <div className={`overflow-x-auto min-h-24 max-h-28 h-28 overflow-y-auto`}>
+                                    <StackedList 
+                                        data={pat || []}
+                                        allowExpand={false}
+                                        actions={[
+                                            {
+                                                icon: (row) => (<DocumentIcon className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out" />),
+                                                onClick: (row) => {
+                                                    () => {}
+                                                },
+                                                tooltip: 'Export to PDF',
+                                            },
+                                        ]}
+                                        renderDescription={(item) => (
+                                            <>    
+                                                <p>Technician: {item.name}</p>
+                                                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                    <circle cx={1} cy={1} r={1} />
+                                                </svg>
+                                                <p>Result: {item.result === 'Pass' ? 'Passed' : 'Failed'}</p>
+                                                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                    <circle cx={1} cy={1} r={1} />
+                                                </svg>
+                                                <p>
+                                                    Completed: <time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yyyy h:mm a")}</time>
+                                                </p>
+                                            </>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            <div className="w-full flex items-center justify-between gap-x-4">
+                                <ButtonControl 
+                                    Icon={BoltIcon} 
+                                    iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
+                                    customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
+                                    buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? format(new Date(nextPatDue), "dd MMM, yyyy") : 'N/A')} 
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
+                        <div className="w-full">
+                            <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit -</h3>
                             <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
                                 {/* Leave this section blank for now */}
                                 <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>

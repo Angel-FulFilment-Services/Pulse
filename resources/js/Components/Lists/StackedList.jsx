@@ -119,33 +119,37 @@ export default function StackedList({
                       </dt>)
                       : <div />
                     }
-                    {allowManagement && (
+                    {(allowManagement || (actions && actions.length > 0)) && (
                       <dt className="flex items-center justify-center gap-x-2 pl-3 pr-3">
-                        <button
-                          onClick={() => {
-                            if (allowManagement && onEdit) {
-                              onEdit(row);
-                            }
-                          }}
-                        >
-                          <PencilIcon
-                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
-                            aria-hidden="true"
-                          />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (allowManagement && onRemove) {
-                              onRemove(row);
-                            }
-                          }}
-                        >
-                          <TrashIcon
-                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
-                            aria-hidden="true"
-                          />
-                        </button>
-                        {actions.map((action, actionIndex) => (
+                        {allowManagement && (
+                          <>
+                            <button
+                              onClick={() => {
+                                if (allowManagement && onEdit) {
+                                  onEdit(row);
+                                }
+                              }}
+                            >
+                              <PencilIcon
+                                className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                                aria-hidden="true"
+                              />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (allowManagement && onRemove) {
+                                  onRemove(row);
+                                }
+                              }}
+                            >
+                              <TrashIcon
+                                className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </>
+                        )}
+                        {actions && actions.map((action, actionIndex) => (
                           <button
                             key={actionIndex}
                             onClick={() => {
