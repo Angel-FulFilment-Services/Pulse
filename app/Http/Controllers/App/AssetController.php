@@ -47,8 +47,10 @@ class AssetController extends Controller
         ->select(
             'kit_log.created_at',
             DB::raw('"Assigned to Kit:" as content'),
-            'kits.alias as target'
+            'kits.alias as target',
+            'kits.id as kit_id'
         )
+        ->orderBy('kit_log.created_at', 'desc')
         ->get();
 
         $assetHistory = DB::table('assets.assets_issued')
@@ -61,10 +63,17 @@ class AssetController extends Controller
         )
         ->get();
 
+        $kit = DB::table('assets.kits')
+        ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
+        ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
+        ->where('kit_items.kit_id', $kitHistory->first()->kit_id)
+        ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
+        ->get();
+
         $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
 
         if ($asset) {
-            return response()->json(['asset' => $asset, 'history' => $history], 200);
+            return response()->json(['asset' => $asset, 'history' => $history, 'kit' => $kit], 200);
         }
     }
 

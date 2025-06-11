@@ -14,7 +14,6 @@ export default function Find({ handleClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [assetId, setAssetId] = useState('');
   const [asset, setAsset] = useState(null);
-  const [assetHistory, setAssetHistory] = useState(null);
   const [assetFound, setAssetFound] = useState(null);
   const [createAsset, setCreateAsset] = useState(false);
 
@@ -29,8 +28,7 @@ export default function Find({ handleClose }) {
 
         setIsProcessing(false);
         setAssetId(assetId);
-        setAsset(response.data.asset);
-        setAssetHistory(response.data.history);
+        setAsset(response.data);
         setAssetFound(true);
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -38,7 +36,6 @@ export default function Find({ handleClose }) {
             setAssetId(assetId);
             setAssetFound(false);
             setAsset(null);
-            setAssetHistory(null);
             return;
         }       
 
@@ -56,7 +53,6 @@ export default function Find({ handleClose }) {
         setIsProcessing(false);
         setAssetId(null);
         setAsset(null);
-        setAssetHistory(null);
         setAssetFound(null);
     }
   };
@@ -84,15 +80,13 @@ export default function Find({ handleClose }) {
         ) : 
             assetFound ? (
                 <Asset 
-                    asset={asset} 
+                    data={asset} 
                     assetId={assetId} 
-                    assetHistory={assetHistory}
                     onCancel={() => {
                         setAssetFound(null);
                         setIsProcessing(false);
                         setAssetId(null);
                         setAsset(null);
-                        setAssetHistory(null);
                     }}
                 />
             ) : createAsset ? (
@@ -103,7 +97,6 @@ export default function Find({ handleClose }) {
                         setIsProcessing(false);
                         setAssetId(null);
                         setAsset(null);
-                        setAssetHistory(null);
                     }} 
                     assetId={assetId}
                 />
@@ -127,7 +120,6 @@ export default function Find({ handleClose }) {
                                 setIsProcessing(false);
                                 setAssetId(null);
                                 setAsset(null);
-                                setAssetHistory(null);
                             }}
                         >
                             Scan Again

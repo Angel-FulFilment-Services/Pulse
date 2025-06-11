@@ -17,8 +17,8 @@ export default function ButtonControl(props) {
             onButtonClick(event);
           }}
         >
-          {buttonLabel && <span className="mr-2">{buttonLabel}</span>}
           {Icon && <Icon className={`${iconClass ? iconClass : "h-5 w-5 text-gray-400 dark:text-dark-500 flex-shrink-0"} ${disabled ? "contrast-50 cursor-not-allowed" : null}`} aria-hidden="true" />}
+          {buttonLabel && <span className="ml-1">{buttonLabel}</span>}
         </button>
       </div>
     </div>
