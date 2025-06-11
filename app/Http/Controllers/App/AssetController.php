@@ -37,10 +37,34 @@ class AssetController extends Controller
         ->where('afs_id', $request->afs_id)
         ->first();
 
-        if ($asset) {
-            return response()->json(['asset' => $asset], 200);
-        } else {
+        if( !$asset) {
             return response()->json(['message' => 'Asset not found.'], 404);
+        }
+
+        $kitHistory = DB::table('assets.kit_log')
+        ->where('asset_id', $asset->id)
+        ->join('assets.kits', 'kits.id', '=', 'kit_log.kit_id')
+        ->select(
+            'kit_log.created_at',
+            DB::raw('"Assigned to Kit:" as content'),
+            'kits.alias as target'
+        )
+        ->get();
+
+        $assetHistory = DB::table('assets.assets_issued')
+        ->join('wings_config.users', 'users.id', '=', 'assets_issued.user_id')
+        ->where('asset_id', $asset->id)
+        ->select(
+            'assets_issued.issued as created_at',
+            DB::raw('"Assigned to:" as content'),
+            'users.name as target'
+        )
+        ->get();
+
+        $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
+
+        if ($asset) {
+            return response()->json(['asset' => $asset, 'history' => $history], 200);
         }
     }
 

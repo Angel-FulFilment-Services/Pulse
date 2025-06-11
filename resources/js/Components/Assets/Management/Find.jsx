@@ -6,12 +6,15 @@ import { Bouncy } from 'ldrs/react'
 import 'ldrs/react/Bouncy.css'
 import { ExclamationTriangleIcon, CheckIcon } from '@heroicons/react/24/outline';
 import Create from './Create';
+import Asset from './Asset';
+import { set } from 'lodash';
 
 export default function Find({ handleClose }) {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [assetId, setAssetId] = useState('');
   const [asset, setAsset] = useState(null);
+  const [assetHistory, setAssetHistory] = useState(null);
   const [assetFound, setAssetFound] = useState(null);
   const [createAsset, setCreateAsset] = useState(false);
 
@@ -27,6 +30,7 @@ export default function Find({ handleClose }) {
         setIsProcessing(false);
         setAssetId(assetId);
         setAsset(response.data.asset);
+        setAssetHistory(response.data.history);
         setAssetFound(true);
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -34,6 +38,7 @@ export default function Find({ handleClose }) {
             setAssetId(assetId);
             setAssetFound(false);
             setAsset(null);
+            setAssetHistory(null);
             return;
         }       
 
@@ -51,6 +56,7 @@ export default function Find({ handleClose }) {
         setIsProcessing(false);
         setAssetId(null);
         setAsset(null);
+        setAssetHistory(null);
         setAssetFound(null);
     }
   };
@@ -77,17 +83,18 @@ export default function Find({ handleClose }) {
             </div> 
         ) : 
             assetFound ? (
-                <div className="flex flex-col items-center gap-2 h-full justify-center w-full max-w-fit">
-                    <div className="mb-2 text-center w-full">
-                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-green-600 dark:text-green-600 bg-green-100 dark:bg-green-200/20 ring ring-green-600/20 mb-6">
-                            <CheckIcon className="h-12 w-12" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Asset Found</h1>
-                        <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
-                            Asset ID: {asset.id}
-                        </p>
-                    </div>
-                </div>
+                <Asset 
+                    asset={asset} 
+                    assetId={assetId} 
+                    assetHistory={assetHistory}
+                    onCancel={() => {
+                        setAssetFound(null);
+                        setIsProcessing(false);
+                        setAssetId(null);
+                        setAsset(null);
+                        setAssetHistory(null);
+                    }}
+                />
             ) : createAsset ? (
                 <Create 
                     onCancel={() => {
@@ -96,6 +103,7 @@ export default function Find({ handleClose }) {
                         setIsProcessing(false);
                         setAssetId(null);
                         setAsset(null);
+                        setAssetHistory(null);
                     }} 
                     assetId={assetId}
                 />
@@ -119,6 +127,7 @@ export default function Find({ handleClose }) {
                                 setIsProcessing(false);
                                 setAssetId(null);
                                 setAsset(null);
+                                setAssetHistory(null);
                             }}
                         >
                             Scan Again

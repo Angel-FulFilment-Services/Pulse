@@ -239,8 +239,8 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     }
 
     return (
-        <div className="w-full h-full max-h-[50rem] overflow-y-auto">
-            <div className="space-y-6 h-full">
+        <div className="w-full h-full max-h-full overflow-y-auto">
+            <div className="space-y-6 h-full  justify-between flex flex-col">
                 {/* Title Field */}
                 <div className="border-b border-gray-900/10 dark:border-dark-50/10 pb-6">
                     <div className="border-b border-gray-900/10 dark:border-dark-50/10 pb-2">
