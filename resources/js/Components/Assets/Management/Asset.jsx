@@ -270,7 +270,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
                                                                 <circle cx={1} cy={1} r={1} />
                                                             </svg>
                                                             <p>
-                                                                Completed: <span className="text-gray-900 dark:text-dark-200 font-medium"><time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yyyy")}</time></span> 
+                                                                Date: <span className="text-gray-900 dark:text-dark-200 font-medium"><time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yyyy")}</time></span> 
                                                             </p>
                                                         </div>
                                                     </div>
