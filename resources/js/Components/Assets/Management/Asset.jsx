@@ -76,9 +76,9 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
         if (pat && pat.length > 0) {
             const formattedPat = pat.map((item, index) => ({
                 id: index + 1,
-                title: `Test -  (${item.class ? item.class : 'Unknown'})`,
+                title: `${item.class ? item.class : 'Unknown'}`,
                 users: [{ name: item.name, user_id: item.user_id }],
-                resolved: item.result === 'Pass' ? true : false,
+                status: item.result === 'Pass' ? true : false,
                 ...item,
             }));
             setPat(formattedPat);
@@ -255,20 +255,25 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
                                                         tooltip: 'Export to PDF',
                                                     },
                                                 ]}
-                                                renderDescription={(item) => (
-                                                    <>    
-                                                        <p>Technician: {item.name}</p>
-                                                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                                                            <circle cx={1} cy={1} r={1} />
-                                                        </svg>
-                                                        <p>Result: {item.result === 'Pass' ? 'Passed' : 'Failed'}</p>
-                                                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                                                            <circle cx={1} cy={1} r={1} />
-                                                        </svg>
-                                                        <p>
-                                                            Completed: <time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yy - HH:mm")}</time>
-                                                        </p>
-                                                    </>
+                                                renderTitle={(item) => (
+                                                    <div className="flex items-center gap-x-2">
+                                                        <span className={`inline-flex items-center rounded-full ${item.status ? 'bg-green-50 ring-green-600/20 text-green-700' : 'bg-red-50 ring-red-600/20 text-red-700'} px-2.5 py-0.5 text-sm font-medium ring-1 ring-inset `}>
+                                                            {item.status ? 'Passed' : 'Failed'}
+                                                        </span>
+                                                        <span className="text-sm font-semibold leading-6 text-gray-900 dark:text-dark-100">{item.title}</span>
+                                                        <div className="flex items-center gap-x-2 text-xs leading-5 text-gray-500 dark:text-dark-400">
+                                                            <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                                <circle cx={1} cy={1} r={1} />
+                                                            </svg>
+                                                            <p>Technician: <span className="text-gray-900 dark:text-dark-200 font-medium">{item.name}</span></p>
+                                                            <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                                                <circle cx={1} cy={1} r={1} />
+                                                            </svg>
+                                                            <p>
+                                                                Completed: <span className="text-gray-900 dark:text-dark-200 font-medium"><time dateTime={item.date}>{format(new Date(item.datetime), "dd MMM, yyyy")}</time></span> 
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 )}
                                             />    
                                         ) : (
