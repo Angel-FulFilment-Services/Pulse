@@ -39,7 +39,13 @@ export default function NumberInput(props) {
 
   const handleTextChange = (event) => {
     let allowNegative = typeof low === 'number' && low < 0;
-    let rawValue = String(event.target.value).replace(allowNegative ? /[^0-9.-]/g : /[^0-9.]/g, '');
+    // Allow < and > in the input, but remove them before processing
+    let rawValue = String(event.target.value)
+      .replace(allowNegative ? /[^0-9.\-<>]/g : /[^0-9.<>]/g, '');
+
+    // Remove < and > before further processing
+    rawValue = rawValue.replace(/[<>]/g, '');
+
     if (allowNegative) {
       rawValue = rawValue.replace(/(?!^)-/g, '');
     }
@@ -92,12 +98,17 @@ export default function NumberInput(props) {
 
   const handleInput = (event) => {
     let allowNegative = typeof low === 'number' && low < 0;
-    const invalidChars = allowNegative ? /[^0-9.-]/g : /[^0-9.]/g;
+    // Allow < and > in the input, but remove them if any other key is pressed
+    const invalidChars = allowNegative ? /[^0-9.\-<>]/g : /[^0-9.<>]/g;
     if (invalidChars.test(event.target.value)) {
       event.target.value = event.target.value.replace(invalidChars, '');
     }
     if (allowNegative) {
       event.target.value = event.target.value.replace(/(?!^)-/g, '');
+    }
+    // Remove < and > if any other character is present
+    if (event.target.value.length > 1) {
+      event.target.value = event.target.value.replace(/[<>]/g, '');
     }
   };
 

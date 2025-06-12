@@ -169,7 +169,9 @@ Route::get('/asset-management/support/kit', [AssetController::class, 'kit']);
 Route::get('/asset-management/support/kits', [AssetController::class, 'kits']);
 Route::get('/asset-management/assets/scan', [AssetController::class, 'scan']);
 Route::get('/asset-management/assets/find', [AssetController::class, 'find']);
+Route::get('/asset-management/assets/load', [AssetController::class, 'load']);
 Route::post('/asset-management/assets/create', [AssetController::class, 'createAsset']);
+Route::post('/asset-management/assets/pat-test/process', [AssetController::class, 'processPatTest']);
 
 /*
 |-----------------------

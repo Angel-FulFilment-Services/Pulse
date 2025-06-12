@@ -9,6 +9,7 @@ use App\Models\Asset\Event;
 use App\Models\Asset\Asset;
 use App\Models\Asset\Kit;
 use App\Models\Asset\Item;
+use App\Models\Asset\PAT;
 use App\Models\HR\Employee;
 use App\Helper\Auditing;
 use Storage;
@@ -33,6 +34,20 @@ class AssetController extends Controller
     }
 
     public function find(Request $request){
+        $asset = DB::table('assets.assets')
+        ->where('afs_id', $request->afs_id)
+        ->exists();
+
+        if(!$asset) {
+            return response()->json(['message' => 'Asset not found.'], 404);
+        }
+
+        if ($asset) {
+            return response()->json(['message' => 'Asset found'], 200);
+        }
+    }
+
+    public function load(Request $request){
         $asset = DB::table('assets.assets')
         ->where('afs_id', $request->afs_id)
         ->first();
@@ -122,9 +137,6 @@ class AssetController extends Controller
     }
 
     public function createAsset(Request $request){
-
-        Log::debug('Creating asset with data: ' . json_encode($request->all()));
-
         // Define validation rules
         $rules = [
             'assetId' => 'required|numeric',
@@ -183,6 +195,68 @@ class AssetController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to create asset: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to create asset.'], 500);
+        }
+    }
+
+    public function processPatTest(Request $request){
+        // Define validation rules
+        $rules = [
+            'assetId' => 'required|numeric',
+            'type' => 'required|string',
+            'earthBond' => 'required_if:type,Class 1|nullable|string',
+            'insulation' => 'required_if:type,Class 1,Class 2,Class 2 FE,Lead|nullable|string',
+            'continuity' => 'required_if:type,Lead|nullable|string',
+            'leakage' => 'required_if:type,Class 1,Class 2,Class 2 FE|nullable|string',
+        ];
+
+        $messages = [
+            'assetId.required' => 'Please enter an asset ID.',
+            'assetId.numeric' => 'The asset ID must be a valid number.',
+            'type.required' => 'Please select a test type.',
+            'type.string' => 'The test type must be a valid string.',
+            'earthBond.required_if' => 'Earth Bond Ω is required for Class 1 tests.',
+            'insulation.required_if' => 'Insulation MΩ is required for this test type.',
+            'continuity.required_if' => 'Continuity Ω is required for Lead tests.',
+            'leakage.required_if' => 'Leakage mA is required for this test type.',
+        ];
+
+        try {
+            $request->validate($rules, $messages);
+
+            $asset = DB::table('assets.assets')
+            ->where('afs_id', $request->assetId)
+            ->first();
+
+            PAT::create([
+                'asset_id' => $asset->id,
+                'expires' => now()->addYear()->format('Y-m-d'),
+                'class' => $request->type,
+                'vi_socket' => $request->socket ?? null,
+                'vi_plug' => $request->plug ?? null,
+                'vi_switch' => $request->switch ?? null,
+                'vi_flex' => $request->flex ?? null,
+                'vi_body' => $request->body ?? null,
+                'vi_environment' => $request->environment ?? null,
+                'vi_continued_use' => $request->continuedUse ?? null,
+                'result' => $request->result ? ucwords($request->result) : null,
+                'earth_cont' => $request->earthBond ?? null,
+                'ins_resis' => $request->insulation ?? null,
+                'continuity' => $request->continuity ?? null,
+                'leakage' => $request->leakage ?? null,
+                'user_id' => auth()->user()->id,
+                'hr_id' => auth()->user()->employee->hr_id,
+                'datetime' => now(),
+            ]);
+        
+            return response()->json(['message' => 'PAT test processed successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to process PAT test: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to process PAT test.'], 500);
         }
     }
 

@@ -11,7 +11,7 @@ import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 
-export default function Asset({ assetId, onCancel, changeAsset, data = {} }) {    
+export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, data = {} }) {    
     const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
     const [kit, setKit] = useState([]);
@@ -46,7 +46,7 @@ export default function Asset({ assetId, onCancel, changeAsset, data = {} }) {
                 {
                     id: 1,
                     content: 'Asset Created',
-                    date: asset ? format(asset.created_at, "eo, MMM yy") : null,
+                    date: asset ? format(asset.created_at, "do, MMM yy") : null,
                     datetime: asset ? asset.created_at : null,
                     icon: PlusIcon,
                     iconBackground: 'bg-green-500',
@@ -59,7 +59,7 @@ export default function Asset({ assetId, onCancel, changeAsset, data = {} }) {
                 id: index + 2, // Start from 2 since we already have one event
                 content: event.content,
                 target: event.target,
-                date: format(new Date(event.created_at), "eo, MMM yy"),
+                date: format(new Date(event.created_at), "do, MMM yy"),
                 datetime: event.created_at,
                 icon: ArrowsRightLeftIcon,
                 iconBackground: event.icon === 'check' ? 'bg-green-500' : 'bg-gray-400',
@@ -287,6 +287,9 @@ export default function Asset({ assetId, onCancel, changeAsset, data = {} }) {
                                 <div className="w-full flex items-center justify-between gap-x-4">
                                     <ButtonControl 
                                         Icon={BoltIcon} 
+                                        onButtonClick={() => {
+                                            goTo({ type: 'pat', assetId: assetId });
+                                        }}
                                         iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
                                         customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
                                         buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? formatDueInterval(nextPatDue) : 'N/A')} 

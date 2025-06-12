@@ -1,3 +1,4 @@
+import { format } from "date-fns"
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -34,7 +35,7 @@ export default function SimpleFeed({ timeline = [] }) {
                     </p>
                   </div>
                   <div className="whitespace-nowrap text-right text-sm text-gray-500">
-                    <time dateTime={event.datetime}>{event.date}</time>
+                    <time dateTime={event.datetime}>{ format(event.datetime, "do, MMM yy") }</time>
                   </div>
                 </div>
               </div>
