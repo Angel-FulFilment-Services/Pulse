@@ -77,7 +77,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
             const formattedPat = pat.map((item, index) => ({
                 id: index + 1,
                 title: `${item.class ? item.class : 'Unknown'}`,
-                users: [{ name: item.name, user_id: item.user_id }],
+                users: [{ name: item.name, userId: item.user_id }],
                 status: item.result === 'Pass' ? true : false,
                 ...item,
             }));
