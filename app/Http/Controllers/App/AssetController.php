@@ -47,7 +47,7 @@ class AssetController extends Controller
         }
     }
 
-    public function load(Request $request){
+    public function loadAsset(Request $request){
         $asset = DB::table('assets.assets')
         ->where('afs_id', $request->afs_id)
         ->first();
@@ -68,11 +68,11 @@ class AssetController extends Controller
         ->orderBy('kit_log.created_at', 'desc')
         ->get();
 
-        $assetHistory = DB::table('assets.assets_issued')
-        ->join('wings_config.users', 'users.id', '=', 'assets_issued.user_id')
+        $assetHistory = DB::table('assets.asset_log')
+        ->join('wings_config.users', 'users.id', '=', 'asset_log.user_id')
         ->where('asset_id', $asset->id)
         ->select(
-            'assets_issued.issued as created_at',
+            'asset_log.issued_date as created_at',
             DB::raw('"Assigned to:" as content'),
             'users.name as target'
         )
@@ -102,18 +102,51 @@ class AssetController extends Controller
         }
     }
 
+    public function loadKit(Request $request){
+        $kit = DB::table('assets.kits')
+        ->where('id', $request->kit_id)
+        ->first();
+
+        if(!$kit) {
+            return response()->json(['message' => 'Kit not found.'], 404);
+        }
+
+        $items = DB::table('assets.kit_items')
+            ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
+            ->where('kit_items.kit_id', $request->kit_id)
+            ->select('assets.alias', 'assets.type', 'assets.afs_id')
+            ->get();
+
+        $log = DB::table('assets.kit_log')
+            ->where('kit_id', $request->kit_id)
+            ->select(DB::raw('CAST(kit_log.created_at as DATE) AS created_at'), 'kit_log.asset_id', 'kit_log.kit_id', 'kit_log.user_id', DB::raw('"Log" as type'))
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $issued = DB::table('assets.asset_log')
+            ->where('kit_id', $request->kit_id)
+            ->join('wings_config.users', 'users.id', '=', 'asset_log.user_id')
+            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned IS NULL, "Issued", "Returned") as status'), DB::raw('"Issue" as type'))
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $history = $log->merge($issued)->sortByDesc('created_at')->values()->all();
+
+        return response()->json(['kit' => $kit, 'items' => $items, 'history' => $history], 200);
+    }
+
     public function kit(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $hrId = $request->query('hr_id');
 
-        $items = DB::table('assets.assets_issued')
-            ->join('assets.kits', 'kits.id', '=', 'assets_issued.kit_id')
+        $items = DB::table('assets.asset_log')
+            ->join('assets.kits', 'kits.id', '=', 'asset_log.kit_id')
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
             ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
             ->where('hr_id', $hrId)
-            ->where('assets_issued.returned', null)
+            ->where('asset_log.returned', null)
             ->get();
 
         $device = $items->where('type', 'Telephone')->pluck('alias')->first();

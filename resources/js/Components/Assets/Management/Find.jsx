@@ -8,6 +8,7 @@ import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import Create from './Create';
 import Asset from './Asset';
 import Pat from './Pat';
+import Kit from './Kit';
 
 export default function Find({ handleClose }) {
   const [pages, setPages] = useState([{ type: 'scanner' }]);
@@ -22,7 +23,7 @@ export default function Find({ handleClose }) {
   const currentPage = pages[pages.length - 1];
 
   useEffect(() => {
-    const handleRefresh = (e) => {
+    const handleRefreshAsset = (e) => {
       // Try to get assetId from event detail, or from current page
       let assetId = e?.detail?.assetId;
       if (!assetId) {
@@ -31,12 +32,12 @@ export default function Find({ handleClose }) {
         assetId = currentAssetPage?.assetId;
       }
       if (assetId) {
-        load(assetId);
+        asset(assetId);
       }
     };
 
-    window.addEventListener('refreshAsset', handleRefresh);
-    return () => window.removeEventListener('refreshAsset', handleRefresh);
+    window.addEventListener('refreshAsset', handleRefreshAsset);
+    return () => window.removeEventListener('refreshAsset', handleRefreshAsset);
   }, [pages]);
 
   // Find asset logic
@@ -46,7 +47,7 @@ export default function Find({ handleClose }) {
       const response = await axios.get('/asset-management/assets/find', {
         params: { afs_id: assetId },
       });
-      load(assetId);
+      asset(assetId);
     } catch (error) {
       setIsProcessing(false);
       if (error.response && error.response.status === 404) {
@@ -66,7 +67,7 @@ export default function Find({ handleClose }) {
     }
   };
 
-  const load = async (assetId) => {
+  const asset = async (assetId) => {
     try {
       const response = await axios.get('/asset-management/assets/load', {
         params: { afs_id: assetId },
@@ -79,6 +80,32 @@ export default function Find({ handleClose }) {
         return;
       }
       toast.error('Something went wrong while loading asset, please try again.', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+    }
+  };
+
+  const kit = async (kitId) => {
+    try {
+      const response = await axios.get('/asset-management/kits/load', {
+        params: { kit_id: kitId },
+      });
+
+      goTo({ type: 'kit', kit: response.data, kitId });
+      setIsProcessing(false);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        goTo({ type: 'notfound', kitId });
+        return;
+      }
+      toast.error('Something went wrong while loading kit, please try again.', {
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -137,12 +164,28 @@ export default function Find({ handleClose }) {
             data={page.asset}
             assetId={page.assetId}
             changeAsset={(newId) => {
-              load(newId);
+                asset(newId);
+            }}
+            changeKit={(kitId) => {
+                kit(kitId);
             }}
             goTo={goTo}
             goBack={goBack}
             onCancel={goBack}
           />
+        );
+      case 'kit':
+        return (
+            <Kit
+                data={page.kit}
+                kitId={page.kitId}
+                changeAsset={(newId) => {
+                asset(newId);
+                }}
+                goTo={goTo}
+                goBack={goBack}
+                onCancel={goBack}
+            />
         );
       case 'notfound':
         return (

@@ -74,6 +74,13 @@ export default function Pat({ assetId, onCancel, initialData = null }) {
     const [errors, setErrors] = useState({});
 
     const validationRules = {
+        type: [
+        (value) =>
+            validateRequired(value, 'Test Type', {
+            customMessage: 'Please select the type of test for this asset.',
+            condition: () => true, // Always validate type
+            }),
+        ],
         earthBond: [
         (value) =>
             validateRequired(value, 'Earth Bond Ω', {
@@ -161,7 +168,7 @@ export default function Pat({ assetId, onCancel, initialData = null }) {
     };
 
     const handleSubmit = async () => {            
-        const isValid = validate(['earthBond', 'insulation', 'leakage', 'continuity']);
+        const isValid = validate(['type', 'earthBond', 'insulation', 'leakage', 'continuity']);
         if (!isValid) return;
 
         setIsProcessing(true);
@@ -324,6 +331,7 @@ export default function Pat({ assetId, onCancel, initialData = null }) {
                                 annotation="(Required)"
                                 currentState={formData.type}
                                 items={types}
+                                error={errors.type}
                                 onSelectChange={(value) => handleInputChange('type', value[0].value)}
                                 placeholder="Select a type of asset"
                             />

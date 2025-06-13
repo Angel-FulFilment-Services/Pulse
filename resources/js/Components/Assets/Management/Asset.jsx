@@ -11,11 +11,12 @@ import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 
-export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, data = {} }) {    
+export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, changeKit, data = {} }) {    
     const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
     const [kit, setKit] = useState([]);
     const [kitAlias, setKitAlias] = useState('Unknown Kit');
+    const [kitId, setKitId] = useState(null);
     const [pat, setPat] = useState([]);
     const [nextPatDue, setNextPatDue] = useState(null);
 
@@ -69,7 +70,9 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
 
         if(kit && kit.length > 0){
             const kitAlias = kit[0].alias || 'Unknown Kit';
+            const kitId = kit[0].id || null;
             setKitAlias(kitAlias);
+            setKitId(kitId);
             setKit(kit);
         }
 
@@ -289,7 +292,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
                                         )}
                                     </div>
                                 </div>
-                                <div className="w-full flex items-center justify-between gap-x-4">
+                                <div className="w-full flex items-center justify-between gap-x-4 mt-2">
                                     <ButtonControl 
                                         Icon={BoltIcon} 
                                         onButtonClick={() => {
@@ -367,9 +370,9 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, da
                                 </div>
                             </div>
                             <div className="w-full flex items-center justify-between gap-x-4">
-                                <ButtonControl Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" />
-                                <ButtonControl Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" />
-                                <ButtonControl Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" />
+                                <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
+                                <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                                <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" onButtonClick={() => {}} />
                             </div>
                         </div>
                     ) : (

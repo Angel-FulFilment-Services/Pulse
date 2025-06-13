@@ -602,11 +602,11 @@ class ReportingController extends Controller
     public function kitDetailsReport(Request $request){
         $data = DB::connection('wings_data')
         ->table('assets.kits')
-        ->leftJoin('assets.assets_issued', function($join) {
-            $join->on('kits.kit_id', '=', 'assets_issued.kit_id');
+        ->leftJoin('assets.asset_log', function($join) {
+            $join->on('kits.kit_id', '=', 'asset_log.kit_id');
                 // ->where('issued', '<=', date("Y-m-d"));
         })
-        ->leftJoin('wings_config.users', 'users.id', '=', 'assets_issued.user_id')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'asset_log.user_id')
         ->leftJoin('assets.assets as laptop', function($join) {
             $join->on('kits.asset_id', '=', 'laptop.id')
                 ->where('laptop.type', '=', 'Laptop');
@@ -621,7 +621,7 @@ class ReportingController extends Controller
         })
         ->select(DB::raw("
             kits.alias,
-            assets_issued.issued as issued_on,
+            asset_log.issued as issued_on,
             users.name AS issued_to,
             IFNULL(MAX(laptop.alias), '') AS laptop_alias,
             IFNULL(MAX(laptop.make), '') AS laptop_make,
