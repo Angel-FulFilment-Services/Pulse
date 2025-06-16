@@ -21,6 +21,8 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+    protected $connection = 'wings_config';
+
     protected $fillable = [
         'name',
         'email',
@@ -64,7 +66,7 @@ class User extends Authenticatable
         return $userPermissions->merge($clientPermissions);
     }
 
-    public function Employee(): HasOne
+    public function employee(): HasOne
     {
         return $this->hasOne(Employee::class, 'user_id');
     }

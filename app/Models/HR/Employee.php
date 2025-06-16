@@ -4,7 +4,9 @@ namespace App\Models\HR;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Casts\EncryptedWithCustomKey;
+use App\Models\User\User;
 
 class Employee extends Model
 {
@@ -48,4 +50,10 @@ class Employee extends Model
         'kin2_home_phone' => EncryptedWithCustomKey::class,
         'kin2_mobile_phone' => EncryptedWithCustomKey::class,
     ];
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
 }

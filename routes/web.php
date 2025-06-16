@@ -155,6 +155,7 @@ Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name(
 */
 
 Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware('log.access');
+Route::get('/users', [UserController::class, 'users'])->name('users');
 
 /*
 |-----------------------
@@ -173,6 +174,8 @@ Route::get('/asset-management/assets/load', [AssetController::class, 'loadAsset'
 Route::post('/asset-management/assets/create', [AssetController::class, 'createAsset']);
 Route::post('/asset-management/assets/pat-test/process', [AssetController::class, 'processPatTest']);
 Route::get('/asset-management/kits/load', [AssetController::class, 'loadKit']);
+Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit']);
+Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);
 
 /*
 |-----------------------

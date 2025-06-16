@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { PlusIcon, Square3Stack3DIcon, ArrowsRightLeftIcon, ArrowRightIcon } from '@heroicons/react/20/solid'
-import { TrashIcon, ArrowUturnLeftIcon, EyeIcon, BoltIcon } from '@heroicons/react/24/solid';
-import { DocumentIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, Square3Stack3DIcon, ArrowsRightLeftIcon, ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/20/solid'
+import { TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify';
 import { Fragment } from 'react'
 import { Description, Menu, Transition } from '@headlessui/react'
@@ -10,11 +9,14 @@ import SimpleFeed from '../../Lists/SimpleFeed';
 import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
+import UserInput from '../../Forms/UserInput';
+import axios from 'axios';
 
 export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data = {} }) {    
     const [kit, setKit] = useState([]);
     const [kitItems, setKitItems] = useState([]);
     const [history, setHistory] = useState([]);
+    const [assignedTo, setAssignedTo] = useState(null);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -78,22 +80,30 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                 });
             });
 
+            let assignedTo = null;
             // Add issue items and any other types
             history.forEach(event => {
                 if (event.type === 'Issue') {
+                    if (event.status === 'Issued') {
+                        assignedTo = event.name;
+                    } else if (event.status === 'Returned') {
+                        assignedTo = null;
+                    }
+
                     formattedHistory.push({
                         id: idx++,
-                        content: `Kit Assigned To: ${event.target || ''}`,
+                        content: event.status == 'Issued' ? `Kit Assigned To: ${event.target || ''}` : `Kit Returned From: ${event.target || ''}`,
                         target: event.name,
                         date: format(new Date(event.created_at), "do, MMM yy"),
                         datetime: event.created_at,
-                        icon: ArrowRightIcon,
-                        iconBackground: 'bg-theme-500',
+                        icon: event.status == 'Issued' ? ArrowRightIcon : ArrowLeftIcon,
+                        iconBackground: event.status == 'Issued' ? 'bg-green-500' : 'bg-red-500',
                     });
                 }
                 // Add other types as needed...
             });
 
+            setAssignedTo(assignedTo);
             setHistory(prevHistory => [...prevHistory, ...formattedHistory]);
         }
 
@@ -108,9 +118,45 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
         }
     }, [data]);
 
-    // Handle form submission
-    const handleCancel = () => {
-        onCancel();
+    const assignKit = (user) => {
+        if(user){
+            console.log('Assigned To:', user);
+            axios.post(`/asset-management/kits/assign`,{
+                user_id: user,
+                kit_id: kit.id,
+            })
+                .then(response => {
+                    const user = response.data[0];
+                    setAssignedTo(user.name);
+                    window.dispatchEvent(new CustomEvent('refreshKit', { detail: { kitId: kit.id } }));
+
+                    toast.success(`Kit assigned to ${user.name}`, {
+                        position: 'top-center',
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: false,
+                        draggable: true,
+                        progress: undefined,
+                        theme: 'light',
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching assigned user:', error);
+                    setAssignedTo(null);
+
+                    toast.error('Failed to assign kit. Please try again.', {
+                        position: 'top-center',
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: false,
+                        draggable: true,
+                        progress: undefined,
+                        theme: 'light',
+                    });
+                });
+        }
     }
 
     function classNames(...classes) {
@@ -208,6 +254,25 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                     <dt className="text-gray-500">Alias</dt>
                                     <dd className="text-gray-900">{kit.alias || '~'}</dd>
                                 </div>
+                                <div className="flex justify-between py-2 text-sm font-medium items-center">
+                                    <dt className="text-gray-500">Assigned To</dt>
+                                    { assignedTo ? (
+                                        <dd className="text-gray-900">
+                                            <span className="text-gray-900 dark:text-dark-100">{assignedTo}</span>
+                                        </dd>
+                                    ) : (
+                                        <div className="w-4/6">
+                                            <UserInput 
+                                                id="assigned_to"
+                                                onComboChange={(value) => {
+                                                    assignKit(value[0]?.userId);
+                                                }}
+                                                placeholder="Assign to kit to"
+
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="w-1/2">
@@ -260,9 +325,8 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                 </div>
                             </div>
                             <div className="w-full flex items-center justify-between gap-x-4">
-                                <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit"/>
-                                <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" />
-                                <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" />
+                                <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                                <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Retire Kit" onButtonClick={() => {}} />
                             </div>
                         </div>
                     ) : (

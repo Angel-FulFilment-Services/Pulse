@@ -36,8 +36,21 @@ export default function Find({ handleClose }) {
       }
     };
 
-    window.addEventListener('refreshAsset', handleRefreshAsset);
-    return () => window.removeEventListener('refreshAsset', handleRefreshAsset);
+    const handleRefreshKit = (e) => {
+      // Try to get assetId from event detail, or from current page
+      let kitId = e?.detail?.kitId;
+      if (!kitId) {
+        // Try to get from current page if available
+        const currentAssetPage = pages.find(p => p.type === 'asset');
+        kitId = currentAssetPage?.kitId;
+      }
+      if (kitId) {
+        kit(kitId);
+      }
+    };
+
+    window.addEventListener('refreshKit', handleRefreshKit);
+    return () => window.removeEventListener('refreshKit', handleRefreshKit);
   }, [pages]);
 
   // Find asset logic
@@ -237,7 +250,17 @@ export default function Find({ handleClose }) {
 
   // Replace Scanner's handleScan with wrappedFind
   return (
-    <div className="flex flex-col items-center gap-4 h-full justify-center w-full">
+    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6">
+        <div className="-mt-2 flex justify-start items-center w-full">
+            <button
+                type="button"
+                className="text-sm font-semibold text-gray-900 dark:text-dark-100"
+                onClick={goBack}
+            >
+                <span className="pr-2" aria-hidden="true">&larr;</span>
+                Go Back
+            </button>
+        </div>
       {renderPage(currentPage)}
     </div>
   );

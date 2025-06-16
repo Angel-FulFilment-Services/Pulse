@@ -126,13 +126,101 @@ class AssetController extends Controller
         $issued = DB::table('assets.asset_log')
             ->where('kit_id', $request->kit_id)
             ->join('wings_config.users', 'users.id', '=', 'asset_log.user_id')
-            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned IS NULL, "Issued", "Returned") as status'), DB::raw('"Issue" as type'))
+            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned = false, "Issued", "Returned") as status'), DB::raw('"Issue" as type'))
             ->orderBy('created_at', 'asc')
             ->get();
 
         $history = $log->merge($issued)->sortByDesc('created_at')->values()->all();
 
         return response()->json(['kit' => $kit, 'items' => $items, 'history' => $history], 200);
+    }
+
+    public function assignKit(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'user_id' => 'required|numeric',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::find($request->kit_id);
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            $user = Employee::where('user_id', $request->user_id)->first();
+            if(!$user) {
+                return response()->json(['message' => 'Employee not found.'], 404);
+            }
+
+            // Create new kit log entry for new assignment
+            DB::table('assets.asset_log')->insert([
+                'kit_id' => $kit->id,
+                'asset_id' => null,
+                'user_id' => $request->user_id,
+                'hr_id' => $user->hr_id,
+                'issued' => true,
+                'issued_date' => date('Y-m-d'),
+            ]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Kit Assigned', 'Kit ID: ' . $kit->id . ', User ID: ' . $request->user_id);
+
+            return response()->json([$user->user], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to assign kit: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to assign kit.'], 500);
+        }
+    }
+
+    public function unassignKit(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'user_id' => 'required|numeric',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::find($request->kit_id);
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            $user = Employee::where('user_id', $request->user_id)->first();
+            if(!$user) {
+                return response()->json(['message' => 'Employee not found.'], 404);
+            }
+
+            // Create new kit log entry for return
+            DB::table('assets.asset_log')->insert([
+                'kit_id' => $kit->id,
+                'asset_id' => null,
+                'user_id' => $user->user_id,
+                'hr_id' => $user->hr_id,
+                'returned' => true,
+                'returned_date' => date('Y-m-d'),
+            ]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Kit Unassigned', 'Kit ID: ' . $kit->id . ', User ID: ' . $request->user_id);
+
+            return response()->json(['message' => 'Kit unassigned successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to unassign kit: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to unassign kit.'], 500);
+        }
     }
 
     public function kit(Request $request){
@@ -186,7 +274,7 @@ class AssetController extends Controller
         try {
             $request->validate($rules, $messages);
 
-            Asset::create([
+            $asset = Asset::create([
                 'afs_id' => $request->assetId,
                 'alias' => $request->alias,
                 'type' => $request->type,
@@ -200,12 +288,18 @@ class AssetController extends Controller
                     'alias' => $request->kit,
                 ]);
 
-                Log::debug('Kit created or found: ' . $kit->alias . ' (ID: ' . $kit->id . ')');
-
                 // Create the kit item.
                 Item::create([
                     'kit_id' => $kit->id,
-                    'asset_id' => $request->assetId,
+                    'asset_id' => $asset->id,
+                ]);
+
+                DB::table('assets.kit_log')->insert([
+                    'kit_id' => $kit->id,
+                    'asset_id' => $asset->id,
+                    'user_id' => auth()->user()->id,
+                    'hr_id' => auth()->user()->employee->hr_id,
+                    'created_at' => now(),
                 ]);
 
                 // Create the preset kit items if provided
