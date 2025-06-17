@@ -52,7 +52,7 @@ const visualCheckes = [
     { id: 5, value: 'Continued Use', item: 'continuedUse' },
 ];
 
-export default function Pat({ assetId, onCancel, initialData = null }) {    
+export default function Pat({ assetId, onCancel, initialData = null, refreshAsset  }) {    
     const { kits } = useFetchKits();
 
     const [formData, setFormData] = useState({
@@ -202,7 +202,7 @@ export default function Pat({ assetId, onCancel, initialData = null }) {
             throw new Error('Failed to create PAT test');
             }
 
-            window.dispatchEvent(new CustomEvent('refreshAsset', { detail: { assetId: assetId } }));
+            refreshAsset(); // Refresh the asset data after successful submission
 
             // On success
             setIsProcessing(false);

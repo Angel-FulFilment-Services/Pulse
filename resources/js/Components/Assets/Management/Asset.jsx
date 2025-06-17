@@ -11,7 +11,7 @@ import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 
-export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, changeKit, data = {} }) {    
+export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, changeKit, refreshAsset, refreshKit, data = {} }) {    
     const [asset, setAsset] = useState([]);
     const [history, setHistory] = useState([]);
     const [kit, setKit] = useState([]);
@@ -157,7 +157,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
                                     <Menu.Item>
                                     {({ active }) => (
@@ -181,7 +181,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                             'flex justify-between px-4 py-2 text-sm'
                                         )}
                                         >
-                                        <span>Duplicate</span>
+                                        <span>Retire</span>
                                         </a>
                                     )}
                                     </Menu.Item>
@@ -194,7 +194,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                             'flex w-full justify-between px-4 py-2 text-sm'
                                         )}
                                         >
-                                        <span>Archive</span>
+                                        <span>Mark as Lost</span>
                                         </button>
                                     )}
                                     </Menu.Item>
@@ -369,11 +369,6 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full flex items-center justify-between gap-x-4">
-                                <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
-                                <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
-                                <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" onButtonClick={() => {}} />
-                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-y-4 gap-x-8">
@@ -396,6 +391,13 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                         </div>
                     )}
                 </div>
+                { kit && kit.length > 0 && (
+                    <div className="w-full flex items-center justify-between gap-x-4">
+                            <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
+                            <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                            <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" onButtonClick={() => {}} />
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,27 +1,43 @@
 import { Fragment, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { ExclamationCircleIcon, CheckCircleIcon, InformationCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { ExclamationCircleIcon, CheckCircleIcon, InformationCircleIcon, QuestionMarkCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const iconTypes = {
+  error: {
+    icon: ExclamationCircleIcon,
+    bgColor: 'bg-red-100 dark:bg-red-200/60',
+    iconColor: 'text-red-600 dark:text-red-700',
+    buttonColor: 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 focus-visible:outline-red-600 dark:focus-visible:outline-red-500 text-white dark:text-dark-50',
+  },
+  delete: {
+    icon: TrashIcon,
+    bgColor: 'bg-red-100 dark:bg-red-200/60',
+    iconColor: 'text-red-600 dark:text-red-700',
+    buttonColor: 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 focus-visible:outline-red-600 dark:focus-visible:outline-red-500 text-white dark:text-dark-50',
+  },
   warning: {
     icon: ExclamationCircleIcon,
     bgColor: 'bg-yellow-100 dark:bg-yellow-200/60',
     iconColor: 'text-yellow-600 dark:text-yellow-700',
+    buttonColor: 'bg-yellow-500 dark:bg-yellow-600 hover:bg-yellow-600 dark:hover:bg-yellow-500 focus-visible:outline-yellow-600 dark:focus-visible:outline-yellow-500 text-white dark:text-dark-50',
   },
   success: {
     icon: CheckCircleIcon,
     bgColor: 'bg-green-100 dark:bg-green-200/60',
     iconColor: 'text-green-600 dark:text-green-700',
+    buttonColor: 'bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500 focus-visible:outline-green-600 dark:focus-visible:outline-green-500 text-white dark:text-dark-50',
   },
   info: {
     icon: InformationCircleIcon,
     bgColor: 'bg-blue-100 dark:bg-blue-200/60',
     iconColor: 'text-blue-600 dark:text-blue-700',
+    buttonColor: 'bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-500 text-white dark:text-dark-50',
   },
   question: {
     icon: QuestionMarkCircleIcon,
     bgColor: 'bg-theme-100 dark:bg-theme-200/60',
     iconColor: 'text-theme-600 dark:text-theme-700',
+    buttonColor: 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50',
   },
 };
 
@@ -37,7 +53,7 @@ export default function ConfirmationDialog({
 }) {
   const cancelButtonRef = useRef(null);
 
-  const { icon: Icon, bgColor, iconColor } = iconTypes[type] || iconTypes.info;
+  const { icon: Icon, bgColor, iconColor, buttonColor } = iconTypes[type] || iconTypes.info;
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -82,7 +98,7 @@ export default function ConfirmationDialog({
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-theme-500 dark:bg-theme-600 px-3 py-2 text-sm font-semibold text-white dark:text-dark-50 shadow-sm hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 sm:col-start-2"
+                    className={`inline-flex w-full justify-center rounded-md ${buttonColor} px-3 py-2 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:col-start-2`}
                     onClick={() => {
                       isYes(); // Trigger the callback for "Yes"
                       setIsOpen(false); // Close the dialog

@@ -33,20 +33,6 @@ class AssetController extends Controller
         return Inertia::render('Assets/Scan');
     }
 
-    public function find(Request $request){
-        $asset = DB::table('assets.assets')
-        ->where('afs_id', $request->afs_id)
-        ->exists();
-
-        if(!$asset) {
-            return response()->json(['message' => 'Asset not found.'], 404);
-        }
-
-        if ($asset) {
-            return response()->json(['message' => 'Asset found'], 200);
-        }
-    }
-
     public function loadAsset(Request $request){
         $asset = DB::table('assets.assets')
         ->where('afs_id', $request->afs_id)
@@ -114,12 +100,12 @@ class AssetController extends Controller
         $items = DB::table('assets.kit_items')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
             ->where('kit_items.kit_id', $request->kit_id)
-            ->select('assets.alias', 'assets.type', 'assets.afs_id')
+            ->select('assets.alias as asset_alias', 'assets.type', 'assets.afs_id', 'assets.id as asset_id')
             ->get();
 
         $log = DB::table('assets.kit_log')
             ->where('kit_id', $request->kit_id)
-            ->select(DB::raw('CAST(kit_log.created_at as DATE) AS created_at'), 'kit_log.asset_id', 'kit_log.kit_id', 'kit_log.user_id', DB::raw('"Log" as type'))
+            ->select(DB::raw('CAST(kit_log.created_at as DATE) AS created_at'), 'kit_log.asset_id', 'kit_log.type', 'kit_log.kit_id', 'kit_log.user_id', DB::raw('"Log" as type'))
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -133,6 +119,103 @@ class AssetController extends Controller
         $history = $log->merge($issued)->sortByDesc('created_at')->values()->all();
 
         return response()->json(['kit' => $kit, 'items' => $items, 'history' => $history], 200);
+    }
+
+    public function addKitItem(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'asset_id' => 'required|numeric',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::find($request->kit_id);
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            $asset = Asset::find($request->asset_id);
+            if(!$asset) {
+                return response()->json(['message' => 'Asset not found.'], 404);
+            }
+
+            // Create the kit item.
+            Item::create([
+                'kit_id' => $kit->id,
+                'asset_id' => $asset->id,
+            ]);
+
+            DB::table('assets.kit_log')->insert([
+                'kit_id' => $kit->id,
+                'asset_id' => $asset->id,
+                'type' => 'Added',
+                'user_id' => auth()->user()->id,
+                'hr_id' => auth()->user()->employee->hr_id,
+                'created_at' => now(),
+            ]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Kit Item Added', 'Kit ID: ' . $kit->id . ', Asset ID: ' . $asset->id);
+
+            return response()->json(['message' => 'Item added to kit successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to add item to kit: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to add item to kit.'], 500);
+        }
+    }
+
+    public function removeKitItem(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'asset_id' => 'required|numeric',
+        ];
+
+
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::find($request->kit_id);
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            $item = Item::where('kit_id', $kit->id)->where('asset_id', $request->asset_id)->first();
+            if(!$item) {
+                return response()->json(['message' => 'Item not found in kit.'], 404);
+            }
+
+            // Delete the kit item.
+            $item->delete();
+
+            DB::table('assets.kit_log')->insert([
+                'kit_id' => $kit->id,
+                'asset_id' => $item->id,
+                'type' => 'Removed',
+                'user_id' => auth()->user()->id,
+                'hr_id' => auth()->user()->employee->hr_id,
+                'created_at' => now(),
+            ]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Kit Item Removed', 'Kit ID: ' . $kit->id . ', Asset ID: ' . $request->asset_id);
+
+            return response()->json(['message' => 'Item removed from kit successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to remove item from kit: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to remove item from kit.'], 500);
+        }
     }
 
     public function assignKit(Request $request){
@@ -223,40 +306,6 @@ class AssetController extends Controller
         }
     }
 
-    public function kit(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
-        $hrId = $request->query('hr_id');
-
-        $items = DB::table('assets.asset_log')
-            ->join('assets.kits', 'kits.id', '=', 'asset_log.kit_id')
-            ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
-            ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
-            ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
-            ->where('hr_id', $hrId)
-            ->where('asset_log.returned', null)
-            ->get();
-
-        $device = $items->where('type', 'Telephone')->pluck('alias')->first();
-
-        if($device)
-            $response = DB::table('assets.openvpn_ping_log')
-                ->whereBetween('datetime', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                ->where('device', $device)
-                ->orderBy('datetime', 'desc')
-                ->get();
-
-        return response()->json(array("items" => $items, "device" => $device, "response" => $response ?? []));
-    }
-
-    public function kits(Request $request){
-        $kits = DB::table('assets.kits')
-            ->select('kits.id', 'kits.alias')
-            ->get();
-
-        return response()->json($kits);
-    }
-
     public function createAsset(Request $request){
         // Define validation rules
         $rules = [
@@ -297,6 +346,7 @@ class AssetController extends Controller
                 DB::table('assets.kit_log')->insert([
                     'kit_id' => $kit->id,
                     'asset_id' => $asset->id,
+                    'type' => 'Added',
                     'user_id' => auth()->user()->id,
                     'hr_id' => auth()->user()->employee->hr_id,
                     'created_at' => now(),
@@ -308,6 +358,15 @@ class AssetController extends Controller
                         Item::create([
                             'kit_id' => $kit->id,
                             'asset_id' => $item,
+                        ]);
+
+                        DB::table('assets.kit_log')->insert([
+                            'kit_id' => $kit->id,
+                            'asset_id' => $item,
+                            'type' => 'Added',
+                            'user_id' => auth()->user()->id,
+                            'hr_id' => auth()->user()->employee->hr_id,
+                            'created_at' => now(),
                         ]);
                     }
                 }
@@ -385,6 +444,40 @@ class AssetController extends Controller
             Log::error('Failed to process PAT test: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to process PAT test.'], 500);
         }
+    }
+
+    public function kit(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = $request->query('hr_id');
+
+        $items = DB::table('assets.asset_log')
+            ->join('assets.kits', 'kits.id', '=', 'asset_log.kit_id')
+            ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
+            ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
+            ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
+            ->where('hr_id', $hrId)
+            ->where('asset_log.returned', null)
+            ->get();
+
+        $device = $items->where('type', 'Telephone')->pluck('alias')->first();
+
+        if($device)
+            $response = DB::table('assets.openvpn_ping_log')
+                ->whereBetween('datetime', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->where('device', $device)
+                ->orderBy('datetime', 'desc')
+                ->get();
+
+        return response()->json(array("items" => $items, "device" => $device, "response" => $response ?? []));
+    }
+
+    public function kits(Request $request){
+        $kits = DB::table('assets.kits')
+            ->select('kits.id', 'kits.alias')
+            ->get();
+
+        return response()->json($kits);
     }
 
     public function events(Request $request){

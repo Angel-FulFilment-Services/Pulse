@@ -86,7 +86,7 @@ export default function Scanner({ handleScan, handleClose }) {
   }, [startCamera, stopCamera]);
 
   return (
-    <div className="flex flex-col items-center gap-4 h-full justify-center w-full">
+    <div className={`flex flex-col items-center gap-4 h-full justify-center w-full ${!cameraError && 'mb-44'}`}>
       <div className="mb-4 text-center w-full">
         {cameraError ? (
           <>
@@ -100,7 +100,7 @@ export default function Scanner({ handleScan, handleClose }) {
             <button
               className="mt-4 px-4 py-2 rounded-md text-white bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500"  
               onClick={() => {
-                handleScan(2198)
+                handleScan(652343)
               }}
             >
               Simulate Scan

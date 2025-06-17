@@ -22,73 +22,30 @@ export default function Find({ handleClose }) {
   // Get the current page
   const currentPage = pages[pages.length - 1];
 
-  useEffect(() => {
-    const handleRefreshAsset = (e) => {
-      // Try to get assetId from event detail, or from current page
-      let assetId = e?.detail?.assetId;
-      if (!assetId) {
-        // Try to get from current page if available
+  const asset = async (id = null, refresh = false) => {
+    if(!refresh)
+        setIsProcessing(true);
+
+    let assetId = id;
+
+    if (!assetId) {
         const currentAssetPage = pages.find(p => p.type === 'asset');
         assetId = currentAssetPage?.assetId;
-      }
-      if (assetId) {
-        asset(assetId);
-      }
-    };
-
-    const handleRefreshKit = (e) => {
-      // Try to get assetId from event detail, or from current page
-      let kitId = e?.detail?.kitId;
-      if (!kitId) {
-        // Try to get from current page if available
-        const currentAssetPage = pages.find(p => p.type === 'asset');
-        kitId = currentAssetPage?.kitId;
-      }
-      if (kitId) {
-        kit(kitId);
-      }
-    };
-
-    window.addEventListener('refreshKit', handleRefreshKit);
-    return () => window.removeEventListener('refreshKit', handleRefreshKit);
-  }, [pages]);
-
-  // Find asset logic
-  const find = async (assetId) => {
-    setIsProcessing(true);
-    try {
-      const response = await axios.get('/asset-management/assets/find', {
-        params: { afs_id: assetId },
-      });
-      asset(assetId);
-    } catch (error) {
-      setIsProcessing(false);
-      if (error.response && error.response.status === 404) {
-        goTo({ type: 'notfound', assetId });
-        return;
-      }
-      toast.error('Something went wrong while searching for asset, please try again.', {
-        position: 'top-center',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
-      });
     }
-  };
 
-  const asset = async (assetId) => {
     try {
       const response = await axios.get('/asset-management/assets/load', {
         params: { afs_id: assetId },
       });
-      goTo({ type: 'asset', asset: response.data, assetId });
-      setIsProcessing(false);
+
+      if(!refresh)
+        goTo({ type: 'asset', asset: response.data, assetId });
+        setIsProcessing(false);
     } catch (error) {
       if (error.response && error.response.status === 404) {
+        if(!refresh)
+            setIsProcessing(false);
+        
         goTo({ type: 'notfound', assetId });
         return;
       }
@@ -105,16 +62,30 @@ export default function Find({ handleClose }) {
     }
   };
 
-  const kit = async (kitId) => {
+  const kit = async (id = null, refresh) => {
+    if(!refresh)
+        setIsProcessing(true);
+    
+    let kitId = id;
+
+    if (!kitId) {
+        const currentKitPage = pages.find(p => p.type === 'kit');
+        kitId = currentKitPage?.kitId;
+    }
+
     try {
       const response = await axios.get('/asset-management/kits/load', {
         params: { kit_id: kitId },
       });
 
-      goTo({ type: 'kit', kit: response.data, kitId });
-      setIsProcessing(false);
+      if(!refresh)
+        goTo({ type: 'kit', kit: response.data, kitId });
+        setIsProcessing(false);
     } catch (error) {
       if (error.response && error.response.status === 404) {
+        if(!refresh)
+            setIsProcessing(false);
+
         goTo({ type: 'notfound', kitId });
         return;
       }
@@ -139,34 +110,25 @@ export default function Find({ handleClose }) {
         <>
             {isProcessing ? (
                 <div className="flex flex-col items-center gap-4 h-full justify-center w-full">
-                    <div className="mb-4 text-center w-full">
-                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-theme-600 dark:text-theme-600 bg-theme-100 dark:bg-theme-200/20 ring ring-theme-600/20 mb-3 pt-4">
-                        <Bouncy size="50" color="rgb(var(--theme-600) / 1)" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Finding Asset
-                        <span className="text-2xl font-bold ml-1">
-                        <span className="inline-block animate-dot-squence">.</span>
-                        <span className="inline-block animation-delay-200 animate-dot-squence">.</span>
-                        <span className="inline-block animation-delay-500 animate-dot-squence">.</span>
-                        </span>
-                    </h1>
-                    <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
-                        Please wait while we search for this asset...
-                    </p>
+                    <div className="mb-4 text-center w-full -mt-14">
+                        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-theme-600 dark:text-theme-600 bg-theme-100 dark:bg-theme-200/20 ring ring-theme-600/20 mb-6 pt-4">
+                            <Bouncy size="50" color="rgb(var(--theme-600) / 1)" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Finding Asset
+                            <span className="text-2xl font-bold ml-1">
+                            <span className="inline-block animate-dot-squence">.</span>
+                            <span className="inline-block animation-delay-200 animate-dot-squence">.</span>
+                            <span className="inline-block animation-delay-500 animate-dot-squence">.</span>
+                            </span>
+                        </h1>
+                        <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
+                            Please wait while we search for this asset...
+                        </p>
                     </div>
                 </div>
             ) : (
                 <>
-                    <Scanner handleScan={find} />
-                    <div className="flex justify-end gap-4 w-full mt-4">
-                    <button
-                        type="button"
-                        className="text-sm font-semibold text-gray-900 dark:text-dark-100 rounded-md"
-                        onClick={handleClose}
-                    >
-                        Cancel
-                    </button>
-                    </div>
+                    <Scanner handleScan={asset} />
                 </>
             )}
         </>
@@ -182,27 +144,20 @@ export default function Find({ handleClose }) {
             changeKit={(kitId) => {
                 kit(kitId);
             }}
+            refreshAsset={() => {
+                asset(page.assetId, true);
+            }}
+            refreshKit={() => {
+                kit(page.kitId, true);
+            }}
             goTo={goTo}
             goBack={goBack}
             onCancel={goBack}
           />
         );
-      case 'kit':
+    case 'notfound':
         return (
-            <Kit
-                data={page.kit}
-                kitId={page.kitId}
-                changeAsset={(newId) => {
-                asset(newId);
-                }}
-                goTo={goTo}
-                goBack={goBack}
-                onCancel={goBack}
-            />
-        );
-      case 'notfound':
-        return (
-          <div className="flex flex-col items-center gap-2 h-full justify-center w-full max-w-fit">
+          <div className="flex flex-col items-center gap-2 h-full justify-center w-full max-w-fit -mt-2">
             <div className="mb-2 text-center w-full">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-red-600 dark:text-red-600 bg-red-100 dark:bg-red-200/20 ring ring-red-600/20 mb-6">
                 <ExclamationTriangleIcon className="h-12 w-12" />
@@ -229,6 +184,25 @@ export default function Find({ handleClose }) {
             </div>
           </div>
         );
+      case 'kit':
+        return (
+            <Kit
+                data={page.kit}
+                kitId={page.kitId}
+                changeAsset={(newId) => {
+                    asset(newId);
+                }}    
+                refreshAsset={() => {
+                    asset(page.assetId, true);
+                }}
+                refreshKit={() => {
+                    kit(page.kitId, true);
+                }}
+                goTo={goTo}
+                goBack={goBack}
+                onCancel={goBack}
+            />
+        );
       case 'create':
         return (
           <Create
@@ -241,6 +215,9 @@ export default function Find({ handleClose }) {
             <Pat
                 onCancel={goBack}
                 assetId={page.assetId}
+                refreshAsset={() => {
+                    asset(page.assetId, true);
+                }}
             />
         )
       default:
@@ -250,8 +227,8 @@ export default function Find({ handleClose }) {
 
   // Replace Scanner's handleScan with wrappedFind
   return (
-    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6">
-        <div className="-mt-2 flex justify-start items-center w-full">
+    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-0">
+        <div className="flex justify-start items-center w-full pt-4">
             <button
                 type="button"
                 className="text-sm font-semibold text-gray-900 dark:text-dark-100"

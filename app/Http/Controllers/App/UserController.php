@@ -70,8 +70,6 @@ class UserController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-            Log::debug($users->count() . ' users fetched from the database.');
-
         return response()->json($users, 200);
     }
 }

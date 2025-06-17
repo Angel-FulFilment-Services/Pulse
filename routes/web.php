@@ -176,6 +176,8 @@ Route::post('/asset-management/assets/pat-test/process', [AssetController::class
 Route::get('/asset-management/kits/load', [AssetController::class, 'loadKit']);
 Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit']);
 Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);
+Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
+Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 
 /*
 |-----------------------

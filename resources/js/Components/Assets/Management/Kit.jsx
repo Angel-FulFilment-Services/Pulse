@@ -5,18 +5,23 @@ import { toast } from 'react-toastify';
 import { Fragment } from 'react'
 import { Description, Menu, Transition } from '@headlessui/react'
 import { EllipsisVerticalIcon } from '@heroicons/react/20/solid'
+import {TrashIcon as Trash } from '@heroicons/react/24/outline';
 import SimpleFeed from '../../Lists/SimpleFeed';
 import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 import UserInput from '../../Forms/UserInput';
 import axios from 'axios';
+import ConfirmationDialog from '../../Dialogs/ConfirmationDialog';
 
-export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data = {} }) {    
+export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refreshAsset, refreshKit, data = {} }) {    
     const [kit, setKit] = useState([]);
     const [kitItems, setKitItems] = useState([]);
     const [history, setHistory] = useState([]);
     const [assignedTo, setAssignedTo] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -114,6 +119,13 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                 asset_alias: item.asset_alias,
                 type: item.type,
             }));
+            formattedItems.sort((a, b) => {
+                if (a.asset_alias && b.asset_alias) {
+                    return a.asset_alias.localeCompare(b.asset_alias);
+                } else if (a.afs_id) {
+                    return -1; // a comes before b
+                }
+            });
             setKitItems(formattedItems);
         }
     }, [data]);
@@ -128,7 +140,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                 .then(response => {
                     const user = response.data[0];
                     setAssignedTo(user.name);
-                    window.dispatchEvent(new CustomEvent('refreshKit', { detail: { kitId: kit.id } }));
+                    refreshKit();
 
                     toast.success(`Kit assigned to ${user.name}`, {
                         position: 'top-center',
@@ -157,6 +169,48 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                     });
                 });
         }
+    }
+
+    const removeItemFromKit = (assetId) => {
+        if (!assetId || !kit?.id) return;
+        setIsProcessing(true);
+        setSelectedItem(null);
+        axios.post(`/asset-management/kits/item/remove`, {
+            asset_id: assetId,
+            kit_id: kit.id,
+        })
+            .then(response => {
+                const updatedItems = kitItems.filter(i => i.afs_id !== item.afs_id);
+                setKitItems(updatedItems);
+                setIsDialogOpen(false);
+                setIsProcessing(false);
+                refreshKit();
+                toast.success(`Item removed from kit successfully`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            })
+            .catch(error => {
+                console.error('Error removing item from kit:', error);
+                setIsDialogOpen(false);
+                setIsProcessing(false);
+                toast.error('Failed to remove item from kit. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
     }
 
     function classNames(...classes) {
@@ -198,7 +252,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
                                     <Menu.Item>
                                     {({ active }) => (
@@ -222,7 +276,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                             'flex justify-between px-4 py-2 text-sm'
                                         )}
                                         >
-                                        <span>Duplicate</span>
+                                        <span>Retire</span>
                                         </a>
                                     )}
                                     </Menu.Item>
@@ -235,7 +289,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                             'flex w-full justify-between px-4 py-2 text-sm'
                                         )}
                                         >
-                                        <span>Archive</span>
+                                        <span>Mark as Lost</span>
                                         </button>
                                     )}
                                     </Menu.Item>
@@ -293,40 +347,41 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                                                 <tr>
                                                     <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200">Alias</th>
                                                     <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200 w-full">Asset ID</th>
+                                                    <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200 w-full"></th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white dark:bg-dark-900">
-                                                {kitItems && kitItems.length > 0 ? (
-                                                    kitItems.map((row, idx) => {
-                                                        return (
-                                                            {...row.afs_id ? (
-                                                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs" onClick={() => {changeAsset(row.afs_id)}}>
-                                                                    <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                                    <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
-                                                                </tr>
-                                                            ) : (
-                                                                <tr key={idx} className="text-xs">
-                                                                    <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                                    <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">N/A</td>
-                                                                </tr>
-                                                            )}
-                                                        );
-                                                    })
-                                                ) : (
-                                                <tr>
-                                                    <td colSpan={7} className="px-3 py-4 text-center text-gray-400 dark:text-dark-500">
-                                                    No ping results found for the last week.
-                                                    </td>
-                                                </tr>
-                                                )}
+                                                {kitItems.map((row, idx) => {
+                                                    return (
+                                                        {...row.afs_id ? (
+                                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs" onClick={() => {changeAsset(row.afs_id)}}>
+                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
+                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">
+                                                                    <div className="flex items-center justify-end gap-x-2">
+                                                                        <button
+                                                                            onClick={(event) => {event.stopPropagation(); setSelectedItem(row.asset_id); console.log(row.asset_id); setIsDialogOpen(true);}}
+                                                                        >
+                                                                            <Trash
+                                                                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                                                                            aria-hidden="true"
+                                                                            />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            <tr key={idx} className="text-xs">
+                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">N/A</td>
+                                                            </tr>
+                                                        )}
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="w-full flex items-center justify-between gap-x-4">
-                                <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
-                                <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Retire Kit" onButtonClick={() => {}} />
                             </div>
                         </div>
                     ) : (
@@ -350,7 +405,25 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, data
                         </div>
                     )}
                 </div>
+                <div className="w-full flex items-center justify-between gap-x-4">
+                    <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                </div>
             </div>
+            <ConfirmationDialog
+                isOpen={isDialogOpen}
+                setIsOpen={(event) => {
+                    setIsDialogOpen(event) 
+                    if(!event){ 
+                        setSelectedItem(null)
+                    }
+                }}
+                title="Remove this item from the kit?"
+                description="Are you sure you want to remove this item from the kit?"
+                isYes={() => removeItemFromKit(selectedItem)}
+                type="delete"
+                yesText="Remove"
+                cancelText="Cancel"
+            />
         </div>
     );
 }
