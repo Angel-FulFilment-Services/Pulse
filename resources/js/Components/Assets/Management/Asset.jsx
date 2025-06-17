@@ -250,7 +250,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
                                     {/* Leave this section blank for now */}
-                                    <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto min-h-24 max-h-36 h-36 overflow-y-auto`}>
                                         { pat && pat.length > 0 ? (
                                             <StackedList 
                                                 data={pat || []}
@@ -298,7 +298,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         )}
                                     </div>
                                 </div>
-                                <div className="w-full flex items-center justify-between gap-x-4 mt-2">
+                                <div className="w-full flex items-center justify-between gap-x-4">
                                     <ButtonControl 
                                         Icon={BoltIcon} 
                                         onButtonClick={() => {
@@ -312,12 +312,12 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </div>
                         </div>
                         ) : (
-                            <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
+                            <div className="mt-3 flex flex-col gap-y-4 gap-x-8 mb-7">
                                 <div className="w-full">
                                     <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
-                                    <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 py-2.5">
+                                    <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-7">
                                         {/* Leave this section blank for now */}
-                                        <div className={`overflow-x-auto min-h-24 max-h-48 h-48 overflow-y-auto`}>
+                                        <div className={`overflow-x-auto min-h-24 max-h-36 h-36 overflow-y-auto`}>
                                             <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
                                                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
                                                     <BoltIcon className="h-6 w-6 text-yellow-500" />
