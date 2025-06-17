@@ -19,6 +19,28 @@ export default function Find({ handleClose }) {
   // Helper to go back (pop)
   const goBack = () => setPages(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
 
+  // Add this function inside your component
+  const updatePageAsset = (assetId, data) => {
+      setPages(prevPages =>
+          prevPages.map(page =>
+          page.type === 'asset' && page.assetId === assetId
+              ? { ...page, asset: data }
+              : page
+          )
+      );
+   };
+
+  // Add this function inside your component
+  const updatePageKit = (kitId, data) => {
+      setPages(prevPages =>
+          prevPages.map(page =>
+          page.type === 'kit' && page.kitId === kitId
+              ? { ...page, kit: data }
+              : page
+          )
+      );
+   };
+
   // Get the current page
   const currentPage = pages[pages.length - 1];
 
@@ -38,9 +60,12 @@ export default function Find({ handleClose }) {
         params: { afs_id: assetId },
       });
 
-      if(!refresh)
+      if(refresh){
+        updatePageAsset(assetId, response.data);
+      } else {
         goTo({ type: 'asset', asset: response.data, assetId });
         setIsProcessing(false);
+      }
     } catch (error) {
       if (error.response && error.response.status === 404) {
         if(!refresh)
@@ -78,9 +103,12 @@ export default function Find({ handleClose }) {
         params: { kit_id: kitId },
       });
 
-      if(!refresh)
+      if(refresh){
+        updatePageKit(kitId, response.data);
+      } else {
         goTo({ type: 'kit', kit: response.data, kitId });
         setIsProcessing(false);
+      }
     } catch (error) {
       if (error.response && error.response.status === 404) {
         if(!refresh)
@@ -227,16 +255,18 @@ export default function Find({ handleClose }) {
 
   // Replace Scanner's handleScan with wrappedFind
   return (
-    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-0">
+    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-4">
         <div className="flex justify-start items-center w-full pt-4">
+            { pages.length > 1 && (
             <button
                 type="button"
                 className="text-sm font-semibold text-gray-900 dark:text-dark-100"
                 onClick={goBack}
             >
                 <span className="pr-2" aria-hidden="true">&larr;</span>
-                Go Back
+                Back
             </button>
+            )}
         </div>
       {renderPage(currentPage)}
     </div>

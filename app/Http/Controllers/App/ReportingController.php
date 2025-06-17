@@ -603,20 +603,21 @@ class ReportingController extends Controller
         $data = DB::connection('wings_data')
         ->table('assets.kits')
         ->leftJoin('assets.asset_log', function($join) {
-            $join->on('kits.kit_id', '=', 'asset_log.kit_id');
+            $join->on('kits.id', '=', 'asset_log.kit_id');
                 // ->where('issued', '<=', date("Y-m-d"));
         })
         ->leftJoin('wings_config.users', 'users.id', '=', 'asset_log.user_id')
+        ->leftJoin('assets.kit_items', 'kits.id', '=', 'kit_items.kit_id')
         ->leftJoin('assets.assets as laptop', function($join) {
-            $join->on('kits.asset_id', '=', 'laptop.id')
+            $join->on('kit_items.asset_id', '=', 'laptop.id')
                 ->where('laptop.type', '=', 'Laptop');
         })
         ->leftJoin('assets.assets as telephone', function($join) {
-            $join->on('kits.asset_id', '=', 'telephone.id')
+            $join->on('kit_items.asset_id', '=', 'telephone.id')
                 ->where('telephone.type', '=', 'Telephone');
         })
         ->leftJoin('assets.assets as headset', function($join) {
-            $join->on('kits.asset_id', '=', 'headset.id')
+            $join->on('kit_items.asset_id', '=', 'headset.id')
                 ->where('headset.type', '=', 'Headset');
         })
         ->select(DB::raw("

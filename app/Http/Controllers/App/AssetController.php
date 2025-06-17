@@ -77,11 +77,19 @@ class AssetController extends Controller
         }
 
         $kit = DB::table('assets.kits')
-        ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
-        ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
-        ->where('kit_items.kit_id', $kitHistory->first()->kit_id)
-        ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
-        ->get();
+            ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
+            ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
+            ->where('kit_items.kit_id', $kitHistory->first()->kit_id)
+            ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
+            ->orderByRaw('
+                CASE 
+                    WHEN assets.afs_id > 0 THEN 0 
+                    ELSE 1 
+                END, 
+                assets.afs_id ASC, 
+                assets.alias ASC
+            ')
+            ->get();
 
         if ($asset) {
             return response()->json(['asset' => $asset, 'history' => $history, 'kit' => $kit, 'pat' => $pat], 200);
@@ -105,14 +113,14 @@ class AssetController extends Controller
 
         $log = DB::table('assets.kit_log')
             ->where('kit_id', $request->kit_id)
-            ->select(DB::raw('CAST(kit_log.created_at as DATE) AS created_at'), 'kit_log.asset_id', 'kit_log.type', 'kit_log.kit_id', 'kit_log.user_id', DB::raw('"Log" as type'))
+            ->select(DB::raw('CAST(kit_log.created_at as DATE) AS created_at'), 'kit_log.asset_id', 'kit_log.type', 'kit_log.kit_id', 'kit_log.user_id', DB::raw('"Log" as source'))
             ->orderBy('created_at', 'asc')
             ->get();
 
         $issued = DB::table('assets.asset_log')
             ->where('kit_id', $request->kit_id)
             ->join('wings_config.users', 'users.id', '=', 'asset_log.user_id')
-            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned = false, "Issued", "Returned") as status'), DB::raw('"Issue" as type'))
+            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned = false, "Issued", "Returned") as status'), DB::raw('"Issue" as source'))
             ->orderBy('created_at', 'asc')
             ->get();
 

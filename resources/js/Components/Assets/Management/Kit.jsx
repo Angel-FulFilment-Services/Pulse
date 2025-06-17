@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PlusIcon, Square3Stack3DIcon, ArrowsRightLeftIcon, ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/20/solid'
+import { PlusIcon, Square3Stack3DIcon, ArrowsRightLeftIcon, ArrowRightIcon, ArrowLeftIcon, ArrowDownIcon } from '@heroicons/react/20/solid'
 import { TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify';
 import { Fragment } from 'react'
@@ -13,6 +13,7 @@ import StackedList from '../../Lists/StackedList';
 import UserInput from '../../Forms/UserInput';
 import axios from 'axios';
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog';
+import ScrollHint from '../../Hints/ScrollHint';
 
 export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refreshAsset, refreshKit, data = {} }) {    
     const [kit, setKit] = useState([]);
@@ -22,6 +23,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const historyScrollRef = useRef(null);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -60,12 +62,18 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
 
         if (history && history.length > 0) {
             // Group Log items by date
-            const logGroups = {};
+            const addedGroups = {};
+            const removedGroups = {};
             history.forEach(event => {
-                if (event.type === 'Log') {
+                if (event.source === 'Log' && event.type === 'Added') {
                     const dateKey = format(new Date(event.created_at), "yyyy-MM-dd");
-                    if (!logGroups[dateKey]) logGroups[dateKey] = [];
-                    logGroups[dateKey].push(event);
+                    if (!addedGroups[dateKey]) addedGroups[dateKey] = [];
+                    addedGroups[dateKey].push(event);
+                }
+                if (event.source === 'Log' && event.type === 'Removed') {
+                    const dateKey = format(new Date(event.created_at), "yyyy-MM-dd");
+                    if (!removedGroups[dateKey]) removedGroups[dateKey] = [];
+                    removedGroups[dateKey].push(event);
                 }
             });
 
@@ -74,21 +82,32 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             let idx = 2; // Start from 2 since 1 is Kit Created
 
             // Add grouped Log items
-            Object.entries(logGroups).forEach(([dateKey, events]) => {
+            Object.entries(addedGroups).forEach(([dateKey, events]) => {
                 formattedHistory.push({
                     id: idx++,
-                    content: `${events.length} Items Assigned to Kit`,
+                    content: `${events.length} Item${events.length > 1 ? 's' : ''} Assigned to Kit`,
                     date: format(new Date(dateKey), "do, MMM yy"),
-                    datetime: dateKey,
+                    datetime: new Date(dateKey),
                     icon: ArrowsRightLeftIcon,
                     iconBackground: 'bg-gray-400',
+                });
+            });
+
+            Object.entries(removedGroups).forEach(([dateKey, events]) => {
+                formattedHistory.push({
+                    id: idx++,
+                    content: `${events.length} Item${events.length > 1 ? 's' : ''} Removed from Kit`,
+                    date: format(new Date(dateKey), "do, MMM yy"),
+                    datetime: new Date(dateKey),
+                    icon: TrashIcon,
+                    iconBackground: 'bg-red-500',
                 });
             });
 
             let assignedTo = null;
             // Add issue items and any other types
             history.forEach(event => {
-                if (event.type === 'Issue') {
+                if (event.source === 'Issue') {
                     if (event.status === 'Issued') {
                         assignedTo = event.name;
                     } else if (event.status === 'Returned') {
@@ -100,13 +119,15 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         content: event.status == 'Issued' ? `Kit Assigned To: ${event.target || ''}` : `Kit Returned From: ${event.target || ''}`,
                         target: event.name,
                         date: format(new Date(event.created_at), "do, MMM yy"),
-                        datetime: event.created_at,
+                        datetime: new Date(event.created_at),
                         icon: event.status == 'Issued' ? ArrowRightIcon : ArrowLeftIcon,
                         iconBackground: event.status == 'Issued' ? 'bg-green-500' : 'bg-red-500',
                     });
                 }
                 // Add other types as needed...
             });
+
+            formattedHistory.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
 
             setAssignedTo(assignedTo);
             setHistory(prevHistory => [...prevHistory, ...formattedHistory]);
@@ -119,11 +140,19 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 asset_alias: item.asset_alias,
                 type: item.type,
             }));
+
             formattedItems.sort((a, b) => {
-                if (a.asset_alias && b.asset_alias) {
-                    return a.asset_alias.localeCompare(b.asset_alias);
-                } else if (a.afs_id) {
+                const aHasId = a.afs_id > 0;
+                const bHasId = b.afs_id > 0;
+
+                if (aHasId && bHasId) {
+                    return a.afs_id - b.afs_id; // ascending
+                } else if (!aHasId && !bHasId) {
+                    return (a.asset_alias || '').localeCompare(b.asset_alias || '');
+                } else if (aHasId) {
                     return -1; // a comes before b
+                } else {
+                    return 1; // b comes before a
                 }
             });
             setKitItems(formattedItems);
@@ -329,11 +358,15 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                 </div>
                             </div>
                         </div>
-                        <div className="w-1/2">
+                        <div className="w-1/2 relative">
                             <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Kit History</h3>
-                            <div className="max-h-48 overflow-y-auto flex flex-col divide-y divide-gray-900/10 dark:divide-dark-50/10 border-t border-gray-900/10 dark:border-dark-50/10">
+                            <div
+                                ref={historyScrollRef}
+                                className="overflow-y-auto flex flex-col border-t border-gray-900/10 dark:border-dark-50/10 max-h-48"
+                            >
                                 <SimpleFeed timeline={history || []} />
                             </div>
+                            <ScrollHint scrollRef={historyScrollRef}></ScrollHint>
                         </div>
                     </div>
                     { kitItems && kitItems.length > 0 ? (
@@ -341,7 +374,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Kit Items</h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-72 overflow-y-auto`}>
                                         <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
                                             <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
                                                 <tr>

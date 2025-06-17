@@ -10,6 +10,7 @@ import SimpleFeed from '../../Lists/SimpleFeed';
 import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
+import ScrollHint from '../../Hints/ScrollHint';
 
 export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, changeKit, refreshAsset, refreshKit, data = {} }) {    
     const [asset, setAsset] = useState([]);
@@ -19,6 +20,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
     const [kitId, setKitId] = useState(null);
     const [pat, setPat] = useState([]);
     const [nextPatDue, setNextPatDue] = useState(null);
+    const historyScrollRef = useRef(null);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -231,11 +233,15 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 </div>
                             </div>
                         </div>
-                        <div className="w-1/2">
+                        <div className="w-1/2 relative">
                             <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Asset History</h3>
-                            <div className="max-h-48 overflow-y-auto flex flex-col divide-y divide-gray-900/10 dark:divide-dark-50/10 border-t border-gray-900/10 dark:border-dark-50/10">
+                            <div
+                                ref={historyScrollRef}
+                                className="overflow-y-auto flex flex-col border-t border-gray-900/10 dark:border-dark-50/10 max-h-48"
+                            >
                                 <SimpleFeed timeline={history || []} />
                             </div>
+                            <ScrollHint scrollRef={historyScrollRef}></ScrollHint>
                         </div>
                     </div>
                     { nextPatDue ? (
@@ -309,9 +315,9 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
                                 <div className="w-full">
                                     <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">PAT Testing</h3>
-                                    <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
+                                    <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 py-2.5">
                                         {/* Leave this section blank for now */}
-                                        <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                        <div className={`overflow-x-auto min-h-24 max-h-48 h-48 overflow-y-auto`}>
                                             <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
                                                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
                                                     <BoltIcon className="h-6 w-6 text-yellow-500" />
@@ -327,12 +333,12 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </div>
                         )
                     }
-                    { kit && kit.length > 0 ? (
+                    { !kit && kit.length > 0 ? (
                         <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit - {kitAlias} </h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 h-48 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 lg:max-h-72 overflow-y-auto`}>
                                         <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
                                             <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
                                                 <tr>
@@ -371,11 +377,11 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-y-4 gap-x-8">
+                        <div className="mt-3 flex flex-col gap-y-4 gap-x-8 mb-2">
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit</h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                    <div className={`overflow-x-auto min-h-24 max-h-40 h-40 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto min-h-24 max-h-48 h-48 overflow-y-auto`}>
                                         <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
                                             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
                                                 <Square3Stack3DIcon className="h-6 w-6" />
@@ -395,7 +401,6 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                     <div className="w-full flex items-center justify-between gap-x-4">
                             <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
                             <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
-                            <ButtonControl id="remove_asset" Icon={TrashIcon} iconClass="h-5 w-5 text-white flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md px-3 py-2 text-sm font-semibold bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 w-full" buttonLabel="Remove Asset" onButtonClick={() => {}} />
                     </div>
                 )}
             </div>
