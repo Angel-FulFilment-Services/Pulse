@@ -333,7 +333,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </div>
                         )
                     }
-                    { !kit && kit.length > 0 ? (
+                    { kit && kit.length > 0 ? (
                         <div className="mt-3 flex flex-col gap-y-4 gap-x-8">
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit - {kitAlias} </h3>
