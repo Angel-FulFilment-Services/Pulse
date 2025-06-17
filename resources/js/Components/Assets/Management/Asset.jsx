@@ -42,6 +42,13 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
     useEffect(() => {
         const { asset, history, kit, pat} = data || {};
 
+        setAsset([]);
+        setHistory([]);
+        setKit([]);
+        setKitAlias('Unknown Kit');
+        setKitId(null);
+        setPat([]);
+
         if(asset){
             setAsset(asset);
 
@@ -338,7 +345,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit - {kitAlias} </h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-48 lg:max-h-72 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto rounded-md border border-gray-200 dark:border-dark-700 mt-2 min-h-24 max-h-44 lg:max-h-72 overflow-y-auto`}>
                                         <table className="divide-y divide-gray-200 dark:divide-dark-700 text-sm border-separate border-spacing-0">
                                             <thead className="bg-gray-50 dark:bg-dark-800 sticky top-0">
                                                 <tr>
@@ -381,7 +388,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             <div className="w-full">
                                 <h3 className="font-medium text-gray-900 dark:text-dark-50 mb-2">Member of Kit</h3>
                                 <div className="w-full border-t border-gray-900/10 dark:border-dark-50/10 pt-2">
-                                    <div className={`overflow-x-auto min-h-24 max-h-48 h-48 overflow-y-auto`}>
+                                    <div className={`overflow-x-auto min-h-24 max-h-44 lg:max-h-72 h-44 lg:h-72 overflow-y-auto`}>
                                         <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
                                             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
                                                 <Square3Stack3DIcon className="h-6 w-6" />
