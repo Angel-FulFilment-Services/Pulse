@@ -31,7 +31,7 @@ export default function SelectInput(props) {
       {({ open }) => (
         <>
           { (label || annotation) &&
-            <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">
+            <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100 mb-2">
               {label}
               { annotation && 
                 <span className='text-neutral-500 dark:text-dark-400 font-normal'> {annotation} </span>
@@ -39,7 +39,7 @@ export default function SelectInput(props) {
             </Listbox.Label>
           }
           
-          <div className="relative mt-2">
+          <div className="relative">
               <Listbox.Button className={`relative w-full cursor-default rounded-md bg-white dark:bg-dark-900 py-1.5 pl-3 pr-10 text-left text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ${error ? "ring-red-600 text-red-800 dark:ring-red-700 dark:text-red-900" : "ring-gray-300 dark:ring-dark-600"} focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700 sm:text-sm sm:leading-6`}>
                 <span className={`block truncate ${(typeof selected == "undefined" || !selected.value) && "text-gray-400 dark:text-dark-500"}`}>{typeof selected !== "undefined" && selected.value ? selected.value : `${placeholder}`}</span>
                 <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -91,7 +91,7 @@ export default function SelectInput(props) {
                 ))}
               </Listbox.Options>
             </Transition>
-            {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message}</div>}
+            {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message || error}</div>}
           </div>
         </>
       )}

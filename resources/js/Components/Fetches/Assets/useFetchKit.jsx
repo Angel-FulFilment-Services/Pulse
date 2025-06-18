@@ -18,7 +18,7 @@ const useFetchKit = (startDate, endDate, hrId = null) => {
         setIsLoading(true);
       }, 3000);
 
-      const response = await axios.get('/asset-management/support/kit', {
+      const response = await axios.get('/asset-management/kit', {
         params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate, hr_id: hrId },
         signal: controller.signal, // Attach the AbortController signal
       });

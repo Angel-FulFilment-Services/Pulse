@@ -70,10 +70,13 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                 content: event.content,
                 target: event.target,
                 date: format(new Date(event.created_at), "do, MMM yy"),
-                datetime: event.created_at,
+                datetime: new Date(event.created_at),
                 icon: ArrowsRightLeftIcon,
                 iconBackground: event.icon === 'check' ? 'bg-green-500' : 'bg-gray-400',
             }));
+            
+            formattedHistory.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
             setHistory(prevHistory => [...prevHistory, ...formattedHistory]);
         }
 
@@ -146,12 +149,12 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </p>
                         </div>
                         <div className="flex items-center justify-between flex-shrink-0 pr-1">
-                            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                            <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-600/35 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-600/80 ring-1 ring-inset ring-green-600/20 dark:ring-green-500/20">
                                 Active
                             </span>
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
-                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-theme-600">
+                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 dark:bg-dark-900 dark:text-dark-500 dark:hover:text-dark-400 focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700">
                                 <span className="sr-only">Open options</span>
                                 <EllipsisVerticalIcon className="h-5 w-5" aria-hidden="true" />
                                 </Menu.Button>
@@ -166,14 +169,14 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white dark:bg-dark-900 shadow-lg ring-1 dark:ring-dark-100 dark:ring-opacity-5 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
                                     <Menu.Item>
                                     {({ active }) => (
                                         <a
                                         href="#"
                                         className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                            active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
                                             'flex justify-between px-4 py-2 text-sm'
                                         )}
                                         >
@@ -186,7 +189,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         <a
                                         href="#"
                                         className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                            active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
                                             'flex justify-between px-4 py-2 text-sm'
                                         )}
                                         >
@@ -199,7 +202,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         <button
                                         type="button"
                                         className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                            active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
                                             'flex w-full justify-between px-4 py-2 text-sm'
                                         )}
                                         >
@@ -219,24 +222,24 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             <h3 className="font-medium text-gray-900 dark:text-dark-50">Asset Information</h3>
                             <div className="mt-2 flex flex-col divide-y divide-gray-900/10 dark:divide-dark-50/10 border-t border-gray-900/10 dark:border-dark-50/10">
                                 <div className="flex justify-between py-2 text-sm font-medium">
-                                    <dt className="text-gray-500">Asset ID</dt>
-                                    <dd className="text-gray-900">#{asset.assetId || assetId || '~'}</dd>
+                                    <dt className="text-gray-500 dark:text-dark-400">Asset ID</dt>
+                                    <dd className="text-gray-900 dark:text-dark-100">#{asset.assetId || assetId || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
-                                    <dt className="text-gray-500">Alias</dt>
-                                    <dd className="text-gray-900">{asset.alias || '~'}</dd>
+                                    <dt className="text-gray-500 dark:text-dark-400">Alias</dt>
+                                    <dd className="text-gray-900 dark:text-dark-100">{asset.alias || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
-                                    <dt className="text-gray-500">Type</dt>
-                                    <dd className="text-gray-900">{asset.type || '~'}</dd>
+                                    <dt className="text-gray-500 dark:text-dark-400">Type</dt>
+                                    <dd className="text-gray-900 dark:text-dark-100">{asset.type || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
-                                    <dt className="text-gray-500">Make</dt>
-                                    <dd className="text-gray-900">{asset.make || '~'}</dd>
+                                    <dt className="text-gray-500 dark:text-dark-400">Make</dt>
+                                    <dd className="text-gray-900 dark:text-dark-100">{asset.make || '~'}</dd>
                                 </div>
                                 <div className="flex justify-between py-2 text-sm font-medium">
-                                    <dt className="text-gray-500">Model</dt>
-                                    <dd className="text-gray-900">{asset.model || '~'}</dd>
+                                    <dt className="text-gray-500 dark:text-dark-400">Model</dt>
+                                    <dd className="text-gray-900 dark:text-dark-100">{asset.model || '~'}</dd>
                                 </div>
                             </div>
                         </div>
@@ -311,8 +314,8 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         onButtonClick={() => {
                                             goTo({ type: 'pat', assetId: assetId });
                                         }}
-                                        iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
-                                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" 
+                                        iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" 
                                         buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? formatDueInterval(nextPatDue) : 'N/A')} 
                                     />
                                 </div>
@@ -326,8 +329,8 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         {/* Leave this section blank for now */}
                                         <div className={`overflow-x-auto min-h-24 max-h-36 h-36 overflow-y-auto`}>
                                             <div className="flex items-center justify-center h-full w-full flex-col gap-y-0">
-                                                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-800/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
-                                                    <BoltIcon className="h-6 w-6 text-yellow-500" />
+                                                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-gray-500 dark:text-dark-500 bg-gray-100 dark:bg-dark-700/20 ring ring-gray-600/20 dark:ring-dark-400/20 mb-2">
+                                                    <BoltIcon className="h-6 w-6 text-yellow-500 dark:text-yellow-600" />
                                                 </div>
                                                 <h1 className="text-xl mt-1 font-bold text-gray-900 dark:text-dark-100">PAT Testing Not Required</h1>
                                                 <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
@@ -353,7 +356,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                                     <th className="px-3 py-2 text-right font-semibold text-gray-700 dark:text-dark-200 dark:border-dark-700 border-b border-gray-200 w-full">Asset ID</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="bg-white dark:bg-dark-900">
+                                            <tbody className="bg-white dark:bg-dark-900 dark:text-dark-100">
                                                 {kit && kit.length > 0 ? (
                                                     kit.map((row, idx) => {
                                                         return (
@@ -406,8 +409,8 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                 </div>
                 { kit && kit.length > 0 && (
                     <div className="w-full flex items-center justify-between gap-x-4">
-                            <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
-                            <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                            <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
+                            <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="Process Return" onButtonClick={() => {}} />
                     </div>
                 )}
             </div>

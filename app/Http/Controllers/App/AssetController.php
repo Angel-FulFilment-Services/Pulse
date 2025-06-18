@@ -12,6 +12,7 @@ use App\Models\Asset\Item;
 use App\Models\Asset\PAT;
 use App\Models\HR\Employee;
 use App\Helper\Auditing;
+use App\Models\Asset\EquipmentReturn;
 use Storage;
 use Log;
 use DB;
@@ -47,7 +48,8 @@ class AssetController extends Controller
         ->join('assets.kits', 'kits.id', '=', 'kit_log.kit_id')
         ->select(
             'kit_log.created_at',
-            DB::raw('"Assigned to Kit:" as content'),
+            DB::raw('IF(kit_log.type = "Added", "Assigned to Kit:", "Removed from Kit:") as content'),
+            'kit_log.type',
             'kits.alias as target',
             'kits.id as kit_id'
         )
@@ -120,7 +122,7 @@ class AssetController extends Controller
         $issued = DB::table('assets.asset_log')
             ->where('kit_id', $request->kit_id)
             ->join('wings_config.users', 'users.id', '=', 'asset_log.user_id')
-            ->select('issued_date as created_at', 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned = false, "Issued", "Returned") as status'), DB::raw('"Issue" as source'))
+            ->select(DB::raw('COALESCE(issued_date, returned_date) as created_at'), 'asset_id', 'kit_id', 'user_id', 'users.name', DB::raw('IF(returned = false, "Issued", "Returned") as status'), DB::raw('"Issue" as source'))
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -185,8 +187,6 @@ class AssetController extends Controller
             'asset_id' => 'required|numeric',
         ];
 
-
-
         try {
             $request->validate($rules);
 
@@ -205,7 +205,7 @@ class AssetController extends Controller
 
             DB::table('assets.kit_log')->insert([
                 'kit_id' => $kit->id,
-                'asset_id' => $item->id,
+                'asset_id' => $request->asset_id,
                 'type' => 'Removed',
                 'user_id' => auth()->user()->id,
                 'hr_id' => auth()->user()->employee->hr_id,
@@ -454,6 +454,85 @@ class AssetController extends Controller
         }
     }
 
+    public function processEquipmentReturn(Request $request)
+    {
+        // Validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'notes' => 'nullable|string|max:500',
+            'attachments.*' => 'file|max:10240',
+            'functioning' => 'array',
+            'faulty' => 'array',
+            'damaged' => 'array',
+            'not_returned' => 'array',
+            'user_id' => 'required|numeric',
+        ];
+
+        $messages = [
+            'attachments.*.file' => 'Each attachment must be a valid file.',
+            'attachments.*.max' => 'Each attachment must not exceed 10MB.',
+        ];
+
+        try {
+            $request->validate($rules, $messages);
+
+            // Handle attachments (store in R2)
+            $storedAttachments = [];
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $path = $file->store('returns/attachments', 'r2');
+                    $storedAttachments[] = [
+                        'path' => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                    ];
+                }
+            }
+
+            $user = Employee::where('user_id', '=', $request->user_id)->first();
+            if (!$user) {
+                return response()->json(['message' => 'Employee not found.'], 404);
+            }
+
+            // Store the return record
+            EquipmentReturn::create([
+                'datetime' => now(),
+                'kit_id' => $request->kit_id,
+                'notes' => $request->notes,
+                'attachments' => json_encode($storedAttachments),
+                'items_faulty' => json_encode($request->faulty ?? []),
+                'items_damaged' => json_encode($request->damaged ?? []),
+                'items_functioning' => json_encode($request->functioning ?? []),
+                'items_not_returned' => json_encode($request->not_returned ?? []),
+                'processed_by_hr_id' => auth()->user()->employee->hr_id ?? null,
+                'processed_by_user_id' => auth()->user()->id ?? null,
+                'returned_by_hr_id' => $user->hr_id ?? null,
+                'returned_by_user_id' => $user->user_id ?? null,
+            ]);
+
+            DB::table('assets.asset_log')->insert([
+                'kit_id' => $request->kit_id,
+                'user_id' => $user->user_id,
+                'hr_id' => $user->hr_id,
+                'returned' => true,
+                'returned_date' => date('Y-m-d'),
+            ]);
+
+            // Optionally, log the action
+            Auditing::log('Assets', auth()->user()->id, 'Equipment Return Processed', 'Kit ID: ' . $request->kit_id);
+
+            return response()->json(['message' => 'Equipment return processed successfully!'], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Failed to process equipment return: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to process equipment return.'], 500);
+        }
+    }
+
     public function kit(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
@@ -486,6 +565,22 @@ class AssetController extends Controller
             ->get();
 
         return response()->json($kits);
+    }
+
+    public function assets(Request $request){
+        $assets = DB::table('assets.assets')
+            ->select(
+                'assets.id as id',
+                'assets.afs_id as value', 
+                DB::raw('IF(assets.afs_id > 0 ,IF(assets.alias != "", CONCAT(assets.afs_id, " - ", assets.alias), CONCAT(assets.afs_id, " - ", assets.type)), assets.alias) as displayValue'),
+            )
+            ->where('assets.afs_id', '!=', 0)
+            ->orWhereIn('assets.type', ['Patch Lead', 'USB Power Cable', 'Peripherals', 'Headset'])
+            ->orderBy('assets.afs_id', 'asc')
+            ->orderBy('assets.alias', 'asc')
+            ->get();
+
+        return response()->json($assets);
     }
 
     public function events(Request $request){
@@ -583,7 +678,7 @@ class AssetController extends Controller
         }
     }
 
-    public function save(Request $request){
+    public function saveSupportEvent(Request $request){
 
         // Define validation rules
         $rules = [

@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { MagnifyingGlassIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import useFetchAssets from '../../Fetches/Assets/useFetchAssets';
+import SearchControl from '../../Controls/SearchControl';
 
 // Simple spinner component
 function Spinner() {
@@ -32,6 +34,16 @@ export default function Scanner({ handleScan, handleClose }) {
   const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef(null);
   const codeReader = useRef(null);
+  const [availableAssets, setAvailableAssets] = useState([]);
+
+  const { assets } = useFetchAssets();
+
+  useEffect(() => {
+    const availableAssets = (assets || []).filter(
+          asset => asset.value > '0'
+    );
+    setAvailableAssets(availableAssets);
+  }, [assets]);
 
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
@@ -90,21 +102,27 @@ export default function Scanner({ handleScan, handleClose }) {
       <div className="mb-4 text-center w-full">
         {cameraError ? (
           <>
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-red-600 dark:text-red-600 bg-red-100 dark:bg-red-200/20 ring ring-red-600/20 mb-6">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full text-red-600 dark:text-red-600 bg-red-100 dark:bg-red-200/20 ring ring-red-600/20 mb-6 mt-8">
               <ExclamationTriangleIcon className="h-12 w-12" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Unable to initialise camera</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
               Please check your camera permissions and try again... 
             </p>
-            <button
-              className="mt-4 px-4 py-2 rounded-md text-white bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500"  
-              onClick={() => {
-                handleScan(2200)
-              }}
-            >
-              Simulate Scan
-            </button>
+            <p className="text-base text-gray-600 dark:text-dark-400">
+              Or you can search for an asset below.
+            </p>
+            <div className="w-full mt-6 flex items-center justify-center">
+                <SearchControl
+                  items={availableAssets}
+                  placeholder="Start typing to search for an asset..."
+                  width='w-96'
+                  onSelectChange={(item) => {
+                    if (!item) return;
+                    handleScan(item);
+                  }}
+                />
+            </div>
           </>
         ) : (
           <>

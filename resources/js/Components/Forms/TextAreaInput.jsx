@@ -1,7 +1,7 @@
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 
 export default function TextInput(props) {
-  const { id, label, autoComplete, placeholder, annotation, rows, cols, isDisabled, Icon, currentState, onTextChange, onBlur, error, clearErrors, height = "h-32", maxLength = 1000 } = props;
+  const { id, label, autoComplete, placeholder, annotation, rows, cols, isDisabled, Icon, currentState, onTextChange, onBlur, error, clearErrors, height = "h-32", maxLength = 1000, warnMaxLength } = props;
   
   const handleTextChange = (event) => {
     onTextChange([{id: id, value: event.value}]);
@@ -12,6 +12,9 @@ export default function TextInput(props) {
     <div>
       <label htmlFor={id} className="block text-sm font-medium leading-6 text-gray-900 dark:text-dark-100">
         {label}
+        { warnMaxLength && 
+            <span className={`${currentState.length > (maxLength - maxLength * 0.05) ? "text-red-600 dark:text-red-700" : "text-neutral-500 dark:text-dark-400"} font-normal`}> ({maxLength - currentState.length})</span>
+        }
         { annotation &&
           <span className='text-neutral-500 dark:text-dark-400 font-normal'> {annotation} </span>
         }

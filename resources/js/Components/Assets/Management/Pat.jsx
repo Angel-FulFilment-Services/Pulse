@@ -314,7 +314,7 @@ export default function Pat({ assetId, onCancel, initialData = null, refreshAsse
                         </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full xl:w-2/3">
+                    <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full">
                         <div className="sm:col-span-3 sm:row-start-1">
                             <TextInput
                                 id="alias"
@@ -512,7 +512,7 @@ export default function Pat({ assetId, onCancel, initialData = null, refreshAsse
                 </div>
 
                 {/* Submit and Cancel Buttons */}
-                <div className="mt-6 flex items-center justify-end gap-x-6 w-full xl:w-2/3">
+                <div className="mt-6 flex items-center justify-end gap-x-6 w-full">
                     <button
                         type="button"
                         className="text-sm font-semibold text-gray-900 dark:text-dark-100"

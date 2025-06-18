@@ -9,15 +9,23 @@ import Create from './Create';
 import Asset from './Asset';
 import Pat from './Pat';
 import Kit from './Kit';
+import ReturnKit from '../Management/Return';
 
 export default function Find({ handleClose }) {
   const [pages, setPages] = useState([{ type: 'scanner' }]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Helper to go to a new page (push)
   const goTo = (page) => setPages(prev => [...prev, page]);
-  // Helper to go back (pop)
-  const goBack = () => setPages(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+
+  const goBack = () => {
+    const currentPage = pages[pages.length - 1];
+    if (currentPage.type === 'asset') {
+        asset(currentPage.assetId, true);
+    } else if (currentPage.type === 'kit') {
+        kit(currentPage.kitId, true);
+    }
+    setPages(prev => prev.length > 1 ? prev.slice(0, -1) : prev)
+ };
 
   // Add this function inside your component
   const updatePageAsset = (assetId, data) => {
@@ -248,6 +256,21 @@ export default function Find({ handleClose }) {
                 }}
             />
         )
+      case 'return':
+        return (
+            <ReturnKit
+                data={page.kit}
+                onCancel={goBack}
+                goBack={goBack}
+                kitId={page.kitId}
+                refreshAsset={() => {
+                    asset(page.assetId, true);
+                }}
+                refreshKit={() => {
+                    kit(page.kitId, true);
+                }}
+            />
+        );
       default:
         return null;
     }
@@ -255,7 +278,7 @@ export default function Find({ handleClose }) {
 
   // Replace Scanner's handleScan with wrappedFind
   return (
-    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-4">
+    <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-4 dark:bg-dark-900">
         <div className="flex justify-start items-center w-full pt-4">
             { pages.length > 1 && (
             <button

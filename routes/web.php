@@ -166,8 +166,9 @@ Route::get('/asset-management/support/events', [AssetController::class, 'events'
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'save']);
 Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
-Route::get('/asset-management/support/kit', [AssetController::class, 'kit']);
-Route::get('/asset-management/support/kits', [AssetController::class, 'kits']);
+Route::get('/asset-management/kit', [AssetController::class, 'kit']);
+Route::get('/asset-management/kits', [AssetController::class, 'kits']);
+Route::get('/asset-management/assets', [AssetController::class, 'assets']);
 Route::get('/asset-management/assets/scan', [AssetController::class, 'scan']);
 Route::get('/asset-management/assets/find', [AssetController::class, 'find']);
 Route::get('/asset-management/assets/load', [AssetController::class, 'loadAsset']);
@@ -178,6 +179,7 @@ Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit
 Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
+Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
 
 /*
 |-----------------------

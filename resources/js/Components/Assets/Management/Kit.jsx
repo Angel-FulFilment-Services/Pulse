@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Fragment } from 'react'
 import { Description, Menu, Transition } from '@headlessui/react'
 import { EllipsisVerticalIcon } from '@heroicons/react/20/solid'
-import {TrashIcon as Trash } from '@heroicons/react/24/outline';
+import {PlusCircleIcon, TrashIcon as Trash } from '@heroicons/react/24/outline';
 import SimpleFeed from '../../Lists/SimpleFeed';
 import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
@@ -14,16 +14,21 @@ import UserInput from '../../Forms/UserInput';
 import axios from 'axios';
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog';
 import ScrollHint from '../../Hints/ScrollHint';
+import useFetchAssets from '../../Fetches/Assets/useFetchAssets';
+import SearchControl from '../../Controls/SearchControl';
 
 export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refreshAsset, refreshKit, data = {} }) {    
     const [kit, setKit] = useState([]);
     const [kitItems, setKitItems] = useState([]);
     const [history, setHistory] = useState([]);
     const [assignedTo, setAssignedTo] = useState(null);
+    const [availableAssets, setAvailableAssets] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const historyScrollRef = useRef(null);
+
+    const { assets } = useFetchAssets();
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -41,6 +46,16 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
         if (parts.length === 0) return 'Today';
         return parts.join(', ');
     }
+
+    useEffect(() => {
+        const assignedAfsIds = (kitItems || []).map(item => String(item.afs_id));
+        const availableAssets = (assets || []).filter(
+            asset => !assignedAfsIds.includes(String(asset.value)) || asset.value === 0
+        );
+
+        setAvailableAssets(availableAssets);
+
+    }, [kitItems, assets]);
 
     useEffect(() => {
         const { history, kit, items} = data || {}
@@ -121,7 +136,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         date: format(new Date(event.created_at), "do, MMM yy"),
                         datetime: new Date(event.created_at),
                         icon: event.status == 'Issued' ? ArrowRightIcon : ArrowLeftIcon,
-                        iconBackground: event.status == 'Issued' ? 'bg-green-500' : 'bg-red-500',
+                        iconBackground: event.status == 'Issued' ? 'bg-green-500' : 'bg-gray-400',
                     });
                 }
                 // Add other types as needed...
@@ -136,6 +151,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
         if(items && items.length > 0){
             const formattedItems = items.map((item, index) => ({
                 id: index + 1,
+                asset_id: item.asset_id,
                 afs_id: item.afs_id,
                 asset_alias: item.asset_alias,
                 type: item.type,
@@ -204,12 +220,13 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
         if (!assetId || !kit?.id) return;
         setIsProcessing(true);
         setSelectedItem(null);
-        axios.post(`/asset-management/kits/item/remove`, {
+
+        axios.post(`/asset-management/kits/item/remove`, { 
             asset_id: assetId,
             kit_id: kit.id,
         })
             .then(response => {
-                const updatedItems = kitItems.filter(i => i.afs_id !== item.afs_id);
+                const updatedItems = kitItems.filter(i => i.asset_id !== assetId);
                 setKitItems(updatedItems);
                 setIsDialogOpen(false);
                 setIsProcessing(false);
@@ -230,6 +247,44 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 setIsDialogOpen(false);
                 setIsProcessing(false);
                 toast.error('Failed to remove item from kit. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
+    }
+
+    const addItemToKit = (assetId) => {
+        if (!assetId || !kit?.id) return;
+        setIsProcessing(true);
+        axios.post(`/asset-management/kits/item/add`, {
+            asset_id: assetId,
+            kit_id: kit.id,
+        })
+            .then(response => {
+                const newItem = response.data;
+                setIsProcessing(false);
+                refreshKit();
+                toast.success(`Item added to kit successfully`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            })
+            .catch(error => {
+                console.error('Error adding item to kit:', error);
+                setIsProcessing(false);
+                toast.error('Failed to add item to kit. Please try again.', {
                     position: 'top-center',
                     autoClose: 3000,
                     hideProgressBar: false,
@@ -393,7 +448,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                                                 <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">
                                                                     <div className="flex items-center justify-end gap-x-2">
                                                                         <button
-                                                                            onClick={(event) => {event.stopPropagation(); setSelectedItem(row.asset_id); console.log(row.asset_id); setIsDialogOpen(true);}}
+                                                                            onClick={(event) => {event.stopPropagation(); setSelectedItem(row.asset_id); setIsDialogOpen(true);}}
                                                                         >
                                                                             <Trash
                                                                             className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
@@ -437,9 +492,53 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             </div>
                         </div>
                     )}
+                    <div className="w-full flex items-center justify-center gap-x-1 pt-4">
+                        <SearchControl
+                            id="asset_search"
+                            items={availableAssets}
+                            placeholder="Add Asset to Kit..."
+                            width='w-full'
+                            onSelectChange={(item) => {
+                                if (!item) return;
+                            }}
+                        />
+                        <ButtonControl 
+                            id="add_asset_to_kit" 
+                            Icon={PlusIcon} 
+                            iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0" 
+                            customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-9 dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                            onButtonClick={() => {
+                                const asset = document.getElementById('asset_search').value;
+                                const assetId = assets.find(a => a.displayValue == asset)?.id || assets.find(a => a.value == asset)?.id;
+                                if (!assetId) {
+                                    toast.error('Please select an asset to add to the kit.', {
+                                        position: 'top-center',
+                                        autoClose: 3000,
+                                        hideProgressBar: false,
+                                        closeOnClick: true,
+                                        pauseOnHover: false,
+                                        draggable: true,
+                                        progress: undefined,
+                                        theme: 'light',
+                                    });
+                                    return;
+                                }
+                                addItemToKit(assetId);
+                            }} 
+                        />
+                    </div>
                 </div>
                 <div className="w-full flex items-center justify-between gap-x-4">
-                    <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full" buttonLabel="Process Return" onButtonClick={() => {}} />
+                    <ButtonControl 
+                        id="process_return" 
+                        Icon={ArrowUturnLeftIcon} 
+                        iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                        buttonLabel="Process Return" 
+                        onButtonClick={() => {
+                            goTo({ type: 'return', kitId: kit.id, kit: data });
+                        }}
+                    />
                 </div>
             </div>
             <ConfirmationDialog
