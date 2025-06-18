@@ -314,6 +314,38 @@ class AssetController extends Controller
         }
     }
 
+    public function markKit(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_id' => 'required|numeric',
+            'status' => 'required|boolean',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::find($request->kit_id);
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            // Update the kit status
+            $kit->update(['status' => $request->status]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Kit Status Updated', 'Kit ID: ' . $request->kit_id . ', New Status: ' . $request->status);
+
+            return response()->json(['message' => 'Kit status updated successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update kit status: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update kit status.'], 500);
+        }
+    }
+
     public function createAsset(Request $request){
         // Define validation rules
         $rules = [
@@ -392,6 +424,38 @@ class AssetController extends Controller
         }
     }
 
+    public function markAsset(Request $request){
+        // Define validation rules
+        $rules = [
+            'asset_id' => 'required|numeric',
+            'status' => 'required|string|in:Active,Retired,Lost,Stolen,Recycled',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $asset = Asset::find($request->asset_id);
+            if(!$asset) {
+                return response()->json(['message' => 'Asset not found.'], 404);
+            }
+
+            // Update the asset status
+            $asset->update(['status' => $request->status]);
+
+            Auditing::log('Assets', auth()->user()->id, 'Asset Status Updated', 'Asset ID: ' . $request->asset_id . ', New Status: ' . $request->status);
+
+            return response()->json(['message' => 'Asset status updated successfully!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update asset status: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update asset status.'], 500);
+        }
+    }
+
     public function processPatTest(Request $request){
         // Define validation rules
         $rules = [
@@ -454,8 +518,7 @@ class AssetController extends Controller
         }
     }
 
-    public function processEquipmentReturn(Request $request)
-    {
+    public function processEquipmentReturn(Request $request){
         // Validation rules
         $rules = [
             'kit_id' => 'required|numeric',
@@ -509,6 +572,50 @@ class AssetController extends Controller
                 'returned_by_user_id' => $user->user_id ?? null,
             ]);
 
+            if($request->retire = true){
+                foreach ($request->faulty ?? [] as $item) {
+                    DB::table('assets.kit_log')->insert([
+                        'kit_id' => $request->kit_id,
+                        'asset_id' => $item,
+                        'type' => 'Removed',
+                        'user_id' => auth()->user()->id,
+                        'hr_id' => auth()->user()->employee->hr_id,
+                        'created_at' => now(),
+                    ]);
+
+                    Item::where('kit_id', $request->kit_id)
+                        ->where('asset_id', $item)
+                        ->delete();
+
+                    $asset = Asset::find($item);
+                    if ($asset && !in_array($asset->type, ['Furniture', 'Patch Lead', 'USB Power Cable', 'Peripherals'])) {    
+                        Asset::where('id', $item)
+                            ->update(['status' => 'Retired']);
+                    }
+                }
+
+                foreach ($request->damaged ?? [] as $item) {
+                    DB::table('assets.kit_log')->insert([
+                        'kit_id' => $request->kit_id,
+                        'asset_id' => $item,
+                        'type' => 'Removed',
+                        'user_id' => auth()->user()->id,
+                        'hr_id' => auth()->user()->employee->hr_id,
+                        'created_at' => now(),
+                    ]);
+
+                    Item::where('kit_id', $request->kit_id)
+                        ->where('asset_id', $item)
+                        ->delete();
+
+                    $asset = Asset::find($item);
+                    if ($asset && !in_array($asset->type, ['Furniture', 'Patch Lead', 'USB Power Cable', 'Peripherals'])) {
+                        Asset::where('id', $item)
+                            ->update(['status' => 'Damaged']);
+                    }
+                }
+            }
+
             DB::table('assets.asset_log')->insert([
                 'kit_id' => $request->kit_id,
                 'user_id' => $user->user_id,
@@ -516,7 +623,7 @@ class AssetController extends Controller
                 'returned' => true,
                 'returned_date' => date('Y-m-d'),
             ]);
-
+            
             // Optionally, log the action
             Auditing::log('Assets', auth()->user()->id, 'Equipment Return Processed', 'Kit ID: ' . $request->kit_id);
 

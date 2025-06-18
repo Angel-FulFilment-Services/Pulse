@@ -15,7 +15,7 @@ const STATUS_OPTIONS = [
   { value: 'Not Returned' },
 ];
 
-export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAssets, initialData = null }) {
+export default function ReturnKit({ data, onCancel, goBack, refreshKit, refreshAsset, initialData = null }) {
     const { kit, history, items } = data || {}
 
     const RETIRE_OPTIONS = [
@@ -217,6 +217,8 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAs
         throw new Error('Failed to process equipment return');
       }
 
+      refreshKit();
+      refreshAsset();
       setIsProcessing(false);
       setIsSuccess(true);
       toast.success('Equipment return submitted successfully!', { position: 'top-center' });
@@ -268,6 +270,53 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAs
         });
     };
 
+    const markKit = (status) => {
+      if (!kit || !kit.id) {
+          toast.error('No asset selected to mark.', {
+              position: 'top-center',
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: false,
+              draggable: true,
+              progress: undefined,
+              theme: 'light',
+          });
+          return;
+      }
+      setIsProcessing(true);
+      // Call the API to retire the asset
+      axios.post('/asset-management/assets/mark', { kit_id: kit.id, status: status })
+          .then(response => {
+              toast.success(`Kit #${asset.afs_id} has been marked as "${status}" successfully.`, {
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+              });
+              // Optionally, you can refresh the asset data or redirect
+              refreshAsset(asset.assetId);
+              setIsProcessing(false);
+          })
+          .catch(error => {
+              console.error('Error retiring asset:', error);
+              toast.error(`Failed to mark asset #${asset.afs_id} as "${status}". Please try again.`, {
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+              });
+          });
+  }
+
   return (
     <div className="w-full h-full overflow-y-auto">
       <div className="space-y-3 h-full relative">
@@ -298,7 +347,8 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAs
         <div className="mt-4 w-full">
           <div className="flex flex-row items-center justify-between mb-2 w-full">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-100">
-                Asset Condition Checklist
+                Asset Condition Checklist 
+                <span className="text-neutral-500 dark:text-dark-400 font-normal ml-1">(Required)</span>
             </h3>
             <div>
                 <ButtonControl
@@ -314,7 +364,7 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAs
             {items.map(item => (
               <div key={item.asset_id} className="flex flex-row items-center justify-between py-1.5">
                 <div className="w-1/2 lock text-sm font-base leading-6 text-gray-900 dark:text-dark-100">
-                  - {item.asset_alias ? `${item.asset_alias} (${item.type})` : item.type} <span className="text-neutral-500 dark:text-dark-400 font-normal">(Required)</span>
+                  - {item.asset_alias ? `${item.asset_alias} (${item.type})` : item.type}
                 </div>
                 <div className="max-w-52 w-full">
                   <SelectInput
@@ -335,7 +385,7 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refrehAs
         {/* Retire Checkbox */}
         <div className="mt-3 w-full xl:w-2/3 flex flex-col">
             <span className="text-sm font-medium text-gray-900 dark:text-dark-100 mb-3">
-                Retire any faulty / damage equipment
+                Retire and remove any faulty / damaged equipment
             </span>
             <div className="max-w-40 w-full">
                 <SelectInput

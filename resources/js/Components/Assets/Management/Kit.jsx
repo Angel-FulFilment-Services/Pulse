@@ -79,6 +79,9 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             // Group Log items by date
             const addedGroups = {};
             const removedGroups = {};
+
+            history.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
             history.forEach(event => {
                 if (event.source === 'Log' && event.type === 'Added') {
                     const dateKey = format(new Date(event.created_at), "yyyy-MM-dd");
@@ -102,7 +105,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                     id: idx++,
                     content: `${events.length} Item${events.length > 1 ? 's' : ''} Assigned to Kit`,
                     date: format(new Date(dateKey), "do, MMM yy"),
-                    datetime: new Date(dateKey),
+                    datetime: events[0].created_at,
                     icon: ArrowsRightLeftIcon,
                     iconBackground: 'bg-gray-400',
                 });
@@ -113,13 +116,14 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                     id: idx++,
                     content: `${events.length} Item${events.length > 1 ? 's' : ''} Removed from Kit`,
                     date: format(new Date(dateKey), "do, MMM yy"),
-                    datetime: new Date(dateKey),
+                    datetime: events[0].created_at,
                     icon: TrashIcon,
                     iconBackground: 'bg-red-500',
                 });
             });
 
             let assignedTo = null;
+
             // Add issue items and any other types
             history.forEach(event => {
                 if (event.source === 'Issue') {
@@ -134,7 +138,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         content: event.status == 'Issued' ? `Kit Assigned To: ${event.target || ''}` : `Kit Returned From: ${event.target || ''}`,
                         target: event.name,
                         date: format(new Date(event.created_at), "do, MMM yy"),
-                        datetime: new Date(event.created_at),
+                        datetime: event.created_at,
                         icon: event.status == 'Issued' ? ArrowRightIcon : ArrowLeftIcon,
                         iconBackground: event.status == 'Issued' ? 'bg-green-500' : 'bg-gray-400',
                     });
@@ -177,7 +181,6 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
 
     const assignKit = (user) => {
         if(user){
-            console.log('Assigned To:', user);
             axios.post(`/asset-management/kits/assign`,{
                 user_id: user,
                 kit_id: kit.id,
@@ -316,9 +319,15 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             </p>
                         </div>
                         <div className="flex items-center justify-between flex-shrink-0 pr-1">
-                            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                Active
-                            </span>
+                            { kit.active ? (
+                                <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                    Active
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                                    Inactive
+                                </span>
+                            )}
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
                                 <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-theme-600">
@@ -338,7 +347,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             >
                                 <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
-                                    <Menu.Item>
+                                    {/* <Menu.Item>
                                     {({ active }) => (
                                         <a
                                         href="#"
@@ -350,30 +359,17 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                         <span>Edit</span>
                                         </a>
                                     )}
-                                    </Menu.Item>
-                                    <Menu.Item>
-                                    {({ active }) => (
-                                        <a
-                                        href="#"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                            'flex justify-between px-4 py-2 text-sm'
-                                        )}
-                                        >
-                                        <span>Retire</span>
-                                        </a>
-                                    )}
-                                    </Menu.Item>
+                                    </Menu.Item> */}
                                     <Menu.Item>
                                     {({ active }) => (
                                         <button
-                                        type="button"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                            'flex w-full justify-between px-4 py-2 text-sm'
-                                        )}
+                                            type="button"
+                                            className={classNames(
+                                                active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                                'flex justify-between px-4 py-2 text-sm w-full'
+                                            )}
                                         >
-                                        <span>Mark as Lost</span>
+                                            <span>Retire</span>
                                         </button>
                                     )}
                                     </Menu.Item>
@@ -528,18 +524,22 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         />
                     </div>
                 </div>
-                <div className="w-full flex items-center justify-between gap-x-4">
-                    <ButtonControl 
-                        id="process_return" 
-                        Icon={ArrowUturnLeftIcon} 
-                        iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
-                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
-                        buttonLabel="Process Return" 
-                        onButtonClick={() => {
-                            goTo({ type: 'return', kitId: kit.id, kit: data });
-                        }}
-                    />
-                </div>
+                {
+                    assignedTo && (
+                        <div className="w-full flex items-center justify-between gap-x-4">
+                            <ButtonControl 
+                                id="process_return" 
+                                Icon={ArrowUturnLeftIcon} 
+                                iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                                customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                                buttonLabel="Process Return" 
+                                onButtonClick={() => {
+                                    goTo({ type: 'return', kitId: kit.id, kit: data });
+                                }}
+                            />
+                        </div>
+                    )
+                }
             </div>
             <ConfirmationDialog
                 isOpen={isDialogOpen}
