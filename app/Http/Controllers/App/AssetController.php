@@ -544,7 +544,8 @@ class AssetController extends Controller
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
             ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
             ->where('hr_id', $hrId)
-            ->where('asset_log.returned', null)
+            ->where('issued', true)
+            ->where('asset_log.returned', false)
             ->get();
 
         $device = $items->where('type', 'Telephone')->pluck('alias')->first();

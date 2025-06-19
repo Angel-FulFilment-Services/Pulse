@@ -164,7 +164,7 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 */
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
-Route::post('/asset-management/support/events/save', [AssetController::class, 'save']);
+Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);
 Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
 Route::get('/asset-management/kit', [AssetController::class, 'kit']);
 Route::get('/asset-management/kits', [AssetController::class, 'kits']);
