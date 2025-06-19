@@ -174,6 +174,7 @@ Route::get('/asset-management/assets/find', [AssetController::class, 'find']);
 Route::get('/asset-management/assets/load', [AssetController::class, 'loadAsset']);
 Route::post('/asset-management/assets/create', [AssetController::class, 'createAsset']);
 Route::post('/asset-management/assets/pat-test/process', [AssetController::class, 'processPatTest']);
+Route::post('/asset-management/assets/mark', [AssetController::class, 'markAsset']);
 Route::get('/asset-management/kits/load', [AssetController::class, 'loadKit']);
 Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit']);
 Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);

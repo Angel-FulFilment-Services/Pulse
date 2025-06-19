@@ -11,6 +11,7 @@ import { format, addYears, intervalToDuration, isBefore } from 'date-fns';
 import ButtonControl from '../../Controls/ButtonControl';
 import StackedList from '../../Lists/StackedList';
 import ScrollHint from '../../Hints/ScrollHint';
+import axios from 'axios';
 
 export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, changeKit, refreshAsset, refreshKit, data = {} }) {    
     const [asset, setAsset] = useState([]);
@@ -20,6 +21,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
     const [kitId, setKitId] = useState(null);
     const [pat, setPat] = useState([]);
     const [nextPatDue, setNextPatDue] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const historyScrollRef = useRef(null);
 
     function formatDueInterval(dueDate) {
@@ -65,6 +67,8 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
         }
 
         if(history && history.length > 0){
+            history.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
             const formattedHistory = history.map((event, index) => ({
                 id: index + 2, // Start from 2 since we already have one event
                 content: event.content,
@@ -75,8 +79,6 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                 iconBackground: event.icon === 'check' ? 'bg-green-500' : 'bg-gray-400',
             }));
             
-            formattedHistory.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
-
             setHistory(prevHistory => [...prevHistory, ...formattedHistory]);
         }
 
@@ -130,8 +132,72 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
         onCancel();
     }
 
+    const markAsset = (status) => {
+        if (!asset || !asset.id) {
+            toast.error('No asset selected to mark.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+            return;
+        }
+        setIsProcessing(true);
+        // Call the API to retire the asset
+        axios.post('/asset-management/assets/mark', { asset_id: asset.id, status: status })
+            .then(response => {
+                toast.success(`Asset #${asset.afs_id} has been marked as "${status}" successfully.`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+                // Optionally, you can refresh the asset data or redirect
+                refreshAsset(asset.assetId);
+                setIsProcessing(false);
+            })
+            .catch(error => {
+                console.error('Error retiring asset:', error);
+                toast.error(`Failed to mark asset #${asset.afs_id} as "${status}". Please try again.`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
+    }
+
     function classNames(...classes) {
         return classes.filter(Boolean).join(' ')
+    }
+
+    const getStatus = () => {
+        if (!asset || !asset.status) return { label: 'Unknown', color: 'gray' };
+        
+        switch (asset.status) {
+            case 'Active':
+                return { label: 'Active', color: 'green' };
+            case 'Retired':
+                return { label: 'Retired', color: 'yellow' };
+            case 'Damaged':
+                return { label: 'Damaged', color: 'red' };
+            case 'Lost':
+                return { label: 'Lost', color: 'yellow' };
+            default:
+                return { label: 'Unknown', color: 'gray' };
+        }
     }
 
     return (
@@ -149,9 +215,15 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             </p>
                         </div>
                         <div className="flex items-center justify-between flex-shrink-0 pr-1">
-                            <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-600/35 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-600/80 ring-1 ring-inset ring-green-600/20 dark:ring-green-500/20">
-                                Active
-                            </span>
+                            {(() => {
+                                const status = getStatus();
+                                let pillClass = "inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium ring-1 ring-inset ";
+                                if (status.color === 'green') pillClass += "bg-green-50 text-green-700 ring-green-600/20";
+                                else if (status.color === 'red') pillClass += "bg-red-50 text-red-700 ring-red-600/20";
+                                else if (status.color === 'yellow') pillClass += "bg-yellow-50 text-yellow-700 ring-yellow-600/20";
+                                else pillClass += "bg-gray-100 text-gray-700 ring-gray-600/20";
+                                return <span className={pillClass}>{status.label}</span>;
+                            })()}
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
                                 <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 dark:bg-dark-900 dark:text-dark-500 dark:hover:text-dark-400 focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700">
@@ -171,7 +243,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                             >
                                 <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white dark:bg-dark-900 shadow-lg ring-1 dark:ring-dark-100 dark:ring-opacity-5 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
-                                    <Menu.Item>
+                                    {/* <Menu.Item>
                                     {({ active }) => (
                                         <a
                                         href="#"
@@ -183,33 +255,79 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                         <span>Edit</span>
                                         </a>
                                     )}
-                                    </Menu.Item>
-                                    <Menu.Item>
-                                    {({ active }) => (
-                                        <a
-                                        href="#"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
-                                            'flex justify-between px-4 py-2 text-sm'
+                                    </Menu.Item> */}
+                                    { asset && asset.status !== 'Retired' && asset.status !== 'Damaged' && asset.status !== 'Lost' ? (
+                                        <Menu.Item>
+                                        {({ active }) => (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    markAsset('Retired');
+                                                }}
+                                                className={classNames(
+                                                    active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                    'flex justify-between px-4 py-2 text-sm w-full'
+                                                )}
+                                            >
+                                                <span>Retire</span>
+                                            </button>
                                         )}
-                                        >
-                                        <span>Retire</span>
-                                        </a>
-                                    )}
-                                    </Menu.Item>
-                                    <Menu.Item>
-                                    {({ active }) => (
-                                        <button
-                                        type="button"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
-                                            'flex w-full justify-between px-4 py-2 text-sm'
-                                        )}
-                                        >
-                                        <span>Mark as Lost</span>
-                                        </button>
-                                    )}
-                                    </Menu.Item>
+                                        </Menu.Item>
+                                    ) : null}
+                                    { asset && asset.status !== 'Retired' && asset.status !== 'Damaged' && asset.status !== 'Lost' ? (
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        markAsset('Lost');
+                                                    }}
+                                                    className={classNames(
+                                                        active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                        'flex w-full justify-between px-4 py-2 text-sm text-left'
+                                                    )}
+                                                >
+                                                    <span>Mark as Lost</span>
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    ) : null}
+                                    { asset && asset.status !== 'Retired' && asset.status !== 'Damaged' && asset.status !== 'Lost' ? (
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        markAsset('Damaged');
+                                                    }}
+                                                    className={classNames(
+                                                        active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                        'flex w-full justify-between px-4 py-2 text-sm text-left'
+                                                    )}
+                                                >
+                                                    <span>Mark as Damaged</span>
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    ) : null}
+                                    { asset && (asset.status == 'Retired' || asset.status == 'Damaged' || asset.status == 'Lost') ? (
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        markAsset('Active');
+                                                    }}
+                                                    className={classNames(
+                                                        active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                        'flex w-full justify-between px-4 py-2 text-sm text-left'
+                                                    )}
+                                                >
+                                                    <span>Reactivate</span>
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    ) : null}
                                 </div>
                                 </Menu.Items>
                             </Transition>
@@ -410,7 +528,6 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                 { kit && kit.length > 0 && (
                     <div className="w-full flex items-center justify-between gap-x-4">
                             <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
-                            <ButtonControl id="process_return" Icon={ArrowUturnLeftIcon} iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="Process Return" onButtonClick={() => {}} />
                     </div>
                 )}
             </div>

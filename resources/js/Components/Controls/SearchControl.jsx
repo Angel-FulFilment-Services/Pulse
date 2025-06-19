@@ -135,10 +135,6 @@ export default function SearchControl({
                     item,
                     style: {
                       ...style,
-                      backgroundColor:
-                        highlightedIndex === index
-                          ? "rgb(243 244 246 / var(--tw-bg-opacity,1))"
-                          : "",
                       fontWeight: selectedItem && selectedItem.id === item.id ? "bold" : "normal",
                       padding: "8px 12px",
                       cursor: "pointer",

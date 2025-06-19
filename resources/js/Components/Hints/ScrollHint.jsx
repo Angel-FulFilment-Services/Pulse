@@ -32,7 +32,7 @@ export default function ScrollHint({ scrollRef, children }) {
 
     return showHint ? (
         <div className="absolute bottom-0 left-0 w-full pointer-events-none -mb-1">
-            <div className="flex items-center justify-center w-full text-gray-500 dark:text-dark-500 bg-gradient-to-t from-white dark:from-dark-900/90 to-transparent">
+            <div className="flex items-center h-10 justify-center w-full text-gray-500 dark:text-dark-500 bg-gradient-to-t from-white dark:from-dark-900/90 to-transparent">
                 <span className="text-sm flex items-center justify-center gap-x-1 p-0.5 rounded-full bg-gray-100 ring-1 ring-gray-200 dark:bg-dark-800/20 dark:ring-dark-700 animate-bounce">
                     <ArrowDownIcon className="inline h-3 w-3" />
                     {children}
