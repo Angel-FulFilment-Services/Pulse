@@ -139,7 +139,7 @@ const rotaReportsConfig = [
             targetDirection: 'asc',
             prefix: "",
             suffix: "%",
-            numeratorId: "worked_duration_hours", 
+            numeratorId: "worked_duration_hours_excl_breaks", 
             denominatorId: "shift_duration_hours",
             cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
