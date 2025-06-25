@@ -17,6 +17,7 @@ use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\ReportingController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
+use App\Http\Controllers\App\SiteController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -181,6 +182,13 @@ Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassig
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
+
+/*
+|-----------------------
+| OnSite
+|-----------------------
+*/
+Route::get('/onsite/access-control', [SiteController::class, 'accessControl'])->name('onsite.access_control');
 
 /*
 |-----------------------
