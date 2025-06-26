@@ -157,6 +157,7 @@ Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name(
 
 Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware('log.access');
 Route::get('/users', [UserController::class, 'users'])->name('users');
+Route::get('/employees', [UserController::class, 'employees'])->name('employees')->withoutMiddleware('auth', 'twofactor', 'log.access');
 
 /*
 |-----------------------

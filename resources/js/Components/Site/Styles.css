@@ -25,6 +25,13 @@
     animation-duration: 0.2s;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 
 @keyframes fadeIn {
     0% {

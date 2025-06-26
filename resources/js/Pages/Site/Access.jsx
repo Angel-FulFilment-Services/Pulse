@@ -9,6 +9,7 @@ import SignInContractorForm from '../../Components/Site/SignInContractorForm';
 import SignOutList from '../../Components/Site/SignOutList';
 import WelcomeMessage from '../../Components/Site/WelcomeMessage';
 import GoodbyeMessage from '../../Components/Site/GoodbyeMessage';
+import ThankYouMessage from '../../Components/Site/ThankYouMessage';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function Access() {
@@ -16,14 +17,8 @@ export default function Access() {
   const [signInType, setSignInType] = useState(null);
   const [scannedQR, setScannedQR] = useState(null);
 
-
-  console.log(step);
-
-  // ...other state for form data
-
   // Example handlers
   const handleSplashContinue = () => setStep('mode');
-  const handleModeSelect = (mode) => {setStep(mode === 'signin' ? 'scan' : 'signout')};
   const handleScan = (qr) => {
     setScannedQR(qr);
     setStep('signin-type');
@@ -49,7 +44,7 @@ export default function Access() {
         </div>
         <div className="flex h-full w-full gap-x-10 pt-14 pb-16">
           <div className="w-1/2 flex justify-center items-center">
-            <ModeSelector onSelect={handleModeSelect} />
+            <ModeSelector setStep={setStep} />
           </div>
           <div className="w-1/2">
             <QRScannerPanel handleScan={handleScan} />
@@ -57,7 +52,6 @@ export default function Access() {
         </div>
       </div>
   );
-  if (step === 'scan') return <SignInTypeSelector onSelect={handleSignInType} setStep={setStep} />;
   if (step === 'signin-type') return <SignInTypeSelector onSelect={handleSignInType} setStep={setStep} />;
   if (step === 'signin-employee') return <SignInEmployeeForm onComplete={handleSignInComplete} setStep={setStep} />;
   if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} />;
@@ -65,5 +59,6 @@ export default function Access() {
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} />;
   if (step === 'welcome') return <WelcomeMessage />;
   if (step === 'goodbye') return <GoodbyeMessage />;
+  if (step === 'thank-you') return <ThankYouMessage />;
   return null;
 }
