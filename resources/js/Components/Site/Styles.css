@@ -34,7 +34,7 @@
 }
 
 .keyboard-visible {
-    transform: translateY(-30%);
+    transform: translateY(-40%);
     transition: transform 0.3s ease-in-out;
   }
 

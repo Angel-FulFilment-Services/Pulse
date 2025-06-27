@@ -125,9 +125,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           onClick={() => setStep('splash')}
         />
       </div>
-      <div className={`flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14 ${
-        keyboardVisible ? 'keyboard-visible' : ''
-      }`}>
+      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
           <div className={`pt-16 px-36 ${animationClass}`}>
@@ -147,7 +145,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           </div>
 
           {/* Continue Button */}
-          <div className="flex flex-row items-end justify-end w-full h-full z-10 relative">
+          <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative ${keyboardVisible ? 'keyboard-visible' : ''}`}>
             <div className="flex-shrink-0">
               <button
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
