@@ -21,6 +21,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
     const handleResize = () => {
       // Check if the viewport height has decreased (keyboard is visible)
       if (window.visualViewport.height < window.innerHeight) {
+        window.scrollTo(0, 0);
         setKeyboardVisible(true);
       } else {
         setKeyboardVisible(false);
@@ -31,19 +32,6 @@ export default function SignInContractorForm({ onComplete, setStep }) {
 
     return () => {
       window.visualViewport.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleFocus = () => {
-      window.scrollTo(0, 0);
-    };
-  
-    const inputs = document.querySelectorAll('input');
-    inputs.forEach((input) => input.addEventListener('focus', handleFocus));
-  
-    return () => {
-      inputs.forEach((input) => input.removeEventListener('focus', handleFocus));
     };
   }, []);
 
