@@ -128,7 +128,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
       <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
-          <div className={`pt-16 px-36 ${animationClass}`}>
+          <div className={`px-36 ${animationClass}`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
               type="text"
