@@ -5,7 +5,7 @@ import axios from 'axios';
 import UserIcon from '../User/UserIcon';
 
 export default function SignInEmployeeForm({ onComplete, setStep }) {
-  const [guid, setGuid] = useState('');
+  const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [employees, setEmployees] = useState([]); // State to store the list of employees
@@ -31,7 +31,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
       // Check if only one result is returned and the query matches the employee's name
       if (employeesData.length === 1 && employeesData[0].name.toLowerCase() === query.toLowerCase()) {
         setName(employeesData[0].name); // Set the name to the employee's name
-        setGuid(employeesData[0].qr_token); // Set the guid to the employee's qr_token
+        setId(employeesData[0].id); // Set the guid to the employee's qr_token
         setEmployees(employeesData);
       } else {
         setEmployees(employeesData); // Update the state with the list of employees
@@ -68,9 +68,9 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
     setDebounceTimeout(newTimeout);
   };
 
-  const handleButtonClick = (employeeName, guid) => {
+  const handleButtonClick = (employeeName, id) => {
     setName(employeeName);
-    setGuid(guid);
+    setId(id);
   }
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
                       {employees.map((employee, index) => (
                         <button
                           key={index}
-                          onClick={handleButtonClick.bind(null, employee.name, employee.qr_token)}
+                          onClick={() => {handleButtonClick.bind(null, employee.name, employee.id); handleContinue()}}
                           className="px-3.5 pr-6 flex-shrink-0 h-full py-3 bg-white text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
                         >
                           <UserIcon size="extra-large" profilePhoto={employee.profile_photo} />
@@ -147,7 +147,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
             </div>
             <div className="flex-shrink-0">
               <button
-                disabled={!guid.trim() && name.length}
+                disabled={!id && name.length}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
                 onClick={handleContinue}
               >

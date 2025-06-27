@@ -72,17 +72,4 @@ class UserController extends Controller
 
         return response()->json($users, 200);
     }
-
-    public function employees(Request $request){
-        // Fetch all employees with their HR details
-        $employees = User::where('client_ref', '=', 'ANGL')
-            ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
-            ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title', 'users.qr_token')
-            ->groupBy('users.id')
-            ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
-            ->orderBy('name', 'asc')
-            ->get();
-
-        return response()->json($employees, 200);
-    }
 }

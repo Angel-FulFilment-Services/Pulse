@@ -11,22 +11,19 @@ import WelcomeMessage from '../../Components/Site/WelcomeMessage';
 import GoodbyeMessage from '../../Components/Site/GoodbyeMessage';
 import ThankYouMessage from '../../Components/Site/ThankYouMessage';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export default function Access() {
   const [step, setStep] = useState('splash'); // splash, mode, scan, signin-type, signin-employee, signin-visitor, signin-contractor, signout, welcome, goodbye
   const [signInType, setSignInType] = useState(null);
-  const [scannedQR, setScannedQR] = useState(null);
 
   // Example handlers
   const handleSplashContinue = () => setStep('mode');
-  const handleScan = (qr) => {
-    setScannedQR(qr);
-    setStep('signin-type');
-  };
   const handleSignInType = (type) => {
     setSignInType(type);
     setStep(`signin-${type}`);
-  };
+  }
   const handleSignInComplete = () => setStep('welcome');
   const handleSignOutComplete = () => setStep('goodbye');
 
@@ -47,7 +44,7 @@ export default function Access() {
             <ModeSelector setStep={setStep} />
           </div>
           <div className="w-1/2">
-            <QRScannerPanel handleScan={handleScan} />
+            <QRScannerPanel setStep={setStep} />
           </div>
         </div>
       </div>
@@ -57,8 +54,8 @@ export default function Access() {
   if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} />;
   if (step === 'signin-contractor') return <SignInContractorForm onComplete={handleSignInComplete} setStep={setStep} />;
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} />;
-  if (step === 'welcome') return <WelcomeMessage />;
-  if (step === 'goodbye') return <GoodbyeMessage />;
-  if (step === 'thank-you') return <ThankYouMessage />;
+  if (step === 'welcome') return <WelcomeMessage setStep={setStep} />;
+  if (step === 'goodbye') return <GoodbyeMessage setStep={setStep} />;
+  if (step === 'thank-you') return <ThankYouMessage setStep={setStep} />;
   return null;
 }
