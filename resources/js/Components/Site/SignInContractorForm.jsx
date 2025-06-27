@@ -144,6 +144,8 @@ export default function SignInContractorForm({ onComplete, setStep }) {
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
 
+          {keyboardVisible && <div style={{ height: '30vh' }} />}
+
           {/* Continue Button */}
           <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative ${keyboardVisible ? 'keyboard-visible' : ''}`}>
             <div className="flex-shrink-0">
