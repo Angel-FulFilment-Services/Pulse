@@ -101,9 +101,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
 
   return (
     <div
-      className={`fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full ${
-        keyboardVisible ? 'keyboard-visible' : ''
-      }`}
+      className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full"
     >
       <div className="flex items-center justify-between w-full h-16">
         <ArrowLeftIcon
@@ -127,7 +125,9 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           onClick={() => setStep('splash')}
         />
       </div>
-      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
+      <div className={`flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14 ${
+        keyboardVisible ? 'keyboard-visible' : ''
+      }`}>
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
           <div className={`pt-16 px-36 ${animationClass}`}>
