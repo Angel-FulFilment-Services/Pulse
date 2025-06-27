@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
+import './Styles.css'; // Import your CSS for animations
 
 const inputs = [
   { label: 'Full Name', key: 'fullName' },

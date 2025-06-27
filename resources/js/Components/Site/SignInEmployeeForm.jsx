@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import './styles.css';
+import './Styles.css';
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
 

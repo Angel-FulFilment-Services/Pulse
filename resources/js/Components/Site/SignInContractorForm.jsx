@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import './Styles.css'; // Import your CSS for animations
 
 const inputs = [
   { label: 'Full Name', key: 'fullName' },
