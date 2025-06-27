@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import './styles.css';
+import './Styles.css';
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
+import { toast } from 'react-toastify';
 
 export default function SignInEmployeeForm({ onComplete, setStep }) {
   const [id, setId] = useState('');
@@ -12,11 +13,6 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
 
   const handleContinue = () => {
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
-    setError('');
     onComplete();
   };
 
@@ -39,6 +35,67 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
     } catch (err) {
       console.error('Error fetching employees:', err);
       setEmployees([]); // Clear the list on error
+    }
+  };
+
+  const signIn = async (userId) => {
+    if (!name.trim()) {
+      setError('Please enter your name.');
+      return;
+    }
+    setError('');
+
+    try {
+      const response = await axios.get(`/onsite/sign-in`, {
+        params: { 
+          user_id: userId, 
+          type: 'access',
+          category: 'employee',
+        },
+      });
+
+      if (response.status === 400) {
+        throw new Error('This user is already signed in.');
+      }
+
+      if (!response.status === 200) {
+        throw new Error('Failed to sign in user');
+      }
+
+      if (response.status === 200) {
+        handleContinue();
+      }
+    } catch (err) {
+      const audio = new Audio('/sounds/access-error.mp3');
+      audio.play();
+      if(err.response && err.response.status === 400) {
+        toast.error("You're already signed in.", {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+
+        setTimeout(() => {
+          setStep('splash'); // Navigate to splash screen after error
+        }, 3000);
+      } else {
+        toast.error('Could not sign in user, please try again.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+      }
+      return false;
     }
   };
 
@@ -121,7 +178,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
                       {employees.map((employee, index) => (
                         <button
                           key={index}
-                          onClick={() => {handleButtonClick.bind(null, employee.name, employee.id); handleContinue()}}
+                          onClick={() => {handleButtonClick.bind(null, employee.name, employee.id); signIn(employee.id)}}
                           className="px-3.5 pr-6 flex-shrink-0 h-full py-3 bg-white text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
                         >
                           <UserIcon size="extra-large" profilePhoto={employee.profile_photo} />
@@ -149,7 +206,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
               <button
                 disabled={!id && name.length}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
-                onClick={handleContinue}
+                onClick={() => signIn(id)}
               >
                 <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />
                 <p className="mb-1">Continue</p>

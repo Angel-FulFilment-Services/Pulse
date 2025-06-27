@@ -12,7 +12,7 @@ const inputs = [
 
 export default function SignInVisitorForm({ onComplete, setStep }) {
   const [input, setInput] = useState(0); // Tracks the current input
-  const [form, setForm] = useState({ fullName: '', company: '', visiting: '', carReg: '' }); // Form data
+  const [form, setForm] = useState({ fullName: '', company: '', visiting: '', visitingId: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [employees, setEmployees] = useState([]); // State to store the list of employees
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
@@ -39,9 +39,47 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        onComplete(form); // Call onComplete with form data on the last input
+        signIn();
       }
     }, 50); // Match the animation duration (0.2s)
+  };
+
+  const signIn = async () => {
+    try {
+      const response = await axios.get(`/onsite/sign-in`, {
+        params: { 
+          visitor_name: form.fullName,
+          visitor_company: form.company,
+          visitor_car_registration: form.carReg,
+          visitor_visiting: form.visiting,
+          visitor_visiting_user_id: form.visitingId, 
+          type: 'access',
+          category: 'visitor',
+        },
+      });
+
+      if (!response.status === 200) {
+        throw new Error('Failed to sign in user');
+      }
+
+      if (response.status === 200) {
+        onComplete();
+      }
+    } catch (err) {
+      const audio = new Audio('/sounds/access-error.mp3');
+      audio.play();
+        toast.error('Could not sign in/out user, please try again.', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+        });
+      return false;
+    }
   };
 
   const handleInputChange = (e) => {
@@ -75,14 +113,14 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
   const fetchEmployees = async (query) => {
     try {
       const response = await axios.get(`/employees`, {
-        params: { name: query }, // Pass the input value as a query parameter
+        params: { name: query, limited: true }, // Pass the input value as a query parameter
       });
 
       const employeesData = response.data;
 
       // Check if only one result is returned and the query matches the employee's name
       if (employeesData.length === 1 && employeesData[0].name.toLowerCase() === query.toLowerCase()) {
-        setForm({ ...form, visiting: employeesData[0].name }); // Set visiting to the employee's name
+        setForm({ ...form, visiting: employeesData[0].name, visitingId: employeesData[0].id }); // Set visiting to the employee's name
       } else {
         setEmployees(employeesData); // Update the state with the list of employees
       }
@@ -92,8 +130,20 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
     }
   };
 
-  const handleButtonClick = (employeeName) => {
-    setForm({ ...form, visiting: employeeName });
+  const handleButtonClick = (employeeName, employeeId) => {
+    setForm({ ...form, visiting: employeeName, visitingId: employeeId });
+
+    setAnimationClass('fade-out');
+
+    // Wait for the fade-out animation to complete before moving to the next input
+    setTimeout(() => {
+      if (input < inputs.length - 1) {
+        setInput(input + 1); // Move to the next input
+        setAnimationClass('fade-in'); // Trigger fade-in animation
+      } else {
+        signIn();
+      }
+    }, 50);
   };
 
   useEffect(() => {
@@ -112,7 +162,19 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
       <div className="flex items-center justify-between w-full h-16">
         <ArrowLeftIcon
           className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
-          onClick={() => setStep('signin-type')}
+          onClick={() => {
+            setAnimationClass('fade-out'); // Trigger fade-out animation
+
+            if (currentInput.key !== inputs[0].key) {
+              setError(''); // Clear any previous error
+              setTimeout(() => {
+                setInput(input - 1); // Go back to the previous input
+                setAnimationClass('fade-in'); // Trigger fade-in animation
+              }, 50);
+            } else {
+              setStep('signin-type');
+            }
+          }}
         />
         <XMarkIcon
           className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
@@ -148,7 +210,7 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
                         {employees.map((employee, index) => (
                           <button
                             key={index}
-                            onClick={handleButtonClick.bind(null, employee.name, employee.qr_token)}
+                            onClick={handleButtonClick.bind(null, employee.name, employee.id)}
                             className="px-3.5 pr-6 flex-shrink-0 h-full py-3 bg-white text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
                           >
                             <UserIcon size="extra-large" profilePhoto={employee.profile_photo} />
