@@ -46,8 +46,6 @@ class SiteController extends Controller
         }
 
         // Fetch all employees with their HR details
-
-
         return response()->json($employees, 200);
     }
 
@@ -74,6 +72,43 @@ class SiteController extends Controller
             ->first();
 
         return $status ? $status->signed_in : false;
+    }
+
+    public function signedIn(Request $request){
+        // Check if user is signed in
+        $signedIn = DB::connection('wings_config')
+            ->table('site_access_log')
+            ->leftJoin('users', 'site_access_log.user_id', '=', 'users.id')
+            ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
+            ->orderBy('site_access_log.created_at', 'desc')
+            ->whereIn('site_access_log.type', ['access'])
+            ->where('site_access_log.category', '=', $request->input('category', 'employee'))
+            ->whereNull('site_access_log.signed_out')
+            ->where('site_access_log.created_at', '>=', date('Y-m-d'))
+            ->select(
+                'site_access_log.id',
+                'users.id as user_id',
+                DB::raw('
+                    IF(users.name IS NOT NULL, 
+                        CONCAT(
+                            SUBSTRING_INDEX(users.name, " ", 1), " ", 
+                            LEFT(SUBSTRING_INDEX(users.name, " ", -1), 1), REPEAT("*", LENGTH(SUBSTRING_INDEX(users.name, " ", -1)) - 1)
+                        ), 
+                        CONCAT(
+                            SUBSTRING_INDEX(site_access_log.visitor_name, " ", 1), " ", 
+                            LEFT(SUBSTRING_INDEX(site_access_log.visitor_name, " ", -1), 1), REPEAT("*", LENGTH(SUBSTRING_INDEX(site_access_log.visitor_name, " ", -1)) - 1)
+                        )
+                    ) as display_name,
+                    hr_details.profile_photo
+                ')
+            )
+            ->get();
+
+        if ($signedIn->isEmpty()) {
+            return response()->json(['message' => 'No users signed in'], 404);
+        } else {
+            return response()->json($signedIn, 200);
+        }
     }
 
     public function signInOrOut(Request $request){
@@ -130,7 +165,12 @@ class SiteController extends Controller
     }
 
     public function signOut(Request $request){
-        DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $request->input('user_id'))->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
+
+        if($request->has('user_id') && !$this->isUserSignedIn($request->input('user_id'))) {
+            return response()->json(['message' => 'User is already signed out'], 400);
+        }
+
+        DB::connection('wings_config')->table('site_access_log')->where('id', '=', $request->input('id'))->limit(1)->update([
             'signed_out' => now(),
             'updated_at' => now(),
         ]);

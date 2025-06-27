@@ -3,6 +3,7 @@ import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import './Styles.css'; // Assuming you have a CSS file for styles
+import { set } from 'lodash';
 
 const inputs = [
   { label: 'Full Name', key: 'fullName' },
@@ -15,8 +16,8 @@ export default function SignInContractorForm({ onComplete, setStep }) {
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
-  const [keyboardVisible, setKeyboardVisible] = useState(false); // Tracks if the keyboard is visible
   const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
+  const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
 
   useEffect(() => {
     const handleResize = () => {
@@ -60,6 +61,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
   };
 
   const signIn = async () => {
+    setIsProcessing(true); // Set processing state to true
     try {
       const response = await axios.get(`/onsite/sign-in`, {
         params: { 
@@ -76,12 +78,15 @@ export default function SignInContractorForm({ onComplete, setStep }) {
       }
 
       if (response.status === 200) {
+        setIsProcessing(false); // Reset processing state
+        setAnimationClass('fade-out'); // Trigger fade-out animation
         onComplete();
       }
     } catch (err) {
+      setIsProcessing(false); // Reset processing state
       const audio = new Audio('/sounds/access-error.mp3');
       audio.play();
-        toast.error('Could not sign in/out user, please try again.', {
+        toast.error('Could not sign in, please try again.', {
             position: 'top-center',
             autoClose: 3000,
             hideProgressBar: false,
@@ -104,7 +109,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
 
   return (
     <div
-      className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen min-h-dvh w-full"
+      className="fixed inset-0 bg-white z-40 p-12 pt-10 pb-16 h-screen min-h-dvh w-full"
     >
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
@@ -154,7 +159,8 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           >
             <div className="flex-shrink-0">
               <button
-                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
+                disabled={isProcessing}
+                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleContinue}
               >
                 <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />

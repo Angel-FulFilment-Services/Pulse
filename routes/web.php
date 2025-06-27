@@ -189,6 +189,7 @@ Route::post('/asset-management/kits/returns/process', [AssetController::class, '
 |-----------------------
 */
 Route::get('/onsite/access-control', [SiteController::class, 'accessControl'])->name('onsite.access_control');
+Route::get('/onsite/signed-in', [SiteController::class, 'signedIn'])->name('onsite.signed_in');
 Route::get('/onsite/sign-in', [SiteController::class, 'signIn'])->name('onsite.sign_in');
 Route::get('/onsite/sign-out', [SiteController::class, 'signOut'])->name('onsite.sign_out');
 Route::get('/onsite/sign-in-out', [SiteController::class, 'signInOrOut'])->name('onsite.sign_in_out');

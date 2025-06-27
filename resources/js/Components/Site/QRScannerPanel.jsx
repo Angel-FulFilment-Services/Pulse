@@ -102,7 +102,7 @@ export default function QRScannerPanel({ setStep }) {
       } catch (err) {
         const audio = new Audio('/sounds/access-error.mp3');
         audio.play();
-          toast.error('Could not sign in/out user, please try again.', {
+          toast.error('Could not sign in/out, please try again.', {
               position: 'top-center',
               autoClose: 3000,
               hideProgressBar: false,

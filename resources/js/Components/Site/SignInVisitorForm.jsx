@@ -18,6 +18,27 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
   const [employees, setEmployees] = useState([]); // State to store the list of employees
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
+  const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
+  const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Check if the viewport height has decreased (keyboard is visible)
+      let newKeyboardHeight = 0;
+      if (window.visualViewport.height < window.innerHeight) {
+        newKeyboardHeight = window.innerHeight - window.visualViewport.height;
+        window.scrollTo(0, 0);
+      }
+
+      setKeyboardHeight(newKeyboardHeight);
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleContinue = () => {
     const current = inputs[input];
@@ -64,12 +85,15 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
       }
 
       if (response.status === 200) {
+        setIsProcessing(false); // Reset processing state
+        setAnimationClass('fade-out'); // Trigger fade-out animation
         onComplete();
       }
     } catch (err) {
+      setIsProcessing(false); // Reset processing state on error
       const audio = new Audio('/sounds/access-error.mp3');
       audio.play();
-        toast.error('Could not sign in/out user, please try again.', {
+        toast.error('Could not sign in, please try again.', {
             position: 'top-center',
             autoClose: 3000,
             hideProgressBar: false,
@@ -160,9 +184,9 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
 
   return (
     <div className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full">
-      <div className="flex items-center justify-between w-full h-16">
+      <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => {
             setAnimationClass('fade-out'); // Trigger fade-out animation
 
@@ -178,14 +202,14 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
           }}
         />
         <XMarkIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => setStep('splash')}
         />
       </div>
-      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
+      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-10">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
-          <div className={`pt-16 px-36 ${animationClass}`}>
+          <div className={`px-36 ${animationClass}`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
               type="text"
@@ -199,11 +223,11 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
-          <div className={`flex flex-row items-end ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}>
+          <div className={`flex flex-row items-end  ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}>
             {currentInput.key === 'visiting' &&
               <div className="relative flex-grow overflow-hidden">
                   {employees.length > 0 && (
-                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 pb-16 overflow-x-scroll no-scrollbar pl-36">
+                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-16 pl-36">
                       <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-300 fade-in">
                         Tap to select
                       </p>
@@ -239,7 +263,8 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
             {/* Continue Button */}
             <div className="flex-shrink-0">
               <button
-                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
+                disabled={isProcessing}
+                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleContinue}
               >
                 <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />

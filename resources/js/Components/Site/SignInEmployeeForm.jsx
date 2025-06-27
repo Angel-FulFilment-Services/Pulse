@@ -11,6 +11,8 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
   const [error, setError] = useState('');
   const [employees, setEmployees] = useState([]); // State to store the list of employees
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
+  const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
+  const [animationClass, setAnimationClass] = useState(null); // State for animation class
 
   const handleContinue = () => {
     onComplete();
@@ -44,6 +46,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
       return;
     }
     setError('');
+    setIsProcessing(true); // Set processing state to true to prevent multiple submissions
 
     try {
       const response = await axios.get(`/onsite/sign-in`, {
@@ -63,9 +66,14 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
       }
 
       if (response.status === 200) {
-        handleContinue();
+        setIsProcessing(false); // Reset processing state
+        setAnimationClass('fade-out'); // Trigger fade-out animation
+        setTimeout(() => {
+          handleContinue();
+        }, 200);
       }
     } catch (err) {
+      setIsProcessing(false); // Reset processing state on error
       const audio = new Audio('/sounds/access-error.mp3');
       audio.play();
       if(err.response && err.response.status === 400) {
@@ -84,7 +92,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
           setStep('splash'); // Navigate to splash screen after error
         }, 3000);
       } else {
-        toast.error('Could not sign in user, please try again.', {
+        toast.error('Could not sign in, please try again.', {
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -141,19 +149,19 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
 
   return (
     <div className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full">
-      <div className="flex items-center justify-between w-full h-16">
+      <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => setStep('signin-type')}
         />
         <XMarkIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => setStep('splash')}
         />
       </div>
       <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
         <div className="flex flex-col gap-4 w-full h-full">
-          <div className="px-36 pt-16">
+          <div className={`px-36 ${animationClass}`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">Full name</label>
             <input
               type="text"
@@ -204,8 +212,8 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
             </div>
             <div className="flex-shrink-0">
               <button
-                disabled={!id && name.length}
-                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
+                disabled={!id || !name.length || isProcessing}
+                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => signIn(id)}
               >
                 <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />
