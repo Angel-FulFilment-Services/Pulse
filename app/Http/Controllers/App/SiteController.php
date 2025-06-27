@@ -22,14 +22,31 @@ class SiteController extends Controller
     }
 
     public function employees(Request $request){
+
+        if ($request->input('limited', false)) {
+            // Fetch limited employee details
+            $employees = User::where('client_ref', '=', 'ANGL')
+                ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
+                ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title')
+                ->groupBy('users.id')
+                ->whereNotNull('hr_details.rank')
+                ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->orderBy('name', 'asc')
+                ->get();
+            return response()->json($employees, 200);
+        } else {
+            // Fetch all employee details
+            $employees = User::where('client_ref', '=', 'ANGL')
+                ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
+                ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title')
+                ->groupBy('users.id')
+                ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->orderBy('name', 'asc')
+                ->get();
+        }
+
         // Fetch all employees with their HR details
-        $employees = User::where('client_ref', '=', 'ANGL')
-            ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
-            ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title', 'users.qr_token')
-            ->groupBy('users.id')
-            ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
-            ->orderBy('name', 'asc')
-            ->get();
+
 
         return response()->json($employees, 200);
     }
@@ -84,45 +101,37 @@ class SiteController extends Controller
             }
             return response()->json(['message' => 'Signed in successfully', 'action' => $action], 200);
         } catch (\Throwable $th) {
-            Log::debug('Error processing sign in/out', [
-                'error' => $th->getMessage(),
-                'user_id' => $request->input('user_id', null),
-                'location' => $request->input('location', null),
-            ]);
             return response()->json(['message' => 'Error processing sign in/out'], 500);         
         }
     }
 
     public function signIn(Request $request){
+
+        if($request->has('user_id') && $this->isUserSignedIn($request->input('user_id'))) {
+            return response()->json(['message' => 'User is already signed in'], 400);
+        }
+
         DB::connection('wings_config')->table('site_access_log')->insert([
             'type' => $request->input('type', null),
             'category' => $request->input('category', null),
-            'datetime' => now(),
+            'signed_in' => now(),
             'location' => $request->input('location', null),
             'user_id' => $request->input('user_id', null),
             'visitor_name' => $request->input('visitor_name', null),
             'visitor_company' => $request->input('visitor_company', null),
             'visitor_visiting' => $request->input('visitor_visiting', null),
             'visitor_visiting_user_id' => $request->input('visitor_visiting_user_id', null),
-            'visitor_car_registration' => $request->input('visitor_car_registration', null),
+            'visitor_car_registration' => strtoupper($request->input('visitor_car_registration', null)),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        return response()->json(['message' => 'Signed in successfully'], 200);
     }
 
     public function signOut(Request $request){
-        DB::connection('wings_config')->table('site_access_log')->insert([
-            'type' => 'sign_out',
-            'category' => $request->input('category', null),
-            'datetime' => now(),
-            'location' => $request->input('location', null),
-            'user_id' => $request->input('user_id', null),
-            'visitor_name' => $request->input('visitor_name', null),
-            'visitor_company' => $request->input('visitor_company', null),
-            'visitor_visiting' => $request->input('visitor_visiting', null),
-            'visitor_visiting_user_id' => $request->input('visitor_visiting_user_id', null),
-            'visitor_car_registration' => $request->input('visitor_car_registration', null),
-            'created_at' => now(),
+        DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $request->input('user_id'))->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
+            'signed_out' => now(),
             'updated_at' => now(),
         ]);
 

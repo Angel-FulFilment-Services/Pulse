@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import './Styles.css'; // Import your CSS for animations
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import './Styles.css'; // Assuming you have a CSS file for styles
 
 const inputs = [
   { label: 'Full Name', key: 'fullName' },
@@ -13,6 +15,24 @@ export default function SignInContractorForm({ onComplete, setStep }) {
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
+  const [keyboardVisible, setKeyboardVisible] = useState(false); // Tracks if the keyboard is visible
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Check if the viewport height has decreased (keyboard is visible)
+      if (window.visualViewport.height < window.innerHeight) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleContinue = () => {
     const current = inputs[input];
@@ -31,9 +51,45 @@ export default function SignInContractorForm({ onComplete, setStep }) {
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        onComplete(form); // Call onComplete with form data on the last input
+        signIn(); // Call onComplete with form data on the last input
       }
     }, 50); // Match the animation duration (0.2s)
+  };
+
+  const signIn = async () => {
+    try {
+      const response = await axios.get(`/onsite/sign-in`, {
+        params: { 
+          visitor_name: form.fullName,
+          visitor_company: form.company,
+          visitor_car_registration: form.carReg, 
+          type: 'access',
+          category: 'contractor',
+        },
+      });
+
+      if (!response.status === 200) {
+        throw new Error('Failed to sign in user');
+      }
+
+      if (response.status === 200) {
+        onComplete();
+      }
+    } catch (err) {
+      const audio = new Audio('/sounds/access-error.mp3');
+      audio.play();
+        toast.error('Could not sign in/out user, please try again.', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+        });
+      return false;
+    }
   };
 
   const handleInputChange = (e) => {
@@ -44,11 +100,27 @@ export default function SignInContractorForm({ onComplete, setStep }) {
   const currentInput = inputs[input];
 
   return (
-    <div className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full">
+    <div
+      className={`fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full ${
+        keyboardVisible ? 'keyboard-visible' : ''
+      }`}
+    >
       <div className="flex items-center justify-between w-full h-16">
         <ArrowLeftIcon
           className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
-          onClick={() => setStep('signin-type')}
+          onClick={() => {
+            setAnimationClass('fade-out'); // Trigger fade-out animation
+
+            if (currentInput.key !== inputs[0].key) {
+              setError(''); // Clear any previous error
+              setTimeout(() => {
+                setInput(input - 1); // Go back to the previous input
+                setAnimationClass('fade-in'); // Trigger fade-in animation
+              }, 50);
+            } else {
+              setStep('signin-type');
+            }
+          }}
         />
         <XMarkIcon
           className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
