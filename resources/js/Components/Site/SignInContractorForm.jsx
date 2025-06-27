@@ -109,11 +109,11 @@ export default function SignInContractorForm({ onComplete, setStep }) {
 
   return (
     <div
-      className="fixed inset-0 bg-white z-40 p-12 pt-10 pb-16 h-screen min-h-dvh w-full"
+      className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 pb-16 h-screen min-h-dvh w-full"
     >
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
-          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black dark:text-dark-100  stroke-[2.5] cursor-pointer"
           onClick={() => {
             setAnimationClass('fade-out'); // Trigger fade-out animation
 
@@ -129,19 +129,19 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           }}
         />
         <XMarkIcon
-          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"
           onClick={() => setStep('splash')}
         />
       </div>
       <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-10">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
-          <div className={`px-36 ${animationClass}`}>
+          <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
               type="text"
               name={currentInput.key}
-              className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400"
+              className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
               placeholder={currentInput.placeholder}
               value={form[currentInput.key]}
               onChange={handleInputChange}

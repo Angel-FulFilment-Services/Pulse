@@ -68,5 +68,7 @@ class Kernel extends HttpKernel
         'has.permission' => \App\Http\Middleware\HasPermission::class,
         'log.access' => \App\Http\Middleware\LogAccess::class,
         'twofactor' => \App\Http\Middleware\TwoFactorMiddleware::class,
+        'whitelistedIp' => \App\Http\Middleware\WhitelistedIp::class,
+        'ipInRange' => \App\Http\Middleware\IpInRange::class,
     ];
 }

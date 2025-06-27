@@ -183,10 +183,10 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
   const currentInput = inputs[input];
 
   return (
-    <div className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
-          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"
           onClick={() => {
             setAnimationClass('fade-out'); // Trigger fade-out animation
 
@@ -202,19 +202,19 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
           }}
         />
         <XMarkIcon
-          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"
           onClick={() => setStep('splash')}
         />
       </div>
       <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-10">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
-          <div className={`px-36 ${animationClass}`}>
+          <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
               type="text"
               name={currentInput.key}
-              className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400"
+              className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
               value={form[currentInput.key]}
               onChange={handleInputChange}
               autoComplete="off"
@@ -228,7 +228,7 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
               <div className="relative flex-grow overflow-hidden">
                   {employees.length > 0 && (
                     <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-16 pl-36">
-                      <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-300 fade-in">
+                      <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-600 fade-in">
                         Tap to select
                       </p>
                       <div className="flex flex-row gap-x-4 relative">
@@ -236,12 +236,12 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
                           <button
                             key={index}
                             onClick={handleButtonClick.bind(null, employee.name, employee.id)}
-                            className="px-3.5 pr-6 flex-shrink-0 h-full py-3 bg-white text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
+                            className="px-3.5 pr-6 flex-shrink-0 h-full py-3 bg-white dark:bg-dark-800 text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
                           >
                             <UserIcon size="extra-large" profilePhoto={employee.profile_photo} />
                             <div className="w-full">
-                              <p className="ml-4 text-xl text-left">{employee.name}</p>
-                              <p className="ml-4 text-base text-gray-300 text-left">{employee.job_title}</p>
+                              <p className="ml-4 text-xl text-left dark:text-dark-100">{employee.name}</p>
+                              <p className="ml-4 text-base text-gray-300 dark:text-dark-600 text-left">{employee.job_title}</p>
                             </div>
                           </button>
                         ))}
@@ -254,8 +254,8 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
                 {/* Gradient overlay */}
                 {employees.length > 0 && (
                   <>
-                    <div className="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
-                    <div className="absolute top-0 left-0 h-full w-20 bg-gradient-to-r from-white to-transparent pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-white dark:from-dark-900 to-transparent pointer-events-none"></div>
+                    <div className="absolute top-0 left-0 h-full w-20 bg-gradient-to-r from-white dark:from-dark-900 to-transparent pointer-events-none"></div>
                   </>
                 )}
               </div>

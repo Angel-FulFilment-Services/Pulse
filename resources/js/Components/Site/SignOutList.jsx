@@ -136,10 +136,10 @@ export default function SignOutList({ onComplete, setStep, signOutType }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-screen">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
       <div className="flex items-center justify-between w-full h-10">
-        <ArrowLeftIcon className="h-10 w-10 text-black stroke-[2.5] cursor-pointer" onClick={() => setStep('mode')} />
-        <XMarkIcon className="h-10 w-10 text-black stroke-[2.5] cursor-pointer" onClick={() => setStep('splash')} />
+        <ArrowLeftIcon className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer" onClick={() => setStep('signout-type')} />
+        <XMarkIcon className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer" onClick={() => setStep('splash')} />
       </div>
       <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
         <div className="flex flex-col gap-4 w-full h-full">
@@ -150,7 +150,7 @@ export default function SignOutList({ onComplete, setStep, signOutType }) {
             <div className="relative flex-grow overflow-y-hidden">
               {users.length > 0 && (
                 <div className="flex flex-col relative items-start justify-center w-full pl-16">
-                  <p className="text-base sticky h-full w-full top-0 left-0 text-gray-300 dark:text-dark-300 fade-in z-10 pl-20">
+                  <p className="text-base sticky h-full w-full top-0 left-0 text-gray-300 dark:text-dark-600 fade-in z-10 pl-20">
                     Tap to select
                   </p>
                   <div className="flex flex-col gap-y-4 relative overflow-y-scroll overflow-x-visible no-scrollbar pl-20 pr-20 pt-6" style={{ height: `${availableHeight}px` }}>
@@ -159,12 +159,12 @@ export default function SignOutList({ onComplete, setStep, signOutType }) {
                         key={user.id}
                         onClick={() => signOut(user.id, user.user_id)}
                         disabled={signingOutId === user.id}
-                        className="px-3.5 pr-6 flex-shrink-0 py-3 bg-white text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
+                        className="px-3.5 pr-6 flex-shrink-0 py-3 bg-white text-gray-900 dark:bg-dark-800 rounded-[3rem] text-6xl shadow-[0_0_15px_0_rgba(0,0,0,0.1)] focus:outline-none flex items-center justify-start fade-in cursor-pointer"
                       >
                         <UserIcon size="extra-large" profilePhoto={user.profile_photo} />
                         <div className="w-full">
-                          <p className="ml-4 text-xl text-left">{user.display_name}</p>
-                          <p className="ml-4 text-base text-gray-300 text-left">{user.job_title}</p>
+                          <p className="ml-4 text-xl text-left dark:text-dark-100">{user.display_name}</p>
+                          <p className="ml-4 text-base text-gray-300 dark:text-dark-600 text-left">{user.job_title}</p>
                         </div>
                         <div className="flex flex-row items-end justify-center ml-24">
                           <RiDoorClosedLine className="h-9 w-9 text-red-700 inline-block stroke-1" />
@@ -179,8 +179,8 @@ export default function SignOutList({ onComplete, setStep, signOutType }) {
               )}
               {users.length > 0 && (
                 <>
-                  <div className="absolute top-5 w-full h-24 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
-                  <div className="absolute bottom-6 w-full h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+                  <div className="absolute top-5 w-full h-20 bg-gradient-to-b from-white dark:from-dark-900 to-transparent pointer-events-none"></div>
+                  <div className="absolute bottom-6 w-full h-20 bg-gradient-to-t from-white dark:from-dark-900 to-transparent pointer-events-none"></div>
                 </>
               )}
             </div>

@@ -44,7 +44,7 @@ export default function ThankYouMessage({ setStep }) {
             className="w-72"
           />
         </div>
-        <div className="flex flex-col items-start justify-start -mt-8">
+        <div className="flex flex-col items-start justify-center -mt-8">
           <h1 className="text-9xl font-semibold text-white dark:text-dark-100 mb-6">
             Thank You,
           </h1>

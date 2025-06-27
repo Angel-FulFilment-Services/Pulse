@@ -14,6 +14,7 @@ class SiteController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['guest']);
+        $this->middleware(['ipInRange:192.168.0.0,192.168.255.255']);
         $this->middleware(['log.access']);
     }
 
@@ -63,6 +64,64 @@ class SiteController extends Controller
         }
     }
 
+    public function hasProfilePhoto(Request $request){
+        // Check if user has a profile photo
+        $userId = $request->input('user_id', null);
+        $hasPhoto = DB::connection('wings_config')->table('wings_data.hr_details')
+            ->where('user_id', $userId)
+            ->whereNotNull('profile_photo')
+            ->exists();
+
+        return response()->json(['has_photo' => $hasPhoto], 200);
+    }
+
+    public function setProfilePhoto(Request $request){
+        if (!$request->has('profile_photo') || !$request->has('user_id')) {
+            return response()->json(['message' => 'No profile photo data provided.'], 422);
+        }
+
+        $user = Employee::where('user_id', $request->input('user_id'))->first();
+
+        $data = $request->input('profile_photo');
+        if (!$data) {
+            return response()->json(['message' => 'No image data provided.'], 422);
+        }
+        
+        // Extract base64 string
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+            $data = substr($data, strpos($data, ',') + 1);
+            $type = strtolower($type[1]); // jpg, png, gif
+    
+            $data = base64_decode($data);
+            if ($data === false) {
+                return response()->json(['message' => 'Base64 decode failed.'], 422);
+            }
+        } else {
+            return response()->json(['message' => 'Invalid image data.'], 422);
+        }
+
+        // Remove old profile photo if set
+        if ($user->profile_photo) {
+            $oldPath = 'profile/images/' . $user->profile_photo;
+            if (Storage::disk('r2-public')->exists($oldPath)) {
+                Storage::disk('r2-public')->delete($oldPath);
+            }
+        }
+    
+        // Generate a unique filename
+        $fileName = uniqid('profile_') . '.' . $type;
+        $filePath = 'profile/images/' . $fileName;
+    
+        // Store the image (local disk, change to 'r2' if needed)
+        Storage::disk('r2-public')->put($filePath, $data);
+    
+        // Save the filename/path to the employee
+        $user->profile_photo = $fileName;
+        $user->save();
+    
+        return response()->json(['message' => 'Profile photo updated.', 'file' => $fileName]);
+    }
+
     public function isUserSignedIn($userId){
         // Check if user is signed in
         $status = DB::connection('wings_config')->table('site_access_log')->where('user_id', $userId)
@@ -80,7 +139,7 @@ class SiteController extends Controller
             ->table('site_access_log')
             ->leftJoin('users', 'site_access_log.user_id', '=', 'users.id')
             ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
-            ->orderBy('site_access_log.created_at', 'desc')
+            ->orderBy('site_access_log.created_at', 'asc')
             ->whereIn('site_access_log.type', ['access'])
             ->where('site_access_log.category', '=', $request->input('category', 'employee'))
             ->whereNull('site_access_log.signed_out')
@@ -99,7 +158,8 @@ class SiteController extends Controller
                             LEFT(SUBSTRING_INDEX(site_access_log.visitor_name, " ", -1), 1), REPEAT("*", LENGTH(SUBSTRING_INDEX(site_access_log.visitor_name, " ", -1)) - 1)
                         )
                     ) as display_name,
-                    hr_details.profile_photo
+                    hr_details.profile_photo,
+                    hr_details.job_title
                 ')
             )
             ->get();
