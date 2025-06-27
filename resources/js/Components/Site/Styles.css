@@ -36,7 +36,18 @@
 .keyboard-visible {
     transform: translateY(-40%);
     transition: transform 0.3s ease-in-out;
-  }
+}
+
+html, body {
+    overscroll-behavior: none; /* Prevent scrolling when the keyboard opens */
+    touch-action: manipulation; /* Prevent unintended gestures */
+}
+
+body {
+    position: fixed; /* Prevent body scrolling */
+    overflow: hidden; /* Disable scrolling */
+    height: 100%; /* Ensure the body takes up the full viewport height */
+}
 
 @keyframes fadeIn {
     0% {
