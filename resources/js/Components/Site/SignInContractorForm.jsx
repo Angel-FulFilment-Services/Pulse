@@ -34,6 +34,19 @@ export default function SignInContractorForm({ onComplete, setStep }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleFocus = () => {
+      window.scrollTo(0, 0);
+    };
+  
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach((input) => input.addEventListener('focus', handleFocus));
+  
+    return () => {
+      inputs.forEach((input) => input.removeEventListener('focus', handleFocus));
+    };
+  }, []);
+
   const handleContinue = () => {
     const current = inputs[input];
     if (!form[current.key].trim()) {
@@ -143,8 +156,6 @@ export default function SignInContractorForm({ onComplete, setStep }) {
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
-
-          {keyboardVisible && <div style={{ height: '30vh' }} />}
 
           {/* Continue Button */}
           <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative ${keyboardVisible ? 'keyboard-visible' : ''}`}>
