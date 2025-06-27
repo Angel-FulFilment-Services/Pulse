@@ -106,9 +106,9 @@ export default function SignInContractorForm({ onComplete, setStep }) {
     <div
       className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen min-h-dvh w-full"
     >
-      <div className="flex items-center justify-between w-full h-16">
+      <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => {
             setAnimationClass('fade-out'); // Trigger fade-out animation
 
@@ -124,11 +124,11 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           }}
         />
         <XMarkIcon
-          className="h-16 w-16 text-black stroke-[2.5] cursor-pointer"
+          className="h-10 w-10 text-black stroke-[2.5] cursor-pointer"
           onClick={() => setStep('splash')}
         />
       </div>
-      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-14">
+      <div className="flex flex-col items-start justify-start bg-white dark:bg-dark-900 h-full w-full pt-10">
         <div className="flex flex-col gap-4 w-full h-full">
           {/* Input Field for Current Input */}
           <div className={`px-36 ${animationClass}`}>
