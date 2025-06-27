@@ -101,7 +101,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
 
   return (
     <div
-      className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen w-full"
+      className="fixed inset-0 bg-white z-40 p-12 pt-10 h-screen min-h-dvh w-full"
     >
       <div className="flex items-center justify-between w-full h-16">
         <ArrowLeftIcon
@@ -145,7 +145,7 @@ export default function SignInContractorForm({ onComplete, setStep }) {
           </div>
 
           {/* Continue Button */}
-          <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative ${keyboardVisible ? 'keyboard-visible' : ''}`}>
+          <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative ${true ? 'keyboard-visible' : ''}`}>
             <div className="flex-shrink-0">
               <button
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in"
