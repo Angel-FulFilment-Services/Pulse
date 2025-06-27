@@ -33,6 +33,11 @@
     scrollbar-width: none;
 }
 
+.keyboard-visible {
+    transform: translateY(-20%);
+    transition: transform 0.3s ease-in-out;
+  }
+
 @keyframes fadeIn {
     0% {
         opacity: 0;
