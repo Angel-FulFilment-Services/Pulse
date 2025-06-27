@@ -25,13 +25,13 @@ class IpInRange
 
             // Validate the IP range
             if ($lowIpLong === false || $highIpLong === false || $lowIpLong > $highIpLong) {
-                return response()->json(['message' => 'Invalid IP range configuration.'], 500);
+                abort(500);
             }
 
             // Check if the request IP is within the specified range
             $requestIpLong = ip2long($request->ip());
             if ($requestIpLong < $lowIpLong || $requestIpLong > $highIpLong) {
-                return response()->json(['message' => 'Access denied. Your IP is not within the allowed range.'], 403);
+                abort(403);
             }
         }
 

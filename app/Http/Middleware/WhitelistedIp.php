@@ -28,7 +28,7 @@ class WhitelistedIp
 
             // Ensure the list contains valid ranges (start and end IPs)
             if (count($whitelistedRanges) % 2 !== 0) {
-                return response()->json(['message' => 'Invalid IP range configuration.'], 500);
+                abort(500);
             }
 
             // Check if the request IP is within any of the whitelisted ranges
@@ -43,7 +43,7 @@ class WhitelistedIp
             }
 
             if (!$isWhitelisted) {
-                return response()->json(['message' => 'Access denied. Your IP is not whitelisted.'], 403);
+                abort(403);
             }
         }
 
