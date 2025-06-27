@@ -121,6 +121,26 @@ createInertiaApp({
           </AppWrapper>
         );
         break;
+      case name.startsWith('Site/'):
+        page.default.layout = (page) => (
+          <AppWrapper>
+            {() => (
+              <div
+                style={{
+                  background:
+                    'linear-gradient(315deg, rgba(0,141,169,1) 0%, rgba(20,110,130,1) 60%, rgba(30,70,90,1) 100%)',
+                }}
+                className="theme-olive"
+              >
+                <ToastContainer />
+                <Background />
+                <Hero />
+                <div children={page} />
+              </div>
+            )}
+          </AppWrapper>
+        );
+        break;
       default:
         page.default.layout = (page) => (
           <AppWrapper>

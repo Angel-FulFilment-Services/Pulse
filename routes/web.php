@@ -17,6 +17,7 @@ use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\ReportingController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
+use App\Http\Controllers\App\SiteController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -181,6 +182,19 @@ Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassig
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
+
+/*
+|-----------------------
+| OnSite
+|-----------------------
+*/
+Route::get('/onsite/access-control', [SiteController::class, 'accessControl'])->name('onsite.access_control');
+Route::get('/onsite/sign-in', [SiteController::class, 'signIn'])->name('onsite.sign_in');
+Route::get('/onsite/sign-out', [SiteController::class, 'signOut'])->name('onsite.sign_out');
+Route::get('/onsite/sign-in-out', [SiteController::class, 'signInOrOut'])->name('onsite.sign_in_out');
+Route::get('/onsite/status', [SiteController::class, 'isUserSignedIn'])->name('onsite.status');
+Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsite.find_user');
+Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
 
 /*
 |-----------------------
