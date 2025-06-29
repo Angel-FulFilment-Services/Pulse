@@ -15,7 +15,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-export default function Access() {
+export default function Access({ location }) {
   const [step, setStep] = useState('splash');
   const [userId, setUserId] = useState(null); // Stores the user ID after sign-in
   const [signInType, setSignInType] = useState(null); // Tracks the type of sign in (employee, visitor, contractor)
@@ -71,19 +71,19 @@ export default function Access() {
         </div>
         <div className="flex h-full w-full gap-x-10 pt-14 pb-16">
           <div className="w-1/2 flex justify-center items-center">
-            <ModeSelector setStep={setStep} />
+            <ModeSelector setStep={setStep} location={location} />
           </div>
           <div className="w-1/2">
-            <QRScannerPanel handleSignInComplete={(userId) => { setSignInType('employee'); handleSignInComplete(userId); }} />
+            <QRScannerPanel handleSignInComplete={(userId) => { setSignInType('employee'); handleSignInComplete(userId); }} location={location} />
           </div>
         </div>
       </div>
   );
-  if (step === 'signin-type') return <SignInTypeSelector onSelect={handleSignInType} setStep={setStep} />;
-  if (step === 'signout-type') return <SignInTypeSelector onSelect={handleSignOutType} setStep={setStep} />;
-  if (step === 'signin-employee') return <SignInEmployeeForm onComplete={handleSignInComplete} setStep={setStep} />;
-  if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} />;
-  if (step === 'signin-contractor') return <SignInContractorForm onComplete={handleSignInComplete} setStep={setStep} />;
+  if (step === 'signin-type') return <SignInTypeSelector onSelect={handleSignInType} setStep={setStep} location={location} />;
+  if (step === 'signout-type') return <SignInTypeSelector onSelect={handleSignOutType} setStep={setStep} location={location} />;
+  if (step === 'signin-employee') return <SignInEmployeeForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
+  if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
+  if (step === 'signin-contractor') return <SignInContractorForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
   if (step === 'update-profile-photo') {
     return (
       <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">

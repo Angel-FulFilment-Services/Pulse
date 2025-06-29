@@ -25,14 +25,6 @@
     animation-duration: 0.2s;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-.no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
 .keyboard-visible {
     transform: translateY(-40%);
     transition: transform 0.3s ease-in-out;

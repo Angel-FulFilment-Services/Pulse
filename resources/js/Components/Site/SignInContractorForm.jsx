@@ -11,7 +11,7 @@ const inputs = [
   { label: 'Car Registration', key: 'carReg' },
 ];
 
-export default function SignInContractorForm({ onComplete, setStep }) {
+export default function SignInContractorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
@@ -67,7 +67,8 @@ export default function SignInContractorForm({ onComplete, setStep }) {
         params: { 
           visitor_name: form.fullName,
           visitor_company: form.company,
-          visitor_car_registration: form.carReg, 
+          visitor_car_registration: form.carReg,
+          location: location, 
           type: 'access',
           category: 'contractor',
         },

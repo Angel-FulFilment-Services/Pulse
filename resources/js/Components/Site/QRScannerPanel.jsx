@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { set } from 'lodash';
 
-export default function QRScannerPanel({ setStep }) {
+export default function QRScannerPanel({ setStep, location }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
   const isTimeout = useRef(false);
@@ -24,6 +24,13 @@ export default function QRScannerPanel({ setStep }) {
       try {
         codeReader.current = new BrowserMultiFormatReader();
         const videoElement = videoRef.current;
+
+        const constraints = {
+          video: {
+            facingMode: 'user', // Request the front camera
+          },
+        };
+
         await codeReader.current.decodeFromVideoDevice(
           null,
           videoElement,
@@ -54,7 +61,8 @@ export default function QRScannerPanel({ setStep }) {
                 isTimeout.current = false;
               }, 3000);
             }
-          }
+          },
+          constraints
         );
       } catch (error) {
         // Optionally handle camera errors here
@@ -91,6 +99,7 @@ export default function QRScannerPanel({ setStep }) {
         const response = await axios.get(`/onsite/sign-in-out`, {
           params: { 
             user_id: userId, 
+            location: location,
           },
         });
 

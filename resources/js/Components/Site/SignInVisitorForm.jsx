@@ -11,7 +11,7 @@ const inputs = [
   { label: 'Car Registration', key: 'carReg' },
 ];
 
-export default function SignInVisitorForm({ onComplete, setStep }) {
+export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
   const [form, setForm] = useState({ fullName: '', company: '', visiting: '', visitingId: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
@@ -75,6 +75,7 @@ export default function SignInVisitorForm({ onComplete, setStep }) {
           visitor_car_registration: form.carReg,
           visitor_visiting: form.visiting,
           visitor_visiting_user_id: form.visitingId, 
+          location: location,
           type: 'access',
           category: 'visitor',
         },

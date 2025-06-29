@@ -31,11 +31,29 @@ export default {
           "100%": {
             opacity: 0,
           },
+        },         
+        'slide-down': {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        'shake-bell': {
+          '0%, 100%': { transform: 'rotate(0deg)', opacity: '1' },
+          '10%': { transform: 'rotate(-15deg)' },
+          '20%': { transform: 'rotate(10deg)' },
+          '30%': { transform: 'rotate(-8deg)' },
+          '40%': { transform: 'rotate(6deg)' },
+          '50%': { transform: 'rotate(-4deg)', opacity: '0.85' },
+          '60%': { transform: 'rotate(2deg)' },
+          '70%': { transform: 'rotate(-1deg)' },
+          '80%': { transform: 'rotate(1deg)' },
+          '90%': { transform: 'rotate(-0.5deg)' },
+        }       
       },
       animation: {
         'loader': 'loader 0.6s infinite alternate',
         'dot-squence': 'dot-sequence 1.5s infinite',
+        'slide-down': 'slide-down 300ms ease-out',
+        'shake-bell': 'shake-bell 0.8s ease-in-out infinite',
       },
       colors: {
         theme: {

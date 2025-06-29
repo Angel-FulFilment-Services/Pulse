@@ -219,6 +219,14 @@
     --gradient-900:157,23,77
 }
 
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
 .disable-transitions *:not(.allow-transitions) {
     transition: none !important;
   }

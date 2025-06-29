@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Models\User\User;
 use DB;
 use Log;
+use Str;
 
 class SiteController extends Controller
 {
@@ -18,8 +19,14 @@ class SiteController extends Controller
         $this->middleware(['log.access']);
     }
 
-    public function accessControl(){
-        return Inertia::render('Site/Access');
+    public function accessControl($location = null){
+        return Inertia::render('Site/Access', [
+            'location' => $location,
+        ]);
+    }
+
+    public function widget(){
+        return Inertia::render('Site/Widget');
     }
 
     public function employees(Request $request){
@@ -133,6 +140,81 @@ class SiteController extends Controller
         return $status ? $status->signed_in : false;
     }
 
+    public function access()
+    {
+        $deliveries = DB::connection('wings_config')
+            ->table('site_access_log')
+            ->where('type', 'delivery')
+            ->where('created_at', '>=', date('Y-m-d'))
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $visitors = DB::connection('wings_config')
+            ->table('site_access_log as sal1')
+            ->join(
+                DB::raw('
+                    (
+                        SELECT visitor_name, MAX(created_at) as latest_created
+                        FROM site_access_log
+                        WHERE type = "access"
+                        AND category IN ("visitor", "contractor")
+                        AND created_at >= CURDATE()
+                        GROUP BY visitor_name
+                    ) as latest
+                '), 
+                function ($join) {
+                    $join->on('sal1.visitor_name', '=', 'latest.visitor_name')
+                        ->on('sal1.created_at', '=', 'latest.latest_created');
+                }
+            )
+            ->whereIn('sal1.category', ['visitor', 'contractor']) // optional—keeps result tidy
+            ->select('sal1.*')
+            ->orderByDesc('sal1.created_at')
+            ->get();
+
+        $employees = DB::connection('wings_config')
+            ->table('site_access_log as sal1')
+            ->join(
+                DB::raw('
+                    (
+                        SELECT user_id, MAX(created_at) as latest_created, MIN(signed_in) as earliest_signed_in
+                        FROM site_access_log
+                        WHERE type = "access"
+                        AND category = "employee"
+                        AND created_at >= CURDATE()
+                        GROUP BY user_id
+                    ) as latest
+                '), 
+                function ($join) {
+                    $join->on('sal1.user_id', '=', 'latest.user_id')
+                        ->on('sal1.created_at', '=', 'latest.latest_created');
+                }
+            )
+            ->leftJoin('wings_data.hr_details', 'sal1.user_id', '=', 'hr_details.user_id')
+            ->leftJoin('users', 'sal1.user_id', '=', 'users.id')
+            ->select(
+                'sal1.id',
+                'sal1.user_id',
+                'sal1.created_at',
+                'sal1.signed_in',
+                'sal1.signed_out',
+                'sal1.location',
+                'sal1.category',
+                'latest.earliest_signed_in',
+                'hr_details.profile_photo',
+                'hr_details.job_title',
+                'users.name as fullname'
+            )
+            ->orderByDesc('sal1.created_at')
+            ->get();
+
+        return response()->json([
+            'deliveries' => $deliveries,
+            'visitors' => $visitors,
+            'employees' => $employees
+        ], 200);
+    }
+
     public function signedIn(Request $request){
         // Check if user is signed in
         $signedIn = DB::connection('wings_config')
@@ -181,7 +263,7 @@ class SiteController extends Controller
                     'type' => 'access',
                     'category' => 'employee',
                     'signed_in' => now(),
-                    'location' => $request->input('location', null),
+                    'location' => Str::title($request->input('location', null)),
                     'user_id' => $request->input('user_id', null),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -210,7 +292,7 @@ class SiteController extends Controller
             'type' => $request->input('type', null),
             'category' => $request->input('category', null),
             'signed_in' => now(),
-            'location' => $request->input('location', null),
+            'location' => Str::title($request->input('location', null)),
             'user_id' => $request->input('user_id', null),
             'visitor_name' => $request->input('visitor_name', null),
             'visitor_company' => $request->input('visitor_company', null),

@@ -132,9 +132,13 @@ createInertiaApp({
                 }}
                 className="theme-olive"
               >
-                <ToastContainer />
-                <Background />
-                <Hero />
+                {!name.startsWith('Site/Widget') && (
+                  <>
+                    <ToastContainer />
+                    <Background />
+                    <Hero />
+                  </>
+                )}
                 <div children={page} />
               </div>
             )}

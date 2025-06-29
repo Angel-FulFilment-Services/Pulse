@@ -5,7 +5,7 @@ import axios from 'axios';
 import UserIcon from '../User/UserIcon';
 import { toast } from 'react-toastify';
 
-export default function SignInEmployeeForm({ onComplete, setStep }) {
+export default function SignInEmployeeForm({ onComplete, setStep, location }) {
   const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -50,6 +50,7 @@ export default function SignInEmployeeForm({ onComplete, setStep }) {
           user_id: userId, 
           type: 'access',
           category: 'employee',
+          location: location,
         },
       });
 

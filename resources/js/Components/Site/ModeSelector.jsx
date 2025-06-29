@@ -4,7 +4,7 @@ import React from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-export default function ModeSelector({ setStep }) {
+export default function ModeSelector({ setStep, location }) {
 
   const signIn = async () => {
     try {
@@ -12,6 +12,7 @@ export default function ModeSelector({ setStep }) {
         params: { 
           type: 'delivery',
           category: 'delivery',
+          location: location,
         },
       });
 
