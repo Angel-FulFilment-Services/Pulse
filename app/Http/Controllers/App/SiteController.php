@@ -19,7 +19,7 @@ class SiteController extends Controller
         $this->middleware(['log.access']);
     }
 
-    public function accessControl($location = null){
+    public function accessControl($location = 'Lostwithiel'){
         return Inertia::render('Site/Access', [
             'location' => $location,
         ]);
