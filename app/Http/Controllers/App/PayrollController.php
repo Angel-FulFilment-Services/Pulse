@@ -649,11 +649,8 @@ class PayrollController extends Controller
         ->join(DB::raw('halo_config.ddi as ddis'), 'apex_data.ddi', '=', 'ddis.ddi')
         ->where('ddis.wings_camp', 'LIKE', '%CPA%')
         ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
-        ->where(function($query){
-            $query->where('apex_data.presented','=','1');
-            $query->orWhere('apex_data.type','<>','Dial');
-        })
-        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out'])
+        ->where('apex_data.type', 'Dial')
+        ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out', 'Queue'])
         ->groupBy('date')
         ->groupBy('hr_id')
         ->orderBy('date')
