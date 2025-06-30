@@ -199,8 +199,6 @@ class PayrollController extends Controller
     }
 
     public function payrollExport(Request $request){
-        set_time_limit(300);
-
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
@@ -1030,7 +1028,7 @@ class PayrollController extends Controller
             DB::connection('wings_data')
             ->table('hr_details')
             ->where('hr_id', $hrId)
-            ->update(['hold' => DB::raw('NOT hold')]);
+             ->update(['hold' => DB::raw('NOT COALESCE(hold, 0)')]);
 
             Auditing::log('Payroll', auth()->user()->id, 'Toggled hold status', "HR ID: {$hrId}");
 
