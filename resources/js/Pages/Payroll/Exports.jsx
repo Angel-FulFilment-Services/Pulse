@@ -425,7 +425,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
                 </div>
             ) : (
                 <div ref={tableRef} className="px-6 py-2 h-full">
-                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }} structure={report.parameters.structure} filters={filters} data={reportData} targets={targets} editing={isEditing} handleTargetChange={handleTargetChange} dateRange={dateRange}/>
+                    <ReportingTable parameters={{ ...report.parameters, structure: undefined, filters: undefined, date: undefined, dateRange: undefined }} structure={report.parameters.structure} filters={filters} data={reportData} targets={targets} editing={isEditing} handleTargetChange={handleTargetChange} setReportData={setReportData} dateRange={dateRange}/>
                 </div>
             )}
         </>

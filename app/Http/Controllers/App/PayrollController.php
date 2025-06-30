@@ -108,6 +108,10 @@ class PayrollController extends Controller
         ->whereNull('employment_category') // Exclude employees with an employment category (Back Office).
         ->whereNull('leave_date') // Exclude leavers.
         ->whereNull('exceptions.hr_id') // Exclude employees with exceptions in the date range.
+        ->where(function($query) use ($startDate, $endDate) {
+            $query->whereNull('hr_details.hold') // Exclude employees on hold.
+                ->orWhere('hr_details.hold', '=', false); // Include employees not on hold.
+        })
         ->where('hr_details.sage_id', '>', 0) // Exclude employees without a Sage ID.
         // ->where('dow.days_of_week', '!=', 0) // Employee must work at least 1 day of the week to calculate holiday pay.
         // ->where('last_qty', '>', 1) // We must hold at least 2 months of gross pay data on employee to caclulate holiday pay.
@@ -195,6 +199,8 @@ class PayrollController extends Controller
     }
 
     public function payrollExport(Request $request){
+        set_time_limit(300);
+
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
@@ -213,6 +219,7 @@ class PayrollController extends Controller
             'halo_id',
             'gross_pay',
             'last_qty',
+            'hold',
             DB::raw('COALESCE(timesheet.total_hours, 0) as hours'),
             DB::raw('COALESCE(dow_updates.days_of_week, 0) as days_of_week'),
             DB::raw('DATEDIFF(COALESCE(leave_date, NOW()), start_date) as length_of_service'),
@@ -463,7 +470,7 @@ class PayrollController extends Controller
         return $weeks;
     }
 
-    private function calculateHoliday($hrId, $startDate, $endDate, $startedDate, $leftDate, $dow = 0) {
+    private function calculateHoliday($hrId, $startDate, $endDate, $startedDate, $leftDate) {
         $holidays = DB::connection('hr')
         ->table('holiday_requests')
         ->select(
@@ -558,23 +565,43 @@ class PayrollController extends Controller
             ->where('type', '=', 'Paid Annual Leave')
             ->get();
 
-            switch ($dow) {
+
+            $dow_changes  = DB::table('hr.dow_updates')
+            ->select('hr_id', 'startdate', 'enddate', DB::raw('dow as days_of_week'))
+            ->where('hr_id', $hrId)
+            ->where(function($query) use ($startedDate, $endDate) {
+                $query->where('startdate', '<=', $startedDate)
+                    ->where('enddate', '>=', $endDate)
+                    ->orWhere(function($query) use ($startedDate, $endDate) {
+                        $query->where('startdate', '<=', $endDate)
+                            ->where('enddate', '>=', $startedDate);
+                    });
+            })
+            ->orderBy('startdate', 'desc')
+            ->get();
+
+            $remainingEntitlement = 0;
+            foreach($dow_changes as $dow_change){
+                switch ($dow_change->days_of_week) {
                 case 5:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0767123) - $holidays->sum('days_off') + $holiday;
+                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0767123);
                     break;
                 case 4: 
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0613699) - $holidays->sum('days_off') + $holiday;
+                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0613699);
                     break;
                 case 3:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0460274) - $holidays->sum('days_off') + $holiday;
+                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0460274);
                     break;
                 case 2:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0306849) - $holidays->sum('days_off') + $holiday;
+                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0306849);
                     break;
                 case 1:
-                    return (((strtotime($leftDate) - strtotime($startedDate)) / 86400) * 0.0153425) - $holidays->sum('days_off') + $holiday;
+                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0153425);
                     break;
+                }
             }
+
+            $holiday = $remainingEntitlement - $holidays->sum('days_off') + $holiday;
         }
 
         return $holiday;
@@ -680,17 +707,18 @@ class PayrollController extends Controller
 
             $template = json_decode($template, true);
             if (is_null($template) || !is_array($template)) {
-                continue;
-            }
-
-            $key = array_search('total_sign_ups', array_column($template, 'id'));
-            if ($key !== false) {
-                $products = $template[$key]['where'];
-                if(!is_array($products)){
-                    $products = [$products];
-                }
-            }else{
                 $products = ['PDD'];
+                continue;
+            } else {
+                $key = array_search('total_sign_ups', array_column($template, 'id'));
+                if ($key !== false) {
+                    $products = $template[$key]['where'];
+                    if(!is_array($products)){
+                        $products = [$products];
+                    }
+                }else{
+                    $products = ['PDD'];
+                }
             }
 
             if(Schema::connection('halo_data')->hasTable($orders) && Schema::connection('halo_data')->hasTable($customers)){
@@ -731,7 +759,6 @@ class PayrollController extends Controller
         
         $report = $request->report;
         if (is_null($report) || !is_array($report)) {
-            Log::debug('1');
             return response()->json(['status' => 'error', 'message' => 'Invalid report format.'], 400);
         }
 
@@ -893,8 +920,7 @@ class PayrollController extends Controller
         return response()->json($data);
     }
 
-    public function importGrossPay(Request $request)
-    {
+    public function importGrossPay(Request $request){
         $data = $request->input('data', []);
 
         if (!is_array($data) || empty($data)) {
@@ -991,6 +1017,28 @@ class PayrollController extends Controller
             'updated' => $updated,
             'errors' => $errors,
         ]);
+    }
+
+    public function toggleHold(Request $request){
+        $hrId = $request->input('hr_id');
+
+        if (!$hrId || !is_numeric($hrId)) {
+            return response()->json(['message' => 'Invalid input data.'], 400);
+        }
+
+        try {
+            DB::connection('wings_data')
+            ->table('hr_details')
+            ->where('hr_id', $hrId)
+            ->update(['hold' => DB::raw('NOT hold')]);
+
+            Auditing::log('Payroll', auth()->user()->id, 'Toggled hold status', "HR ID: {$hrId}");
+
+            return response()->json(['message' => 'Employee hold status toggled successfully.']);
+        } catch (\Exception $e) {
+            Log::error('Error toggling employee hold status: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to toggle employee hold status.'], 500);
+        }
     }
 
     /**

@@ -90,7 +90,7 @@ function resolveColumnParameters(column, parameters, dateRange) {
   );
 }
 
-export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, dateRange }) {
+export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, setReportData, dateRange }) {
   const [sortConfig, setSortConfig] = useState(parameters?.sorting?.default ? parameters.sorting.default : { key: null, direction: 'asc' }); // State to track sorting configuration
   const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
 
@@ -338,6 +338,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                           ? column.control(
                             row, 
                             rowIndex,
+                            setReportData, 
                             resolveColumnParameters(column, parameters, dateRange)
                           )
                           : column.format
