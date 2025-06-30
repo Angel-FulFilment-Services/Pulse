@@ -131,6 +131,7 @@ Route::get('/payroll/exports/generate/payroll', [PayrollController::class, 'payr
 Route::get('/payroll/export/payroll', [PayrollController::class, 'payrollExportSage']);
 Route::post('/payroll/imports/gross-pay', [PayrollController::class, 'importGrossPay'])->withoutMiddleware('log.access');
 Route::get('/payroll/imports/log', [PayrollController::class, 'importLog']);
+Route::post('/payroll/exports/toggle-hold', [PayrollController::class, 'toggleHold'])->withoutMiddleware('log.access');
 
 /*
 |-----------------------

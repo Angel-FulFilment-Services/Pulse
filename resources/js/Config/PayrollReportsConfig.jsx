@@ -5,6 +5,8 @@ import { FlagIcon, PauseIcon, PlayIcon } from '@heroicons/react/24/outline';
 import ClickedModal from '../Components/Modals/ClickedModal.jsx';
 import PayrollExceptions from '../Components/Payroll/PayrollExceptions.jsx';
 import { exportArrayToExcel, buildExportSheets } from '../Utils/Exports';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const payrollSheetsConfig = [
     {
@@ -219,7 +221,7 @@ const payrollSheetsConfig = [
     rowHeights: [12.75, 31.50, 10.50],
     columnWidths: [9.00, 8.14, 8.86, 8.86, 3.57, 8.86, 20.57, 6.14, 7.86, 11.14, 14.13, 14.13, 8.14, 8.14, 8.57, 8.00, 10.57, 13.57, 16.00],
     fixed: { other_payment: "" },
-    filterFn: row => row.employment_category === "HOURLY",
+    filterFn: row => row.employment_category === "HOURLY" && row.hold !== true,
     rowColorFn: (row) => {
       if (row.find((cell) => cell.key === 'leave_date').value) {
         return { bgColor: "FF8080" };
@@ -335,6 +337,55 @@ const payrollReportsConfig = [
       id: 'payroll_export',
       label: 'Payroll Export',
       generate: generatePayrollExport,
+      toggleHold: async (row, setReportData) => {
+        try {
+          if (!row || !row.hr_id) {
+            throw new Error("Invalid row data. HR ID is required.");
+          }
+          // Call the API to toggle hold status
+          const response = await axios.post('/payroll/exports/toggle-hold', { hr_id: row.hr_id });
+
+          if (response.status === 200) {
+            // Update the row's hold status based on the response
+            row.hold = !row.hold;
+            toast.success(`Hold for ${row.firstname} ${row.surname} has been ${row.hold ? 'activated' : 'deactivated'}.`, {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+
+            // Optionally, update the report data if provided
+            if (setReportData) {
+              setReportData((prevData) => {
+                return prevData.map((item) => {
+                  if (item.hr_id === row.hr_id) {
+                    return { ...item, hold: row.hold };
+                  }
+                  return item;
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error toggling hold status:", error);
+          toast.error("Error toggling hold status", {
+              position: 'top-center',
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: false,
+              draggable: true,
+              progress: undefined,
+              theme: 'light',
+          });
+          throw error; // Re-throw the error to be handled by the caller
+        }
+      },
       toExcel: (data, filename, startDate, endDate) => {
 
         const config = payrollReportsConfig.find(cfg => cfg.id === 'payroll_export');
@@ -373,6 +424,10 @@ const payrollReportsConfig = [
           target: (row) => {
             if (!row) return "";
 
+            if(row.hold) {
+              return `bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 dark:bg-opacity-25`;
+            }
+
             if(row.exception_count > 0) {
               return `bg-yellow-100 text-yellow-700 dark:bg-yellow-300 dark:text-yellow-200 dark:bg-opacity-25`;
             }
@@ -397,10 +452,19 @@ const payrollReportsConfig = [
               control: (row, rowIndex, { startDate, endDate } = {}) => (
                 <div className={`flex flex-row items-center justify-start gap-x-2`}>
                   <div className="flex items-center justify-center h-6 w-6">
-                    <PauseIcon
-                      className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-not-allowed transition-all ease-in-out"
-                      aria-hidden="true"
-                    />
+                    { row.hold ? (
+                      <PlayIcon
+                        className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                        aria-hidden="true"
+                        onClick={() => payrollReportsConfig[0].toggleHold(row, setReportData)}
+                      />
+                    ) : (
+                      <PauseIcon
+                        className="h-6 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                        aria-hidden="true"
+                        onClick={() => payrollReportsConfig[0].toggleHold(row, setReportData)}
+                      />
+                    )}
                   </div>
                   <ClickedModal
                       overlay={true}
