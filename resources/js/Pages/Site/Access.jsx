@@ -74,7 +74,7 @@ export default function Access({ location }) {
             <ModeSelector setStep={setStep} location={location} />
           </div>
           <div className="w-1/2">
-            <QRScannerPanel handleSignInComplete={(userId) => { setSignInType('employee'); handleSignInComplete(userId); }} location={location} />
+            <QRScannerPanel onComplete={(userId) => { setSignInType('employee'); handleSignInComplete(userId); }} setStep={setStep} location={location} />
           </div>
         </div>
       </div>

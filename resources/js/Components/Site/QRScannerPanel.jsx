@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { set } from 'lodash';
 
-export default function QRScannerPanel({ setStep, location }) {
+export default function QRScannerPanel({ onComplete, setStep, location }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
   const isTimeout = useRef(false);
@@ -37,6 +37,7 @@ export default function QRScannerPanel({ setStep, location }) {
           (result, error) => {
             if (result && !isTimeout.current) {
               if(isStopped.current){
+                stopCamera();
                 codeReader.current.reset();
               }
 
@@ -45,13 +46,12 @@ export default function QRScannerPanel({ setStep, location }) {
                   if (user) {
                       signInOrOut(user).then(action => {
                         if(action) { 
-                            stopCamera();
+                            isStopped.current = true;
                             if(action === 'sign-in') {
-                                setStep('welcome');
+                                onComplete(user);
                             } else {
                                 setStep('goodbye');
                             }
-                            isStopped.current = true;
                         }
                       });
                   }
@@ -61,13 +61,12 @@ export default function QRScannerPanel({ setStep, location }) {
                 isTimeout.current = false;
               }, 3000);
             }
-          },
-          constraints
+          }, constraints
         );
       } catch (error) {
         // Optionally handle camera errors here
       }
-    }, [stopCamera]);
+    }, [setStep, stopCamera, onComplete]);
 
   const findUser = async (query) => {
     try {

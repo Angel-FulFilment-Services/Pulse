@@ -221,7 +221,7 @@ const payrollSheetsConfig = [
     rowHeights: [12.75, 31.50, 10.50],
     columnWidths: [9.00, 8.14, 8.86, 8.86, 3.57, 8.86, 20.57, 6.14, 7.86, 11.14, 14.13, 14.13, 8.14, 8.14, 8.57, 8.00, 10.57, 13.57, 16.00],
     fixed: { other_payment: "" },
-    filterFn: row => row.employment_category === "HOURLY" && row.hold !== true,
+    filterFn: row => row.employment_category === "HOURLY" && !row.hold,
     rowColorFn: (row) => {
       if (row.find((cell) => cell.key === 'leave_date').value) {
         return { bgColor: "FF8080" };
@@ -269,7 +269,7 @@ const payrollSheetsConfig = [
     rowHeights: [12.75, 24, 10.50],
     columnWidths: [8.57, 13.43, 10.57, 12.71, 13.00, 13.43, 7.86],
     fixed: { hwk_returned: "", notes: "" },
-    filterFn: row => !!row.leave_date,
+    filterFn: row => !!row.leave_date && !row.hold,
     sortFn: (a, b) => {
       const aValue = a.find((cell) => cell.key === 'firstname')?.value || '';
       const bValue = b.find((cell) => cell.key === 'firstname')?.value || '';
