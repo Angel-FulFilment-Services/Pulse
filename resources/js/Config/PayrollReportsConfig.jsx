@@ -449,7 +449,7 @@ const payrollReportsConfig = [
               label: "Actions",
               dataType: "control",
               visible: true,
-              control: (row, rowIndex, { startDate, endDate } = {}) => (
+              control: (row, rowIndex, setReportData, { startDate, endDate } = {}) => (
                 <div className={`flex flex-row items-center justify-start gap-x-2`}>
                   <div className="flex items-center justify-center h-6 w-6">
                     { row.hold ? (
