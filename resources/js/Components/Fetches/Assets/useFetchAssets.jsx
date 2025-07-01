@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const useFetchAssets = (startDate, endDate, hrId = null) => {
+const useFetchAssets = (available = null) => {
   const [assets, setAssets] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
-  const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
 
   const fetchAssets = async (controller) => {
     let loadingTimeout;
@@ -19,6 +18,9 @@ const useFetchAssets = (startDate, endDate, hrId = null) => {
 
       const response = await axios.get('/asset-management/assets', {
         signal: controller.signal, // Attach the AbortController signal
+        params: {
+          available,
+        },
       });
 
       clearTimeout(loadingTimeout);
@@ -40,11 +42,6 @@ const useFetchAssets = (startDate, endDate, hrId = null) => {
   };
 
   useEffect(() => {
-    // Update the latestDates ref whenever startDate or endDate changes
-    latestDates.current = { startDate, endDate };
-  }, [startDate, endDate]);
-
-  useEffect(() => {
     const controller = new AbortController(); // Create a new AbortController for each fetch
 
     // Debounce the fetchAssets call
@@ -61,7 +58,7 @@ const useFetchAssets = (startDate, endDate, hrId = null) => {
       controller.abort(); // Cancel the ongoing request
       clearTimeout(debounceTimeout.current); // Clear the debounce timeout
     };
-  }, [startDate, endDate, hrId]); // Re-run when hrId changes
+  }, [available]); // Re-run when available changes
 
   useEffect(() => {
     // Fetch assets every 60 seconds
@@ -73,7 +70,7 @@ const useFetchAssets = (startDate, endDate, hrId = null) => {
     return () => {
       clearInterval(intervalId); // Clear the interval on cleanup
     };
-  }, [startDate, endDate, hrId]); // Re-run when hrId changes
+  }, [available]); // Re-run when available changes
 
   return { assets, isLoading, isLoaded };
 };

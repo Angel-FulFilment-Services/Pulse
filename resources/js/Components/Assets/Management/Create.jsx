@@ -50,6 +50,12 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     const [createKit, setCreateKit] = useState(false);
 
     const validationRules = {
+        assetId: [
+            (value) =>
+                validateRequired(value, 'assetId', {
+                    customMessage: 'Please enter an asset ID.',
+                }),
+        ],
         alias: [
         (value) =>
             validateRequired(value, 'alias', {
@@ -151,15 +157,13 @@ export default function Create({ assetId, onCancel, initialData = null }) {
         }));
     }
 
-    const handleSubmit = async () => {            
-        const isValid = validate(['alias', 'make', 'model', 'kit']);
+    const handleSubmit = async () => {
+        const isValid = validate(['assetId', 'alias', 'make', 'model', 'kit']);
         if (!isValid) return;
 
         // Set processing state
         setIsProcessing(true);
         setIsSuccess(false);
-
-        console.log('Submitting form data:', JSON.stringify(formData));
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -258,8 +262,10 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                                 id="alias"
                                 label="Asset ID"
                                 placeholder="Please enter an ID"
+                                annotation="(Required)"
+                                onTextChange={(value) => handleInputChange('assetId', value[0].value)}
                                 currentState={formData.assetId}
-                                disabled={true}
+                                disabled={assetId ? true : false}
                             />
                         </div>
                         <div className="sm:col-span-3 sm:row-start-2">

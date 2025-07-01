@@ -723,11 +723,15 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
             // Holiday
             if (holidayMap[sage_id]) {
                 rows.push([sage_id, 18, '1.00', Number(holidayMap[sage_id]).toFixed(2)]);
+            }else{
+                rows.push([sage_id, 18, '0.00', '0.00']);
             }
 
             // Bonus
             if (bonusMap[sage_id]) {
                 rows.push([sage_id, 100, '1.00', Number(bonusMap[sage_id]).toFixed(2)]);
+            }else{
+                rows.push([sage_id, 100, '0.00', '0.00']);
             }
 
             // Hours
@@ -764,6 +768,12 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                 if (grouped.length === 1) {
                     rows.push([
                         sage_id,
+                        102,
+                        0,
+                        0,
+                    ]);
+                    rows.push([
+                        sage_id,
                         96,
                         Number(grouped[0].hours).toFixed(2),
                         Number(grouped[0].rate).toFixed(2)
@@ -779,6 +789,17 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                         ]);
                     }
                 }
+            } else {
+                // If no hours, add a row with 0 hours and rate
+                const dob = employeeMap[sage_id]?.DOB || employeeMap[sage_id]?.dob;
+                const age = dob ? differenceInYears(new Date(), new Date(dob)) : null;
+                const payRate = emp.pay_rate;
+                const rate = (payRate && Number(payRate) > 0)
+                    ? Number(payRate)
+                    : getRateForDate(age, new Date());
+
+                rows.push([sage_id, 102, '0.00', '0.00']);
+                rows.push([sage_id, 96, '0.00', '0.00']);
             }
         }
 

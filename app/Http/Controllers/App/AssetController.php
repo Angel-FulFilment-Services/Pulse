@@ -151,6 +151,11 @@ class AssetController extends Controller
                 return response()->json(['message' => 'Asset not found.'], 404);
             }
 
+            $item = Item::where('asset_id', $asset->id)->first();
+            if($item){
+                return response()->json(['message' => 'Asset is already part of a kit.'], 400);
+            }
+
             // Create the kit item.
             Item::create([
                 'kit_id' => $kit->id,
@@ -676,7 +681,16 @@ class AssetController extends Controller
     }
 
     public function assets(Request $request){
+        $available = $request->query('available', false);
+
         $assets = DB::table('assets.assets')
+            ->when($available, function ($query) {    
+                $query->leftJoin('assets.kit_items', function($join) {
+                    $join->on('kit_items.asset_id', '=', 'assets.id')
+                        ->whereNotIn('assets.type', ['Patch Lead', 'USB Power Cable', 'Peripherals', 'Headset', 'USB Mouse', 'USB Keyboard']);
+                })
+                ->where('kit_items.kit_id', null);
+            })
             ->select(
                 'assets.id as id',
                 'assets.afs_id as value', 

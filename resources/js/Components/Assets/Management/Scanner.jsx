@@ -28,7 +28,7 @@ function Spinner() {
   );
 }
 
-export default function Scanner({ handleScan, handleClose }) {
+export default function Scanner({ handleScan, handleClose, goTo }) {
   const [cameraError, setCameraError] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +112,7 @@ export default function Scanner({ handleScan, handleClose }) {
             <p className="text-base text-gray-600 dark:text-dark-400">
               Or you can search for an asset below.
             </p>
-            <div className="w-full mt-6 flex items-center justify-center">
+            <div className="w-full mt-6 flex flex-col gap-y-4 items-center justify-center">
                 <SearchControl
                   items={availableAssets}
                   placeholder="Start typing to search for an asset..."
@@ -121,7 +121,13 @@ export default function Scanner({ handleScan, handleClose }) {
                     if (!item) return;
                     handleScan(item);
                   }}
-                />
+                />  
+                <button
+                  className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
+                  onClick={() => goTo({ type: 'create', assetId: null })}
+                >
+                  Create Asset
+                </button>
             </div>
           </>
         ) : (

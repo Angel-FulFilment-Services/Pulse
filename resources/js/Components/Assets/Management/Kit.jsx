@@ -28,7 +28,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
     const [selectedItem, setSelectedItem] = useState(null);
     const historyScrollRef = useRef(null);
 
-    const { assets } = useFetchAssets();
+    const { assets } = useFetchAssets(true);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -189,6 +189,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                     const user = response.data[0];
                     setAssignedTo(user.name);
                     refreshKit();
+                    refreshAsset();
 
                     toast.success(`Kit assigned to ${user.name}`, {
                         position: 'top-center',
@@ -234,6 +235,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 setIsDialogOpen(false);
                 setIsProcessing(false);
                 refreshKit();
+                refreshAsset();
                 toast.success(`Item removed from kit successfully`, {
                     position: 'top-center',
                     autoClose: 3000,
@@ -273,6 +275,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 const newItem = response.data;
                 setIsProcessing(false);
                 refreshKit();
+                refreshAsset();
                 toast.success(`Item added to kit successfully`, {
                     position: 'top-center',
                     autoClose: 3000,
@@ -287,7 +290,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             .catch(error => {
                 console.error('Error adding item to kit:', error);
                 setIsProcessing(false);
-                toast.error('Failed to add item to kit. Please try again.', {
+                toast.error('Failed to add item to kit, it may already be assigned. Please try again.', {
                     position: 'top-center',
                     autoClose: 3000,
                     hideProgressBar: false,
