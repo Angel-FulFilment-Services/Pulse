@@ -62,10 +62,6 @@ class UserController extends Controller
                     ->where('asset_log.returned', '=', 0);
             })
             ->select('users.id', 'users.name', 'users.email', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title', 'asset_log.id as asset_log_id')
-            ->where(function($query) {
-                $query->where('users.active', '=', 1)
-                    ->orWhereNotNull('asset_log.id');
-            })
             ->groupBy('users.id')
             ->orderBy('name', 'asc')
             ->get();
