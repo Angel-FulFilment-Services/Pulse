@@ -740,8 +740,11 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                 const hoursWithRate = empHours.map(h => {
                     const dob = employeeMap[sage_id]?.DOB || employeeMap[sage_id]?.dob;
                     const age = dob ? differenceInYears(new Date(h.date), new Date(dob)) : null;
+                    const payRate = emp.pay_rate;
 
-                    const rate = getRateForDate(age, new Date(h.date));
+                    const rate = (payRate && Number(payRate) > 0)
+                        ? Number(payRate)
+                        : getRateForDate(age, new Date(h.date));
                     return { ...h, rate };
                 });
 

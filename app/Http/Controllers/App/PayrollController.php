@@ -28,8 +28,8 @@ class PayrollController extends Controller
     }
 
     public function payrollExportSage(Request $request){
-        $startDate = $request->query('startDate');
-        $endDate = $request->query('endDate');
+        $startDate = date("Y-m-d", strtotime($request->query('startDate')));
+        $endDate = date("Y-m-d", strtotime($request->query('endDate')));
 
         $export = [];
 
@@ -40,6 +40,7 @@ class PayrollController extends Controller
             'hr_details.firstname',
             'hr_details.surname',
             'hr_details.dob',
+            'hr_details.pay_rate',
             'gross_pay',
             'last_qty',
             DB::raw('COALESCE(dow.days_of_week, 0) as days_of_week'),
@@ -186,11 +187,16 @@ class PayrollController extends Controller
                 $endDate
             );
 
+            $adhocBonus = Exception::where('hr_id', $employee->hr_id)
+                ->where('type', 'Adhoc Bonus')
+                ->whereBetween('startdate', [$startDate, $endDate])
+                ->sum('amount');
+
             if($employee->bonus > 0){
                 $export['bonus'][] = [
                     'hr_id' => $employee->hr_id,
                     'sage_id' => $employee->sage_id,
-                    'bonus' => round($employee->bonus, 2)
+                    'bonus' => round($employee->bonus + $adhocBonus, 2)
                 ];
             }
         }
@@ -215,6 +221,7 @@ class PayrollController extends Controller
             'start_date',
             'leave_date',
             'halo_id',
+            'pay_rate',
             'gross_pay',
             'last_qty',
             'hold',
