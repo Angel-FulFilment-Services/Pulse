@@ -715,7 +715,7 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
 
         // 5. Prepare CSV rows
         const rows = [];
-        rows.push(['sage_id', 'pay_ref', 'hours', 'rate']); // header
+        rows.push(['Employee Reference', 'Payment Reference', 'Hours', 'Rate']); // header
 
         for (const emp of employees) {
             const sage_id = emp.sage_id;
