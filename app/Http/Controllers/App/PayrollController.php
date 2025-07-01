@@ -192,7 +192,7 @@ class PayrollController extends Controller
                 ->whereBetween('startdate', [$startDate, $endDate])
                 ->sum('amount');
 
-            if($employee->bonus > 0){
+            if($employee->bonus > 0 || $adhocBonus > 0){
                 $export['bonus'][] = [
                     'hr_id' => $employee->hr_id,
                     'sage_id' => $employee->sage_id,
