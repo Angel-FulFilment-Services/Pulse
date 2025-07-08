@@ -84,12 +84,12 @@ class LoginController extends Controller
 
             // Send 2FA SMS if enabled
             if (Permissions::hasPermission('sms_2fa_enabled')) {
-                SendTwoFactorSMS::dispatch(auth()->user());
+                SendTwoFactorSMS::dispatch(auth()->user())->onQueue('pulse');
             }
 
             // Send 2FA email if enabled
             if (Permissions::hasPermission('email_2fa_enabled')) {
-                SendTwoFactorEmail::dispatch(auth()->user());
+                SendTwoFactorEmail::dispatch(auth()->user())->onQueue('pulse');
             }
         }
 
