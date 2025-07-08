@@ -47,13 +47,18 @@ export default {
           '70%': { transform: 'rotate(-1deg)' },
           '80%': { transform: 'rotate(1deg)' },
           '90%': { transform: 'rotate(-0.5deg)' },
-        }       
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },       
       },
       animation: {
         'loader': 'loader 0.6s infinite alternate',
         'dot-squence': 'dot-sequence 1.5s infinite',
         'slide-down': 'slide-down 300ms ease-out',
         'shake-bell': 'shake-bell 0.8s ease-in-out infinite',
+        'fade-in': 'fade-in 0.3s ease-out',
       },
       colors: {
         theme: {

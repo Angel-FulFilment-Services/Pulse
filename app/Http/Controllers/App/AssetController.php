@@ -74,7 +74,7 @@ class AssetController extends Controller
             
         $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
 
-        if(!$kitHistory->count()){
+        if(!$kitHistory->count() || $kitHistory->first()->type == 'Removed'){
             return response()->json(['asset' => $asset, 'history' => $history, 'kit' => collect([]), 'pat' => $pat], 200);
         }
 
@@ -355,20 +355,19 @@ class AssetController extends Controller
         // Define validation rules
         $rules = [
             'assetId' => 'required|numeric',
-            'alias' => 'required|string|max:50',
         ];
 
         // Define custom validation messages
         $messages = [
-            'alias.required' => 'Please enter an alias.',
-            'alias.string' => 'The alias must be a valid string.',
-            'alias.max' => 'The alias must not exceed 50 characters.',
+            'assetId.required' => 'Please enter an asset ID.',
+            'assetId.numeric' => 'The asset ID must be a valid number.'
         ];
 
         try {
             $request->validate($rules, $messages);
 
             $asset = Asset::create([
+                'status' => 'Active',
                 'afs_id' => $request->assetId,
                 'alias' => $request->alias,
                 'type' => $request->type,
@@ -380,6 +379,7 @@ class AssetController extends Controller
                 // Create a new kit if it doesn't exist
                 $kit = Kit::firstOrCreate([
                     'alias' => $request->kit,
+                    'active' => true,
                 ]);
 
                 // Create the kit item.

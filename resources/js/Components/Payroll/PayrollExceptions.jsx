@@ -107,9 +107,9 @@ export default function PayrollExceptions({ hrId, dateRange, handleClose }) {
               <ButtonControl
                 id="add_button"
                 Icon={PlusIcon}
-                customClass="w-7 h-7"
+                className="w-7 h-7"
                 iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out"
-                onButtonClick={() => {
+                onClick={() => {
                   setSelectedException(null);
                   setShowExceptionsForm(true);
                 }}

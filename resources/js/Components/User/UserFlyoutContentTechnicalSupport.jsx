@@ -174,9 +174,9 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
                 <ButtonControl
                   id="add_button"
                   Icon={PlusIcon}
-                  customClass="w-7 h-7"
-                  iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out"
-                  onButtonClick={() => {
+                  className="w-7 h-7"
+                  iconClassName="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out"
+                  onClick={() => {
                     setSelectedEvent(null);
                     setShowSupportForm(true);
                   }}

@@ -3,6 +3,7 @@ import SplashScreen from '../../Components/Site/SplashScreen';
 import ModeSelector from '../../Components/Site/ModeSelector';
 import QRScannerPanel from '../../Components/Site/QRScannerPanel';
 import SignInTypeSelector from '../../Components/Site/SignInTypeSelector';
+import DeliveryTypeSelector from '../../Components/Site/DeliveryTypeSelector';
 import SignInEmployeeForm from '../../Components/Site/SignInEmployeeForm';
 import SignInVisitorForm from '../../Components/Site/SignInVisitorForm';
 import SignInContractorForm from '../../Components/Site/SignInContractorForm';
@@ -22,7 +23,9 @@ export default function Access({ location }) {
   const [signOutType, setSignOutType] = useState(null); // Tracks the type of sign out (employee, visitor, contractor)
 
   useEffect(() => {
-    setUserId(null);
+    if(step !== 'update-profile-photo') {
+      setUserId(null); // Reset userId when not in update profile photo step
+    }
   }, [step])
 
   // Example handlers
@@ -58,7 +61,7 @@ export default function Access({ location }) {
   const handleSignOutComplete = () => setStep('goodbye');
 
   // Render logic
-  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} />;
+  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} />;
   if (step === 'mode') return  (
       <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
         <div className="flex items-center justify-between w-full h-10">
@@ -80,6 +83,8 @@ export default function Access({ location }) {
       </div>
   );
   if (step === 'signin-type') return <SignInTypeSelector onSelect={handleSignInType} setStep={setStep} location={location} />;
+  if (step === 'delivery-type') return <DeliveryTypeSelector setStep={setStep} location={location} from="mode" />;
+  if (step === 'delivery-type-home') return <DeliveryTypeSelector setStep={setStep} location={location} from="splash" />;
   if (step === 'signout-type') return <SignInTypeSelector onSelect={handleSignOutType} setStep={setStep} location={location} />;
   if (step === 'signin-employee') return <SignInEmployeeForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
   if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
@@ -94,6 +99,7 @@ export default function Access({ location }) {
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} signOutType={signOutType} />;
   if (step === 'welcome') return <WelcomeMessage setStep={setStep} />;
   if (step === 'goodbye') return <GoodbyeMessage setStep={setStep} />;
-  if (step === 'thank-you') return <ThankYouMessage setStep={setStep} />;
+  if (step === 'thank-you-signature') return <ThankYouMessage setStep={setStep} category="signature" />;
+  if (step === 'thank-you-left-at-door') return <ThankYouMessage setStep={setStep} category="left-at-door" />;
   return null;
 }

@@ -5,41 +5,6 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 export default function ModeSelector({ setStep, location }) {
-
-  const signIn = async () => {
-    try {
-      const response = await axios.get(`/onsite/sign-in`, {
-        params: { 
-          type: 'delivery',
-          category: 'delivery',
-          location: location,
-        },
-      });
-
-      if (!response.status === 200) {
-        throw new Error('Failed to sign in user');
-      }
-
-      if (response.status === 200) {
-        setStep('thank-you');
-      }
-    } catch (err) {
-      const audio = new Audio('/sounds/access-error.mp3');
-      audio.play();
-        toast.error('Could not notify office, please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-      return false;
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center h-full dark:bg-dark-900 gap-y-10 w-full">
       <button
@@ -66,7 +31,7 @@ export default function ModeSelector({ setStep, location }) {
       </button>
       <button
         className="px-8 w-full h-full py-4 bg-white dark:bg-dark-800 dark:text-dark-100 text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_35px_0_rgba(0,0,0,0.1)] hover:bg-gray-50 focus:outline-none flex items-center justify-start"
-        onClick={() => signIn()}
+        onClick={() => setStep('delivery-type')}
       >
         <div className="flex flex-row items-center justify-center w-2/6">
           <CubeIcon className="h-20 w-20 text-gray-900 dark:text-dark-200 inline-block stroke-[2] flex-shrink-0" />

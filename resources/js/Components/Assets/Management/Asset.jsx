@@ -429,11 +429,11 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 <div className="w-full flex items-center justify-between gap-x-4">
                                     <ButtonControl 
                                         Icon={BoltIcon} 
-                                        onButtonClick={() => {
+                                        onClick={() => {
                                             goTo({ type: 'pat', assetId: assetId });
                                         }}
-                                        iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
-                                        customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" 
+                                        iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                                        className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" 
                                         buttonLabel={`Conduct Test - Next Due: ` + (nextPatDue ? formatDueInterval(nextPatDue) : 'N/A')} 
                                     />
                                 </div>
@@ -527,7 +527,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                 </div>
                 { kit && kit.length > 0 && (
                     <div className="w-full flex items-center justify-between gap-x-4">
-                            <ButtonControl id="view_kit" Icon={EyeIcon} iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="View Kit" onButtonClick={() => {changeKit(kitId)}}/>
+                            <ButtonControl id="view_kit" Icon={EyeIcon} iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-700 dark:text-dark-100 dark:bg-dark-900 dark:hover:bg-dark-800" buttonLabel="View Kit" onClick={() => {changeKit(kitId)}}/>
                     </div>
                 )}
             </div>

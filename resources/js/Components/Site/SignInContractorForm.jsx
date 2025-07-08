@@ -6,9 +6,9 @@ import './Styles.css'; // Assuming you have a CSS file for styles
 import { set } from 'lodash';
 
 const inputs = [
-  { label: 'Full Name', key: 'fullName' },
+  { label: 'Full name', key: 'fullName' },
   { label: 'Company', key: 'company' },
-  { label: 'Car Registration', key: 'carReg' },
+  { label: 'Car registration', key: 'carReg' },
 ];
 
 export default function SignInContractorForm({ onComplete, setStep, location }) {

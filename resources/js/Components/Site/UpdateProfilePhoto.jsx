@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 // Simple spinner component
 function Spinner() {
@@ -243,7 +245,6 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
 
   // Call this to save (you can expand this as needed)
   const handleSave = async (e) => {
-    e.preventDefault();
     if (!preview) return;
 
     const getCroppedImage = () => {
@@ -411,7 +412,7 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
                       maxHeight: 'none',
                       transform: 'translate(-50%, -50%)',
                       objectFit: lastSource === 'upload' ? 'contain' : 'cover',
-                      opacity: isLoading ? 0 : 1,
+                      opacity: 1,
                       transition: 'opacity 0.2s',
                       touchAction: 'none',
                     }}
@@ -460,11 +461,11 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
             {/* Camera/Retake button */}
             {!preview && lastSource === "upload" || cameraError ? (<div className="h-12" />) : null}
             <div className="flex flex-row w-full">
-              <div className="min-w-1/2 w-1/2" />
-              <div className="flex flex-row items-start justify-between gap-4 w-1/2">
+              <div className="w-full" />
+              <div className="flex flex-row items-start justify-between gap-4 w-full">
                 <button
                   onClick={preview && lastSource === "camera" ? startCamera : startCamera}
-                  className="flex items-center justify-center -ml-28 gap-2 bg-theme-500 text-white rounded-2xl px-5 py-4 mt-4 text-3xl hover:bg-theme-600 focus-visible:outline-2 fade-in focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center -ml-24 gap-2 bg-theme-500 text-white rounded-2xl px-5 py-4 mt-4 text-3xl hover:bg-theme-600 focus-visible:outline-2 fade-in focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
                   <CameraIcon className="w-10 h-10 stroke-[7] mr-2" />
@@ -472,7 +473,7 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
                 </button>
                 <button
                   className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl shadow hover:bg-theme-600 mb-16 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {if(preview && lastSource === "camera") { handleSubmit() } else { onComplete() } }}
+                  onClick={() => {if(preview && lastSource === "camera") { handleSave() } else { onComplete() } }}
                 >
                   <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />
                   <p className="mb-1">{preview && lastSource === "camera" ? "Continue" : "Skip"}</p>
@@ -484,7 +485,7 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
 
         {/* Camera Section */}
         {isCameraActive && !cameraError ? (
-          <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-md">
+          <div className="flex flex-col justify-center items-center gap-y-4 w-full max-w-full">
             <div className="relative">
               <video ref={videoRef} className="size-64 lg:size-96 rounded-full object-cover ring-4 ring-theme-500 dark:ring-theme-600" playsInline autoPlay muted/>
               {/* Face outline overlay */}
@@ -508,11 +509,11 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
             </div>
             <div className="h-14" />
             <div className="flex flex-row w-full">
-              <div className="min-w-1/2 w-1/2" />
-              <div className="flex flex-row items-start justify-between gap-4 w-1/2">
+              <div className="w-full" />
+              <div className="flex flex-row items-start justify-between gap-4 w-full">
                 <button
                   onClick={capturePhoto}
-                  className="flex items-center justify-center -ml-28 gap-2 bg-theme-500 text-white rounded-2xl px-5 py-4 mt-4 text-3xl hover:bg-theme-600 focus-visible:outline-2 fade-in focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center -ml-24 gap-2 bg-theme-500 text-white rounded-2xl px-5 py-4 mt-4 text-3xl hover:bg-theme-600 focus-visible:outline-2 fade-in focus-visible:outline-offset-2 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-700 disabled:bg-theme-600 dark:disabled:bg-theme-700 dark:disabled:hover:bg-theme-700 disabled:hover:bg-theme-600 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
                   <CameraIcon className="w-10 h-10 stroke-[7] mr-2" />

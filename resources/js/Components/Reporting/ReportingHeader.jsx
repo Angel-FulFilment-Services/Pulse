@@ -116,9 +116,9 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
           <div className="flex gap-x-2">
             {(Object.values(report).length) ? 
               <>
-                <ButtonControl id="refresh_button" Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/>
-                <ButtonControl id="refresh_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportEdit}/> 
-                <ButtonControl id="refresh_button" disabled={isGenerating} Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
+                <ButtonControl id="refresh_button" Icon={ArrowPathIcon} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onClick={handleReportRegenerate}/>
+                <ButtonControl id="refresh_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onClick={handleReportEdit}/> 
+                <ButtonControl id="refresh_button" disabled={isGenerating} Icon={RiFileExcel2Line} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onClick={handleReportToExcel}/>
               </>
               : null
             }

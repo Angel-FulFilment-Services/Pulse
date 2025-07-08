@@ -4,6 +4,8 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use App\Models\HR\Employee;
 use Inertia\Inertia;
 use App\Models\User\User;
 use DB;
@@ -134,6 +136,7 @@ class SiteController extends Controller
         $status = DB::connection('wings_config')->table('site_access_log')->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->whereIn('type', ['access'])
+            ->where('created_at', '>=', date('Y-m-d'))
             ->select(DB::raw('IF(signed_out IS NULL, true, false) as signed_in'))
             ->first();
 

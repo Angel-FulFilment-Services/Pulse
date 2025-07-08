@@ -164,6 +164,7 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 | Asset Management
 |-----------------------
 */
+
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);
@@ -200,7 +201,7 @@ Route::get('/onsite/sign-in-out', [SiteController::class, 'signInOrOut'])->name(
 Route::get('/onsite/status', [SiteController::class, 'isUserSignedIn'])->name('onsite.status');
 Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsite.find_user');
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
-Route::get('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
+Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
 Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
 
 /*

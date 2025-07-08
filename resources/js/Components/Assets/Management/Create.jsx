@@ -23,6 +23,8 @@ const types = [
     { id: 'usb_power_cable', value: 'USB Power Cable' },
     { id: 'patch_lead', value: 'Patch Lead' },
     { id: 'network_cable', value: 'Network Cable' },
+    { id: 'it_equipment', value: 'IT Equipment' },
+    { id: 'other', value: 'Other' },
 ].sort((a, b) => a.value.localeCompare(b.value));
 
 const items = [
@@ -56,12 +58,12 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                     customMessage: 'Please enter an asset ID.',
                 }),
         ],
-        alias: [
-        (value) =>
-            validateRequired(value, 'alias', {
-            customMessage: 'Please enter an alias.',
-            }),
-        ],
+        // alias: [
+        // (value) =>
+        //     validateRequired(value, 'alias', {
+        //     customMessage: 'Please enter an alias.',
+        //     }),
+        // ],
         make: [
         (value) =>
             validateMatches(value, /^[a-zA-Z0-9\s.,'"\-()!?;:@#&%]*$/, null, {
@@ -84,16 +86,6 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                 }),
             ],
     };
-
-    // Populate form data if initialData is provided
-    useEffect(() => {
-        if (initialData) {
-            setFormData({
-                assetId: initialData.assetId || assetId || '',
-                alias: initialData.category || '',
-            });
-        }
-    }, [initialData]);
 
     const validate = (fieldsToValidate) => {
         const newErrors = {};
@@ -158,7 +150,7 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     }
 
     const handleSubmit = async () => {
-        const isValid = validate(['assetId', 'alias', 'make', 'model', 'kit']);
+        const isValid = validate(['assetId', 'make', 'model', 'kit']);
         if (!isValid) return;
 
         // Set processing state
@@ -259,24 +251,23 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                     <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full">
                         <div className="sm:col-span-3">
                             <TextInput
-                                id="alias"
+                                id="assetId"
                                 label="Asset ID"
                                 placeholder="Please enter an ID"
                                 annotation="(Required)"
                                 onTextChange={(value) => handleInputChange('assetId', value[0].value)}
                                 currentState={formData.assetId}
                                 disabled={assetId ? true : false}
+                                error={errors.assetId}
                             />
                         </div>
                         <div className="sm:col-span-3 sm:row-start-2">
                             <TextInput
                                 id="alias"
                                 label="Alias"
-                                annotation="(Required)"
                                 placeholder="Please enter an alias"
                                 currentState={formData.alias}
                                 onTextChange={(value) => handleInputChange('alias', value[0].value)}
-                                onBlur={() => validate(['alias'])}
                                 error={errors.alias}
                             />
                         </div>

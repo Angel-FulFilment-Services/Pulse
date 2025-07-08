@@ -134,22 +134,22 @@ export default function PayrollHeader({
               {(Object.values(report).length) ? 
                 <>
                     {handleReportRegenerate ? (
-                      <ButtonControl id="refresh_button" disabled={isGenerating} Icon={ArrowPathIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onButtonClick={handleReportRegenerate}/>
+                      <ButtonControl id="refresh_button" disabled={isGenerating} Icon={ArrowPathIcon} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" onClick={handleReportRegenerate}/>
                     ) : null}
                     { handleReportEdit ? (
-                      <ButtonControl id="settings_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onButtonClick={handleReportEdit}/> 
+                      <ButtonControl id="settings_button" disabled={isGenerating} Icon={!isEditing ? Cog8ToothIcon : CheckIcon} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-gray-400 dark:text-dark-500 dark:hover:text-gray-400 hover:text-gray-500 transition-all ease-in-out" onClick={handleReportEdit}/> 
                     ) : null}
                     { handleReportToExcel ? (
-                      <ButtonControl id="excel_export_button" disabled={isGenerating} Icon={RiFileExcel2Line} customClass="w-6 h-6 px-1" iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onButtonClick={handleReportToExcel}/>
+                      <ButtonControl id="excel_export_button" disabled={isGenerating} Icon={RiFileExcel2Line} className="w-6 h-6 px-1" iconClassName="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out" onClick={handleReportToExcel}/>
                     ) : null}
                     { handleReportToExcel ? (
                       <ButtonControl 
                         id="sage_export_button"
                         disabled={isGenerating}
                         Icon={SageIcon}
-                        customClass="w-5 h-5 px-1.5 focus:outline-none"
-                        iconClass="w-9 h-8 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
-                        onButtonClick={handleSageExport}
+                        className="w-5 h-5 px-1.5 focus:outline-none"
+                        iconClassName="w-9 h-8 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
+                        onClick={handleSageExport}
                       />
                     ) : null} 
                     { handleImport ? (
@@ -157,9 +157,9 @@ export default function PayrollHeader({
                         id="import_button"
                         disabled={isGenerating}
                         Icon={ArrowDownTrayIcon}
-                        customClass="w-6 h-6 px-1"
-                        iconClass="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
-                        onButtonClick={handleImport}
+                        className="w-6 h-6 px-1"
+                        iconClassName="w-6 h-6 text-theme-500 hover:text-theme-600 dark:text-theme-700 dark:hover:text-theme-600 transition-all ease-in-out"
+                        onClick={handleImport}
                       />
                     ) : null}
                 </>

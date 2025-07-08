@@ -24,6 +24,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
     const [assignedTo, setAssignedTo] = useState(null);
     const [availableAssets, setAvailableAssets] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isDialogOpenUnassign, setIsDialogOpenUnassign] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const historyScrollRef = useRef(null);
@@ -128,7 +129,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             history.forEach(event => {
                 if (event.source === 'Issue') {
                     if (event.status === 'Issued') {
-                        assignedTo = event.name;
+                        assignedTo = {name: event.name, user_id: event.user_id };
                     } else if (event.status === 'Returned') {
                         assignedTo = null;
                     }
@@ -218,6 +219,44 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                     });
                 });
         }
+    }
+
+    const unassignKit = (userId) => {
+        if (!kit?.id) return;
+        setIsProcessing(true);
+        axios.post(`/asset-management/kits/unassign`, {
+            kit_id: kit.id,
+            user_id: userId,
+        })
+            .then(response => {
+                setAssignedTo(null);
+                refreshKit();
+                refreshAsset();
+                toast.success(`Kit unassigned successfully`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            })
+            .catch(error => {
+                console.error('Error unassigning kit:', error);
+                setAssignedTo(null);
+                toast.error('Failed to unassign kit. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
     }
 
     const removeItemFromKit = (assetId) => {
@@ -394,8 +433,14 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                 <div className="flex justify-between py-2 text-sm font-medium items-center">
                                     <dt className="text-gray-500">Assigned To</dt>
                                     { assignedTo ? (
-                                        <dd className="text-gray-900">
-                                            <span className="text-gray-900 dark:text-dark-100">{assignedTo}</span>
+                                        <dd className="text-gray-900 flex flex-col items-end gap-y-0.5">
+                                            <span className="text-gray-900 dark:text-dark-100">{assignedTo.name}</span>
+                                            <button 
+                                                className="text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 text-xs w-full text-right" 
+                                                onClick={() => setIsDialogOpenUnassign(true)}
+                                            >
+                                                Unassign
+                                            </button>
                                         </dd>
                                     ) : (
                                         <div className="w-4/6">
@@ -504,9 +549,9 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         <ButtonControl 
                             id="add_asset_to_kit" 
                             Icon={PlusIcon} 
-                            iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0" 
-                            customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-9 dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
-                            onButtonClick={() => {
+                            iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0" 
+                            className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-9 dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                            onClick={() => {
                                 const asset = document.getElementById('asset_search').value;
                                 const assetId = assets.find(a => a.displayValue == asset)?.id || assets.find(a => a.value == asset)?.id;
                                 if (!assetId) {
@@ -533,10 +578,10 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             <ButtonControl 
                                 id="process_return" 
                                 Icon={ArrowUturnLeftIcon} 
-                                iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
-                                customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                                iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                                className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
                                 buttonLabel="Process Return" 
-                                onButtonClick={() => {
+                                onClick={() => {
                                     goTo({ type: 'return', kitId: kit.id, kit: data });
                                 }}
                             />
@@ -557,6 +602,16 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 isYes={() => removeItemFromKit(selectedItem)}
                 type="delete"
                 yesText="Remove"
+                cancelText="Cancel"
+            />
+            <ConfirmationDialog
+                isOpen={isDialogOpenUnassign}
+                title="Unassign Kit?"
+                description="Are you sure you want to unassign this kit?"            
+                isYes={() => unassignKit(assignedTo.user_id)}
+                setIsOpen={setIsDialogOpenUnassign}
+                type="question"
+                yesText="Yes"
                 cancelText="Cancel"
             />
         </div>

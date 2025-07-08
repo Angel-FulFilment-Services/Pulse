@@ -41,7 +41,7 @@ export default function CheckboxInput(props) {
           checked={checked}
           onChange={handleCheckboxChange}
           disabled={disabled}
-          className={`h-4 w-4 text-theme-600 dark:text-theme-700 border-gray-300 dark:border-dark-600 rounded focus:ring-theme-600 dark:focus:ring-theme-700 ${
+          className={`h-4 w-4 text-theme-600 dark:text-theme-700 border-gray-300 dark:border-dark-600 rounded focus:ring-theme-600 dark:focus:ring-theme-700 accent-theme-400 ${
             disabled ? "opacity-75 cursor-not-allowed" : ""
           }`}
         />

@@ -5,10 +5,10 @@ import UserIcon from '../User/UserIcon';
 import './Styles.css'; // Import your CSS for animations
 
 const inputs = [
-  { label: 'Full Name', key: 'fullName' },
+  { label: 'Full name', key: 'fullName' },
   { label: 'Company', key: 'company' },
   { label: 'Visiting', key: 'visiting' },
-  { label: 'Car Registration', key: 'carReg' },
+  { label: 'Car registration', key: 'carReg' },
 ];
 
 export default function SignInVisitorForm({ onComplete, setStep, location }) {
