@@ -193,7 +193,7 @@ Route::post('/asset-management/kits/returns/process', [AssetController::class, '
 
 Route::get('/onsite/access-control', [SiteController::class, 'accessControl'])->name('onsite.access_control');
 Route::get('/onsite/access-control/{location}', [SiteController::class, 'accessControl'])->name('onsite.access_control');
-Route::get('/onsite/widgets/access-control', [SiteController::class, 'widget'])->name('onsite.widget');
+Route::get('/onsite/widgets/access-control', [SiteController::class, 'widget'])->name('onsite.widget')->withoutMiddleware('guest')->middleware('auth', 'twofactor', 'has.permission:pulse_view_access_control');
 Route::get('/onsite/signed-in', [SiteController::class, 'signedIn'])->name('onsite.signed_in');
 Route::get('/onsite/sign-in', [SiteController::class, 'signIn'])->name('onsite.sign_in');
 Route::get('/onsite/sign-out', [SiteController::class, 'signOut'])->name('onsite.sign_out');

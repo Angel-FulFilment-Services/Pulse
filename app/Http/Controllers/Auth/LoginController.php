@@ -92,5 +92,7 @@ class LoginController extends Controller
                 SendTwoFactorEmail::dispatch(auth()->user());
             }
         }
+
+        return redirect()->intended('/'); // '/' is your fallback
     }
 }

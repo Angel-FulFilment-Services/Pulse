@@ -19,31 +19,6 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  useEffect(() => {
-    const handleClickCapture = (e) => {
-      // Only run on touch devices
-      if (!('ontouchstart' in window)) return;
-
-      const target = e.target;
-
-      // Prevent duplicate trigger
-      e.stopImmediatePropagation();
-      e.preventDefault();
-
-      setTimeout(() => {
-        if (typeof target.click === 'function') {
-          target.click();
-        }
-      }, 0);
-    };
-
-    document.addEventListener('click', handleClickCapture, true);
-
-    return () => {
-      document.removeEventListener('click', handleClickCapture, true);
-    };
-  }, []);
-
   const handleContinue = () => {
     const current = inputs[input];
     if (!form[current.key].trim()) {

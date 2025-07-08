@@ -42,7 +42,8 @@ class TwoFactorController extends Controller
             return back()->withErrors(['error' => "The passcode you entered doesn't match our records"])->withInput();
         }
         $user->reset_two_factor_code();
-        return redirect()->route('rota');
+
+        return redirect()->intended('/');
     }
 
     public function resend(){
