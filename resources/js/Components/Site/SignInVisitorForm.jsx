@@ -18,27 +18,8 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const [employees, setEmployees] = useState([]); // State to store the list of employees
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
-  const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
-
-  useEffect(() => {
-    const handleResize = () => {
-      // Check if the viewport height has decreased (keyboard is visible)
-      let newKeyboardHeight = 0;
-      if (window.visualViewport.height < window.innerHeight) {
-        newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        window.scrollTo(0, 0);
-      }
-
-      setKeyboardHeight(newKeyboardHeight);
-    };
-
-    window.visualViewport.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  const [isInputFocused, setIsInputFocused] = useState(false); // Tracks if the input is focused
 
   const handleContinue = () => {
     const current = inputs[input];
@@ -184,7 +165,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const currentInput = inputs[input];
 
   return (
-    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 pb-16 h-screen w-full">
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
           className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"
@@ -221,10 +202,17 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               autoComplete="off"
               autoCorrect="false"
               autoFocus
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
-          <div className={`flex flex-row items-end  ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}>
+          <div 
+            className={`flex flex-row items-end  ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}
+            style={{
+              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+            }}
+          >
             {currentInput.key === 'visiting' &&
               <div className="relative flex-grow overflow-hidden">
                   {employees.length > 0 && (

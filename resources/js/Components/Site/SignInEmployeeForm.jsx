@@ -13,6 +13,7 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
   const [animationClass, setAnimationClass] = useState(null); // State for animation class
+  const [isInputFocused, setIsInputFocused] = useState(false); // Tracks if the input is focused
 
   const fetchEmployees = async (query) => {
     try {
@@ -152,7 +153,7 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
           onClick={() => setStep('splash')}
         />
       </div>
-      <div className="flex flex-col items-start justify-start bg-white h-full dark:bg-dark-900 w-full pt-14">
+      <div className="flex flex-col items-start justify-start bg-white h-full dark:bg-dark-900 w-full pt-10">
         <div className="flex flex-col gap-4 w-full h-full">
           <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">Full name</label>
@@ -165,13 +166,19 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
               tabIndex={0}
               onChange={handleInputChange}
               autoFocus
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
-          <div className="flex flex-row items-end justify-between w-full h-full z-10 relative">
+          <div className="flex flex-row items-end justify-between w-full h-full z-10 relative"
+            style={{
+              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+            }}
+          >
             <div className="relative flex-grow overflow-hidden">
                 {employees.length > 0 && (
-                  <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 pb-12 overflow-x-scroll no-scrollbar pl-36">
+                  <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pl-36 pb-4">
                     <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-600 fade-in">
                       Tap to select
                     </p>
@@ -203,10 +210,10 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
                 </>
               )}
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 pb-4">
               <button
                 disabled={!id || !name.length || isProcessing}
-                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 mb-12 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => signIn(id)}
               >
                 <ChevronRightIcon className="h-8 w-8 inline-block stroke-[7] flex-shrink-0 mr-2" />

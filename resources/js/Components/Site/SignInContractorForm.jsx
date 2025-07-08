@@ -16,27 +16,8 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
-  const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
-
-  useEffect(() => {
-    const handleResize = () => {
-      // Check if the viewport height has decreased (keyboard is visible)
-      let newKeyboardHeight = 0;
-      if (window.visualViewport.height < window.innerHeight) {
-        newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        window.scrollTo(0, 0);
-      }
-
-      setKeyboardHeight(newKeyboardHeight);
-    };
-
-    window.visualViewport.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const handleContinue = () => {
     const current = inputs[input];
@@ -149,6 +130,8 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
               autoComplete="off"
               autoCorrect="false"
               autoFocus
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
@@ -156,7 +139,9 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
           {/* Continue Button */}
           <div 
             className={`flex flex-row items-end justify-end w-full h-full z-10 relative`}
-            style={{ transform: `translateY(-${keyboardHeight}px)` }}
+            style={{
+              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+            }}
           >
             <div className="flex-shrink-0">
               <button
