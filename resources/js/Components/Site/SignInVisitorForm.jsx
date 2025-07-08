@@ -26,6 +26,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
     // Focus the current input after input index changes
     if (inputRefs.current[input]) {
       inputRefs.current[input].focus();
+      setIsInputFocused(true)
     }
   }, [input]);
 
@@ -35,7 +36,9 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
       setError('Please select who you are visiting.');
       return;
     }
-    if (!form[current.key].trim() && (current.key !== 'visiting' || current.key !== 'carReg')) {
+    console.log('Current input:', current.key, 'Value:', form[current.key]);
+
+    if (!form[current.key].trim() && (current.key !== 'visiting' && current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
       return;
     }
