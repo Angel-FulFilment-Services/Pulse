@@ -167,7 +167,7 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
               onChange={handleInputChange}
               autoFocus
               onFocus={() => setIsInputFocused(true)}
-              onBlur={() => setIsInputFocused(false)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 100)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>

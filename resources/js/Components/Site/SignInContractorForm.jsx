@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -13,15 +13,23 @@ const inputs = [
 
 export default function SignInContractorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
+  const inputRefs = useRef([]); // Ref to store input elements for focusing
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
   const [isInputFocused, setIsInputFocused] = useState(false);
 
+  useEffect(() => {
+    // Focus the current input after input index changes
+    if (inputRefs.current[input]) {
+      inputRefs.current[input].focus();
+    }
+  }, [input]);
+
   const handleContinue = () => {
     const current = inputs[input];
-    if (!form[current.key].trim()) {
+    if (!form[current.key].trim() && (current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
       return;
     }
@@ -121,6 +129,7 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
           <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
+              ref={el => inputRefs.current[input] = el}
               type="text"
               name={currentInput.key}
               className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
@@ -131,7 +140,7 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
               autoCorrect="false"
               autoFocus
               onFocus={() => setIsInputFocused(true)}
-              onBlur={() => setIsInputFocused(false)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 100)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>

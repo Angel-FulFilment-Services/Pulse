@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
@@ -13,6 +13,7 @@ const inputs = [
 
 export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
+  const inputRefs = useRef([]); // Ref to store input elements for focusing
   const [form, setForm] = useState({ fullName: '', company: '', visiting: '', visitingId: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [employees, setEmployees] = useState([]); // State to store the list of employees
@@ -21,20 +22,27 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
   const [isInputFocused, setIsInputFocused] = useState(false); // Tracks if the input is focused
 
+  useEffect(() => {
+    // Focus the current input after input index changes
+    if (inputRefs.current[input]) {
+      inputRefs.current[input].focus();
+    }
+  }, [input]);
+
   const handleContinue = () => {
     const current = inputs[input];
     if (current.key === 'visiting' && !form.visiting.trim()) {
       setError('Please select who you are visiting.');
       return;
     }
-    if (!form[current.key].trim() && current.key !== 'visiting') {
+    if (!form[current.key].trim() && (current.key !== 'visiting' || current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
       return;
     }
-    setError('');
 
     // Trigger fade-out animation
     setAnimationClass('fade-out');
+    setError('');
 
     // Wait for the fade-out animation to complete before moving to the next input
     setTimeout(() => {
@@ -141,6 +149,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
     setForm({ ...form, visiting: employeeName, visitingId: employeeId });
 
     setAnimationClass('fade-out');
+    setError('');
 
     // Wait for the fade-out animation to complete before moving to the next input
     setTimeout(() => {
@@ -165,7 +174,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const currentInput = inputs[input];
 
   return (
-    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 pb-16 h-screen w-full">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon
           className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"
@@ -176,6 +185,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               setError(''); // Clear any previous error
               setTimeout(() => {
                 setInput(input - 1); // Go back to the previous input
+                setError(''); // Clear any previous error
                 setAnimationClass('fade-in'); // Trigger fade-in animation
               }, 50);
             } else {
@@ -194,6 +204,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
           <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
+              ref={el => inputRefs.current[input] = el}
               type="text"
               name={currentInput.key}
               className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
@@ -203,7 +214,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               autoCorrect="false"
               autoFocus
               onFocus={() => setIsInputFocused(true)}
-              onBlur={() => setIsInputFocused(false)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 100)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
@@ -216,7 +227,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
             {currentInput.key === 'visiting' &&
               <div className="relative flex-grow overflow-hidden">
                   {employees.length > 0 && (
-                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-16 pl-36">
+                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-4 pl-36">
                       <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-600 fade-in">
                         Tap to select
                       </p>
@@ -250,7 +261,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               </div>
             }
             {/* Continue Button */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 pb-4">
               <button
                 disabled={isProcessing}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
