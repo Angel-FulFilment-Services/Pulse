@@ -173,7 +173,7 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
           </div>
           <div className="flex flex-row items-end justify-between w-full h-full z-10 relative"
             style={{
-              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+              transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
             }}
           >
             <div className="relative flex-grow overflow-hidden">

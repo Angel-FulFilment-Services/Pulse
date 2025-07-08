@@ -140,7 +140,7 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
           <div 
             className={`flex flex-row items-end justify-end w-full h-full z-10 relative`}
             style={{
-              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+              transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
             }}
           >
             <div className="flex-shrink-0">

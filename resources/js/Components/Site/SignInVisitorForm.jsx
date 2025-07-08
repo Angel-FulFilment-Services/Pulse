@@ -210,7 +210,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
           <div 
             className={`flex flex-row items-end  ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}
             style={{
-              transform: isInputFocused ? 'translateY(-20rem)' : 'translateY(0)', // adjust -8rem as needed
+              transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
             }}
           >
             {currentInput.key === 'visiting' &&
