@@ -24,7 +24,9 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
     // Focus the current input after input index changes
     if (inputRefs.current[input]) {
       inputRefs.current[input].focus();
-      setIsInputFocused(true)
+      setTimeout(() => {
+        setIsInputFocused(true);
+      }, 100);
     }
   }, [input]);
 
