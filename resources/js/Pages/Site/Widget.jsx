@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ScrollHint from '../../Components/Hints/ScrollHint';
 import ProfileIcon from '../../Components/User/UserIcon';
 import ButtonControl from '../../Components/Controls/ButtonControl';
-import CheckBoxInput from '../../Components/Forms/CheckBoxInput';
+import CheckBoxInput from '../../Components/Forms/CheckboxInput';
 
 export default function DeliveryAndVisitorWidget() {
     const [deliveries, setDeliveries] = useState([]); // Stores the list of deliveries
