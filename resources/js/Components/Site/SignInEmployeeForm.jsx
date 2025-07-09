@@ -171,12 +171,13 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
-          <div className="flex flex-row items-end justify-between w-full h-full z-10 relative"
-            style={{
-              transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
-            }}
-          >
-            <div className="relative flex-grow overflow-hidden">
+          <div className="flex flex-row items-end justify-between w-full h-full z-10 relative">
+            <div 
+              className="relative flex-grow overflow-hidden" 
+              style={{
+                transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
+              }}
+            >
                 {employees.length > 0 && (
                   <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pl-36 pb-4">
                     <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-600 fade-in">
@@ -210,7 +211,12 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
                 </>
               )}
             </div>
-            <div className="flex-shrink-0 pb-4">
+            <div 
+              className="flex-shrink-0 pb-4"  
+              style={{
+                transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
+              }}
+            >
               <button
                 disabled={!id || !name.length || isProcessing}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"
