@@ -19,4 +19,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
+Route::get('/onsite/access/{guid}', [SiteController::class, 'signInOrOutByGUID'])->name('onsite.access');

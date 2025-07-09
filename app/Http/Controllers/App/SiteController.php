@@ -285,6 +285,42 @@ class SiteController extends Controller
         }
     }
 
+    public function signInOrOutByGUID($guid){
+        try {
+            $employee = User::where('client_ref', '=', 'ANGL')
+                ->where('users.qr_token', $guid)
+                ->value('id');
+
+            if (!$employee) {
+                return response()->json(['message' => 'Employee not found'], 404);
+            }
+
+            $signedIn = $this->isUserSignedIn($employee);
+
+            if (!$signedIn){
+                DB::connection('wings_config')->table('site_access_log')->insert([
+                    'type' => 'access',
+                    'category' => 'employee',
+                    'signed_in' => now(),
+                    'location' => Str::title($request->input('location', null)),
+                    'user_id' => $employee,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $action = 'sign-in';
+            } else {
+                DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
+                    'signed_out' => now(),
+                    'updated_at' => now(),
+                ]);
+                $action = 'sign-out';
+            }
+            return response()->json(['message' => 'Signed in / out successfully', 'action' => $action], 200);
+        } catch (\Throwable $th) {
+            return response()->json(['message' => 'Error processing sign in/out'], 500);
+        }
+    }
+
     public function signIn(Request $request){
 
         if($request->has('user_id') && $this->isUserSignedIn($request->input('user_id'))) {
