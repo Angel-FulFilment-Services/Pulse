@@ -17,7 +17,7 @@ class SiteController extends Controller
     // Block logged out users from using dashboard
     public function __construct(){
         $this->middleware(['guest']);
-        $this->middleware(['ipInRange:192.168.0.0,192.168.255.255']);
+        //$this->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
         $this->middleware(['log.access']);
     }
 
@@ -284,17 +284,11 @@ class SiteController extends Controller
         }
     }
 
-    public function signInOrOutByGUID(Request $request){
+    public function signInOrOutByAuth(Request $request){
         try {
             $data = $request->json()->all();
 
-            $employee = User::where('client_ref', '=', 'ANGL')
-                ->where('users.qr_token', $data['guid'])
-                ->value('id');
-
-            if (!$employee) {
-                return response()->json(['message' => 'Employee not found'], 404);
-            }
+            $employee = auth()->user()->id;
 
             $signedIn = $this->isUserSignedIn($employee);
 

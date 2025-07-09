@@ -21,7 +21,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
 
-Route::post('/onsite/access/sign-in-or-out', [SiteController::class, 'signInOrOutByGUID'])
+Route::post('/onsite/access/sign-in-or-out', [SiteController::class, 'signInOrOutByAuth'])
 ->withoutMiddleware('ipInRange')
 ->withoutMiddleware('guest')
 ->withoutMiddleware('throttle:api')
