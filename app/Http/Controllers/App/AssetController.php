@@ -650,14 +650,25 @@ class AssetController extends Controller
         $endDate = $request->query('end_date');
         $hrId = $request->query('hr_id');
 
-        $items = DB::table('assets.asset_log')
-            ->join('assets.kits', 'kits.id', '=', 'asset_log.kit_id')
+        $returnedKitIds = DB::table('assets.asset_log')
+        ->where('hr_id', $hrId)
+        ->where('returned', true)
+        ->pluck('kit_id');
+
+        $kit = DB::table('assets.asset_log')
+            ->where('issued', true)
+            ->where('returned', false)
+            ->whereNotIn('kit_id', $returnedKitIds)
+            ->where('hr_id', $hrId)
+            ->orderBy('issued_date', 'desc')
+            ->groupBy('kit_id')
+            ->first();
+
+        $items = DB::table('assets.kits')
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
-            ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
-            ->where('hr_id', $hrId)
-            ->where('issued', true)
-            ->where('asset_log.returned', false)
+            ->select('kits.id as kit_id', 'kits.alias as kit_alias', 'assets.alias as alias', 'assets.type', 'assets.afs_id')
+            ->where('kits.id', $kit->kit_id)
             ->get();
 
         $device = $items->where('type', 'Telephone')->pluck('alias')->first();
