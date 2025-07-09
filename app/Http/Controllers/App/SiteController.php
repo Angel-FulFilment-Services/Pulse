@@ -143,8 +143,7 @@ class SiteController extends Controller
         return $status ? $status->signed_in : false;
     }
 
-    public function access()
-    {
+    public function access(){
         $deliveries = DB::connection('wings_config')
             ->table('site_access_log')
             ->where('type', 'delivery')
@@ -285,10 +284,12 @@ class SiteController extends Controller
         }
     }
 
-    public function signInOrOutByGUID($guid){
+    public function signInOrOutByGUID(Request $request){
         try {
+            $data = $request->json()->all();
+
             $employee = User::where('client_ref', '=', 'ANGL')
-                ->where('users.qr_token', $guid)
+                ->where('users.qr_token', $data['guid'])
                 ->value('id');
 
             if (!$employee) {
@@ -302,7 +303,7 @@ class SiteController extends Controller
                     'type' => 'access',
                     'category' => 'employee',
                     'signed_in' => now(),
-                    'location' => Str::title($request->input('location', null)),
+                    'location' => Str::title($data['location'] ?? null),
                     'user_id' => $employee,
                     'created_at' => now(),
                     'updated_at' => now(),
