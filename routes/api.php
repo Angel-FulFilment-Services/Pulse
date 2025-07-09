@@ -19,4 +19,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/onsite/access/{guid}', [SiteController::class, 'signInOrOutByGUID'])->name('onsite.access');
+Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
+
+Route::post('/onsite/access/sign-in-or-out/{guid}', [SiteController::class, 'signInOrOutByGUID'])->withoutMiddleware('ipInRange')->name('onsite.signInOrOutByGUID');
