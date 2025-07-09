@@ -122,7 +122,7 @@ export default function DeliveryAndVisitorWidget() {
             });
 
             // Add new employees or visitors to roll call data
-            employees.forEach(employee => {
+            employees.filter(employee => !employee.signed_out).forEach(employee => {
                 if (!updatedRollCallData.some(item => item.id === employee.id)) {
                     updatedRollCallData.push({
                         id: employee.id,
@@ -131,7 +131,7 @@ export default function DeliveryAndVisitorWidget() {
                 }
             }); 
 
-            visitors.forEach(visitor => {
+            visitors.filter(employee => !employee.signed_out).forEach(visitor => {
                 if (!updatedRollCallData.some(item => item.id === visitor.id)) {
                     updatedRollCallData.push({
                         id: visitor.id,
@@ -210,7 +210,7 @@ export default function DeliveryAndVisitorWidget() {
                 </div>
             )}
 
-            { (!rollCall || rollCall && !Object.values(rollCallData).every(item => item.present)) && (
+            { (!rollCall || (rollCall && !Object.values(rollCallData).every(item => item.present))) && (
                 <div className="widget-container bg-gray-100 rounded-lg shadow-md py-2 overflow-y-hidden">
                     {/* Employees Section */}
                     <div className="employee-widget mb-3 relative divide-y divide-gray-200 overflow-y-hidden">
