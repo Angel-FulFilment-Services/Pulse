@@ -238,89 +238,91 @@ export default function DeliveryAndVisitorWidget() {
                                 >
                                     <AnimatePresence>
                                         {employees.map((employee, index) => (
-                                            <motion.li
-                                                key={employee.id}
-                                                layout
-                                                initial={{ opacity: 0, y: -30 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 30 }}
-                                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                                className="flex justify-between gap-x-6 py-2 px-6 bg-white shadow-md"
-                                            >
-                                                <div className="flex min-w-0 gap-x-4">
-                                                    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center rounded-full h-10 w-10`}>
-                                                        <ProfileIcon size="medium" profilePhoto={employee.profile_photo} />
-                                                        { employee.signed_out ? (
-                                                            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
-                                                                <span className={`block h-2.5 w-2.5 rounded-full bg-red-500`} />
-                                                            </span>
-                                                        ) : (
-                                                            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
-                                                                <span className={`block h-2.5 w-2.5 rounded-full bg-green-500`} />
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                    <div className="min-w-0 flex-col flex justify-center">
-                                                        <p className="text-sm font-semibold text-gray-900 flex flex-row items-center">
-                                                            {employee.fullname}
-                                                            {employee.location && (
-                                                                <>
-                                                                    <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-500 dark:bg-dark-500 rounded-full mx-2"></div>
-                                                                    {employee.location === 'Lostwithiel' ? (
-                                                                        <HomeIcon className="w-3.5 h-3.5 text-theme-300 inline-block mr-1" aria-hidden="true" />    
-                                                                    ) : (
-                                                                        <WarehouseIcon className="w-3.5 h-3.5 text-gray-400 inline-block mr-1" aria-hidden="true" />
-                                                                    )}
-                                                                    <span className="text-gray-700">
-                                                                        {employee.location}
-                                                                    </span>
-                                                                </>
+                                            (rollCall && !employee.signed_out || !rollCall) && (
+                                                <motion.li
+                                                    key={employee.id}
+                                                    layout
+                                                    initial={{ opacity: 0, y: -30 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 30 }}
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                                    className="flex justify-between gap-x-6 py-2 px-6 bg-white shadow-md"
+                                                >
+                                                    <div className="flex min-w-0 gap-x-4">
+                                                        <span className={`relative flex flex-shrink-0 flex-row items-center justify-center rounded-full h-10 w-10`}>
+                                                            <ProfileIcon size="medium" profilePhoto={employee.profile_photo} />
+                                                            { employee.signed_out ? (
+                                                                <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
+                                                                    <span className={`block h-2.5 w-2.5 rounded-full bg-red-500`} />
+                                                                </span>
+                                                            ) : (
+                                                                <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
+                                                                    <span className={`block h-2.5 w-2.5 rounded-full bg-green-500`} />
+                                                                </span>
                                                             )}
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-gray-500 flex flex-row gap-x-2 items-center">
-                                                            {employee.job_title &&
-                                                                <span>Job Title: <span className="font-semibold text-gray-600">{employee.job_title}</span></span>
-                                                            }
-                                                            {employee.shift_start &&
-                                                                <>
-                                                                    <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-                                                                    <span>Due: <span className="font-semibold text-gray-600">{employee.shift_start}</span></span>
-                                                                </>
-                                                            }
-                                                        </p>
+                                                        </span>
+                                                        <div className="min-w-0 flex-col flex justify-center">
+                                                            <p className="text-sm font-semibold text-gray-900 flex flex-row items-center">
+                                                                {employee.fullname}
+                                                                {employee.location && (
+                                                                    <>
+                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-500 dark:bg-dark-500 rounded-full mx-2"></div>
+                                                                        {employee.location === 'Lostwithiel' ? (
+                                                                            <HomeIcon className="w-3.5 h-3.5 text-theme-300 inline-block mr-1" aria-hidden="true" />    
+                                                                        ) : (
+                                                                            <WarehouseIcon className="w-3.5 h-3.5 text-gray-400 inline-block mr-1" aria-hidden="true" />
+                                                                        )}
+                                                                        <span className="text-gray-700">
+                                                                            {employee.location}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-gray-500 flex flex-row gap-x-2 items-center">
+                                                                {employee.job_title &&
+                                                                    <span>Job Title: <span className="font-semibold text-gray-600">{employee.job_title}</span></span>
+                                                                }
+                                                                {employee.shift_start &&
+                                                                    <>
+                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
+                                                                        <span>Due: <span className="font-semibold text-gray-600">{employee.shift_start}</span></span>
+                                                                    </>
+                                                                }
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="shrink-0 flex flex-row items-end justify-between gap-x-6 w-40">
-                                                    <div>
-                                                        <p className="text-sm text-gray-900 capitalize font-semibold">{employee.category}</p>
-                                                        <p className="mt-1 text-xs text-gray-500">{formatTimeSince(employee.created_at)}</p>
-                                                    </div>
-                                                    <div className="w-10 h-10 flex items-center justify-center">
-                                                        { (rollCall && !employee.signed_out) && (
-                                                            <CheckBoxInput
-                                                                checked={rollCallData.some(rollCall => rollCall.id == employee.id && rollCall.present)}
-                                                                onChange={(checked) => {
-                                                                    setRollCallData(prevData => {
-                                                                        const updatedData = [...prevData];
-                                                                        const index = updatedData.findIndex(data => data.id === employee.id);
+                                                    <div className="shrink-0 flex flex-row items-end justify-between gap-x-6 w-40">
+                                                        <div>
+                                                            <p className="text-sm text-gray-900 capitalize font-semibold">{employee.category}</p>
+                                                            <p className="mt-1 text-xs text-gray-500">{formatTimeSince(employee.created_at)}</p>
+                                                        </div>
+                                                        <div className="w-10 h-10 flex items-center justify-center">
+                                                            { (rollCall && !employee.signed_out) && (
+                                                                <CheckBoxInput
+                                                                    checked={rollCallData.some(rollCall => rollCall.id == employee.id && rollCall.present)}
+                                                                    onChange={(checked) => {
+                                                                        setRollCallData(prevData => {
+                                                                            const updatedData = [...prevData];
+                                                                            const index = updatedData.findIndex(data => data.id === employee.id);
 
-                                                                        if (index !== -1) {
-                                                                            updatedData[index].present = checked;
-                                                                        } else {
-                                                                            updatedData.push({ id: employee.id, present: checked });
-                                                                        }
+                                                                            if (index !== -1) {
+                                                                                updatedData[index].present = checked;
+                                                                            } else {
+                                                                                updatedData.push({ id: employee.id, present: checked });
+                                                                            }
 
-                                                                        return updatedData;
-                                                                    });
-                                                                }}
-                                                                id={`roll-call-${employee.id}`}
-                                                                label=""
-                                                                disabled={employee.signed_out}
-                                                            />
-                                                        )}
+                                                                            return updatedData;
+                                                                        });
+                                                                    }}
+                                                                    id={`roll-call-${employee.id}`}
+                                                                    label=""
+                                                                    disabled={employee.signed_out}
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </motion.li>
+                                                </motion.li>
+                                            )
                                         ))}
                                         {employees.length > 10 && (
                                             <motion.li
@@ -364,106 +366,108 @@ export default function DeliveryAndVisitorWidget() {
                                 >
                                     <AnimatePresence>
                                         {visitors.map((visitor, index) => (
-                                            <motion.li
-                                                key={visitor.id}
-                                                layout
-                                                initial={{ opacity: 0, y: -30 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 30 }}
-                                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                                className="flex justify-between gap-x-6 py-2 px-6 bg-white shadow-md relative"
-                                            >
-                                                <div className="flex min-w-0 gap-x-4">
-                                                    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-100 dark:bg-dark-800 rounded-full h-10 w-10`}>
-                                                        { visitor.category === 'visitor' ? (
-                                                            <UserIcon className={`w-[80%] h-[80%] text-cyan-500 dark:text-dark-600 ml-[0.035rem]`} aria-hidden="true" />
-                                                        ) : (
-                                                            <ClipboardDocumentListIcon className={`w-[75%] h-[75%] text-cyan-500 dark:text-dark-600 ml-[0.035rem]`} aria-hidden="true" />
-                                                        )}
-                                                        { visitor.signed_out ? (
-                                                            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
-                                                                <span className={`block h-2.5 w-2.5 rounded-full bg-red-500`} />
-                                                            </span>
-                                                        ) : (
-                                                            <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
-                                                                <span className={`block h-2.5 w-2.5 rounded-full bg-green-500`} />
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                    <div className="min-w-0 flex-col flex justify-center">
-                                                        <p className="text-sm font-semibold text-gray-900 flex flex-row items-center">
-                                                            {visitor.visitor_name}
-                                                            {visitor.location && (
-                                                                <>
-                                                                    <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-500 dark:bg-dark-500 rounded-full mx-2"></div>
-                                                                    {visitor.location === 'Lostwithiel' ? (
-                                                                        <HomeIcon className="w-3.5 h-3.5 text-theme-300 inline-block mr-1" aria-hidden="true" />    
-                                                                    ) : (
-                                                                        <WarehouseIcon className="w-3.5 h-3.5 text-gray-400 inline-block mr-1" aria-hidden="true" />
-                                                                    )}
-                                                                    <span className="text-gray-700">
-                                                                        {visitor.location}
-                                                                    </span>
-                                                                </>
+                                            (rollCall && !visitor.signed_out || !rollCall) && (
+                                                <motion.li
+                                                    key={visitor.id}
+                                                    layout
+                                                    initial={{ opacity: 0, y: -30 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 30 }}
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                                    className="flex justify-between gap-x-6 py-2 px-6 bg-white shadow-md relative"
+                                                >
+                                                    <div className="flex min-w-0 gap-x-4">
+                                                        <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-100 dark:bg-dark-800 rounded-full h-10 w-10`}>
+                                                            { visitor.category === 'visitor' ? (
+                                                                <UserIcon className={`w-[80%] h-[80%] text-cyan-500 dark:text-dark-600 ml-[0.035rem]`} aria-hidden="true" />
+                                                            ) : (
+                                                                <ClipboardDocumentListIcon className={`w-[75%] h-[75%] text-cyan-500 dark:text-dark-600 ml-[0.035rem]`} aria-hidden="true" />
                                                             )}
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-gray-500 flex flex-row gap-x-2 items-center">
-                                                            {visitor.visitor_company &&
-                                                                <span>Company: <span className="font-semibold text-gray-600">{visitor.visitor_company}</span></span>
-                                                            }
-                                                            {visitor.visitor_visiting &&
-                                                                <>
-                                                                    <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-                                                                    <span>To See: <span className="font-semibold text-gray-600">{visitor.visitor_visiting}</span></span>
-                                                                </>
-                                                            }
-                                                            {visitor.visitor_car_registration &&
-                                                                <>
-                                                                    <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-                                                                    <span>Car Registration: <span className="font-semibold text-gray-600">{visitor.visitor_car_registration}</span></span>
-                                                                </>
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="shrink-0 flex flex-row items-center justify-between gap-x-6 w-40">
-                                                    <div>
-                                                        <p className="text-sm text-gray-900 capitalize font-semibold">{visitor.category}</p>
-                                                        <p className="mt-1 text-xs text-gray-500">{formatTimeSince(visitor.created_at)}</p>
-                                                    </div>
-                                                    { !rollCall && (    
-                                                        <div className="w-10 h-10 flex items-center justify-center">
-                                                            { isNew(visitor.created_at) && (
-                                                                <span className="h-6 w-6 bg-white rounded-full animate-shake-bell flex items-center justify-center">
-                                                                    <BellAlertIcon className="w-6 h-6 text-yellow-500" aria-hidden="true" />
+                                                            { visitor.signed_out ? (
+                                                                <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
+                                                                    <span className={`block h-2.5 w-2.5 rounded-full bg-red-500`} />
+                                                                </span>
+                                                            ) : (
+                                                                <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
+                                                                    <span className={`block h-2.5 w-2.5 rounded-full bg-green-500`} />
                                                                 </span>
                                                             )}
+                                                        </span>
+                                                        <div className="min-w-0 flex-col flex justify-center">
+                                                            <p className="text-sm font-semibold text-gray-900 flex flex-row items-center">
+                                                                {visitor.visitor_name}
+                                                                {visitor.location && (
+                                                                    <>
+                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-500 dark:bg-dark-500 rounded-full mx-2"></div>
+                                                                        {visitor.location === 'Lostwithiel' ? (
+                                                                            <HomeIcon className="w-3.5 h-3.5 text-theme-300 inline-block mr-1" aria-hidden="true" />    
+                                                                        ) : (
+                                                                            <WarehouseIcon className="w-3.5 h-3.5 text-gray-400 inline-block mr-1" aria-hidden="true" />
+                                                                        )}
+                                                                        <span className="text-gray-700">
+                                                                            {visitor.location}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-gray-500 flex flex-row gap-x-2 items-center">
+                                                                {visitor.visitor_company &&
+                                                                    <span>Company: <span className="font-semibold text-gray-600">{visitor.visitor_company}</span></span>
+                                                                }
+                                                                {visitor.visitor_visiting &&
+                                                                    <>
+                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
+                                                                        <span>To See: <span className="font-semibold text-gray-600">{visitor.visitor_visiting}</span></span>
+                                                                    </>
+                                                                }
+                                                                {visitor.visitor_car_registration &&
+                                                                    <>
+                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
+                                                                        <span>Car Registration: <span className="font-semibold text-gray-600">{visitor.visitor_car_registration}</span></span>
+                                                                    </>
+                                                                }
+                                                            </p>
                                                         </div>
-                                                    )}
-                                                    {(rollCall && !visitor.signed_out) && (
-                                                        <CheckBoxInput
-                                                            checked={rollCallData.some(rollCall => rollCall.id == visitor.id && rollCall.present)}
-                                                            onChange={(checked) => {
-                                                                setRollCallData(prevData => {
-                                                                    const updatedData = [...prevData];
-                                                                    const index = updatedData.findIndex(data => data.id === visitor.id);
+                                                    </div>
+                                                    <div className="shrink-0 flex flex-row items-center justify-between gap-x-6 w-40">
+                                                        <div>
+                                                            <p className="text-sm text-gray-900 capitalize font-semibold">{visitor.category}</p>
+                                                            <p className="mt-1 text-xs text-gray-500">{formatTimeSince(visitor.created_at)}</p>
+                                                        </div>
+                                                        { !rollCall && (    
+                                                            <div className="w-10 h-10 flex items-center justify-center">
+                                                                { isNew(visitor.created_at) && (
+                                                                    <span className="h-6 w-6 bg-white rounded-full animate-shake-bell flex items-center justify-center">
+                                                                        <BellAlertIcon className="w-6 h-6 text-yellow-500" aria-hidden="true" />
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {(rollCall && !visitor.signed_out) && (
+                                                            <CheckBoxInput
+                                                                checked={rollCallData.some(rollCall => rollCall.id == visitor.id && rollCall.present)}
+                                                                onChange={(checked) => {
+                                                                    setRollCallData(prevData => {
+                                                                        const updatedData = [...prevData];
+                                                                        const index = updatedData.findIndex(data => data.id === visitor.id);
 
-                                                                    if (index !== -1) {
-                                                                        updatedData[index].present = checked;
-                                                                    } else {
-                                                                        updatedData.push({ id: visitor.id, present: checked });
-                                                                    }
+                                                                        if (index !== -1) {
+                                                                            updatedData[index].present = checked;
+                                                                        } else {
+                                                                            updatedData.push({ id: visitor.id, present: checked });
+                                                                        }
 
-                                                                    return updatedData;
-                                                                });
-                                                            }}
-                                                            id={`roll-call-${visitor.id}`}
-                                                            label=""
-                                                            disabled={visitor.signed_out}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </motion.li>
+                                                                        return updatedData;
+                                                                    });
+                                                                }}
+                                                                id={`roll-call-${visitor.id}`}
+                                                                label=""
+                                                                disabled={visitor.signed_out}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </motion.li>
+                                            )
                                         ))}
                                         {visitors.length > 5 && (
                                             <motion.li

@@ -111,6 +111,7 @@ Route::get('/reporting/reports/generate/kit-details', [ReportingController::clas
 Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog']);
 Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
 Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
+Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 

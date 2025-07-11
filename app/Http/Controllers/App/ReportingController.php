@@ -575,6 +575,33 @@ class ReportingController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function siteAccessLog(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $data = DB::connection('wings_config')
+        ->table('site_access_log as access_log')
+        ->leftJoin('wings_config.users', 'users.id', '=', 'access_log.user_id')
+        ->whereBetween('access_log.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select(DB::raw("
+            access_log.type,
+            access_log.category,
+            access_log.location,
+            IFNULL(users.name, access_log.visitor_name) AS person,
+            access_log.visitor_company as company,
+            access_log.visitor_visiting as visiting,
+            access_log.visitor_car_registration as car_registration,
+            access_log.signed_in,
+            access_log.signed_out
+        "))
+        ->orderBy('access_log.created_at', 'desc')
+        ->get();
+
+        Log::debug('Site Access Log Data: ', ['data' => $data]);
+
+        return response()->json(['data' => $data]);
+    }
+
     public function technicalSupportLog(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
