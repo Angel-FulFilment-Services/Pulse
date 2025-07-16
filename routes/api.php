@@ -28,3 +28,9 @@ Route::post('/onsite/access/sign-in-or-out', [SiteController::class, 'signInOrOu
 ->withoutMiddleware('throttle:api')
 ->middleware('throttle:100,1')
 ->middleware('auth:api');
+
+Route::post('/asset-management/kits/status', [AssetController::class, 'isKitActive'])
+->withoutMiddleware('auth')
+->withoutMiddleware('twofactor')
+->withoutMiddleware('has.permission:pulse_view_assets')
+->middleware('throttle:100,1');
