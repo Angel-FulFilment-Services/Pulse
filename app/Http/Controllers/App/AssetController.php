@@ -323,7 +323,7 @@ class AssetController extends Controller
         // Define validation rules
         $rules = [
             'kit_id' => 'required|numeric',
-            'status' => 'required|boolean',
+            'active' => 'required|boolean',
         ];
 
         try {
@@ -335,7 +335,7 @@ class AssetController extends Controller
             }
 
             // Update the kit status
-            $kit->update(['status' => $request->status]);
+            $kit->update(['active' => $request->active]);
 
             Auditing::log('Assets', auth()->user()->id, 'Kit Status Updated', 'Kit ID: ' . $request->kit_id . ', New Status: ' . $request->status);
 
@@ -348,6 +348,32 @@ class AssetController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to update kit status: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to update kit status.'], 500);
+        }
+    }
+
+    public function isKitActive(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_alias' => 'required|string',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::where('alias', '=', $request->kit_alias)->first();
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            return response()->json(['active' => $kit->active], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to check kit status: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to check kit status.'], 500);
         }
     }
 
