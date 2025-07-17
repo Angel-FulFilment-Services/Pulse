@@ -47,50 +47,19 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        signIn(); // Call onComplete with form data on the last input
+        handleComplete(); // Call onComplete with form data on the last input
       }
     }, 50); // Match the animation duration (0.2s)
   };
 
-  const signIn = async () => {
-    setIsProcessing(true); // Set processing state to true
-    try {
-      const response = await axios.get(`/onsite/sign-in`, {
-        params: { 
-          visitor_name: form.fullName,
-          visitor_company: form.company,
-          visitor_car_registration: form.carReg,
-          location: location, 
-          type: 'access',
-          category: 'contractor',
-        },
-      });
-
-      if (!response.status === 200) {
-        throw new Error('Failed to sign in user');
-      }
-
-      if (response.status === 200) {
-        setIsProcessing(false); // Reset processing state
-        setAnimationClass('fade-out'); // Trigger fade-out animation
-        onComplete();
-      }
-    } catch (err) {
-      setIsProcessing(false); // Reset processing state
-      const audio = new Audio('/sounds/access-error.mp3');
-      audio.play();
-        toast.error('Could not sign in, please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-      return false;
-    }
+  const handleComplete = () => {
+    setAnimationClass('fade-out'); // Trigger fade-out animation
+    onComplete({
+      visitor_name: form.fullName,
+      visitor_company: form.company,
+      visitor_car_registration: form.carReg,
+    });
+    setStep('terms-and-conditions');
   };
 
   const handleInputChange = (e) => {

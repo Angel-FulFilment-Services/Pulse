@@ -46,12 +46,9 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
     setIsProcessing(true); // Set processing state to true to prevent multiple submissions
 
     try {
-      const response = await axios.get(`/onsite/sign-in`, {
+      const response = await axios.get(`/onsite/status`, {
         params: { 
           user_id: userId, 
-          type: 'access',
-          category: 'employee',
-          location: location,
         },
       });
 
@@ -67,7 +64,8 @@ export default function SignInEmployeeForm({ onComplete, setStep, location }) {
         setIsProcessing(false); // Reset processing state
         setAnimationClass('fade-out'); // Trigger fade-out animation
         setTimeout(() => {
-          onComplete(userId);
+          onComplete({ user_id: userId });
+          setStep('terms-and-conditions'); // Navigate to terms and conditions
         }, 200);
       }
     } catch (err) {

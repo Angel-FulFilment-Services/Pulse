@@ -8,6 +8,7 @@ import SignInEmployeeForm from '../../Components/Site/SignInEmployeeForm';
 import SignInVisitorForm from '../../Components/Site/SignInVisitorForm';
 import SignInContractorForm from '../../Components/Site/SignInContractorForm';
 import UpdateProfilePhoto from '../../Components/Site/UpdateProfilePhoto';
+import TermsAndConditions from '../../Components/Site/TermsAndConditions';
 import SignOutList from '../../Components/Site/SignOutList';
 import WelcomeMessage from '../../Components/Site/WelcomeMessage';
 import GoodbyeMessage from '../../Components/Site/GoodbyeMessage';
@@ -17,14 +18,16 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 export default function Access({ location }) {
-  const [step, setStep] = useState('splash');
-  const [userId, setUserId] = useState(null); // Stores the user ID after sign-in
+  const [step, setStep] = useState('splash'); // Initial step set to terms and conditions
+  const [formData, setFormData] = useState(); // Form data
   const [signInType, setSignInType] = useState(null); // Tracks the type of sign in (employee, visitor, contractor)
   const [signOutType, setSignOutType] = useState(null); // Tracks the type of sign out (employee, visitor, contractor)
 
   useEffect(() => {
-    if(step !== 'update-profile-photo') {
-      setUserId(null); // Reset userId when not in update profile photo step
+    if(step === 'splash') {
+      setSignInType(null); // Reset signInType when returning to splash
+      setSignOutType(null); // Reset signOutType when returning to splash
+      setFormData(null); // Reset formData when returning to splash
     }
   }, [step])
 
@@ -38,26 +41,82 @@ export default function Access({ location }) {
     setSignOutType(type);
     setStep('signout');
   }
-  const handleSignInComplete = async (userId) => {
-    setUserId(userId); // Store userId for later use
-    if (signInType === 'employee' && userId) {
-      try {
-        const response = await axios.get('/onsite/has-profile-photo', {
-          params: { user_id: userId },
-        });
+  
+  const signIn = async () => {
+    // if (checkProfilePhoto && signInType === 'employee' && formData.userId) {
+    //   try {
+    //     const response = await axios.get('/onsite/has-profile-photo', {
+    //       params: { user_id: formData.userId },
+    //     });
 
-        if (response.data.has_photo) {
-          setStep('welcome');
-        } else {
-          setStep('update-profile-photo');
-        }
-      } catch (err) {
-        setStep('welcome');
+    //     if (!response.data.has_photo) {
+    //       setStep('update-profile-photo');
+    //       return;
+    //     }
+    //   } catch (err) {
+
+    //   }
+    // }
+
+    // Store a cookie with the user ID if it doesn't exists to mark employees who have agreed to terms.
+    if(signInType === 'employee' && !formData.userId) {
+      document.cookie = `terms_accepted=${formData.userId}; path=/; max-age=31536000;`; // 1 year
+    }
+
+    try {
+      const response = await axios.get(`/onsite/sign-in`, {
+        params: {  
+          type: 'access',
+          category: signInType,
+          location: location,
+          ...formData,
+        },
+      });
+
+      if (response.status === 400) {
+        throw new Error('This user is already signed in.');
       }
-    } else {
-      setStep('welcome'); // Proceed directly to welcome for non-employee types
+
+      if (!response.status === 200) {
+        throw new Error('Failed to sign in user');
+      }
+
+      if (response.status === 200) {
+        handleSignInComplete();
+      }
+    } catch (err) {
+      setIsProcessing(false); // Reset processing state on error
+      const audio = new Audio('/sounds/access-error.mp3');
+      audio.play();
+      if(err.response && err.response.status === 400) {
+        toast.error("You're already signed in.", {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+        setStep('splash');
+      } else {
+        toast.error('Could not sign in, please try again.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
+        setStep('splash');
+      }
     }
   };
+
+  const handleSignInComplete = () => setStep('welcome');
   const handleSignOutComplete = () => setStep('goodbye');
 
   // Render logic
@@ -77,7 +136,7 @@ export default function Access({ location }) {
             <ModeSelector setStep={setStep} location={location} />
           </div>
           <div className="w-1/2">
-            <QRScannerPanel onComplete={(userId) => { setSignInType('employee'); handleSignInComplete(userId); }} setStep={setStep} location={location} />
+            <QRScannerPanel onComplete={setFormData} setStep={setStep} location={location} />
           </div>
         </div>
       </div>
@@ -86,17 +145,18 @@ export default function Access({ location }) {
   if (step === 'delivery-type') return <DeliveryTypeSelector setStep={setStep} location={location} from="mode" />;
   if (step === 'delivery-type-home') return <DeliveryTypeSelector setStep={setStep} location={location} from="splash" />;
   if (step === 'signout-type') return <SignInTypeSelector onSelect={handleSignOutType} setStep={setStep} location={location} />;
-  if (step === 'signin-employee') return <SignInEmployeeForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
-  if (step === 'signin-visitor') return <SignInVisitorForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
-  if (step === 'signin-contractor') return <SignInContractorForm onComplete={handleSignInComplete} setStep={setStep} location={location} />;
+  if (step === 'signin-employee') return <SignInEmployeeForm onComplete={setFormData} setStep={setStep} location={location} />;
+  if (step === 'signin-visitor') return <SignInVisitorForm onComplete={setFormData} setStep={setStep} location={location} />;
+  if (step === 'signin-contractor') return <SignInContractorForm onComplete={setFormData} setStep={setStep} location={location} />;
   if (step === 'update-profile-photo') {
     return (
       <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
-        <UpdateProfilePhoto onComplete={() => setStep('welcome')} userId={userId} />
+        <UpdateProfilePhoto onComplete={() => signIn(false)} userId={formData.userId} />
       </div>
     );
   }
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} signOutType={signOutType} />;
+  if (step === 'terms-and-conditions') return <TermsAndConditions onComplete={signIn} setStep={setStep} />;
   if (step === 'welcome') return <WelcomeMessage setStep={setStep} />;
   if (step === 'goodbye') return <GoodbyeMessage setStep={setStep} />;
   if (step === 'thank-you-signature') return <ThankYouMessage setStep={setStep} category="signature" />;

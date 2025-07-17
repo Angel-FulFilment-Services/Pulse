@@ -352,7 +352,7 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
           onClick={onComplete}
         />
       </div>
-      <form onSubmit={handleSave} className="flex flex-col items-center gap-4 h-full justify-center w-full">
+      <form className="flex flex-col items-center gap-4 h-full justify-center w-full">
         {/* Title and subtitle at the top */}
         <div className="mb-4 text-center w-full">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-dark-100">Update Profile Photo</h1>

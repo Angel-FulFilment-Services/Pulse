@@ -131,8 +131,32 @@ class SiteController extends Controller
         return response()->json(['message' => 'Profile photo updated.', 'file' => $fileName]);
     }
 
-    public function isUserSignedIn($userId){
+    public function isUserSignedInByRequest(Request $request, $userId = null){
         // Check if user is signed in
+        if(!$request || !$request->has('user_id')) {
+            return response()->json(['message' => 'User ID is required'], 500);
+        }
+
+        $userId = $request->input('user_id');
+
+        $status = DB::connection('wings_config')->table('site_access_log')->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->whereIn('type', ['access'])
+            ->where('created_at', '>=', date('Y-m-d'))
+            ->select(DB::raw('IF(signed_out IS NULL, true, false) as signed_in'))
+            ->first();
+
+        if($status && $status->signed_in) {
+            return response()->json(['message' => 'User is already signed in'], 400);
+        }
+
+        if(!$status || !$status->signed_in) {
+            return response()->json(['message' => 'User is not signed in'], 200);
+        }
+    }
+
+    public function isUserSignedIn($userId){
+
         $status = DB::connection('wings_config')->table('site_access_log')->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->whereIn('type', ['access'])
@@ -346,10 +370,17 @@ class SiteController extends Controller
             return response()->json(['message' => 'User is already signed out'], 400);
         }
 
-        DB::connection('wings_config')->table('site_access_log')->where('id', '=', $request->input('id'))->limit(1)->update([
-            'signed_out' => now(),
-            'updated_at' => now(),
-        ]);
+        if($request->has('id')) {
+            DB::connection('wings_config')->table('site_access_log')->where('id', '=', $request->input('id'))->limit(1)->update([
+                'signed_out' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $request->has('user_id'))->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
+                'signed_out' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return response()->json(['message' => 'Signed out successfully'], 200);
     }

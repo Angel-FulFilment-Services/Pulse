@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { set } from 'lodash';
 
 export default function QRScannerPanel({ onComplete, setStep, location }) {
   const videoRef = useRef(null);
@@ -44,14 +43,13 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
               isTimeout.current = true;
               findUser(result.getText()).then(user => {
                   if (user) {
-                      signInOrOut(user).then(action => {
-                        if(action) { 
-                            isStopped.current = true;
-                            if(action === 'sign-in') {
-                                onComplete(user);
-                            } else {
-                                setStep('goodbye');
-                            }
+                      isSignedIn(user).then(signedIn => { 
+                        isStopped.current = true;
+                        if(signedIn) { 
+                          signOut(user);
+                        } else {
+                          onComplete({ user_id: user, location, category: 'employee' });
+                          setStep('terms-and-conditions');
                         }
                       });
                   }
@@ -93,35 +91,72 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
     }
   };
 
-    const signInOrOut = async (userId) => {
-      try {
-        const response = await axios.get(`/onsite/sign-in-out`, {
-          params: { 
-            user_id: userId, 
-            location: location,
-          },
+  const isSignedIn = async (userId) => {
+    try {
+      const response = await axios.get(`/onsite/status`, {
+        params: { 
+          user_id: userId, 
+        },
+      });
+
+      return false;
+    } catch (err) {
+      return true;
+    }
+  };
+
+  const signOut = async (userId) => {
+    try {
+      const response = await axios.get(`/onsite/sign-out`, {
+        params: { 
+          user_id: userId,
+        },
+      });
+
+      if (response.status === 400) {
+        throw new Error('This user is already signed out.');
+      }
+
+      if (!response.status === 200) {
+        throw new Error('Failed to sign out user');
+      }
+
+      if (response.status === 200) {
+        setStep('goodbye');
+      }
+    } catch (err) {
+      setSigningOutId(null); // Reset signing out ID on error
+      const audio = new Audio('/sounds/access-error.mp3');
+      audio.play();
+      if(err.response && err.response.status === 400) {
+        toast.error("You're already signed out.", {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
         });
 
-        if(!response.status === 500){
-          throw new Error('Failed to sign in/out user');
-        }
-
-        return response.data.action;
-      } catch (err) {
-        const audio = new Audio('/sounds/access-error.mp3');
-        audio.play();
-          toast.error('Could not sign in/out, please try again.', {
-              position: 'top-center',
-              autoClose: 3000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: false,
-              draggable: true,
-              progress: undefined,
-              theme: 'light',
-          });
-        return false;
+        setTimeout(() => {
+          setStep('splash'); // Navigate to splash screen after error
+        }, 3000);
+      } else {
+        toast.error('Could not sign out, please try again.', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        });
       }
+      return false;
+    }
   };
 
   useEffect(() => {

@@ -38,7 +38,6 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
       setError('Please select who you are visiting.');
       return;
     }
-    console.log('Current input:', current.key, 'Value:', form[current.key]);
 
     if (!form[current.key].trim() && (current.key !== 'visiting' && current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
@@ -55,51 +54,21 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        signIn();
+        handleComplete();
       }
     }, 50); // Match the animation duration (0.2s)
   };
 
-  const signIn = async () => {
-    try {
-      const response = await axios.get(`/onsite/sign-in`, {
-        params: { 
-          visitor_name: form.fullName,
-          visitor_company: form.company,
-          visitor_car_registration: form.carReg,
-          visitor_visiting: form.visiting,
-          visitor_visiting_user_id: form.visitingId, 
-          location: location,
-          type: 'access',
-          category: 'visitor',
-        },
-      });
-
-      if (!response.status === 200) {
-        throw new Error('Failed to sign in user');
-      }
-
-      if (response.status === 200) {
-        setIsProcessing(false); // Reset processing state
-        setAnimationClass('fade-out'); // Trigger fade-out animation
-        onComplete();
-      }
-    } catch (err) {
-      setIsProcessing(false); // Reset processing state on error
-      const audio = new Audio('/sounds/access-error.mp3');
-      audio.play();
-        toast.error('Could not sign in, please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-      return false;
-    }
+  const handleComplete = () => {
+    setAnimationClass('fade-out'); // Trigger fade-out animation
+    onComplete({
+      visitor_name: form.fullName,
+      visitor_company: form.company,
+      visitor_visiting: form.visiting,
+      visitor_visiting_user_id: form.visitingId,
+      visitor_car_registration: form.carReg,
+    });
+    setStep('terms-and-conditions');
   };
 
   const handleInputChange = (e) => {

@@ -199,7 +199,7 @@ Route::get('/onsite/signed-in', [SiteController::class, 'signedIn'])->name('onsi
 Route::get('/onsite/sign-in', [SiteController::class, 'signIn'])->name('onsite.sign_in');
 Route::get('/onsite/sign-out', [SiteController::class, 'signOut'])->name('onsite.sign_out');
 Route::get('/onsite/sign-in-out', [SiteController::class, 'signInOrOut'])->name('onsite.sign_in_out');
-Route::get('/onsite/status', [SiteController::class, 'isUserSignedIn'])->name('onsite.status');
+Route::get('/onsite/status', [SiteController::class, 'isUserSignedInByRequest'])->name('onsite.status');
 Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsite.find_user');
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
 Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
