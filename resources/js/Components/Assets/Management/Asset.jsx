@@ -224,6 +224,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 else pillClass += "bg-gray-100 text-gray-700 ring-gray-600/20";
                                 return <span className={pillClass}>{status.label}</span>;
                             })()}
+                            { asset && !['Furniture', 'Patch Lead', 'USB Power Cable', 'Peripherals'].includes(asset.type) ? (
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
                                 <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 dark:bg-dark-900 dark:text-dark-500 dark:hover:text-dark-400 focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700">
@@ -332,6 +333,7 @@ export default function Asset({ assetId, onCancel, goBack, goTo, changeAsset, ch
                                 </Menu.Items>
                             </Transition>
                             </Menu>
+                            ) : null}
                         </div>
                     </div>
                     
