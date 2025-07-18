@@ -342,8 +342,66 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             });
     }
 
+    const markKit = (active) => {
+        if (!kit || !kit.id) {
+            toast.error('No kit selected to mark.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+            return;
+        }
+        setIsProcessing(true);
+        // Call the API to retire the asset
+        axios.post('/asset-management/kits/mark', { kit_id: kit.id, active: active })
+            .then(response => {
+                toast.success(`Kit #${kit.alias} has been marked as "${active ? 'active' : 'inactive'}" successfully.`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+                // Optionally, you can refresh the asset data or redirect
+                refreshKit(kit.id);
+                setIsProcessing(false);
+            })
+            .catch(error => {
+                console.error('Error retiring kit:', error);
+                toast.error(`Failed to mark kit #${kit.alias} as "${active ? 'active' : 'inactive'}". Please try again.`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
+    }
+
     function classNames(...classes) {
         return classes.filter(Boolean).join(' ')
+    }
+
+    const getStatus = () => {
+        if (!kit) return { label: 'Unknown', color: 'gray' };
+
+        switch (kit.active) {
+            case 1:
+                return { label: 'Active', color: 'green' };
+            default:
+                return { label: 'Retired', color: 'yellow' };
+        }
     }
 
     return (
@@ -361,18 +419,18 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             </p>
                         </div>
                         <div className="flex items-center justify-between flex-shrink-0 pr-1">
-                            { kit.active ? (
-                                <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                    Active
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                                    Inactive
-                                </span>
-                            )}
+                            {(() => {
+                                const status = getStatus();
+                                let pillClass = "inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium ring-1 ring-inset ";
+                                if (status.color === 'green') pillClass += "bg-green-50 text-green-700 ring-green-600/20";
+                                else if (status.color === 'red') pillClass += "bg-red-50 text-red-700 ring-red-600/20";
+                                else if (status.color === 'yellow') pillClass += "bg-yellow-50 text-yellow-700 ring-yellow-600/20";
+                                else pillClass += "bg-gray-100 text-gray-700 ring-gray-600/20";
+                                return <span className={pillClass}>{status.label}</span>;
+                            })()}
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
-                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-theme-600">
+                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 dark:bg-dark-900 dark:text-dark-500 dark:hover:text-dark-400 focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700">
                                 <span className="sr-only">Open options</span>
                                 <EllipsisVerticalIcon className="h-5 w-5" aria-hidden="true" />
                                 </Menu.Button>
@@ -387,34 +445,44 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white dark:bg-dark-900 shadow-lg ring-1 dark:ring-dark-100 dark:ring-opacity-5 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
-                                    {/* <Menu.Item>
-                                    {({ active }) => (
-                                        <a
-                                        href="#"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                            'flex justify-between px-4 py-2 text-sm'
+                                    { kit && kit.active !== 0 ? (
+                                        <Menu.Item>
+                                        {({ active }) => (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    markKit(0);
+                                                }}
+                                                className={classNames(
+                                                    active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                    'flex justify-between px-4 py-2 text-sm w-full'
+                                                )}
+                                            >
+                                                <span>Retire</span>
+                                            </button>
                                         )}
-                                        >
-                                        <span>Edit</span>
-                                        </a>
-                                    )}
-                                    </Menu.Item> */}
-                                    <Menu.Item>
-                                    {({ active }) => (
-                                        <button
-                                            type="button"
-                                            className={classNames(
-                                                active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                                'flex justify-between px-4 py-2 text-sm w-full'
+                                        </Menu.Item>
+                                    ) : null}
+                                    { kit && kit.active !== 1 ? (
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        markKit(1);
+                                                    }}
+                                                    className={classNames(
+                                                        active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                        'flex w-full justify-between px-4 py-2 text-sm text-left'
+                                                    )}
+                                                >
+                                                    <span>Reactivate</span>
+                                                </button>
                                             )}
-                                        >
-                                            <span>Retire</span>
-                                        </button>
-                                    )}
-                                    </Menu.Item>
+                                        </Menu.Item>
+                                    ) : null}
                                 </div>
                                 </Menu.Items>
                             </Transition>
