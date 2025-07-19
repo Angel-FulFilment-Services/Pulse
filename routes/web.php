@@ -49,7 +49,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 // Activation
 Route::get('/activate/token={token}', [ActivationController::class, 'index'])->name('activate')->middleware('signed');
-Route::post('/activate/token={token}', [ActivationController::class, 'activate'])->name('activate');
+Route::post('/activate/token={token}', [ActivationController::class, 'activate']);
 // // Forgot Password
 Route::get('/forgot', [ForgotController::class, 'index'])->name('forgot');
 Route::post('/forgot', [ForgotController::class, 'password_reset'])->name('password_reset');
@@ -165,7 +165,11 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 | Asset Management
 |-----------------------
 */
+<<<<<<< Updated upstream
+=======
 
+Route::get('/asset-management', [AssetController::class, 'index'])->name('asset_management');
+>>>>>>> Stashed changes
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);
