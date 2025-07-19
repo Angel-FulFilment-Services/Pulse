@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function ThankYouMessage({ setStep }) {
+export default function ThankYouMessage({ setStep, category }) {
   const timeoutRef = useRef(null); // Ref to store the timeout ID
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function ThankYouMessage({ setStep }) {
             Thank You,
           </h1>
           <h1 className="text-7xl font-semibold text-white dark:text-dark-100 mb-6">
-            Someone will be with you shortly
+            {category === 'signature' ? 'Someone will be with you shortly.' : 'Please leave your package in the foyer.'}
           </h1>
         </div>
       </div>

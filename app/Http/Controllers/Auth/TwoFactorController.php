@@ -42,7 +42,8 @@ class TwoFactorController extends Controller
             return back()->withErrors(['error' => "The passcode you entered doesn't match our records"])->withInput();
         }
         $user->reset_two_factor_code();
-        return redirect()->route('rota');
+
+        return redirect()->intended('/');
     }
 
     public function resend(){
@@ -63,14 +64,14 @@ class TwoFactorController extends Controller
                 },
                 $user->email
             );
-            SendTwoFactorEmail::dispatch(auth()->user());
+            SendTwoFactorEmail::dispatch(auth()->user())->onQueue('pulse');
 
             $sent_via_email = true;
         }
 
         // Check if this user has 2FA by SMS activated, if so send a SMS notification with a 2FA code.
         if(Permissions::hasPermission('sms_2fa_enabled')){
-            SendTwoFactorSMS::dispatch(auth()->user());
+            SendTwoFactorSMS::dispatch(auth()->user())->onQueue('pulse');
 
             $sent_via_sms = true;
         }

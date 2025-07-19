@@ -74,7 +74,7 @@ class AssetController extends Controller
             
         $history = $kitHistory->merge($assetHistory)->sortByDesc('created_at')->values()->all();
 
-        if(!$kitHistory->count()){
+        if(!$kitHistory->count() || $kitHistory->first()->type == 'Removed'){
             return response()->json(['asset' => $asset, 'history' => $history, 'kit' => collect([]), 'pat' => $pat], 200);
         }
 
@@ -149,6 +149,11 @@ class AssetController extends Controller
             $asset = Asset::find($request->asset_id);
             if(!$asset) {
                 return response()->json(['message' => 'Asset not found.'], 404);
+            }
+
+            $item = Item::where('asset_id', $asset->id)->first();
+            if($item){
+                return response()->json(['message' => 'Asset is already part of a kit.'], 400);
             }
 
             // Create the kit item.
@@ -318,7 +323,7 @@ class AssetController extends Controller
         // Define validation rules
         $rules = [
             'kit_id' => 'required|numeric',
-            'status' => 'required|boolean',
+            'active' => 'required|boolean',
         ];
 
         try {
@@ -330,7 +335,7 @@ class AssetController extends Controller
             }
 
             // Update the kit status
-            $kit->update(['status' => $request->status]);
+            $kit->update(['active' => $request->active]);
 
             Auditing::log('Assets', auth()->user()->id, 'Kit Status Updated', 'Kit ID: ' . $request->kit_id . ', New Status: ' . $request->status);
 
@@ -346,24 +351,49 @@ class AssetController extends Controller
         }
     }
 
+    public function isKitActive(Request $request){
+        // Define validation rules
+        $rules = [
+            'kit_alias' => 'required|string',
+        ];
+
+        try {
+            $request->validate($rules);
+
+            $kit = Kit::where('alias', '=', $request->kit_alias)->first();
+            if(!$kit) {
+                return response()->json(['message' => 'Kit not found.'], 404);
+            }
+
+            return response()->json(['active' => $kit->active], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to check kit status: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to check kit status.'], 500);
+        }
+    }
+
     public function createAsset(Request $request){
         // Define validation rules
         $rules = [
             'assetId' => 'required|numeric',
-            'alias' => 'required|string|max:50',
         ];
 
         // Define custom validation messages
         $messages = [
-            'alias.required' => 'Please enter an alias.',
-            'alias.string' => 'The alias must be a valid string.',
-            'alias.max' => 'The alias must not exceed 50 characters.',
+            'assetId.required' => 'Please enter an asset ID.',
+            'assetId.numeric' => 'The asset ID must be a valid number.'
         ];
 
         try {
             $request->validate($rules, $messages);
 
             $asset = Asset::create([
+                'status' => 'Active',
                 'afs_id' => $request->assetId,
                 'alias' => $request->alias,
                 'type' => $request->type,
@@ -375,6 +405,7 @@ class AssetController extends Controller
                 // Create a new kit if it doesn't exist
                 $kit = Kit::firstOrCreate([
                     'alias' => $request->kit,
+                    'active' => true,
                 ]);
 
                 // Create the kit item.
@@ -645,14 +676,25 @@ class AssetController extends Controller
         $endDate = $request->query('end_date');
         $hrId = $request->query('hr_id');
 
-        $items = DB::table('assets.asset_log')
-            ->join('assets.kits', 'kits.id', '=', 'asset_log.kit_id')
+        $returnedKitIds = DB::table('assets.asset_log')
+        ->where('hr_id', $hrId)
+        ->where('returned', true)
+        ->pluck('kit_id');
+
+        $kit = DB::table('assets.asset_log')
+            ->where('issued', true)
+            ->where('returned', false)
+            ->whereNotIn('kit_id', $returnedKitIds)
+            ->where('hr_id', $hrId)
+            ->orderBy('issued_date', 'desc')
+            ->groupBy('kit_id')
+            ->first();
+
+        $items = DB::table('assets.kits')
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
-            ->select('assets.alias', 'assets.type', 'assets.afs_id', 'kits.alias as kit_alias')
-            ->where('hr_id', $hrId)
-            ->where('issued', true)
-            ->where('asset_log.returned', false)
+            ->select('kits.id as kit_id', 'kits.alias as kit_alias', 'assets.alias as alias', 'assets.type', 'assets.afs_id')
+            ->where('kits.id', $kit->kit_id)
             ->get();
 
         $device = $items->where('type', 'Telephone')->pluck('alias')->first();
@@ -676,7 +718,16 @@ class AssetController extends Controller
     }
 
     public function assets(Request $request){
+        $available = $request->query('available', false);
+
         $assets = DB::table('assets.assets')
+            ->when($available, function ($query) {    
+                $query->leftJoin('assets.kit_items', function($join) {
+                    $join->on('kit_items.asset_id', '=', 'assets.id')
+                        ->whereNotIn('assets.type', ['Patch Lead', 'USB Power Cable', 'Peripherals', 'Headset', 'USB Mouse', 'USB Keyboard']);
+                })
+                ->where('kit_items.kit_id', null);
+            })
             ->select(
                 'assets.id as id',
                 'assets.afs_id as value', 

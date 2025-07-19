@@ -352,9 +352,9 @@ export default function ReturnKit({ data, onCancel, goBack, refreshKit, refreshA
             </h3>
             <div>
                 <ButtonControl
-                    customClass="inline-flex justify-center items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 max-w-52 w-52 dark:bg-dark-900 dark:text-dark-100 dark:ring-dark-700 dark:hover:bg-dark-800"
+                    className="inline-flex justify-center items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 max-w-52 w-52 dark:bg-dark-900 dark:text-dark-100 dark:ring-dark-700 dark:hover:bg-dark-800"
                     buttonLabel="Mark All as Functioning"
-                    onButtonClick={handlePassAll}
+                    onClick={handlePassAll}
                     disabled={isProcessing || isSuccess}
                 />
             </div>

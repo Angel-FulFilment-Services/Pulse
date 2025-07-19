@@ -21,9 +21,6 @@ export default function LoginForm () {
 
         post('/login',{
             preserveScroll: true,
-            onSuccess: () => {
-                router.visit('/');
-            },
             onError: (e) => {
                 toast.error(e.error, {
                     position: "top-right",

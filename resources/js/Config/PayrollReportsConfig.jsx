@@ -221,7 +221,7 @@ const payrollSheetsConfig = [
     rowHeights: [12.75, 31.50, 10.50],
     columnWidths: [9.00, 8.14, 8.86, 8.86, 3.57, 8.86, 20.57, 6.14, 7.86, 11.14, 14.13, 14.13, 8.14, 8.14, 8.57, 8.00, 10.57, 13.57, 16.00],
     fixed: { other_payment: "" },
-    filterFn: row => row.employment_category === "HOURLY" && row.hold !== true,
+    filterFn: row => row.employment_category === "HOURLY" && !row.hold,
     rowColorFn: (row) => {
       if (row.find((cell) => cell.key === 'leave_date').value) {
         return { bgColor: "FF8080" };
@@ -269,7 +269,7 @@ const payrollSheetsConfig = [
     rowHeights: [12.75, 24, 10.50],
     columnWidths: [8.57, 13.43, 10.57, 12.71, 13.00, 13.43, 7.86],
     fixed: { hwk_returned: "", notes: "" },
-    filterFn: row => !!row.leave_date,
+    filterFn: row => !!row.leave_date && !row.hold,
     sortFn: (a, b) => {
       const aValue = a.find((cell) => cell.key === 'firstname')?.value || '';
       const bValue = b.find((cell) => cell.key === 'firstname')?.value || '';
@@ -673,9 +673,14 @@ const payrollReportsConfig = [
               cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
-              format: (dob, { startDate, endDate } = {}) => {
+              format: (dob, payRate, { startDate, endDate } = {}) => {
                 if (!dob || !startDate || !endDate) return "";
                 // Get array of daily rates for the period
+
+                if (Number(payRate) > 0) {
+                  return parseFloat(payRate).toFixed(2);
+                }
+
                 const rates = getMinimumWageForPeriodByDOB(dob, startDate, endDate);
                 if (Array.isArray(rates)) {
                   // Average the rates over the period
@@ -698,7 +703,7 @@ const payrollReportsConfig = [
                   description: 'The date to calculate the age against. Defaults to today.',
                 },
               },
-              requires: ['dob'],
+              requires: ['dob', 'pay_rate'],
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
             },
@@ -1008,9 +1013,9 @@ const payrollReportsConfig = [
               name: 'Status',
               expression: (data) => (filterValue) => {
                 if (filterValue === 'not_exportable') {
-                  return  data.exception_count > 0 || ((last_qty <= 1 || days_of_week == 0) && holiday) || data.leave_date;
+                  return  data.exception_count > 0 || ((data.last_qty <= 1 || data.days_of_week == 0) && data.holiday) || data.leave_date || data.hold;
                 } else if (filterValue === 'exportable') {
-                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && ((data.last_qty > 1 || data.days_of_week > 0) || !data.holiday);
+                  return !data.leave_date && (!data.exception_count || data.exception_count <= 0) && ((data.last_qty > 1 && data.days_of_week > 0) || !data.holiday) && !data.hold;
                 }
                 return true; // Default case, no filter applied
               },

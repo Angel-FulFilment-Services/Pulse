@@ -24,11 +24,12 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
     const [assignedTo, setAssignedTo] = useState(null);
     const [availableAssets, setAvailableAssets] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isDialogOpenUnassign, setIsDialogOpenUnassign] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const historyScrollRef = useRef(null);
 
-    const { assets } = useFetchAssets();
+    const { assets } = useFetchAssets(true);
 
     function formatDueInterval(dueDate) {
         if (!dueDate) return 'N/A';
@@ -128,7 +129,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             history.forEach(event => {
                 if (event.source === 'Issue') {
                     if (event.status === 'Issued') {
-                        assignedTo = event.name;
+                        assignedTo = {name: event.name, user_id: event.user_id };
                     } else if (event.status === 'Returned') {
                         assignedTo = null;
                     }
@@ -189,6 +190,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                     const user = response.data[0];
                     setAssignedTo(user.name);
                     refreshKit();
+                    refreshAsset();
 
                     toast.success(`Kit assigned to ${user.name}`, {
                         position: 'top-center',
@@ -219,6 +221,44 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
         }
     }
 
+    const unassignKit = (userId) => {
+        if (!kit?.id) return;
+        setIsProcessing(true);
+        axios.post(`/asset-management/kits/unassign`, {
+            kit_id: kit.id,
+            user_id: userId,
+        })
+            .then(response => {
+                setAssignedTo(null);
+                refreshKit();
+                refreshAsset();
+                toast.success(`Kit unassigned successfully`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            })
+            .catch(error => {
+                console.error('Error unassigning kit:', error);
+                setAssignedTo(null);
+                toast.error('Failed to unassign kit. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
+    }
+
     const removeItemFromKit = (assetId) => {
         if (!assetId || !kit?.id) return;
         setIsProcessing(true);
@@ -234,6 +274,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 setIsDialogOpen(false);
                 setIsProcessing(false);
                 refreshKit();
+                refreshAsset();
                 toast.success(`Item removed from kit successfully`, {
                     position: 'top-center',
                     autoClose: 3000,
@@ -273,6 +314,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 const newItem = response.data;
                 setIsProcessing(false);
                 refreshKit();
+                refreshAsset();
                 toast.success(`Item added to kit successfully`, {
                     position: 'top-center',
                     autoClose: 3000,
@@ -287,7 +329,54 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             .catch(error => {
                 console.error('Error adding item to kit:', error);
                 setIsProcessing(false);
-                toast.error('Failed to add item to kit. Please try again.', {
+                toast.error('Failed to add item to kit, it may already be assigned. Please try again.', {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+            });
+    }
+
+    const markKit = (active) => {
+        if (!kit || !kit.id) {
+            toast.error('No kit selected to mark.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+                progress: undefined,
+                theme: 'light',
+            });
+            return;
+        }
+        setIsProcessing(true);
+        // Call the API to retire the asset
+        axios.post('/asset-management/kits/mark', { kit_id: kit.id, active: active })
+            .then(response => {
+                toast.success(`Kit #${kit.alias} has been marked as "${active ? 'active' : 'inactive'}" successfully.`, {
+                    position: 'top-center',
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
+                // Optionally, you can refresh the asset data or redirect
+                refreshKit(kit.id);
+                setIsProcessing(false);
+            })
+            .catch(error => {
+                console.error('Error retiring kit:', error);
+                toast.error(`Failed to mark kit #${kit.alias} as "${active ? 'active' : 'inactive'}". Please try again.`, {
                     position: 'top-center',
                     autoClose: 3000,
                     hideProgressBar: false,
@@ -302,6 +391,17 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
 
     function classNames(...classes) {
         return classes.filter(Boolean).join(' ')
+    }
+
+    const getStatus = () => {
+        if (!kit) return { label: 'Unknown', color: 'gray' };
+
+        switch (kit.active) {
+            case 1:
+                return { label: 'Active', color: 'green' };
+            default:
+                return { label: 'Retired', color: 'yellow' };
+        }
     }
 
     return (
@@ -319,18 +419,18 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             </p>
                         </div>
                         <div className="flex items-center justify-between flex-shrink-0 pr-1">
-                            { kit.active ? (
-                                <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                    Active
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                                    Inactive
-                                </span>
-                            )}
+                            {(() => {
+                                const status = getStatus();
+                                let pillClass = "inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium ring-1 ring-inset ";
+                                if (status.color === 'green') pillClass += "bg-green-50 text-green-700 ring-green-600/20";
+                                else if (status.color === 'red') pillClass += "bg-red-50 text-red-700 ring-red-600/20";
+                                else if (status.color === 'yellow') pillClass += "bg-yellow-50 text-yellow-700 ring-yellow-600/20";
+                                else pillClass += "bg-gray-100 text-gray-700 ring-gray-600/20";
+                                return <span className={pillClass}>{status.label}</span>;
+                            })()}
                             <Menu as="div" className="relative ml-3 inline-block text-left">
                             <div>
-                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-theme-600">
+                                <Menu.Button className="-my-2 flex items-center rounded-full bg-white p-2 text-gray-400 hover:text-gray-600 dark:bg-dark-900 dark:text-dark-500 dark:hover:text-dark-400 focus:outline-none focus:ring-2 focus:ring-theme-600 dark:focus:ring-theme-700">
                                 <span className="sr-only">Open options</span>
                                 <EllipsisVerticalIcon className="h-5 w-5" aria-hidden="true" />
                                 </Menu.Button>
@@ -345,34 +445,44 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 z-10 mt-3 w-32 origin-top-right rounded-md bg-white dark:bg-dark-900 shadow-lg ring-1 dark:ring-dark-100 dark:ring-opacity-5 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
-                                    {/* <Menu.Item>
-                                    {({ active }) => (
-                                        <a
-                                        href="#"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                            'flex justify-between px-4 py-2 text-sm'
+                                    { kit && kit.active !== 0 ? (
+                                        <Menu.Item>
+                                        {({ active }) => (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    markKit(0);
+                                                }}
+                                                className={classNames(
+                                                    active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                    'flex justify-between px-4 py-2 text-sm w-full'
+                                                )}
+                                            >
+                                                <span>Retire</span>
+                                            </button>
                                         )}
-                                        >
-                                        <span>Edit</span>
-                                        </a>
-                                    )}
-                                    </Menu.Item> */}
-                                    <Menu.Item>
-                                    {({ active }) => (
-                                        <button
-                                            type="button"
-                                            className={classNames(
-                                                active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                                'flex justify-between px-4 py-2 text-sm w-full'
+                                        </Menu.Item>
+                                    ) : null}
+                                    { kit && kit.active !== 1 ? (
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        markKit(1);
+                                                    }}
+                                                    className={classNames(
+                                                        active ? 'bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-dark-100' : 'text-gray-700 dark:text-dark-200',
+                                                        'flex w-full justify-between px-4 py-2 text-sm text-left'
+                                                    )}
+                                                >
+                                                    <span>Reactivate</span>
+                                                </button>
                                             )}
-                                        >
-                                            <span>Retire</span>
-                                        </button>
-                                    )}
-                                    </Menu.Item>
+                                        </Menu.Item>
+                                    ) : null}
                                 </div>
                                 </Menu.Items>
                             </Transition>
@@ -391,8 +501,14 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                 <div className="flex justify-between py-2 text-sm font-medium items-center">
                                     <dt className="text-gray-500">Assigned To</dt>
                                     { assignedTo ? (
-                                        <dd className="text-gray-900">
-                                            <span className="text-gray-900 dark:text-dark-100">{assignedTo}</span>
+                                        <dd className="text-gray-900 flex flex-col items-end gap-y-0.5">
+                                            <span className="text-gray-900 dark:text-dark-100">{assignedTo.name}</span>
+                                            <button 
+                                                className="text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 text-xs w-full text-right" 
+                                                onClick={() => setIsDialogOpenUnassign(true)}
+                                            >
+                                                Unassign
+                                            </button>
                                         </dd>
                                     ) : (
                                         <div className="w-4/6">
@@ -501,9 +617,9 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                         <ButtonControl 
                             id="add_asset_to_kit" 
                             Icon={PlusIcon} 
-                            iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0" 
-                            customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-9 dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
-                            onButtonClick={() => {
+                            iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0" 
+                            className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-9 dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                            onClick={() => {
                                 const asset = document.getElementById('asset_search').value;
                                 const assetId = assets.find(a => a.displayValue == asset)?.id || assets.find(a => a.value == asset)?.id;
                                 if (!assetId) {
@@ -530,10 +646,10 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                             <ButtonControl 
                                 id="process_return" 
                                 Icon={ArrowUturnLeftIcon} 
-                                iconClass="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
-                                customClass="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
+                                iconClassName="h-5 w-5 text-gray-500 dark:text-dark-500 flex-shrink-0 -ml-2 mr-1" 
+                                className="inline-flex justify-center items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-full dark:ring-dark-600 dark:text-dark-100 dark:bg-dark-800 dark:hover:bg-dark-700" 
                                 buttonLabel="Process Return" 
-                                onButtonClick={() => {
+                                onClick={() => {
                                     goTo({ type: 'return', kitId: kit.id, kit: data });
                                 }}
                             />
@@ -554,6 +670,16 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 isYes={() => removeItemFromKit(selectedItem)}
                 type="delete"
                 yesText="Remove"
+                cancelText="Cancel"
+            />
+            <ConfirmationDialog
+                isOpen={isDialogOpenUnassign}
+                title="Unassign Kit?"
+                description="Are you sure you want to unassign this kit?"            
+                isYes={() => unassignKit(assignedTo.user_id)}
+                setIsOpen={setIsDialogOpenUnassign}
+                type="question"
+                yesText="Yes"
                 cancelText="Cancel"
             />
         </div>

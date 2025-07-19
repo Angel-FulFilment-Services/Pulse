@@ -86,9 +86,9 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             <ButtonControl 
               id="refresh_button" 
               Icon={PhotoIcon} 
-              customClass="w-7 h-7" 
-              iconClass="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out" 
-              onButtonClick={handleExport}
+              className="w-7 h-7" 
+              iconClassName="w-7 h-7 text-theme-500 hover:text-theme-600 dark:text-theme-600 dark:hover:text-theme-500 transition-all ease-in-out" 
+              onClick={handleExport}
             />
           )}
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>

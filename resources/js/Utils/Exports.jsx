@@ -715,7 +715,7 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
 
         // 5. Prepare CSV rows
         const rows = [];
-        rows.push(['sage_id', 'pay_ref', 'hours', 'rate']); // header
+        rows.push(['Employee Reference', 'Payment Reference', 'Hours', 'Rate']); // header
 
         for (const emp of employees) {
             const sage_id = emp.sage_id;
@@ -723,11 +723,15 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
             // Holiday
             if (holidayMap[sage_id]) {
                 rows.push([sage_id, 18, '1.00', Number(holidayMap[sage_id]).toFixed(2)]);
+            }else{
+                rows.push([sage_id, 18, '0.00', '0.00']);
             }
 
             // Bonus
             if (bonusMap[sage_id]) {
                 rows.push([sage_id, 100, '1.00', Number(bonusMap[sage_id]).toFixed(2)]);
+            }else{
+                rows.push([sage_id, 100, '0.00', '0.00']);
             }
 
             // Hours
@@ -740,8 +744,11 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                 const hoursWithRate = empHours.map(h => {
                     const dob = employeeMap[sage_id]?.DOB || employeeMap[sage_id]?.dob;
                     const age = dob ? differenceInYears(new Date(h.date), new Date(dob)) : null;
+                    const payRate = emp.pay_rate;
 
-                    const rate = getRateForDate(age, new Date(h.date));
+                    const rate = (payRate && Number(payRate) > 0)
+                        ? Number(payRate)
+                        : getRateForDate(age, new Date(h.date));
                     return { ...h, rate };
                 });
 
@@ -761,6 +768,12 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                 if (grouped.length === 1) {
                     rows.push([
                         sage_id,
+                        102,
+                        0,
+                        0,
+                    ]);
+                    rows.push([
+                        sage_id,
                         96,
                         Number(grouped[0].hours).toFixed(2),
                         Number(grouped[0].rate).toFixed(2)
@@ -776,6 +789,17 @@ export async function exportPayrollToCSV(startDate, endDate, setProgress = () =>
                         ]);
                     }
                 }
+            } else {
+                // If no hours, add a row with 0 hours and rate
+                const dob = employeeMap[sage_id]?.DOB || employeeMap[sage_id]?.dob;
+                const age = dob ? differenceInYears(new Date(), new Date(dob)) : null;
+                const payRate = emp.pay_rate;
+                const rate = (payRate && Number(payRate) > 0)
+                    ? Number(payRate)
+                    : getRateForDate(age, new Date());
+
+                rows.push([sage_id, 102, '0.00', '0.00']);
+                rows.push([sage_id, 96, '0.00', '0.00']);
             }
         }
 

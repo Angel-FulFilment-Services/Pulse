@@ -39,6 +39,7 @@ export default function NavBar({ page }) {
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
+    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
 ], [currentPath]);
 
   useEffect(() => {

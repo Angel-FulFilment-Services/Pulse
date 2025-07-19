@@ -6,8 +6,10 @@ export default function ScrollHint({ scrollRef, basic = false, children }) {
     const [hasScroll, setHasScroll] = useState(false);
 
     useEffect(() => {
+        let el = scrollRef.current;
+        if (!el) return;
+
         const checkScroll = () => {
-            const el = scrollRef.current;
             if (!el) return;
             const isScrollable = el.scrollHeight > el.clientHeight;
             const atBottom = Math.abs(el.scrollTop + el.clientHeight - el.scrollHeight) < 2;
@@ -16,28 +18,34 @@ export default function ScrollHint({ scrollRef, basic = false, children }) {
         };
 
         checkScroll();
-        const raf = requestAnimationFrame(checkScroll);
-        const timeout = setTimeout(checkScroll, 1); // <-- Add this line
 
-        const el = scrollRef.current;
-        if (el) {
-            el.addEventListener('scroll', checkScroll);
-            window.addEventListener('resize', checkScroll);
-        }
+        el.addEventListener('scroll', checkScroll);
+        window.addEventListener('resize', checkScroll);
+
+        // Observe content size changes
+        const resizeObserver = new window.ResizeObserver(checkScroll);
+        resizeObserver.observe(el);
+
+        // Also observe children for changes (mutation observer)
+        const mutationObserver = new window.MutationObserver(checkScroll);
+        mutationObserver.observe(el, { childList: true, subtree: true });
+
         return () => {
-            if (el) el.removeEventListener('scroll', checkScroll);
+            if (el) {
+                el.removeEventListener('scroll', checkScroll);
+            }
             window.removeEventListener('resize', checkScroll);
-            cancelAnimationFrame(raf);
-            clearTimeout(timeout); // <-- And this line
+            resizeObserver.disconnect();
+            mutationObserver.disconnect();
         };
-    }, [scrollRef]);
+    }, [scrollRef, children]);
 
     const scrollToBottom = () => {
         const el = scrollRef.current;
         if (el) {
             el.scrollTo({
                 top: el.scrollHeight,
-                behavior: 'smooth', // Enables smooth scrolling
+                behavior: 'smooth',
             });
         }
     };
@@ -49,7 +57,7 @@ export default function ScrollHint({ scrollRef, basic = false, children }) {
                     { showHint ? (
                         <span
                             className="text-sm flex items-center justify-center gap-x-1 p-0.5 rounded-full bg-gray-100 ring-1 ring-gray-200 dark:bg-dark-800/20 dark:ring-dark-700 animate-bounce cursor-pointer"
-                            onClick={scrollToBottom} // Add click handler
+                            onClick={scrollToBottom}
                         >
                             <ArrowDownIcon className="inline h-3 w-3" />
                             {children}
@@ -64,7 +72,7 @@ export default function ScrollHint({ scrollRef, basic = false, children }) {
                 <div className="flex items-center h-10 justify-center w-full text-gray-500 dark:text-dark-500 bg-gradient-to-t from-white dark:from-dark-900/90 to-transparent">
                     <span
                         className="text-sm flex items-center justify-center gap-x-1 p-0.5 rounded-full bg-gray-100 ring-1 ring-gray-200 dark:bg-dark-800/20 dark:ring-dark-700 animate-bounce cursor-pointer"
-                        onClick={scrollToBottom} // Add click handler
+                        onClick={scrollToBottom}
                     >
                         <ArrowDownIcon className="inline h-3 w-3" />
                         {children}

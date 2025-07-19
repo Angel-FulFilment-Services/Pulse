@@ -4,6 +4,7 @@ import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import rotaReportsConfig from '../../Config/RotaReportsConfig.jsx';
 import assetsReportsConfig from '../../Config/AssetsReportsConfig.jsx';
 import systemReportsConfig from '../../Config/SystemReportsConfig.jsx';
+import siteReportsConfig from '../../Config/SiteReportsConfig.jsx';
 import ReportingHeader from '../../Components/Reporting/ReportingHeader.jsx';
 import ReportingTable from '../../Components/Reporting/ReportingTable.jsx';
 import FilterControl from '../../Components/Controls/FilterControl.jsx';
@@ -35,6 +36,7 @@ const Reporting = () => {
         { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true },
         { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false },
         { id: 'system', label: 'System', path: '/reporting/system', current: false },
+        { id: 'site', label: 'Site', path: '/reporting/site', current: false },
     ];
 
     const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
@@ -60,6 +62,9 @@ const Reporting = () => {
                 break;
             case 'system':
                 setReport(systemReportsConfig.find((r) => r.id === report.value));
+                break;
+            case 'site':
+                setReport(siteReportsConfig.find((r) => r.id === report.value));
                 break;
             default:
                 setReport([]);
@@ -367,6 +372,15 @@ const Reporting = () => {
             case 'system':
                 setReports(
                     systemReportsConfig.map((report) => ({
+                        id: report.id,
+                        value: report.id,
+                        displayValue: report.label,
+                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
+                );
+                break;
+            case 'site':
+                setReports(
+                    siteReportsConfig.map((report) => ({
                         id: report.id,
                         value: report.id,
                         displayValue: report.label,

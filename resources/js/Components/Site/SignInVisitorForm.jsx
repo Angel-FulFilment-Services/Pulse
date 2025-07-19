@@ -1,44 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
 import './Styles.css'; // Import your CSS for animations
 
 const inputs = [
-  { label: 'Full Name', key: 'fullName' },
+  { label: 'Full name', key: 'fullName' },
   { label: 'Company', key: 'company' },
   { label: 'Visiting', key: 'visiting' },
-  { label: 'Car Registration', key: 'carReg' },
+  { label: 'Car registration', key: 'carReg' },
 ];
 
 export default function SignInVisitorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
+  const inputRefs = useRef([]); // Ref to store input elements for focusing
   const [form, setForm] = useState({ fullName: '', company: '', visiting: '', visitingId: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [employees, setEmployees] = useState([]); // State to store the list of employees
   const [debounceTimeout, setDebounceTimeout] = useState(null); // State for managing debounce timeout
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
-  const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
+  const [isInputFocused, setIsInputFocused] = useState(false); // Tracks if the input is focused
 
   useEffect(() => {
-    const handleResize = () => {
-      // Check if the viewport height has decreased (keyboard is visible)
-      let newKeyboardHeight = 0;
-      if (window.visualViewport.height < window.innerHeight) {
-        newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        window.scrollTo(0, 0);
-      }
-
-      setKeyboardHeight(newKeyboardHeight);
-    };
-
-    window.visualViewport.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
-    };
-  }, []);
+    // Focus the current input after input index changes
+    if (inputRefs.current[input]) {
+      inputRefs.current[input].focus();
+      setTimeout(() => {
+        setIsInputFocused(true);
+      }, 100);
+    }
+  }, [input]);
 
   const handleContinue = () => {
     const current = inputs[input];
@@ -46,14 +38,15 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
       setError('Please select who you are visiting.');
       return;
     }
-    if (!form[current.key].trim() && current.key !== 'visiting') {
+
+    if (!form[current.key].trim() && (current.key !== 'visiting' && current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
       return;
     }
-    setError('');
 
     // Trigger fade-out animation
     setAnimationClass('fade-out');
+    setError('');
 
     // Wait for the fade-out animation to complete before moving to the next input
     setTimeout(() => {
@@ -61,51 +54,21 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        signIn();
+        handleComplete();
       }
     }, 50); // Match the animation duration (0.2s)
   };
 
-  const signIn = async () => {
-    try {
-      const response = await axios.get(`/onsite/sign-in`, {
-        params: { 
-          visitor_name: form.fullName,
-          visitor_company: form.company,
-          visitor_car_registration: form.carReg,
-          visitor_visiting: form.visiting,
-          visitor_visiting_user_id: form.visitingId, 
-          location: location,
-          type: 'access',
-          category: 'visitor',
-        },
-      });
-
-      if (!response.status === 200) {
-        throw new Error('Failed to sign in user');
-      }
-
-      if (response.status === 200) {
-        setIsProcessing(false); // Reset processing state
-        setAnimationClass('fade-out'); // Trigger fade-out animation
-        onComplete();
-      }
-    } catch (err) {
-      setIsProcessing(false); // Reset processing state on error
-      const audio = new Audio('/sounds/access-error.mp3');
-      audio.play();
-        toast.error('Could not sign in, please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-      return false;
-    }
+  const handleComplete = () => {
+    setAnimationClass('fade-out'); // Trigger fade-out animation
+    onComplete({
+      visitor_name: form.fullName,
+      visitor_company: form.company,
+      visitor_visiting: form.visiting,
+      visitor_visiting_user_id: form.visitingId,
+      visitor_car_registration: form.carReg,
+    });
+    setStep('terms-and-conditions');
   };
 
   const handleInputChange = (e) => {
@@ -160,6 +123,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
     setForm({ ...form, visiting: employeeName, visitingId: employeeId });
 
     setAnimationClass('fade-out');
+    setError('');
 
     // Wait for the fade-out animation to complete before moving to the next input
     setTimeout(() => {
@@ -195,6 +159,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               setError(''); // Clear any previous error
               setTimeout(() => {
                 setInput(input - 1); // Go back to the previous input
+                setError(''); // Clear any previous error
                 setAnimationClass('fade-in'); // Trigger fade-in animation
               }, 50);
             } else {
@@ -213,6 +178,7 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
           <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
+              ref={el => inputRefs.current[input] = el}
               type="text"
               name={currentInput.key}
               className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
@@ -221,14 +187,21 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               autoComplete="off"
               autoCorrect="false"
               autoFocus
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 100)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
           <div className={`flex flex-row items-end  ${currentInput.key === 'visiting' ? 'justify-between' : 'justify-end'} w-full h-full z-10 relative`}>
             {currentInput.key === 'visiting' &&
-              <div className="relative flex-grow overflow-hidden">
+              <div 
+                className="relative flex-grow overflow-hidden"
+                style={{
+                  transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
+                }}
+              >
                   {employees.length > 0 && (
-                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-16 pl-36">
+                    <div className="flex flex-col relative items-start justify-center w-full h-full gap-y-4 overflow-x-scroll no-scrollbar pb-4 pl-36">
                       <p className="text-base sticky top-0 left-0 text-gray-300 dark:text-dark-600 fade-in">
                         Tap to select
                       </p>
@@ -262,7 +235,12 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
               </div>
             }
             {/* Continue Button */}
-            <div className="flex-shrink-0">
+            <div 
+              className="flex-shrink-0 pb-4"
+              style={{
+                transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
+              }}
+            >
               <button
                 disabled={isProcessing}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -6,41 +6,33 @@ import './Styles.css'; // Assuming you have a CSS file for styles
 import { set } from 'lodash';
 
 const inputs = [
-  { label: 'Full Name', key: 'fullName' },
+  { label: 'Full name', key: 'fullName' },
   { label: 'Company', key: 'company' },
-  { label: 'Car Registration', key: 'carReg' },
+  { label: 'Car registration', key: 'carReg' },
 ];
 
 export default function SignInContractorForm({ onComplete, setStep, location }) {
   const [input, setInput] = useState(0); // Tracks the current input
+  const inputRefs = useRef([]); // Ref to store input elements for focusing
   const [form, setForm] = useState({ fullName: '', company: '', carReg: '' }); // Form data
   const [error, setError] = useState(''); // Error message
   const [animationClass, setAnimationClass] = useState(null); // Tracks the animation class for transitions
-  const [keyboardHeight, setKeyboardHeight] = useState(0); // Height of the keyboard
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      // Check if the viewport height has decreased (keyboard is visible)
-      let newKeyboardHeight = 0;
-      if (window.visualViewport.height < window.innerHeight) {
-        newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        window.scrollTo(0, 0);
-      }
-
-      setKeyboardHeight(newKeyboardHeight);
-    };
-
-    window.visualViewport.addEventListener('resize', handleResize);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
-    };
-  }, []);
+    // Focus the current input after input index changes
+    if (inputRefs.current[input]) {
+      inputRefs.current[input].focus();
+      setTimeout(() => {
+        setIsInputFocused(true);
+      }, 100);
+    }
+  }, [input]);
 
   const handleContinue = () => {
     const current = inputs[input];
-    if (!form[current.key].trim()) {
+    if (!form[current.key].trim() && (current.key !== 'carReg')) {
       setError(`Please enter ${current.label.toLowerCase()}.`);
       return;
     }
@@ -55,50 +47,19 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
         setInput(input + 1); // Move to the next input
         setAnimationClass('fade-in'); // Trigger fade-in animation
       } else {
-        signIn(); // Call onComplete with form data on the last input
+        handleComplete(); // Call onComplete with form data on the last input
       }
     }, 50); // Match the animation duration (0.2s)
   };
 
-  const signIn = async () => {
-    setIsProcessing(true); // Set processing state to true
-    try {
-      const response = await axios.get(`/onsite/sign-in`, {
-        params: { 
-          visitor_name: form.fullName,
-          visitor_company: form.company,
-          visitor_car_registration: form.carReg,
-          location: location, 
-          type: 'access',
-          category: 'contractor',
-        },
-      });
-
-      if (!response.status === 200) {
-        throw new Error('Failed to sign in user');
-      }
-
-      if (response.status === 200) {
-        setIsProcessing(false); // Reset processing state
-        setAnimationClass('fade-out'); // Trigger fade-out animation
-        onComplete();
-      }
-    } catch (err) {
-      setIsProcessing(false); // Reset processing state
-      const audio = new Audio('/sounds/access-error.mp3');
-      audio.play();
-        toast.error('Could not sign in, please try again.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            progress: undefined,
-            theme: 'light',
-        });
-      return false;
-    }
+  const handleComplete = () => {
+    setAnimationClass('fade-out'); // Trigger fade-out animation
+    onComplete({
+      visitor_name: form.fullName,
+      visitor_company: form.company,
+      visitor_car_registration: form.carReg,
+    });
+    setStep('terms-and-conditions');
   };
 
   const handleInputChange = (e) => {
@@ -140,6 +101,7 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
           <div className={`px-36 ${animationClass} flex flex-col gap-y-1`}>
             <label className="text-4xl text-gray-800 dark:text-dark-100">{currentInput.label}</label>
             <input
+              ref={el => inputRefs.current[input] = el}
               type="text"
               name={currentInput.key}
               className="py-3 rounded text-6xl w-full focus:outline-none outline-transparent caret-theme-500 dark:caret-theme-400 dark:bg-dark-900 dark:text-dark-100"
@@ -149,16 +111,20 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
               autoComplete="off"
               autoCorrect="false"
               autoFocus
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setTimeout(() => setIsInputFocused(false), 100)}
             />
             {error && <div className="text-red-600 font-semibold text-2xl">{error}</div>}
           </div>
 
           {/* Continue Button */}
-          <div 
-            className={`flex flex-row items-end justify-end w-full h-full z-10 relative`}
-            style={{ transform: `translateY(-${keyboardHeight}px)` }}
-          >
-            <div className="flex-shrink-0">
+          <div className={`flex flex-row items-end justify-end w-full h-full z-10 relative`}>
+            <div 
+              className="flex-shrink-0"
+              style={{
+                transform: isInputFocused ? 'translateY(-21rem)' : 'translateY(0)', // adjust -8rem as needed
+              }}
+            >
               <button
                 disabled={isProcessing}
                 className="mt-4 px-5 py-4 bg-theme-500 text-white rounded-2xl text-3xl z-20 shadow hover:bg-theme-600 focus:outline-none flex items-center justify-center fade-in disabled:opacity-50 disabled:cursor-not-allowed"

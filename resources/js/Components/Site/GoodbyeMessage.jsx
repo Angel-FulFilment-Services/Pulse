@@ -49,7 +49,7 @@ export default function GoodbyeMessage({ setStep }) {
             Goodbye,
           </h1>
           <h1 className="text-7xl font-semibold text-white dark:text-dark-100 mb-6">
-            Thank you for signing out
+            Thank you for signing out.
           </h1>
         </div>
       </div>

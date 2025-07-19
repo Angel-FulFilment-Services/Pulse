@@ -348,10 +348,10 @@ export default function Pat({ assetId, onCancel, initialData = null, refreshAsse
                                         <div>
                                             <ButtonControl
                                                 Icon={CheckIcon} 
-                                                iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
-                                                customClass="inline-flex justify-center items-center rounded-md bg-white px-6 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-max" 
+                                                iconClassName="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
+                                                className="inline-flex justify-center items-center rounded-md bg-white px-6 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-max" 
                                                 buttonLabel="Pass All" 
-                                                onButtonClick={() => {
+                                                onClick={() => {
                                                     visualCheckes.forEach(item => {
                                                         handleInputChange(item.item, true);
                                                     });
@@ -402,10 +402,10 @@ export default function Pat({ assetId, onCancel, initialData = null, refreshAsse
                                                 <div>
                                                     <ButtonControl
                                                         Icon={CheckIcon} 
-                                                        iconClass="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
-                                                        customClass="inline-flex justify-center items-center rounded-md bg-white px-6 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-max" 
+                                                        iconClassName="h-5 w-5 text-gray-500 dark:text-gray-600 flex-shrink-0 -ml-2" 
+                                                        className="inline-flex justify-center items-center rounded-md bg-white px-6 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 w-max" 
                                                         buttonLabel="Pass All" 
-                                                        onButtonClick={() => {
+                                                        onClick={() => {
                                                             types.find(item => item.value === formData.type)?.tests?.forEach(test => {
                                                                 if (test.item) {
                                                                     handleInputChange(test.item, test.limit?.high !== undefined ? `<${test.limit.high}` : test.limit?.low !== undefined ? `>${test.limit.low}` : null);

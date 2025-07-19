@@ -111,6 +111,7 @@ Route::get('/reporting/reports/generate/kit-details', [ReportingController::clas
 Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog']);
 Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
 Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
+Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
@@ -164,6 +165,7 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 | Asset Management
 |-----------------------
 */
+
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);
@@ -177,6 +179,7 @@ Route::get('/asset-management/assets/load', [AssetController::class, 'loadAsset'
 Route::post('/asset-management/assets/create', [AssetController::class, 'createAsset']);
 Route::post('/asset-management/assets/pat-test/process', [AssetController::class, 'processPatTest']);
 Route::post('/asset-management/assets/mark', [AssetController::class, 'markAsset']);
+Route::post('/asset-management/kits/mark', [AssetController::class, 'markKit']);
 Route::get('/asset-management/kits/load', [AssetController::class, 'loadKit']);
 Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit']);
 Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);
@@ -192,15 +195,15 @@ Route::post('/asset-management/kits/returns/process', [AssetController::class, '
 
 Route::get('/onsite/access-control', [SiteController::class, 'accessControl'])->name('onsite.access_control');
 Route::get('/onsite/access-control/{location}', [SiteController::class, 'accessControl'])->name('onsite.access_control');
-Route::get('/onsite/widgets/access-control', [SiteController::class, 'widget'])->name('onsite.widget');
+Route::get('/onsite/widgets/access-control', [SiteController::class, 'widget'])->name('onsite.widget')->withoutMiddleware('guest')->middleware('auth', 'twofactor', 'has.permission:pulse_view_access_control');
 Route::get('/onsite/signed-in', [SiteController::class, 'signedIn'])->name('onsite.signed_in');
 Route::get('/onsite/sign-in', [SiteController::class, 'signIn'])->name('onsite.sign_in');
 Route::get('/onsite/sign-out', [SiteController::class, 'signOut'])->name('onsite.sign_out');
 Route::get('/onsite/sign-in-out', [SiteController::class, 'signInOrOut'])->name('onsite.sign_in_out');
-Route::get('/onsite/status', [SiteController::class, 'isUserSignedIn'])->name('onsite.status');
+Route::get('/onsite/status', [SiteController::class, 'isUserSignedInByRequest'])->name('onsite.status');
 Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsite.find_user');
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
-Route::get('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
+Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
 Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
 
 /*

@@ -5,6 +5,7 @@ import Scanner from './Scanner';
 import { Bouncy } from 'ldrs/react'
 import 'ldrs/react/Bouncy.css'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import Create from './Create';
 import Asset from './Asset';
 import Pat from './Pat';
@@ -164,7 +165,7 @@ export default function Find({ handleClose }) {
                 </div>
             ) : (
                 <>
-                    <Scanner handleScan={asset} />
+                    <Scanner handleScan={asset} goTo={goTo} />
                 </>
             )}
         </>
@@ -279,16 +280,28 @@ export default function Find({ handleClose }) {
   // Replace Scanner's handleScan with wrappedFind
   return (
     <div className="flex flex-col items-center gap-4 justify-center w-full px-6 py-6 h-full pt-8 lg:pt-0 pb-14 lg:pb-4 dark:bg-dark-900">
-        <div className="flex justify-start items-center w-full pt-4">
+        <div className="flex justify-between items-center w-full pt-4 gap-x-4">
             { pages.length > 1 && (
-            <button
-                type="button"
-                className="text-sm font-semibold text-gray-900 dark:text-dark-100"
-                onClick={goBack}
-            >
-                <span className="pr-2" aria-hidden="true">&larr;</span>
-                Back
-            </button>
+              <>
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-gray-900 dark:text-dark-100"
+                  onClick={goBack}
+              >
+                  <span className="pr-2" aria-hidden="true">&larr;</span>
+                  Back
+              </button>
+              <button
+                  type="button"
+                  className="text-sm font-semibold text-gray-900 dark:text-dark-100 items-center justify-center flex"
+                  onClick={() => {setPages([]); goTo({ type: 'scanner' })}}
+              >
+                  <div className="pr-2"><ViewfinderCircleIcon className={"h-5 w-5"} /></div>
+                  <p>
+                    Back to Scanner
+                  </p>
+              </button>
+              </>
             )}
         </div>
       {renderPage(currentPage)}
