@@ -63,13 +63,9 @@ class PayrollController extends Controller
         ->leftJoinSub(
             DB::table('hr.dow_updates')
             ->select('hr_id', DB::raw('dow as days_of_week'))
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->where('startdate', '<=', $startDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startDate);
-                    });
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('enddate', [$startDate, $endDate])
+                    ->orWhereBetween('startdate', [$startDate, $endDate]);
             })
             ->orderBy('startdate', 'desc')
             ->groupBy('hr_id'), 
@@ -243,13 +239,9 @@ class PayrollController extends Controller
         ->leftJoinSub(
             DB::table('hr.dow_updates')
             ->select('hr_id', DB::raw('dow as days_of_week'))
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->where('startdate', '<=', $startDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startDate);
-                    });
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('enddate', [$startDate, $endDate])
+                    ->orWhereBetween('startdate', [$startDate, $endDate]);
             })
             ->orderBy('startdate', 'desc')
             ->groupBy('hr_id'), 
@@ -573,13 +565,9 @@ class PayrollController extends Controller
             $dow_changes  = DB::table('hr.dow_updates')
             ->select('hr_id', 'startdate', 'enddate', DB::raw('dow as days_of_week'))
             ->where('hr_id', $hrId)
-            ->where(function($query) use ($startedDate, $endDate) {
-                $query->where('startdate', '<=', $startedDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startedDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startedDate);
-                    });
+            ->where(function ($query) use ($startedDate, $endDate) {
+                $query->whereBetween('enddate', [$startedDate, $endDate])
+                    ->orWhereBetween('startdate', [$startedDate, $endDate]);
             })
             ->orderBy('startdate', 'desc')
             ->get();
