@@ -345,7 +345,7 @@ export default function Profile({ employee, user }) {
 
         <ConfirmationDialog
             isOpen={isDialogOpen}
-            setIsOpen={setIsDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
             title="Confirm Removal"
             description="Are you sure you want to remove this profile photo? This action cannot be undone."
             isYes={deleteProfilePhoto}

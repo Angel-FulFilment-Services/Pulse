@@ -165,11 +165,8 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 | Asset Management
 |-----------------------
 */
-<<<<<<< Updated upstream
-=======
 
 Route::get('/asset-management', [AssetController::class, 'index'])->name('asset_management');
->>>>>>> Stashed changes
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);

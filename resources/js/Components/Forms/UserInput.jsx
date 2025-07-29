@@ -187,8 +187,8 @@ export default function UserInput(props) {
       {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message}</div>}
       <ConfirmationDialog
         isOpen={isDialogOpen}
-        setIsOpen={(state) => {
-          setIsDialogOpen(state);
+        onClose={() => {
+          setIsDialogOpen(false);
           setPendingSelection(null);
         }}
         title="Confirm Change"

@@ -43,7 +43,7 @@ const iconTypes = {
 
 export default function ConfirmationDialog({
   isOpen,
-  setIsOpen,
+  onClose,
   title,
   description,
   isYes,
@@ -57,7 +57,7 @@ export default function ConfirmationDialog({
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" initialFocus={cancelButtonRef} onClose={setIsOpen}>
+      <Dialog as="div" className="relative z-50" initialFocus={cancelButtonRef} onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -101,7 +101,7 @@ export default function ConfirmationDialog({
                     className={`inline-flex w-full justify-center rounded-md ${buttonColor} px-3 py-2 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:col-start-2`}
                     onClick={() => {
                       isYes(); // Trigger the callback for "Yes"
-                      setIsOpen(false); // Close the dialog
+                      onClose(); // Close the dialog
                     }}
                   >
                     {yesText}
@@ -109,7 +109,7 @@ export default function ConfirmationDialog({
                   <button
                     type="button"
                     className="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-dark-900 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:ring-dark-600 dark:hover:bg-dark-800 border-none border-transparent sm:col-start-1 sm:mt-0"
-                    onClick={() => setIsOpen(false)} // Close the dialog
+                    onClick={onClose} // Close the dialog
                     ref={cancelButtonRef}
                   >
                     {cancelText}

@@ -325,7 +325,7 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
         {/* Confirmation Dialog */}
         <ConfirmationDialog
           isOpen={isDialogOpen}
-          setIsOpen={setIsDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
           title="Confirm Removal"
           description="Are you sure you want to remove this event? This action cannot be undone."
           isYes={handleRemoveEvent}

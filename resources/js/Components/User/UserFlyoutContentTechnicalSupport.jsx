@@ -464,7 +464,7 @@ export default function UserFlyoutContentTechnicalSupport({ hrId, handleDateChan
           {/* Confirmation Dialog */}
           <ConfirmationDialog
             isOpen={isDialogOpen}
-            setIsOpen={setIsDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
             title="Confirm Removal"
             description="Are you sure you want to remove this support event? This action cannot be undone."
             isYes={handleRemoveEvent}
