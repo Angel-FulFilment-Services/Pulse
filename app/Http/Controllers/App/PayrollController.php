@@ -550,8 +550,8 @@ class PayrollController extends Controller
 
         // Leaver calculate add in remaining entitlement
         if( $leftDate && strtotime($leftDate) > strtotime($startDate) ){
-            if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)))) ){
-                $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)));
+            if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime(date('Y-m-d'))) < '07-01' ? 'last year' : 'this year', strtotime(date('Y-m-d'))))) ){
+                $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime(date('Y-m-d'))) < '07-01' ? 'last year' : 'this year', strtotime(date('Y-m-d'))));
             }
 
             $holidays = DB::connection('hr')
