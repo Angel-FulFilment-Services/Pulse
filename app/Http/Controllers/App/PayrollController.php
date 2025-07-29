@@ -570,7 +570,6 @@ class PayrollController extends Controller
             ->where('type', '=', 'Paid Annual Leave')
             ->get();
 
-
             $dow_changes  = DB::table('hr.dow_updates')
             ->select('hr_id', 'startdate', 'enddate', DB::raw('dow as days_of_week'))
             ->where('hr_id', $hrId)
@@ -587,21 +586,32 @@ class PayrollController extends Controller
 
             $remainingEntitlement = 0;
             foreach($dow_changes as $dow_change){
+                $entitlementStartdate = $dow_change->startdate;
+                $entitlementEnddate = $dow_change->enddate;
+
+                if( strtotime($dow_change->startdate) >= strtotime($leftDate) ){
+                    continue; // Skip if the dow_change starts after the leftDate
+                }
+
+                if( strtotime($dow_change->enddate) > strtotime($leftDate) ){
+                    $entitlementEnddate = $leftDate; // Clamp enddate to leftDate if it is after leftDate
+                }
+
                 switch ($dow_change->days_of_week) {
                 case 5:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0767123);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0767123);
                     break;
                 case 4: 
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0613699);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0613699);
                     break;
                 case 3:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0460274);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0460274);
                     break;
                 case 2:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0306849);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0306849);
                     break;
                 case 1:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0153425);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0153425);
                     break;
                 }
             }
