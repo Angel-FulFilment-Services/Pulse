@@ -61,15 +61,15 @@ class PayrollController extends Controller
             }
         )
         ->leftJoinSub(
-            DB::table('hr.dow_updates')
-            ->select('hr_id', DB::raw('dow as days_of_week'))
+            DB::table('hr.dow_updates as d1')
+            ->select('d1.hr_id', DB::raw('d1.dow as days_of_week'))
             ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('enddate', [$startDate, $endDate])
-                    ->orWhereBetween('startdate', [$startDate, $endDate]);
+                $query->whereBetween('d1.enddate', [$startDate, $endDate])
+                    ->orWhereBetween('d1.startdate', [$startDate, $endDate]);
             })
-            ->orderBy('startdate', 'desc')
-            ->groupBy('hr_id'), 
-            'dow', 
+            ->whereRaw('d1.startdate = (SELECT MAX(d2.startdate) FROM hr.dow_updates d2 WHERE d2.hr_id = d1.hr_id AND ((d2.enddate BETWEEN ? AND ?) OR (d2.startdate BETWEEN ? AND ?)))', [$startDate, $endDate, $startDate, $endDate])
+            ->groupBy('d1.hr_id'),
+            'dow',
             function($join) {
                 $join->on('hr_details.hr_id', '=', 'dow.hr_id');
             }
@@ -237,15 +237,15 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.items, JSON_ARRAY()) as items')
         )
         ->leftJoinSub(
-            DB::table('hr.dow_updates')
-            ->select('hr_id', DB::raw('dow as days_of_week'))
+            DB::table('hr.dow_updates as d1')
+            ->select('d1.hr_id', DB::raw('d1.dow as days_of_week'))
             ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('enddate', [$startDate, $endDate])
-                    ->orWhereBetween('startdate', [$startDate, $endDate]);
+                $query->whereBetween('d1.enddate', [$startDate, $endDate])
+                    ->orWhereBetween('d1.startdate', [$startDate, $endDate]);
             })
-            ->orderBy('startdate', 'desc')
-            ->groupBy('hr_id'), 
-            'dow_updates', 
+            ->whereRaw('d1.startdate = (SELECT MAX(d2.startdate) FROM hr.dow_updates d2 WHERE d2.hr_id = d1.hr_id AND ((d2.enddate BETWEEN ? AND ?) OR (d2.startdate BETWEEN ? AND ?)))', [$startDate, $endDate, $startDate, $endDate])
+            ->groupBy('d1.hr_id'),
+            'dow_updates',
             function($join) {
                 $join->on('hr_details.hr_id', '=', 'dow_updates.hr_id');
             }
