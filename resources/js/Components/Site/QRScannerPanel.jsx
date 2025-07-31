@@ -36,13 +36,9 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
           null,
           videoElement,
           (result, error) => {
-            if (scanResult == result.getText()) {
-              return; // Skip processing if the result hasn't changed
-            } else {
+            if (result && !isTimeout.current && !isProcessing && scanResult !== result.getText()) {
               setScanResult(result.getText());
-            }
 
-            if (result && !isTimeout.current && !isProcessing) {
               if(isStopped.current){
                 stopCamera();
                 codeReader.current.reset();
