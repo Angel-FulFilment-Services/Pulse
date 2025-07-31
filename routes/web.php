@@ -18,6 +18,7 @@ use App\Http\Controllers\App\ReportingController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
+use App\Http\Controllers\App\KnowledgeBaseController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -116,6 +117,15 @@ Route::get('/reporting/reports/generate/site-access-log', [ReportingController::
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting', 'log.access');
+
+
+/*
+|-----------------------
+| Knowledge Base
+|-----------------------
+*/
+Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
+
 
 /*
 |-----------------------
