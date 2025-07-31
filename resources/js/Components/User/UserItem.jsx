@@ -97,9 +97,9 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
             content={
               <div className="w-full mx-auto p-2 flex flex-col space-y-1 divide-y divide-gray-300 mr-1 cursor-default">
                   {
-                    activeIndicatorColor === 'bg-green-500' ? (
+                    activeIndicatorColor.includes('green') ? (
                       <p className="text-sm text-gray-900 dark:text-dark-100">Active</p>
-                    ) : activeIndicatorColor === 'bg-yellow-500' ? (
+                    ) : activeIndicatorColor.includes('yellow') ? (
                       <p className="text-sm text-gray-900 dark:text-dark-100">Active {Math.floor(differenceInMinutes(new Date(), new Date(lastActiveAt)))} minutes ago</p>
                     ) : (
                       <p className="text-sm text-gray-900 dark:text-dark-100">Inactive</p>
