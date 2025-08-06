@@ -41,7 +41,7 @@ export default function NavBar({ page }) {
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
-    { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: 'pulse_view_assets' },
+    { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: 'pulse_view_knowledge_base' },
 ], [currentPath]);
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

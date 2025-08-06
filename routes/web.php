@@ -125,6 +125,11 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 |-----------------------
 */
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
+Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
+Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');
+Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
+Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
+Route::post('/knowledge-base/upload-image', [KnowledgeBaseController::class, 'uploadImage'])->name('knowledge_base.upload_image');
 
 
 /*

@@ -48,12 +48,12 @@ export default function Header({ tabs, activeTab, handleTabClick, search, setSea
       </div>
       <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
         <div className="w-full flex items-center gap-x-2">
-          <div className="max-w-56 w-full relative">
+          <div className="max-w-96 w-full relative">
             <TextInput
               id="view-select"
               Icon={MagnifyingGlassIcon}
               onTextChange={setSearch}
-              placeholder={`Search Knowledge Base`}
+              placeholder={`Start typing your issue or question...`}
               currentState={search}
               returnRaw={true}
             />
