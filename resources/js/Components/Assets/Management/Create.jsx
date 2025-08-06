@@ -288,8 +288,8 @@ export default function Create({ afsId, onCancel, changeAsset }) {
                             <TextInput
                                 id="alias"
                                 label="Alias"
-                                placeholder="Please enter an alias"
                                 annotation="(Optional)"
+                                placeholder="Please enter an alias"
                                 currentState={formData.alias}
                                 onTextChange={(value) => handleInputChange('alias', value[0].value)}
                                 error={errors.alias}

@@ -243,6 +243,26 @@ return [
             ]) : [],
         ],
 
+        'pulse' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL_ELEVENTH'),
+            'host' => env('DB_HOST_ELEVENTH', 'afs-db02.angelfs.co.uk'),
+            'port' => env('DB_PORT_ELEVENTH', '3306'),
+            'database' => env('DB_DATABASE_ELEVENTH', 'pulse'),
+            'username' => env('DB_USERNAME_ELEVENTH', 'afs_wings'),
+            'password' => env('DB_PASSWORD_ELEVENTH', 'Re54X901XAnQwRuB'),
+            'unix_socket' => env('DB_SOCKET_ELEVENTH', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => FALSE,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),

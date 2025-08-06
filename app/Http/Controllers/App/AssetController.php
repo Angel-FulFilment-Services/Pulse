@@ -410,7 +410,7 @@ class AssetController extends Controller
         ];
 
         try {
-            $request->validate($rules, $messages);
+            // $request->validate($rules, $messages);
 
             // Check if an asset with the same AFS ID already exists and if provided, if the alias is already in use#
             if($request->has('afsId') && $request->afsId){
