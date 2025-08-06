@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import ImageWithLoading from './ImageWithLoading';
 
 export default function Resolution({ resolution, onRestart, onClose, onNavigateToQuestion }) {
   return (
@@ -18,14 +19,15 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
       {/* Resolution Image */}
       {resolution.image && (
         <div className="flex justify-center">
-          <img 
+          <ImageWithLoading
             src={
               typeof resolution.image === 'object' && resolution.image.isNew 
                 ? resolution.image.dataUrl 
                 : `https://pulse.cdn.angelfs.co.uk/articles/questions/${resolution.image}`
-            } 
+            }
             alt={resolution.title}
             className="max-w-lg h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
+            loadingContainerClassName="max-w-lg h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
           />
         </div>
       )}
@@ -80,7 +82,7 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
                 Yes
               </button>
               <button
-                onClick={() => onNavigateToQuestion(resolution.next_question_id)}
+                onClick={() => onNavigateToQuestion(Number(resolution.next_question_id))}
                 className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
               >
                 No

@@ -17,9 +17,9 @@ export default function VisualGuide({ article, questions, onClose }) {
 
   useEffect(() => {
     // Find the first question for this article
-    const firstQuestion = questions.find(q => q.article_id === article.id && q.parent_question_id === null);
+    const firstQuestion = questions.find(q => q.article_id == article.id && q.parent_question_id === null);
     if (firstQuestion) {
-      setCurrentQuestionId(firstQuestion.id);
+      setCurrentQuestionId(Number(firstQuestion.id));
     }
   }, [questions, article.id]);
 
@@ -42,7 +42,7 @@ export default function VisualGuide({ article, questions, onClose }) {
       }
     } else if (answer.next_question_id) {
       // Go to next question
-      setCurrentQuestionId(answer.next_question_id);
+      setCurrentQuestionId(Number(answer.next_question_id));
     }
   };
 
@@ -75,11 +75,11 @@ export default function VisualGuide({ article, questions, onClose }) {
         if (currentResolution) {
           // Go back from resolution to last question
           setCurrentResolution(null);
-          setCurrentQuestionId(previousItem);
+          setCurrentQuestionId(Number(previousItem));
           setHistory(prev => prev.slice(0, -1));
         } else {
           // Go back to previous question
-          setCurrentQuestionId(previousItem);
+          setCurrentQuestionId(Number(previousItem));
           setHistory(prev => prev.slice(0, -1));
         }
       }
@@ -87,8 +87,8 @@ export default function VisualGuide({ article, questions, onClose }) {
   };
 
   const handleRestart = () => {
-    const firstQuestion = questions.find(q => q.article_id === article.id && q.parent_question_id === null);
-    setCurrentQuestionId(firstQuestion?.id || null);
+    const firstQuestion = questions.find(q => q.article_id == article.id && q.parent_question_id === null);
+    setCurrentQuestionId(firstQuestion?.id ? Number(firstQuestion.id) : null);
     setCurrentResolution(null);
     setHistory([]);
   };
@@ -104,10 +104,10 @@ export default function VisualGuide({ article, questions, onClose }) {
     }
     
     setCurrentResolution(null);
-    setCurrentQuestionId(questionId);
+    setCurrentQuestionId(Number(questionId));
   };
 
-  const currentQuestion = questions.find(q => q.id === currentQuestionId);
+  const currentQuestion = questions.find(q => q.id == currentQuestionId);
 
   if (!currentQuestion && !currentResolution && !loadingResolution) {
     return (

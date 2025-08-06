@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ImageUpload from './ImageUpload';
+import ImageWithLoading from './ImageWithLoading';
 
 export default function ResolutionBuilder({ 
   resolution, 
@@ -56,6 +57,11 @@ export default function ResolutionBuilder({
       return;
     }
     
+    // Skip if not in editing mode
+    if (!isEditing) {
+      return;
+    }
+    
     // Skip the initial mount to prevent triggering changes on load
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -67,10 +73,10 @@ export default function ResolutionBuilder({
       title: editingTitle,
       body: editingBody,
       image: editingImage,
-      next_question_id: editingNextQuestionId
+      next_question_id: editingNextQuestionId ? Number(editingNextQuestionId) : null
     };
     onResolutionUpdate(updatedResolution);
-  }, [editingTitle, editingBody, editingImage, editingNextQuestionId, isParentInitialized]);
+  }, [editingTitle, editingBody, editingImage, editingNextQuestionId, isParentInitialized, isEditing]);
 
   return (
     <div className="space-y-6">
@@ -101,14 +107,15 @@ export default function ResolutionBuilder({
               />
             </div>
           ) : resolution.image && (
-            <img 
+            <ImageWithLoading
               src={
                 typeof resolution.image === 'object' && resolution.image.isNew 
                   ? resolution.image.dataUrl 
                   : `https://pulse.cdn.angelfs.co.uk/articles/questions/${resolution.image}`
-              } 
+              }
               alt={resolution.title}
               className="max-w-lg h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
+              loadingContainerClassName="max-w-lg h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
             />
           )}
         </div>

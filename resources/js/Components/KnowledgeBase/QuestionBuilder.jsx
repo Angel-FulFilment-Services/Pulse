@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ImageUpload from './ImageUpload';
+import ImageWithLoading from './ImageWithLoading';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
 export default function QuestionBuilder({ 
@@ -51,6 +52,11 @@ export default function QuestionBuilder({
       return;
     }
     
+    // Skip if not in editing mode
+    if (!isEditing) {
+      return;
+    }
+    
     // Skip the initial mount to prevent triggering changes on load
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -64,7 +70,7 @@ export default function QuestionBuilder({
       answers: JSON.stringify(editingAnswers)
     };
     onQuestionUpdate(updatedQuestion);
-  }, [editingQuestion, editingImage, editingAnswers, isParentInitialized]);
+  }, [editingQuestion, editingImage, editingAnswers, isParentInitialized, isEditing]);
 
   const handleAddAnswer = () => {
     setEditingAnswers(prev => [
@@ -99,7 +105,14 @@ export default function QuestionBuilder({
     setEditingAnswers(prev => 
       prev.map((answer, i) => {
         if (i === index) {
-          const updatedAnswer = { ...answer, [field]: value || null };
+          const updatedAnswer = { ...answer };
+          
+          // Normalize the value - convert to number for ID fields, or null
+          if (field === 'next_question_id' || field === 'resolution_id') {
+            updatedAnswer[field] = value ? Number(value) : null;
+          } else {
+            updatedAnswer[field] = value || null;
+          }
           
           // Business rule: An answer can only have either a next_question_id OR a resolution_id, not both
           if (field === 'next_question_id' && value) {
@@ -132,14 +145,15 @@ export default function QuestionBuilder({
               placeholder="Drop a question image here or click to upload"
             />
           ) : question.image && (
-            <img 
+            <ImageWithLoading
               src={
                 typeof question.image === 'object' && question.image.isNew 
                   ? question.image.dataUrl 
                   : `https://pulse.cdn.angelfs.co.uk/articles/questions/${question.image}`
-              } 
+              }
               alt="Question illustration"
               className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
+              loadingContainerClassName="max-w-md h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
             />
           )}
         </div>

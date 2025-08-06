@@ -64,26 +64,45 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   // Handle pending question navigation after state updates
   useEffect(() => {
     if (pendingQuestionNavigation) {
+      // Set flag to prevent hasChanges during pending navigation
+      isSwitchingModes.current = true;
+      
       setCurrentQuestionId(pendingQuestionNavigation);
       setCurrentResolution(null);
       // Don't clear history for pending navigation unless it's a manual add
       setHistory([]);
       setPendingQuestionNavigation(null);
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isSwitchingModes.current = false;
+      }, 100);
     }
-  }, [editingQuestions, pendingQuestionNavigation]);
+  }, [pendingQuestionNavigation]); // Only depend on pendingQuestionNavigation
 
   // Handle pending resolution navigation after state updates
   useEffect(() => {
     if (pendingResolutionNavigation) {
+      // Set flag to prevent hasChanges during pending navigation
+      isSwitchingModes.current = true;
+      
       setCurrentResolution(pendingResolutionNavigation);
       setCurrentQuestionId(null);
       // Don't clear history for pending navigation unless it's a manual add
       setHistory([]);
       setPendingResolutionNavigation(null);
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isSwitchingModes.current = false;
+      }, 100);
     }
-  }, [editingResolutions, pendingResolutionNavigation]);
+  }, [pendingResolutionNavigation]); // Only depend on pendingResolutionNavigation
 
   const handleAnswerSelect = async (answer) => {
+    // Set flag to prevent hasChanges during answer selection navigation
+    isSwitchingModes.current = true;
+    
     // Add current state to history for back navigation
     if (currentQuestionId) {
       setHistory(prev => [...prev, { type: 'question', id: currentQuestionId }]);
@@ -92,17 +111,23 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
     }
 
     if (answer.resolution_id) {
-      // Check if resolution exists in local state first
-      let resolution = editingResolutions.find(r => r.id === answer.resolution_id);
+      // Check if resolution exists in local state first - handle type mismatches
+      let resolution = editingResolutions.find(r => r.id == answer.resolution_id); // Use == for type coercion
       
       if (!resolution) {
         // Fetch resolution from server
         try {
           const response = await axios.get(`/knowledge-base/resolution/${answer.resolution_id}`);
           resolution = response.data.resolution;
-          setEditingResolutions(prev => [...prev, resolution]);
+          
+          // Check again if it was added while we were fetching to prevent duplication
+          const existingResolution = editingResolutions.find(r => r.id == resolution.id); // Use == for type coercion
+          if (!existingResolution) {
+            setEditingResolutions(prev => [...prev, resolution]);
+          }
         } catch (error) {
           console.error('Error fetching resolution:', error);
+          isSwitchingModes.current = false; // Reset flag on error
           return;
         }
       }
@@ -110,20 +135,32 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       setCurrentResolution(resolution);
       setCurrentQuestionId(null);
     } else if (answer.next_question_id) {
-      // Go to next question
-      setCurrentQuestionId(answer.next_question_id);
+      // Go to next question - ensure ID consistency (convert to number if it's a numeric string)
+      let questionId = answer.next_question_id;
+      if (typeof questionId === 'string' && !isNaN(questionId)) {
+        questionId = parseInt(questionId, 10);
+      }
+      setCurrentQuestionId(questionId);
     }
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isSwitchingModes.current = false;
+    }, 100);
   };
 
   const handleBack = () => {
     if (history.length > 0) {
+      // Set flag to prevent hasChanges during back navigation
+      isSwitchingModes.current = true;
+      
       const previousItem = history[history.length - 1];
       
       if (previousItem.type === 'question') {
         setCurrentQuestionId(previousItem.id);
         setCurrentResolution(null);
       } else if (previousItem.type === 'resolution') {
-        const resolution = editingResolutions.find(r => r.id === previousItem.id);
+        const resolution = editingResolutions.find(r => r.id == previousItem.id); // Use == for type coercion
         if (resolution) {
           setCurrentResolution(resolution);
           setCurrentQuestionId(null);
@@ -131,6 +168,11 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       }
       
       setHistory(prev => prev.slice(0, -1));
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isSwitchingModes.current = false;
+      }, 100);
     }
   };
 
@@ -153,36 +195,34 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
     
     // Check for removed images (original had image, current doesn't)
     const hasRemovedImages = originalQuestions.current.some(originalQ => {
-      const currentQ = editingQuestions.find(q => q.id === originalQ.id);
+      const currentQ = editingQuestions.find(q => q.id == originalQ.id);
       return originalQ.image && (!currentQ || !currentQ.image);
     }) || originalResolutions.current.some(originalR => {
-      const currentR = editingResolutions.find(r => r.id === originalR.id);
+      const currentR = editingResolutions.find(r => r.id == originalR.id);
       return originalR.image && (!currentR || !currentR.image);
     });
     
     return questionsChanged || resolutionsChanged || hasNewImages || hasRemovedImages;
-  };
-
-  const handleQuestionUpdate = (updatedQuestion) => {    
+  };  const handleQuestionUpdate = (updatedQuestion) => {
     setEditingQuestions(prev => {
-      const updatedQuestions = prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q);
+      const updatedQuestions = prev.map(q => q.id == updatedQuestion.id ? updatedQuestion : q);
       
-      // Only set hasChanges if initialized, not adding an item, not switching modes
-      if (isInitialized && !isAddingItem.current && !isSwitchingModes.current) {
-        // Check if content has actually changed using the updated data
-        const questionsChanged = JSON.stringify(updatedQuestions) !== JSON.stringify(originalQuestions.current);
-        const resolutionsChanged = JSON.stringify(editingResolutions) !== JSON.stringify(originalResolutions.current);
+      // Only set hasChanges if initialized, editing mode, not adding an item, not switching modes
+      if (isInitialized && isEditing && !isAddingItem.current && !isSwitchingModes.current) {
+        // Use helper function to check for changes with updated questions
+        const tempOriginalQuestions = originalQuestions.current;
+        const tempOriginalResolutions = originalResolutions.current;
         
-        // Check for new images in the updated questions
+        // Temporarily update current arrays for comparison
+        const questionsChanged = JSON.stringify(updatedQuestions) !== JSON.stringify(tempOriginalQuestions);
+        const resolutionsChanged = JSON.stringify(editingResolutions) !== JSON.stringify(tempOriginalResolutions);
         const hasNewImages = updatedQuestions.some(q => q.image && typeof q.image === 'object' && q.image.isNew) ||
                             editingResolutions.some(r => r.image && typeof r.image === 'object' && r.image.isNew);
-        
-        // Check for removed images in the updated questions
-        const hasRemovedImages = originalQuestions.current.some(originalQ => {
-          const currentQ = updatedQuestions.find(q => q.id === originalQ.id);
+        const hasRemovedImages = tempOriginalQuestions.some(originalQ => {
+          const currentQ = updatedQuestions.find(q => q.id == originalQ.id);
           return originalQ.image && (!currentQ || !currentQ.image);
-        }) || originalResolutions.current.some(originalR => {
-          const currentR = editingResolutions.find(r => r.id === originalR.id);
+        }) || tempOriginalResolutions.some(originalR => {
+          const currentR = editingResolutions.find(r => r.id == originalR.id);
           return originalR.image && (!currentR || !currentR.image);
         });
         
@@ -197,24 +237,24 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
 
   const handleResolutionUpdate = (updatedResolution) => {
     setEditingResolutions(prev => {
-      const updatedResolutions = prev.map(r => r.id === updatedResolution.id ? updatedResolution : r);
+      const updatedResolutions = prev.map(r => r.id == updatedResolution.id ? updatedResolution : r);
       
-      // Only set hasChanges if initialized, not adding an item, not switching modes
-      if (isInitialized && !isAddingItem.current && !isSwitchingModes.current) {
-        // Check if content has actually changed using the updated data
-        const questionsChanged = JSON.stringify(editingQuestions) !== JSON.stringify(originalQuestions.current);
-        const resolutionsChanged = JSON.stringify(updatedResolutions) !== JSON.stringify(originalResolutions.current);
+      // Only set hasChanges if initialized, editing mode, not adding an item, not switching modes
+      if (isInitialized && isEditing && !isAddingItem.current && !isSwitchingModes.current) {
+        // Use helper function to check for changes with updated resolutions
+        const tempOriginalQuestions = originalQuestions.current;
+        const tempOriginalResolutions = originalResolutions.current;
         
-        // Check for new images in the updated resolutions
+        // Temporarily update current arrays for comparison
+        const questionsChanged = JSON.stringify(editingQuestions) !== JSON.stringify(tempOriginalQuestions);
+        const resolutionsChanged = JSON.stringify(updatedResolutions) !== JSON.stringify(tempOriginalResolutions);
         const hasNewImages = editingQuestions.some(q => q.image && typeof q.image === 'object' && q.image.isNew) ||
                             updatedResolutions.some(r => r.image && typeof r.image === 'object' && r.image.isNew);
-        
-        // Check for removed images in the updated resolutions
-        const hasRemovedImages = originalQuestions.current.some(originalQ => {
-          const currentQ = editingQuestions.find(q => q.id === originalQ.id);
+        const hasRemovedImages = tempOriginalQuestions.some(originalQ => {
+          const currentQ = editingQuestions.find(q => q.id == originalQ.id);
           return originalQ.image && (!currentQ || !currentQ.image);
-        }) || originalResolutions.current.some(originalR => {
-          const currentR = updatedResolutions.find(r => r.id === originalR.id);
+        }) || tempOriginalResolutions.some(originalR => {
+          const currentR = updatedResolutions.find(r => r.id == originalR.id);
           return originalR.image && (!currentR || !currentR.image);
         });
         
@@ -300,7 +340,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       setEditingResolutions(prev => prev.filter(r => r.id !== id));
       
       // If we're currently viewing the deleted resolution, navigate back
-      if (currentResolution && currentResolution.id === id) {
+      if (currentResolution && currentResolution.id == id) {
         setCurrentResolution(null);
         // Navigate back to the last question in history
         if (history.length > 0) {
@@ -351,7 +391,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       // If we need to link this new question to a specific answer
       if (linkToAnswerIndex !== null && sourceQuestionId) {
         updatedQuestions = updatedQuestions.map(q => {
-          if (q.id === sourceQuestionId) {
+          if (q.id == sourceQuestionId) {
             const answers = typeof q.answers === 'string' ? JSON.parse(q.answers) : q.answers;
             const updatedAnswers = answers.map((answer, index) => 
               index === linkToAnswerIndex 
@@ -396,7 +436,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
     if (linkToAnswerIndex !== null && sourceQuestionId) {
       setEditingQuestions(prev => 
         prev.map(q => {
-          if (q.id === sourceQuestionId) {
+          if (q.id == sourceQuestionId) {
             const answers = typeof q.answers === 'string' ? JSON.parse(q.answers) : q.answers;
             const updatedAnswers = answers.map((answer, index) => 
               index === linkToAnswerIndex 
@@ -442,12 +482,20 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   };
 
   const handleQuestionNavigation = (questionId) => {
+    // Set flag to prevent hasChanges during navigation
+    isSwitchingModes.current = true;
+    
     setCurrentQuestionId(questionId);
     setCurrentResolution(null);
     // Only clear history when in editing mode or when manually navigating from the navigation panel
     if (isEditing) {
       setHistory([]);
     }
+    
+    // Reset the flag after a short delay to allow re-renders to complete
+    setTimeout(() => {
+      isSwitchingModes.current = false;
+    }, 100);
   };
 
   const handleResolutionFeedbackNavigation = (questionId) => {
@@ -461,7 +509,10 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   };
 
   const handleResolutionNavigation = (resolutionId) => {
-    const resolution = editingResolutions.find(r => r.id === resolutionId);
+    // Set flag to prevent hasChanges during navigation
+    isSwitchingModes.current = true;
+    
+    const resolution = editingResolutions.find(r => r.id == resolutionId); // Use == for type coercion
     if (resolution) {
       setCurrentResolution(resolution);
       setCurrentQuestionId(null);
@@ -470,9 +521,17 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
         setHistory([]);
       }
     }
+    
+    // Reset the flag after a short delay to allow re-renders to complete
+    setTimeout(() => {
+      isSwitchingModes.current = false;
+    }, 100);
   };
 
-  const currentQuestion = editingQuestions.find(q => q.id === currentQuestionId);
+  const currentQuestion = editingQuestions.find(q => {
+    // Handle both string and number ID comparisons
+    return q.id == currentQuestionId; // Use == instead of === to allow type coercion
+  });
 
   return (
     <div className="space-y-6">
@@ -494,10 +553,11 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
               }`}
               onClick={isSaving ? undefined : () => {
                 isSwitchingModes.current = true;
+                const wasEditing = isEditing;
                 setIsEditing(!isEditing);
                 
                 // If switching to preview mode, go back to the first question
-                if (isEditing) {
+                if (wasEditing) {
                   handleRestart();
                 }
                 
@@ -638,7 +698,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                     <div
                       key={resolution.id}
                       className={`flex items-center gap-2 p-2 rounded text-sm transition-colors duration-200 ${
-                        currentResolution?.id === resolution.id
+                        currentResolution?.id == resolution.id
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700'
                           : 'bg-white dark:bg-dark-900 text-gray-700 dark:text-dark-200 border border-gray-200 dark:border-dark-600 hover:bg-gray-50 dark:hover:bg-dark-800'
                       }`}

@@ -26,6 +26,9 @@ export default function Article({ article, questions = [], resolutions = [] }) {
       // First, upload any new images and update the questions/resolutions with the uploaded filenames
       const processedQuestions = await Promise.all(
         editedQuestions.map(async (question) => {
+          let processedQuestion = { ...question };
+          
+          // Handle image upload
           if (question.image && typeof question.image === 'object' && question.image.isNew) {
             // Upload the new image
             const formData = new FormData();
@@ -44,14 +47,33 @@ export default function Article({ article, questions = [], resolutions = [] }) {
             }
             
             const data = await response.json();
-            return { ...question, image: data.filename };
+            processedQuestion.image = data.filename;
           }
-          return question;
+          
+          // Normalize ID fields in answers
+          if (processedQuestion.answers) {
+            const answers = typeof processedQuestion.answers === 'string' 
+              ? JSON.parse(processedQuestion.answers) 
+              : processedQuestion.answers;
+            
+            const normalizedAnswers = answers.map(answer => ({
+              ...answer,
+              next_question_id: answer.next_question_id ? Number(answer.next_question_id) : null,
+              resolution_id: answer.resolution_id ? Number(answer.resolution_id) : null
+            }));
+            
+            processedQuestion.answers = JSON.stringify(normalizedAnswers);
+          }
+          
+          return processedQuestion;
         })
       );
 
       const processedResolutions = await Promise.all(
         editedResolutions.map(async (resolution) => {
+          let processedResolution = { ...resolution };
+          
+          // Handle image upload
           if (resolution.image && typeof resolution.image === 'object' && resolution.image.isNew) {
             // Upload the new image
             const formData = new FormData();
@@ -70,9 +92,15 @@ export default function Article({ article, questions = [], resolutions = [] }) {
             }
             
             const data = await response.json();
-            return { ...resolution, image: data.filename };
+            processedResolution.image = data.filename;
           }
-          return resolution;
+          
+          // Normalize next_question_id
+          if (processedResolution.next_question_id) {
+            processedResolution.next_question_id = Number(processedResolution.next_question_id);
+          }
+          
+          return processedResolution;
         })
       );
 

@@ -1,12 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 
 export default function ImageUpload({ currentImage, onImageChange, placeholder = "Drop an image here or click to upload", disabled = false }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const fileInputRef = useRef(null);
   const { props } = usePage();
+
+  // Reset image load error when currentImage changes
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [currentImage]);
 
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
   const maxFileSize = 5 * 1024 * 1024; // 5MB
@@ -25,6 +32,7 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
     try {
       validateFile(file);
       setUploadError(null);
+      setImageLoading(true);
 
       // Create a data URL for preview
       const reader = new FileReader();
@@ -35,10 +43,16 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
           dataUrl: e.target.result,
           isNew: true
         });
+        setImageLoading(false);
+      };
+      reader.onerror = () => {
+        setUploadError('Failed to read file');
+        setImageLoading(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       setUploadError(error.message);
+      setImageLoading(false);
       console.error('File processing error:', error);
     }
   };
@@ -87,6 +101,8 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
 
   const handleClearImage = () => {
     if (!disabled) {
+      setImageLoading(false);
+      setImageLoadError(false);
       onImageChange(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -96,36 +112,77 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
 
   return (
     <div className="space-y-3">
-      {/* Current Image Display */}
-      {currentImage && (
+      {/* Loading State */}
+      {imageLoading && (
         <div className="relative">
-          <img 
-            src={currentImage.isNew ? currentImage.dataUrl : `https://pulse.cdn.angelfs.co.uk/articles/questions/${currentImage}`}
-            alt="Uploaded image"
-            className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-2 mx-auto block"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-          <button
-            onClick={handleClearImage}
-            disabled={disabled}
-            className={`absolute top-1 right-1 rounded-full p-2 shadow-lg transition-all duration-200 ${
-              disabled 
-                ? 'bg-red-400 dark:bg-red-500 text-white opacity-50 cursor-not-allowed' 
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-            title="Remove image"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="max-w-md h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-2 mx-auto flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-theme-500 dark:border-theme-400 mb-2"></div>
+              <p className="text-sm text-gray-600 dark:text-dark-400">Processing image...</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Upload Area - Only show when no image is loaded */}
-      {!currentImage && (
+      {/* Current Image Display */}
+      {currentImage && !imageLoading && (
+        <div className="relative">
+          {!imageLoadError ? (
+            <>
+              <img 
+                src={currentImage.isNew ? currentImage.dataUrl : `https://pulse.cdn.angelfs.co.uk/articles/questions/${currentImage}`}
+                alt="Uploaded image"
+                className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-2 mx-auto block"
+                onLoad={() => setImageLoadError(false)}
+                onError={(e) => {
+                  setImageLoadError(true);
+                  console.error('Image failed to load:', e.target.src);
+                }}
+              />
+              <button
+                onClick={handleClearImage}
+                disabled={disabled}
+                className={`absolute top-1 right-1 rounded-full p-2 shadow-lg transition-all duration-200 ${
+                  disabled 
+                    ? 'bg-red-400 dark:bg-red-500 text-white opacity-50 cursor-not-allowed' 
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+                title="Remove image"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <div className="max-w-md h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-2 mx-auto flex items-center justify-center relative">
+              <div className="text-center">
+                <svg className="w-12 h-12 text-gray-400 dark:text-dark-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <p className="text-sm text-gray-600 dark:text-dark-400">Failed to load image</p>
+              </div>
+              <button
+                onClick={handleClearImage}
+                disabled={disabled}
+                className={`absolute top-1 right-1 rounded-full p-2 shadow-lg transition-all duration-200 ${
+                  disabled 
+                    ? 'bg-red-400 dark:bg-red-500 text-white opacity-50 cursor-not-allowed' 
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+                title="Remove image"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Area - Only show when no image is loaded and not loading */}
+      {!currentImage && !imageLoading && (
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
