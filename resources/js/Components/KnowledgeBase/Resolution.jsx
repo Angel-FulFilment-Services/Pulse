@@ -75,13 +75,13 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
             <div className="flex justify-center gap-4">
               <button
                 onClick={onClose}
-                className="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
+                className="p-4 px-8 bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-lg hover:ring-2 dark:text-dark-100 hover:ring-theme-500 dark:hover:ring-theme-600 hover:bg-gray-50 dark:hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-theme-500 dark:focus:ring-theme-600 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-900 transition-all duration-200 min-w-[100px]"
               >
                 Yes
               </button>
               <button
                 onClick={() => onNavigateToQuestion(resolution.next_question_id)}
-                className="bg-orange-500 dark:bg-orange-600 hover:bg-orange-600 dark:hover:bg-orange-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
+                className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
               >
                 No
               </button>

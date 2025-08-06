@@ -139,8 +139,12 @@ export default function VisualGuide({ article, questions, onClose }) {
               id="back_button" 
               Icon={ArrowLeftIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-              onClick={handleBack}
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                loadingResolution 
+                  ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+              }`}
+              onClick={loadingResolution ? undefined : handleBack}
             />
           )}
           {currentResolution && (
@@ -148,16 +152,24 @@ export default function VisualGuide({ article, questions, onClose }) {
               id="restart_button" 
               Icon={ArrowPathIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-              onClick={handleRestart}
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                loadingResolution 
+                  ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+              }`}
+              onClick={loadingResolution ? undefined : handleRestart}
             />
           )}
           <ButtonControl 
             id="close_button" 
             Icon={XMarkIcon}
             className="w-8 h-8 px-1" 
-            iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-            onClick={onClose}
+            iconClassName={`w-6 h-6 transition-all ease-in-out ${
+              loadingResolution 
+                ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+            }`}
+            onClick={loadingResolution ? undefined : onClose}
           />
         </div>
       </div>
@@ -174,6 +186,7 @@ export default function VisualGuide({ article, questions, onClose }) {
         <Question 
           question={currentQuestion} 
           onAnswerSelect={handleAnswerSelect}
+          disabled={loadingResolution}
         />
       )}
 
@@ -183,6 +196,7 @@ export default function VisualGuide({ article, questions, onClose }) {
           onRestart={handleRestart}
           onClose={onClose}
           onNavigateToQuestion={handleNavigateToQuestion}
+          disabled={loadingResolution}
         />
       )}
     </div>

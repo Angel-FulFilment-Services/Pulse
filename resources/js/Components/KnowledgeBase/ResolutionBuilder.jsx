@@ -11,7 +11,8 @@ export default function ResolutionBuilder({
   isParentInitialized = false,
   allQuestions = [], // Add access to all questions for next question selection
   onNavigateToQuestion = null, // Add callback for navigating to next question
-  onAddQuestion = null // Add callback for adding new questions
+  onAddQuestion = null, // Add callback for adding new questions
+  isSaving = false
 }) {
   const [editingTitle, setEditingTitle] = useState(resolution.title);
   const [editingBody, setEditingBody] = useState(resolution.body);
@@ -94,7 +95,8 @@ export default function ResolutionBuilder({
             <div className="w-full max-w-lg">
               <ImageUpload 
                 currentImage={editingImage}
-                onImageChange={setEditingImage}
+                onImageChange={isSaving ? undefined : setEditingImage}
+                disabled={isSaving}
                 placeholder="Drop a resolution image here or click to upload"
               />
             </div>
@@ -123,8 +125,13 @@ export default function ResolutionBuilder({
             <input
               type="text"
               value={editingTitle}
-              onChange={(e) => setEditingTitle(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 text-xl font-semibold text-center"
+              onChange={isSaving ? undefined : (e) => setEditingTitle(e.target.value)}
+              disabled={isSaving}
+              className={`w-full p-3 border rounded-lg text-xl font-semibold text-center transition-all ${
+                isSaving 
+                  ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                  : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100'
+              }`}
             />
           </div>
         ) : (
@@ -141,8 +148,13 @@ export default function ResolutionBuilder({
             </label>
             <textarea
               value={editingBody}
-              onChange={(e) => setEditingBody(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 font-mono text-sm"
+              onChange={isSaving ? undefined : (e) => setEditingBody(e.target.value)}
+              disabled={isSaving}
+              className={`w-full p-3 border rounded-lg font-mono text-sm transition-all ${
+                isSaving 
+                  ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                  : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100'
+              }`}
               rows="10"
             />
             <div className="text-xs text-gray-500 dark:text-dark-400">
@@ -211,8 +223,13 @@ export default function ResolutionBuilder({
           </label>
           <select
             value={editingNextQuestionId || ''}
-            onChange={(e) => handleNextQuestionChange(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:outline-none focus:ring-2 focus:ring-theme-500 dark:focus:ring-theme-600"
+            onChange={isSaving ? undefined : (e) => handleNextQuestionChange(e.target.value)}
+            disabled={isSaving}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+              isSaving 
+                ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:ring-theme-500 dark:focus:ring-theme-600'
+            }`}
           >
             <option value="">Do not show</option>
             {allQuestions.map((question, index) => (
@@ -240,7 +257,7 @@ export default function ResolutionBuilder({
             <div className="flex justify-center gap-4">
               <button
                 onClick={onClose}
-                className="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
+                className="p-4 px-8 bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-lg hover:ring-2 dark:text-dark-100 hover:ring-theme-500 dark:hover:ring-theme-600 hover:bg-gray-50 dark:hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-theme-500 dark:focus:ring-theme-600 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-900 transition-all duration-200 min-w-[100px]"
               >
                 Yes
               </button>
@@ -252,7 +269,7 @@ export default function ResolutionBuilder({
                     onClose();
                   }
                 }}
-                className="bg-orange-500 dark:bg-orange-600 hover:bg-orange-600 dark:hover:bg-orange-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
+                className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
               >
                 No
               </button>

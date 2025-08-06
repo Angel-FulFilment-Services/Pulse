@@ -11,7 +11,8 @@ export default function QuestionBuilder({
   allResolutions,
   onAddQuestion,
   onAddResolution,
-  isParentInitialized = false
+  isParentInitialized = false,
+  isSaving = false
 }) {
   const [editingQuestion, setEditingQuestion] = useState(question.question);
   const [editingImage, setEditingImage] = useState(
@@ -126,7 +127,8 @@ export default function QuestionBuilder({
           {isEditing ? (
             <ImageUpload 
               currentImage={editingImage}
-              onImageChange={setEditingImage}
+              onImageChange={isSaving ? undefined : setEditingImage}
+              disabled={isSaving}
               placeholder="Drop a question image here or click to upload"
             />
           ) : question.image && (
@@ -149,8 +151,13 @@ export default function QuestionBuilder({
           <div className="space-y-2">
             <textarea
               value={editingQuestion}
-              onChange={(e) => setEditingQuestion(e.target.value)}
-              className="w-full p-3 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 text-xl font-semibold text-center resize-none"
+              onChange={isSaving ? undefined : (e) => setEditingQuestion(e.target.value)}
+              disabled={isSaving}
+              className={`w-full p-3 border rounded-lg text-xl font-semibold text-center resize-none transition-all ${
+                isSaving 
+                  ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                  : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100'
+              }`}
               rows="2"
               placeholder="Enter your question..."
             />
@@ -170,8 +177,13 @@ export default function QuestionBuilder({
               <div className="border border-gray-300 dark:border-dark-600 rounded-lg p-4 bg-gray-50 dark:bg-dark-800 relative">
                 {/* Remove Button - Top Right */}
                 <button
-                  onClick={() => handleRemoveAnswer(index)}
-                  className="absolute top-2 right-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded transition-colors"
+                  onClick={isSaving ? undefined : () => handleRemoveAnswer(index)}
+                  disabled={isSaving}
+                  className={`absolute top-2 right-2 p-1 rounded transition-all ${
+                    isSaving 
+                      ? 'text-red-400 dark:text-red-500 opacity-40 cursor-not-allowed' 
+                      : 'text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20'
+                  }`}
                   title="Remove Answer"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -186,9 +198,14 @@ export default function QuestionBuilder({
                     <input
                       type="text"
                       value={answer.label}
-                      onChange={(e) => handleUpdateAnswer(index, 'label', e.target.value)}
+                      onChange={isSaving ? undefined : (e) => handleUpdateAnswer(index, 'label', e.target.value)}
+                      disabled={isSaving}
                       placeholder="Answer text"
-                      className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100"
+                      className={`w-full p-2 border rounded transition-all ${
+                        isSaving 
+                          ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                          : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100'
+                      }`}
                     />
                   </div>
                   
@@ -200,8 +217,13 @@ export default function QuestionBuilder({
                       </label>
                       <select
                         value={answer.next_question_id || ''}
-                        onChange={(e) => handleUpdateAnswer(index, 'next_question_id', e.target.value || null)}
-                        className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100"
+                        onChange={isSaving ? undefined : (e) => handleUpdateAnswer(index, 'next_question_id', e.target.value || null)}
+                        disabled={isSaving}
+                        className={`w-full p-2 border rounded transition-all ${
+                          isSaving 
+                            ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                            : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100'
+                        }`}
                       >
                         <option value="">None</option>
                         {allQuestions.filter(q => q.id !== question.id).map(q => (
@@ -221,8 +243,13 @@ export default function QuestionBuilder({
                       </label>
                       <select
                         value={answer.resolution_id || ''}
-                        onChange={(e) => handleUpdateAnswer(index, 'resolution_id', e.target.value || null)}
-                        className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100"
+                        onChange={isSaving ? undefined : (e) => handleUpdateAnswer(index, 'resolution_id', e.target.value || null)}
+                        disabled={isSaving}
+                        className={`w-full p-2 border rounded transition-all ${
+                          isSaving 
+                            ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                            : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100'
+                        }`}
                       >
                         <option value="">None</option>
                         {allResolutions.map(r => (
@@ -253,8 +280,13 @@ export default function QuestionBuilder({
         
         {isEditing && (
           <button
-            onClick={handleAddAnswer}
-            className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-dark-600 rounded-lg text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-dark-200 hover:border-gray-400 dark:hover:border-dark-500 transition-colors duration-200"
+            onClick={isSaving ? undefined : handleAddAnswer}
+            disabled={isSaving}
+            className={`w-full p-4 border-2 border-dashed rounded-lg transition-all duration-200 ${
+              isSaving 
+                ? 'border-gray-300 dark:border-dark-600 text-gray-500 dark:text-dark-400 opacity-50 cursor-not-allowed' 
+                : 'border-gray-300 dark:border-dark-600 text-gray-500 dark:text-dark-400 hover:text-gray-700 dark:hover:text-dark-200 hover:border-gray-400 dark:hover:border-dark-500'
+            }`}
           >
             + Add Answer
           </button>

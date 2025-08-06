@@ -29,6 +29,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   const [pendingResolutionNavigation, setPendingResolutionNavigation] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, type: null, id: null });
   const [deleteDialogContent, setDeleteDialogContent] = useState({ title: '', description: '' });
+  const [isSaving, setIsSaving] = useState(false);
   const originalQuestions = useRef([]);
   const originalResolutions = useRef([]);
   const isAddingItem = useRef(false);
@@ -422,6 +423,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       await onSave(editingQuestions, editingResolutions, deletedQuestions, deletedResolutions);
       
@@ -434,6 +436,8 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       setDeletedResolutions([]);
     } catch (error) {
       console.error('Error saving changes:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -483,8 +487,12 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
               id="toggle_mode_button" 
               Icon={isEditing ? EyeIcon : PencilSquareIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-              onClick={() => {
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                isSaving 
+                  ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+              }`}
+              onClick={isSaving ? undefined : () => {
                 isSwitchingModes.current = true;
                 setIsEditing(!isEditing);
                 
@@ -506,8 +514,12 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
               id="back_button" 
               Icon={ArrowLeftIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-              onClick={handleBack}
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                isSaving 
+                  ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+              }`}
+              onClick={isSaving ? undefined : handleBack}
             />
           )}
           
@@ -516,18 +528,26 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
               id="restart_button" 
               Icon={ArrowPathIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-              onClick={handleRestart}
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                isSaving 
+                  ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+              }`}
+              onClick={isSaving ? undefined : handleRestart}
             />
           )}
           
           {hasChanges && (
             <ButtonControl 
               id="save_button" 
-              Icon={CheckCircleIcon}
+              Icon={isSaving ? ArrowPathIcon : CheckCircleIcon}
               className="w-8 h-8 px-1" 
-              iconClassName="w-6 h-6 text-orange-500 hover:text-orange-600 dark:text-orange-600 dark:hover:text-orange-500 transition-all ease-in-out" 
-              onClick={handleSave}
+              iconClassName={`w-6 h-6 transition-all ease-in-out ${
+                isSaving 
+                  ? 'text-theme-400 dark:text-theme-500 opacity-60 animate-spin' 
+                  : 'text-orange-500 hover:text-orange-600 dark:text-orange-600 dark:hover:text-orange-500'
+              }`}
+              onClick={isSaving ? undefined : handleSave}
             />
           )}
           
@@ -535,14 +555,28 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
             id="close_button" 
             Icon={XMarkIcon}
             className="w-8 h-8 px-1" 
-            iconClassName="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" 
-            onClick={onClose}
+            iconClassName={`w-6 h-6 transition-all ease-in-out ${
+              isSaving 
+                ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
+                : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+            }`}
+            onClick={isSaving ? undefined : onClose}
           />
         </div>
       </div>
 
       {/* Status indicator */}
-      {hasChanges && (
+      {isSaving && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <ArrowPathIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
+              Saving changes...
+            </p>
+          </div>
+        </div>
+      )}
+      {hasChanges && !isSaving && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
           <p className="text-yellow-800 dark:text-yellow-200 text-sm">
             You have unsaved changes. Don't forget to save your work!
@@ -569,14 +603,22 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                       }`}
                     >
                       <button
-                        onClick={() => handleQuestionNavigation(question.id)}
-                        className="flex-1 text-left"
+                        onClick={isSaving ? undefined : () => handleQuestionNavigation(question.id)}
+                        disabled={isSaving}
+                        className={`flex-1 text-left transition-opacity ${
+                          isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         <span className="font-medium">Q{index + 1}:</span> {(question.question || 'Untitled Question').substring(0, 50)}{(question.question || '').length > 50 ? '...' : ''}
                       </button>
                       <button
-                        onClick={() => handleDeleteQuestion(question.id)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded transition-colors"
+                        onClick={isSaving ? undefined : () => handleDeleteQuestion(question.id)}
+                        disabled={isSaving}
+                        className={`p-1 rounded transition-all ${
+                          isSaving 
+                            ? 'text-red-400 dark:text-red-500 opacity-40 cursor-not-allowed' 
+                            : 'text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20'
+                        }`}
                         title="Delete Question"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -602,14 +644,22 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                       }`}
                     >
                       <button
-                        onClick={() => handleResolutionNavigation(resolution.id)}
-                        className="flex-1 text-left"
+                        onClick={isSaving ? undefined : () => handleResolutionNavigation(resolution.id)}
+                        disabled={isSaving}
+                        className={`flex-1 text-left transition-opacity ${
+                          isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         <span className="font-medium">R{index + 1}:</span> {(resolution.title || 'Untitled Resolution').substring(0, 50)}{(resolution.title || '').length > 50 ? '...' : ''}
                       </button>
                       <button
-                        onClick={() => handleDeleteResolution(resolution.id)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded transition-colors"
+                        onClick={isSaving ? undefined : () => handleDeleteResolution(resolution.id)}
+                        disabled={isSaving}
+                        className={`p-1 rounded transition-all ${
+                          isSaving 
+                            ? 'text-red-400 dark:text-red-500 opacity-40 cursor-not-allowed' 
+                            : 'text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20'
+                        }`}
                         title="Delete Resolution"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -633,12 +683,14 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                       return (
                         <div key={question.id} className="space-y-1">
                           <div 
-                            className={`font-medium cursor-pointer ${
-                              currentQuestionId === question.id 
-                                ? 'text-theme-600 dark:text-theme-400' 
-                                : 'text-gray-700 dark:text-dark-200'
+                            className={`font-medium transition-opacity ${
+                              isSaving 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : currentQuestionId === question.id 
+                                  ? 'text-theme-600 dark:text-theme-400 cursor-pointer' 
+                                  : 'text-gray-700 dark:text-dark-200 cursor-pointer'
                             }`}
-                            onClick={() => handleQuestionNavigation(question.id)}
+                            onClick={isSaving ? undefined : () => handleQuestionNavigation(question.id)}
                           >
                             Q{questionNumber}: {(question.question || 'Untitled Question').substring(0, 30)}{(question.question || '').length > 30 ? '...' : ''}
                           </div>
@@ -664,15 +716,23 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                                   <span className="text-gray-400">→</span>
                                   {targetQuestion ? (
                                     <span 
-                                      className="text-theme-600 dark:text-theme-400 cursor-pointer hover:underline"
-                                      onClick={() => handleQuestionNavigation(targetQuestion.id)}
+                                      className={`cursor-pointer hover:underline transition-opacity ${
+                                        isSaving 
+                                          ? 'opacity-50 cursor-not-allowed' 
+                                          : 'text-theme-600 dark:text-theme-400'
+                                      }`}
+                                      onClick={isSaving ? undefined : () => handleQuestionNavigation(targetQuestion.id)}
                                     >
                                       Q{targetQuestionIndex + 1}
                                     </span>
                                   ) : targetResolution ? (
                                     <span 
-                                      className="text-green-600 dark:text-green-400 cursor-pointer hover:underline"
-                                      onClick={() => handleResolutionNavigation(targetResolution.id)}
+                                      className={`cursor-pointer hover:underline transition-opacity ${
+                                        isSaving 
+                                          ? 'opacity-50 cursor-not-allowed' 
+                                          : 'text-green-600 dark:text-green-400'
+                                      }`}
+                                      onClick={isSaving ? undefined : () => handleResolutionNavigation(targetResolution.id)}
                                     >
                                       R{targetResolutionIndex + 1}
                                     </span>
@@ -710,8 +770,13 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
               Create your first question to start building an interactive visual guide for this article.
             </p>
             <button
-              onClick={() => handleAddQuestion()}
-              className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50 font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
+              onClick={isSaving ? undefined : () => handleAddQuestion()}
+              disabled={isSaving}
+              className={`font-semibold px-6 py-3 rounded-lg transition-all duration-200 ${
+                isSaving 
+                  ? 'bg-theme-400 dark:bg-theme-500 text-white dark:text-dark-50 opacity-50 cursor-not-allowed' 
+                  : 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50'
+              }`}
             >
               Create First Question
             </button>
@@ -730,6 +795,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
           onAddQuestion={handleAddQuestion}
           onAddResolution={handleAddResolution}
           isParentInitialized={isInitialized}
+          isSaving={isSaving}
         />
       )}
 
@@ -744,6 +810,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
           allQuestions={editingQuestions}
           onNavigateToQuestion={handleResolutionFeedbackNavigation}
           onAddQuestion={handleAddQuestion}
+          isSaving={isSaving}
         />
       )}
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { usePage } from '@inertiajs/react';
 
-export default function ImageUpload({ currentImage, onImageChange, placeholder = "Drop an image here or click to upload" }) {
+export default function ImageUpload({ currentImage, onImageChange, placeholder = "Drop an image here or click to upload", disabled = false }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -47,6 +47,8 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
     e.preventDefault();
     setIsDragging(false);
     
+    if (disabled) return;
+    
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       processFile(files[0]);
@@ -55,7 +57,7 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    if (!isDragging) {
+    if (!isDragging && !disabled) {
       setIsDragging(true);
     }
   };
@@ -69,6 +71,8 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
   };
 
   const handleFileSelect = (e) => {
+    if (disabled) return;
+    
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       processFile(files[0]);
@@ -76,13 +80,17 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
   };
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!disabled) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleClearImage = () => {
-    onImageChange(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (!disabled) {
+      onImageChange(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -101,7 +109,12 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
           />
           <button
             onClick={handleClearImage}
-            className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-colors duration-200"
+            disabled={disabled}
+            className={`absolute top-1 right-1 rounded-full p-2 shadow-lg transition-all duration-200 ${
+              disabled 
+                ? 'bg-red-400 dark:bg-red-500 text-white opacity-50 cursor-not-allowed' 
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
             title="Remove image"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,10 +132,12 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
           onDragLeave={handleDragLeave}
           onClick={handleClick}
           className={`
-            relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200
-            ${isDragging 
-              ? 'border-theme-500 bg-theme-50 dark:bg-theme-900/20' 
-              : 'border-gray-300 dark:border-dark-600 hover:border-gray-400 dark:hover:border-dark-500'
+            relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200
+            ${disabled 
+              ? 'border-gray-300 dark:border-dark-600 bg-gray-50 dark:bg-dark-800 opacity-50 cursor-not-allowed' 
+              : isDragging 
+                ? 'border-theme-500 bg-theme-50 dark:bg-theme-900/20 cursor-pointer' 
+                : 'border-gray-300 dark:border-dark-600 hover:border-gray-400 dark:hover:border-dark-500 cursor-pointer'
             }
           `}
         >
@@ -131,15 +146,22 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
             type="file"
             accept=".jpg,.jpeg,.png,.gif"
             onChange={handleFileSelect}
+            disabled={disabled}
             className="hidden"
           />
           
           <div className="flex flex-col items-center space-y-2">
-            <svg className="w-8 h-8 text-gray-400 dark:text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-8 h-8 transition-all ${
+              disabled ? 'text-gray-400 dark:text-dark-500 opacity-60' : 'text-gray-400 dark:text-dark-500'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p className="text-sm text-gray-600 dark:text-dark-400">{placeholder}</p>
-            <p className="text-xs text-gray-500 dark:text-dark-500">JPG, PNG, GIF up to 5MB</p>
+            <p className={`text-sm transition-all ${
+              disabled ? 'text-gray-500 dark:text-dark-500 opacity-60' : 'text-gray-600 dark:text-dark-400'
+            }`}>{disabled ? 'Upload disabled during save' : placeholder}</p>
+            <p className={`text-xs transition-all ${
+              disabled ? 'text-gray-400 dark:text-dark-600 opacity-60' : 'text-gray-500 dark:text-dark-500'
+            }`}>JPG, PNG, GIF up to 5MB</p>
           </div>
         </div>
       )}

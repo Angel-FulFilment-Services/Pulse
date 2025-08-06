@@ -9,10 +9,15 @@ import VisualGuideBuilder from './VisualGuideBuilder';
 export default function Article({ article, questions = [], resolutions = [] }) {
   const [showVisualGuide, setShowVisualGuide] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   
   const handleCloseBuilder = () => {
+    setIsReloading(true);
     // Use Inertia router to refresh the page data without a full page reload
-    router.reload({ only: ['questions', 'resolutions'] });
+    router.reload({ 
+      only: ['questions', 'resolutions'],
+      onFinish: () => setIsReloading(false)
+    });
     setShowBuilder(false);
   };
 
@@ -173,27 +178,44 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                     {questions.length > 0 ? (
                       <>
                         <button 
-                          onClick={() => setShowVisualGuide(true)}
-                          className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50 font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
+                          onClick={isReloading ? undefined : () => setShowVisualGuide(true)}
+                          disabled={isReloading}
+                          className={`font-semibold px-4 py-2 rounded-lg transition-all duration-200 ${
+                            isReloading 
+                              ? 'bg-theme-400 dark:bg-theme-500 text-white dark:text-dark-50 opacity-60 cursor-not-allowed' 
+                              : 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50'
+                          }`}
                         >
-                          Launch Visual Guide
+                          {isReloading ? 'Loading...' : 'Launch Visual Guide'}
                         </button>
                         <button 
-                          onClick={() => setShowBuilder(true)}
-                          className="w-8 h-8 px-1 rounded-lg"
+                          onClick={isReloading ? undefined : () => setShowBuilder(true)}
+                          disabled={isReloading}
+                          className={`w-8 h-8 px-1 rounded-lg ${
+                            isReloading ? 'cursor-not-allowed' : ''
+                          }`}
                           title="Edit Visual Guide"
                         >
-                          <svg className="w-6 h-6 text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400 transition-all ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className={`w-6 h-6 transition-all ease-in-out ${
+                            isReloading 
+                              ? 'text-gray-400 dark:text-dark-500 opacity-50' 
+                              : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
                       </>
                     ) : (
                       <button 
-                        onClick={() => setShowBuilder(true)}
-                        className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50 font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
+                        onClick={isReloading ? undefined : () => setShowBuilder(true)}
+                        disabled={isReloading}
+                        className={`font-semibold px-4 py-2 rounded-lg transition-colors duration-200 ${
+                          isReloading 
+                            ? 'bg-gray-300 dark:bg-dark-600 text-gray-500 dark:text-dark-400 cursor-not-allowed' 
+                            : 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50'
+                        }`}
                       >
-                        Create Visual Guide
+                        {isReloading ? 'Loading...' : 'Create Visual Guide'}
                       </button>
                     )}
                   </div>
