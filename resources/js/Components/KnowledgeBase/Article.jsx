@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-toastify';
 import VisualGuide from './VisualGuide';
 import VisualGuideBuilder from './VisualGuideBuilder';
-import { SmartImage } from '../../Utils/imageUtils';
+import { SmartImage } from '../../Utils/imageUtils.jsx';
 
 export default function Article({ article, questions = [], resolutions = [] }) {
   const [showVisualGuide, setShowVisualGuide] = useState(false);

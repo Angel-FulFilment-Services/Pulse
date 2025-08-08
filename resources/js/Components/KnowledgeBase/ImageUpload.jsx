@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
-import { SmartImage } from '../../Utils/imageUtils';
+import { SmartImage } from '../../Utils/imageUtils.jsx';
 
 export default function ImageUpload({ currentImage, onImageChange, placeholder = "Drop an image here or click to upload", disabled = false }) {
   const [isDragging, setIsDragging] = useState(false);

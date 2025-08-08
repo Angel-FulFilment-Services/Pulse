@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SmartImage } from '../../Utils/imageUtils';
+import { SmartImage } from '../../Utils/imageUtils.jsx';
 
 export default function ImageWithLoading({ 
   filename,
