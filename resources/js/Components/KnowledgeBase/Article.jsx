@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-toastify';
 import VisualGuide from './VisualGuide';
 import VisualGuideBuilder from './VisualGuideBuilder';
+import { SmartImage } from '../../Utils/imageUtils';
 
 export default function Article({ article, questions = [], resolutions = [] }) {
   const [showVisualGuide, setShowVisualGuide] = useState(false);
@@ -58,8 +59,16 @@ export default function Article({ article, questions = [], resolutions = [] }) {
             
             const normalizedAnswers = answers.map(answer => ({
               ...answer,
-              next_question_id: answer.next_question_id ? Number(answer.next_question_id) : null,
-              resolution_id: answer.resolution_id ? Number(answer.resolution_id) : null
+              next_question_id: answer.next_question_id 
+                ? (answer.next_question_id.toString().startsWith('temp_') 
+                   ? answer.next_question_id 
+                   : Number(answer.next_question_id))
+                : null,
+              resolution_id: answer.resolution_id 
+                ? (answer.resolution_id.toString().startsWith('temp_') 
+                   ? answer.resolution_id 
+                   : Number(answer.resolution_id))
+                : null
             }));
             
             processedQuestion.answers = JSON.stringify(normalizedAnswers);
@@ -97,7 +106,9 @@ export default function Article({ article, questions = [], resolutions = [] }) {
           
           // Normalize next_question_id
           if (processedResolution.next_question_id) {
-            processedResolution.next_question_id = Number(processedResolution.next_question_id);
+            processedResolution.next_question_id = processedResolution.next_question_id.toString().startsWith('temp_')
+              ? processedResolution.next_question_id
+              : Number(processedResolution.next_question_id);
           }
           
           return processedResolution;
@@ -105,7 +116,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
       );
 
       // Now save the guide with the uploaded image filenames and deletion data
-      await axios.post(`/knowledge-base/article/${article.id}/save-guide`, {
+      const saveResponse = await axios.post(`/knowledge-base/article/${article.id}/save-guide`, {
         questions: processedQuestions,
         resolutions: processedResolutions,
         deletedQuestions: deletedQuestions,
@@ -124,7 +135,6 @@ export default function Article({ article, questions = [], resolutions = [] }) {
         theme: 'light',
       });
     } catch (error) {
-      console.error('Error saving guide:', error);
       toast.error('Failed to save visual guide. Please try again.', {
         position: 'top-center',
         autoClose: 3000,
@@ -200,7 +210,12 @@ export default function Article({ article, questions = [], resolutions = [] }) {
               {!showVisualGuide && !showBuilder && (
                 <div className="flex flex-row items-start justify-between mb-8">
                   {article.article_image && (
-                    <img src={`https://pulse.cdn.angelfs.co.uk/articles/${article.article_image}`} alt={article.title} className="max-w-64 h-auto mb-8 bg-gray-50 rounded-3xl p-2 ring-1 ring-gray-800/10" />
+                    <SmartImage 
+                      filename={article.article_image}
+                      alt={article.title}
+                      className="max-w-64 h-auto mb-8 bg-gray-50 rounded-3xl p-2 ring-1 ring-gray-800/10"
+                      path="articles"
+                    />
                   )}
                   <div className="flex gap-3 items-center">
                     {questions.length > 0 ? (

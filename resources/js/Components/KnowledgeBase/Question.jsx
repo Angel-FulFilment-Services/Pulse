@@ -11,11 +11,7 @@ export default function Question({ question, onAnswerSelect }) {
       {question.image && (
         <div className="flex justify-center">
           <ImageWithLoading
-            src={
-              typeof question.image === 'object' && question.image.isNew 
-                ? question.image.dataUrl 
-                : `https://pulse.cdn.angelfs.co.uk/articles/questions/${question.image}`
-            }
+            filename={question.image}
             alt="Question illustration"
             className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
             loadingContainerClassName="max-w-md h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"

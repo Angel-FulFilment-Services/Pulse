@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
+import { SmartImage } from '../../Utils/imageUtils';
 
 export default function ImageUpload({ currentImage, onImageChange, placeholder = "Drop an image here or click to upload", disabled = false }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -129,8 +130,8 @@ export default function ImageUpload({ currentImage, onImageChange, placeholder =
         <div className="relative">
           {!imageLoadError ? (
             <>
-              <img 
-                src={currentImage.isNew ? currentImage.dataUrl : `https://pulse.cdn.angelfs.co.uk/articles/questions/${currentImage}`}
+              <SmartImage 
+                filename={currentImage.isNew ? currentImage : currentImage}
                 alt="Uploaded image"
                 className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-2 mx-auto block"
                 onLoad={() => setImageLoadError(false)}

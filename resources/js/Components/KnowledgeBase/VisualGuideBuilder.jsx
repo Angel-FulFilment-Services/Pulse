@@ -38,12 +38,6 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   useEffect(() => {
     // Initialize with existing questions and resolutions only on mount
     if (!isInitialized) {
-      console.log('VisualGuideBuilder initializing with:', {
-        questionsCount: questions.length,
-        resolutionsCount: resolutions.length,
-        resolutions: resolutions
-      });
-      
       setEditingQuestions([...questions]);
       setEditingResolutions([...resolutions]);
       // Store original data for comparison
@@ -265,6 +259,11 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
       
       return updatedResolutions;
     });
+
+    // IMPORTANT: Also update currentResolution if it's the one being edited
+    if (currentResolution && currentResolution.id == updatedResolution.id) {
+      setCurrentResolution(updatedResolution);
+    }
   };
 
   const handleDeleteQuestion = (questionId) => {
@@ -769,12 +768,49 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                                 ? editingResolutions.findIndex(r => r.id == answer.resolution_id)
                                 : -1;
                               
+                              // Find the resolution's next question if it exists
+                              const resolutionNextQuestion = targetResolution && targetResolution.next_question_id
+                                ? editingQuestions.find(q => q.id == targetResolution.next_question_id)
+                                : null;
+                              const resolutionNextQuestionIndex = resolutionNextQuestion 
+                                ? editingQuestions.findIndex(q => q.id == targetResolution.next_question_id)
+                                : -1;
+                              
                               return (
                                 <div key={aIndex} className="flex items-center gap-2 text-gray-600 dark:text-dark-300">
                                   <span className="text-gray-400">└─</span>
                                   <span className="truncate">{(answer.label || 'Untitled Answer').substring(0, 20)}{(answer.label || '').length > 20 ? '...' : ''}</span>
                                   <span className="text-gray-400">→</span>
-                                  {targetQuestion ? (
+                                  {targetResolution && (
+                                    <>
+                                      <span 
+                                        className={`cursor-pointer hover:underline transition-opacity ${
+                                          isSaving 
+                                            ? 'opacity-50 cursor-not-allowed' 
+                                            : 'text-green-600 dark:text-green-400'
+                                        }`}
+                                        onClick={isSaving ? undefined : () => handleResolutionNavigation(targetResolution.id)}
+                                      >
+                                        R{targetResolutionIndex + 1}
+                                      </span>
+                                      {resolutionNextQuestion && (
+                                        <>
+                                          <span className="text-gray-400">→</span>
+                                          <span 
+                                            className={`cursor-pointer hover:underline transition-opacity ${
+                                              isSaving 
+                                                ? 'opacity-50 cursor-not-allowed' 
+                                                : 'text-theme-600 dark:text-theme-400'
+                                            }`}
+                                            onClick={isSaving ? undefined : () => handleQuestionNavigation(resolutionNextQuestion.id)}
+                                          >
+                                            Q{resolutionNextQuestionIndex + 1}
+                                          </span>
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                  {targetQuestion && !targetResolution && (
                                     <span 
                                       className={`cursor-pointer hover:underline transition-opacity ${
                                         isSaving 
@@ -785,18 +821,8 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                                     >
                                       Q{targetQuestionIndex + 1}
                                     </span>
-                                  ) : targetResolution ? (
-                                    <span 
-                                      className={`cursor-pointer hover:underline transition-opacity ${
-                                        isSaving 
-                                          ? 'opacity-50 cursor-not-allowed' 
-                                          : 'text-green-600 dark:text-green-400'
-                                      }`}
-                                      onClick={isSaving ? undefined : () => handleResolutionNavigation(targetResolution.id)}
-                                    >
-                                      R{targetResolutionIndex + 1}
-                                    </span>
-                                  ) : (
+                                  )}
+                                  {!targetQuestion && !targetResolution && (
                                     <span className="text-gray-400 italic">None</span>
                                   )}
                                 </div>

@@ -20,11 +20,7 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
       {resolution.image && (
         <div className="flex justify-center">
           <ImageWithLoading
-            src={
-              typeof resolution.image === 'object' && resolution.image.isNew 
-                ? resolution.image.dataUrl 
-                : `https://pulse.cdn.angelfs.co.uk/articles/questions/${resolution.image}`
-            }
+            filename={resolution.image}
             alt={resolution.title}
             className="max-w-lg h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
             loadingContainerClassName="max-w-lg h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"

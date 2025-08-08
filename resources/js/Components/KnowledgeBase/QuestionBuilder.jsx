@@ -107,9 +107,17 @@ export default function QuestionBuilder({
         if (i === index) {
           const updatedAnswer = { ...answer };
           
-          // Normalize the value - convert to number for ID fields, or null
+          // Normalize the value - preserve temp IDs as strings, convert numeric strings to numbers
           if (field === 'next_question_id' || field === 'resolution_id') {
-            updatedAnswer[field] = value ? Number(value) : null;
+            if (!value) {
+              updatedAnswer[field] = null;
+            } else if (value.toString().startsWith('temp_')) {
+              // Keep temp IDs as strings
+              updatedAnswer[field] = value;
+            } else {
+              // Convert numeric IDs to numbers
+              updatedAnswer[field] = Number(value);
+            }
           } else {
             updatedAnswer[field] = value || null;
           }
@@ -146,11 +154,7 @@ export default function QuestionBuilder({
             />
           ) : question.image && (
             <ImageWithLoading
-              src={
-                typeof question.image === 'object' && question.image.isNew 
-                  ? question.image.dataUrl 
-                  : `https://pulse.cdn.angelfs.co.uk/articles/questions/${question.image}`
-              }
+              filename={question.image}
               alt="Question illustration"
               className="max-w-md h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
               loadingContainerClassName="max-w-md h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"

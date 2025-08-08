@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class KnowledgeBaseController extends Controller
@@ -150,30 +151,36 @@ class KnowledgeBaseController extends Controller
                 // Remove image_url field as it's not a database column
                 unset($resolutionData['image_url']);
                 
-                // Validate next_question_id references - remove if question doesn't exist
+                // Validate next_question_id references - handle temp IDs and validate existing IDs
                 if (isset($resolutionData['next_question_id'])) {
-                    $questionExists = false;
-                    
-                    // Check if it's in the current questions being saved
-                    foreach ($questions as $question) {
-                        if ($question['id'] == $resolutionData['next_question_id']) {
-                            $questionExists = true;
-                            break;
-                        }
-                    }
-                    
-                    // If not found in current questions, check if it exists in database
-                    if (!$questionExists) {
-                        $questionExists = DB::connection('pulse')
-                            ->table('knowledge_base_questions')
-                            ->where('id', $resolutionData['next_question_id'])
-                            ->exists();
-                    }
-                    
-                    // If question doesn't exist, remove the reference
-                    if (!$questionExists) {
+                    if (strpos($resolutionData['next_question_id'], 'temp_') === 0) {
+                        // Set to null for now, will be updated in later pass
                         $resolutionData['next_question_id'] = null;
-                        $originalResolutionData['next_question_id'] = null; // Update original too
+                    } else {
+                        // Validate that non-temp question exists
+                        $questionExists = false;
+                        
+                        // Check if it's in the current questions being saved
+                        foreach ($questions as $question) {
+                            if ($question['id'] == $resolutionData['next_question_id']) {
+                                $questionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        // If not found in current questions, check if it exists in database
+                        if (!$questionExists) {
+                            $questionExists = DB::connection('pulse')
+                                ->table('knowledge_base_questions')
+                                ->where('id', $resolutionData['next_question_id'])
+                                ->exists();
+                        }
+                        
+                        // If question doesn't exist, remove the reference
+                        if (!$questionExists) {
+                            $resolutionData['next_question_id'] = null;
+                            $originalResolutionData['next_question_id'] = null; // Update original too
+                        }
                     }
                 }
                 
@@ -240,7 +247,7 @@ class KnowledgeBaseController extends Controller
                 }
             }
 
-            // Second pass: Update next_question_id references now that we have all question IDs
+            // Second pass: Update next_question_id and resolution_id references now that we have all IDs
             foreach ($questionsToUpdate as $questionUpdate) {
                 $originalQuestionData = $questionUpdate['original'];
                 $questionId = $questionUpdate['realId'];
@@ -249,10 +256,17 @@ class KnowledgeBaseController extends Controller
                     $answers = json_decode($originalQuestionData['answers'], true);
                     if (is_array($answers)) {
                         $needsUpdate = false;
+                        
                         foreach ($answers as &$answer) {
                             // Update next_question_id references
                             if (isset($answer['next_question_id']) && isset($questionIdMap[$answer['next_question_id']])) {
                                 $answer['next_question_id'] = $questionIdMap[$answer['next_question_id']];
+                                $needsUpdate = true;
+                            }
+                            
+                            // Update resolution_id references
+                            if (isset($answer['resolution_id']) && isset($resolutionIdMap[$answer['resolution_id']])) {
+                                $answer['resolution_id'] = $resolutionIdMap[$answer['resolution_id']];
                                 $needsUpdate = true;
                             }
                         }
@@ -303,9 +317,8 @@ class KnowledgeBaseController extends Controller
                     }
                 }
             }
-
+            
             DB::connection('pulse')->commit();
-
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             DB::connection('pulse')->rollback();
@@ -322,11 +335,7 @@ class KnowledgeBaseController extends Controller
                 return Storage::disk('r2-public')->url("articles/questions/{$filename}");
             }
         } catch (\Exception $e) {
-            // Log the error but don't fail the page load
-            \Log::warning('Unable to check R2 storage for image', [
-                'filename' => $filename,
-                'error' => $e->getMessage()
-            ]);
+            // Silently fall back to local storage if R2 fails
         }
         
         // Fall back to local storage URL for existing files
@@ -334,26 +343,70 @@ class KnowledgeBaseController extends Controller
     }
 
     public function uploadImage(Request $request) {
-        $request->validate([
-            'image' => 'required|image|mimes:jpeg,jpg,png,gif|max:5120', // 5MB max
-        ]);
-
         try {
+            // Check if file exists in request
+            if (!$request->hasFile('image')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No image file provided'
+                ], 400);
+            }
+
+            // Validate the image
+            $validator = \Validator::make($request->all(), [
+                'image' => 'required|image|mimes:jpeg,jpg,png,gif|max:5120', // 5MB max
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $image = $request->file('image');
             $extension = $image->getClientOriginalExtension();
             $filename = Str::uuid() . '.' . $extension;
             
-            // Store in R2 public bucket under articles/questions/
-            $path = $image->storeAs('articles/questions', $filename, 'r2-public');
+            // Try to store in R2 public bucket first, with fallback to local
+            $path = null;
+            $disk = 'r2-public';
+            $url = null;
             
-            // Get the full URL from the R2 public bucket
-            $url = Storage::disk('r2-public')->url($path);
+            try {
+                $path = $image->storeAs('articles/questions', $filename, 'r2-public');
+                
+                if ($path === false) {
+                    throw new \Exception('R2 storage returned false - likely configuration issue');
+                }
+                
+                // Get the full URL from the R2 public bucket
+                $url = Storage::disk('r2-public')->url($path);
+                
+            } catch (\Exception $r2Exception) {
+                // Fallback to local public storage
+                $disk = 'public';
+                $path = $image->storeAs('articles/questions', $filename, 'public');
+                
+                if ($path === false) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Both R2 and local storage failed',
+                        'details' => $r2Exception->getMessage()
+                    ], 500);
+                }
+                
+                // Get the full URL from local public storage
+                $url = Storage::disk('public')->url($path);
+            }
             
             return response()->json([
                 'success' => true,
                 'filename' => $filename,
                 'path' => $path,
-                'url' => $url
+                'url' => $url,
+                'disk' => $disk
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -31,7 +31,8 @@ export default function ResolutionBuilder({
         onAddQuestion(); // This will create a new question
       }
     } else {
-      setEditingNextQuestionId(value || null);
+      const processedValue = value === '' ? null : value;
+      setEditingNextQuestionId(processedValue);
     }
   };
   const isInitialMount = useRef(true);
@@ -73,7 +74,9 @@ export default function ResolutionBuilder({
       title: editingTitle,
       body: editingBody,
       image: editingImage,
-      next_question_id: editingNextQuestionId ? Number(editingNextQuestionId) : null
+      next_question_id: editingNextQuestionId && editingNextQuestionId !== '' && editingNextQuestionId !== 'null' 
+        ? (editingNextQuestionId.toString().startsWith('temp_') ? editingNextQuestionId : Number(editingNextQuestionId))
+        : null
     };
     onResolutionUpdate(updatedResolution);
   }, [editingTitle, editingBody, editingImage, editingNextQuestionId, isParentInitialized, isEditing]);
@@ -108,11 +111,7 @@ export default function ResolutionBuilder({
             </div>
           ) : resolution.image && (
             <ImageWithLoading
-              src={
-                typeof resolution.image === 'object' && resolution.image.isNew 
-                  ? resolution.image.dataUrl 
-                  : `https://pulse.cdn.angelfs.co.uk/articles/questions/${resolution.image}`
-              }
+              filename={resolution.image}
               alt={resolution.title}
               className="max-w-lg h-auto rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"
               loadingContainerClassName="max-w-lg h-48 rounded-xl shadow-lg bg-gray-50 dark:bg-dark-800 p-4"

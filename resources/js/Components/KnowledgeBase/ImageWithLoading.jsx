@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
+import { SmartImage } from '../../Utils/imageUtils';
 
 export default function ImageWithLoading({ 
+  filename,
   src, 
   alt, 
   className = "", 
   containerClassName = "",
   loadingContainerClassName = "",
   errorContainerClassName = "",
-  showErrorState = true 
+  showErrorState = true,
+  path = 'articles/questions'
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -47,12 +50,13 @@ export default function ImageWithLoading({
       )}
 
       {/* Actual Image */}
-      <img 
-        src={src}
+      <SmartImage 
+        filename={filename || src}
         alt={alt}
         className={`${className} ${loading || error ? 'hidden' : ''}`}
         onLoad={handleLoad}
         onError={handleError}
+        path={path}
       />
     </div>
   );
