@@ -17,7 +17,7 @@ import ScrollHint from '../../Hints/ScrollHint';
 import useFetchAssets from '../../Fetches/Assets/useFetchAssets';
 import SearchControl from '../../Controls/SearchControl';
 
-export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refreshAsset, refreshKit, data = {} }) {    
+export default function Kit({ onCancel, goBack, goTo, changeAsset, refreshAsset, refreshKit, data = {} }) {    
     const [kit, setKit] = useState([]);
     const [kitItems, setKitItems] = useState([]);
     const [history, setHistory] = useState([]);
@@ -553,29 +553,23 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                                             <tbody className="bg-white dark:bg-dark-900">
                                                 {kitItems.map((row, idx) => {
                                                     return (
-                                                        {...row.afs_id ? (
-                                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs" onClick={() => {changeAsset(row.afs_id)}}>
-                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
-                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">
-                                                                    <div className="flex items-center justify-end gap-x-2">
-                                                                        <button
-                                                                            onClick={(event) => {event.stopPropagation(); setSelectedItem(row.asset_id); setIsDialogOpen(true);}}
-                                                                        >
-                                                                            <Trash
-                                                                            className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
-                                                                            aria-hidden="true"
-                                                                            />
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ) : (
-                                                            <tr key={idx} className="text-xs">
-                                                                <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
-                                                                <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">N/A</td>
-                                                            </tr>
-                                                        )}
+                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-800 cursor-pointer text-xs" onClick={() => {changeAsset(row.asset_id)}}>
+                                                            <td className="px-3 py-2 whitespace-nowrap border-b border-gray-100 dark:border-dark-700">{row.asset_alias || row.type}</td>
+                                                            <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">{row.afs_id ? `#${row.afs_id}` : null}</td>
+                                                            <td className="px-3 py-2 text-right border-b border-gray-100 dark:border-dark-700">
+                                                                <div className="flex items-center justify-end gap-x-2">
+                                                                    <button
+                                                                        onClick={(event) => {event.stopPropagation(); setSelectedItem(row.asset_id); setIsDialogOpen(true);}}
+                                                                    >
+                                                                        <Trash
+                                                                        className="h-5 w-6 text-theme-600 hover:text-theme-700 dark:text-theme-700 dark:hover:text-theme-600 cursor-pointer transition-all ease-in-out"
+                                                                        aria-hidden="true"
+                                                                        />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
                                                     );
                                                 })}
                                             </tbody>
@@ -659,11 +653,9 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
             </div>
             <ConfirmationDialog
                 isOpen={isDialogOpen}
-                setIsOpen={(event) => {
-                    setIsDialogOpen(event) 
-                    if(!event){ 
-                        setSelectedItem(null)
-                    }
+                onClose={() => {
+                    setIsDialogOpen(false);  
+                    setSelectedItem(null)
                 }}
                 title="Remove this item from the kit?"
                 description="Are you sure you want to remove this item from the kit?"
@@ -677,7 +669,7 @@ export default function Kit({ assetId, onCancel, goBack, goTo, changeAsset, refr
                 title="Unassign Kit?"
                 description="Are you sure you want to unassign this kit?"            
                 isYes={() => unassignKit(assignedTo.user_id)}
-                setIsOpen={setIsDialogOpenUnassign}
+                onClose={() => setIsDialogOpenUnassign(false)}
                 type="question"
                 yesText="Yes"
                 cancelText="Cancel"

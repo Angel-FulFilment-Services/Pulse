@@ -39,6 +39,7 @@
         "react-dom": "^18.2.0",
         "react-input-mask": "^2.0.4",
         "react-loader-spinner": "^6.1.6",
+        "react-markdown": "^10.1.0",
         "react-native": "^0.73.5",
         "react-number-format": "^5.4.3",
         "react-router-dom": "^7.1.3",

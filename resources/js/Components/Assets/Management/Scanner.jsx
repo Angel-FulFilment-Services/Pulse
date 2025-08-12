@@ -74,7 +74,7 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
         videoElement,
         (result, error) => {
           if (result) {
-            handleScan(result.getText());
+            handleScan(null, null, result.getText());
             codeReader.current.stop(); // Stop continuous decoding
             stopCamera(); // Pass the scanned barcode to the parent // Stop the camera after a successful scan
           }
@@ -119,7 +119,7 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
                   width='w-96'
                   onSelectChange={(item) => {
                     if (!item) return;
-                    handleScan(item);
+                    handleScan(null, null, item);
                   }}
                 />  
                 <button

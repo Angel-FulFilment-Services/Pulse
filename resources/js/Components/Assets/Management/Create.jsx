@@ -34,11 +34,11 @@ const items = [
     { value: 4, label: 'USB Mouse' }
 ];
 
-export default function Create({ assetId, onCancel, initialData = null }) {    
+export default function Create({ afsId, onCancel, changeAsset }) {    
     const { kits } = useFetchKits();
 
     const [formData, setFormData] = useState({
-        assetId: assetId || '',
+        afsId: afsId || '',
         alias: '',
         type: '',
         make: '',
@@ -50,20 +50,8 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     const [isSuccess, setIsSuccess] = useState(false);
     const [errors, setErrors] = useState({});
     const [createKit, setCreateKit] = useState(false);
-
+    
     const validationRules = {
-        assetId: [
-            (value) =>
-                validateRequired(value, 'assetId', {
-                    customMessage: 'Please enter an asset ID.',
-                }),
-        ],
-        // alias: [
-        // (value) =>
-        //     validateRequired(value, 'alias', {
-        //     customMessage: 'Please enter an alias.',
-        //     }),
-        // ],
         make: [
         (value) =>
             validateMatches(value, /^[a-zA-Z0-9\s.,'"\-()!?;:@#&%]*$/, null, {
@@ -150,7 +138,7 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     }
 
     const handleSubmit = async () => {
-        const isValid = validate(['assetId', 'make', 'model', 'kit']);
+        const isValid = validate(['make', 'model', 'kit']);
         if (!isValid) return;
 
         // Set processing state
@@ -175,6 +163,41 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                 const errorData = await response.json();
                 setErrors(errorData.errors); // Set validation errors
                 throw new Error('Validation failed');
+            }
+
+            if( response.status === 400) {
+                const errorData = await response.json();
+                if (errorData.message === 'This asset already exists.') {
+                    // Instead of throwing an error state, toast the error message
+                    toast.error(
+                        <span>
+                            {errorData.message}
+                            {errorData.asset && (
+                                <>
+                                    {' '}
+                                    <button
+                                        className="underline text-theme-600 ml-2"
+                                        onClick={() => changeAsset(errorData.asset)}
+                                    >
+                                        View
+                                    </button>
+                                </>
+                            )}
+                        </span>,
+                        {
+                            position: 'top-center',
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: false,
+                            draggable: true,
+                            progress: undefined,
+                            theme: 'light',
+                        }
+                    );
+                    setIsProcessing(false);
+                    return;
+                }
             }
 
             throw new Error('Failed to create asset');
@@ -223,7 +246,7 @@ export default function Create({ assetId, onCancel, initialData = null }) {
     const handleCancel = () => {
         // Reset form data
         setFormData({
-            assetId: assetId || '', 
+            afsId: afsId || '',
             alias: '',
             type: '',
             make: '',
@@ -251,20 +274,21 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                     <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 w-full">
                         <div className="sm:col-span-3">
                             <TextInput
-                                id="assetId"
+                                id="afsId"
                                 label="Asset ID"
                                 placeholder="Please enter an ID"
-                                annotation="(Required)"
-                                onTextChange={(value) => handleInputChange('assetId', value[0].value)}
-                                currentState={formData.assetId}
-                                disabled={assetId ? true : false}
-                                error={errors.assetId}
+                                annotation="(Optional)"
+                                onTextChange={(value) => handleInputChange('afsId', value[0].value)}
+                                currentState={formData.afsId}
+                                disabled={afsId ? true : false}
+                                error={errors.afsId}
                             />
                         </div>
                         <div className="sm:col-span-3 sm:row-start-2">
                             <TextInput
                                 id="alias"
                                 label="Alias"
+                                annotation="(Optional)"
                                 placeholder="Please enter an alias"
                                 currentState={formData.alias}
                                 onTextChange={(value) => handleInputChange('alias', value[0].value)}
@@ -275,11 +299,12 @@ export default function Create({ assetId, onCancel, initialData = null }) {
                             <SelectInput
                                 id="type"
                                 label="Type"
-                                annotation="(Optional)"
+                                annotation="(Required)"
                                 currentState={formData.type}
                                 items={types}
                                 onSelectChange={(value) => handleInputChange('type', value[0].value)}
                                 placeholder="Select a type of asset"
+                                error={errors.type}
                             />
                         </div>
                         <div className="sm:col-span-3 sm:row-start-3">

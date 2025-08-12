@@ -618,6 +618,10 @@ class PayrollController extends Controller
         $dailyRate = 0;
         $pay = 0;
 
+        if ($dow <= 0) {
+            return 0; // No days of the week worked, no holiday pay
+        }
+
         switch ($lastQty) {
             case $lastQty >= 3:
                 $averageMonthlyPay = $grossPay / $lastQty;

@@ -35,9 +35,18 @@ class AssetController extends Controller
     }
 
     public function loadAsset(Request $request){
-        $asset = DB::table('assets.assets')
-        ->where('afs_id', $request->afs_id)
-        ->first();
+
+        if ($request->has('afs_id') && $request->afs_id) {
+            $asset = DB::table('assets.assets')
+            ->where('afs_id', $request->afs_id)
+            ->first();
+        }
+
+        if ($request->has('asset_id') && $request->asset_id) {
+            $asset = DB::table('assets.assets')
+            ->where('id', $request->asset_id)
+            ->first();
+        }
 
         if( !$asset) {
             return response()->json(['message' => 'Asset not found.'], 404);
@@ -82,7 +91,7 @@ class AssetController extends Controller
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
             ->where('kit_items.kit_id', $kitHistory->first()->kit_id)
-            ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id')
+            ->select('kits.id', 'kits.alias', 'assets.alias as asset_alias', 'assets.type', 'assets.afs_id', 'assets.id as asset_id')
             ->orderByRaw('
                 CASE 
                     WHEN assets.afs_id > 0 THEN 0 
@@ -380,21 +389,40 @@ class AssetController extends Controller
     public function createAsset(Request $request){
         // Define validation rules
         $rules = [
-            'assetId' => 'required|numeric',
+            'afsId' => 'nullable|numeric',
+            'alias' => 'nullable|string|max:255',
+            'model' => 'nullable|string|max:255',
+            'make' => 'nullable|string|max:255',
+            'type' => 'required|string',
         ];
 
         // Define custom validation messages
         $messages = [
-            'assetId.required' => 'Please enter an asset ID.',
-            'assetId.numeric' => 'The asset ID must be a valid number.'
+            'afsId.numeric' => 'The asset ID must be a valid number.',
+            'alias.string' => 'The alias must be a valid string.',
+            'alias.max' => 'The alias must not exceed 255 characters.',
+            'model.string' => 'The model must be a valid string.',
+            'model.max' => 'The model must not exceed 255 characters.',
+            'make.string' => 'The make must be a valid string.',
+            'make.max' => 'The make must not exceed 255 characters.',
+            'type.required' => 'Please select a valid asset type.',
+            'type.string' => 'The asset type must be a valid string.',
         ];
 
         try {
-            $request->validate($rules, $messages);
+            // $request->validate($rules, $messages);
+
+            // Check if an asset with the same AFS ID already exists and if provided, if the alias is already in use#
+            if($request->has('afsId') && $request->afsId){
+                $asset = Asset::where('afs_id', $request->afsId)->first();
+                if($asset) {
+                    return response()->json(['message' => 'This asset already exists.', 'asset' => $asset->id], 400);
+                }
+            }
 
             $asset = Asset::create([
                 'status' => 'Active',
-                'afs_id' => $request->assetId,
+                'afs_id' => $request->afs_id,
                 'alias' => $request->alias,
                 'type' => $request->type,
                 'make' => $request->make,
@@ -513,7 +541,7 @@ class AssetController extends Controller
             $request->validate($rules, $messages);
 
             $asset = DB::table('assets.assets')
-            ->where('afs_id', $request->assetId)
+            ->where('id', $request->assetId)
             ->first();
 
             PAT::create([
@@ -603,7 +631,7 @@ class AssetController extends Controller
                 'returned_by_user_id' => $user->user_id ?? null,
             ]);
 
-            if($request->retire = true){
+            if($request->retire == true){
                 foreach ($request->faulty ?? [] as $item) {
                     DB::table('assets.kit_log')->insert([
                         'kit_id' => $request->kit_id,

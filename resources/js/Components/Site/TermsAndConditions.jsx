@@ -6,8 +6,8 @@ import './Styles.css'; // Assuming you have a CSS file for styles
 export default function TermsAndConditions({ onComplete, location, setStep }) {
   const [isProcessing, setIsProcessing] = useState(false); // Flag to prevent multiple submissions
   const [animationClass, setAnimationClass] = useState('fade-in'); // Tracks the animation class for transitions
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalDoc, setModalDoc] = useState({ title: '', url: '' });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogDoc, setDialogDoc] = useState({ title: '', url: '' });
 
   const docs = [
     {
@@ -24,9 +24,9 @@ export default function TermsAndConditions({ onComplete, location, setStep }) {
     },
   ];
 
-  const openModal = (doc) => {
-    setModalDoc(doc);
-    setModalOpen(true);
+  const openDialog = (doc) => {
+    setDialogDoc(doc);
+    setDialogOpen(true);
   };
 
   const handleComplete = () => {
@@ -146,7 +146,7 @@ export default function TermsAndConditions({ onComplete, location, setStep }) {
                 <button
                   key={idx}
                   className="bg-theme-500 hover:bg-theme-600 text-white rounded-xl px-6 py-3 text-lg font-semibold shadow transition"
-                  onClick={() => openModal(doc)}
+                  onClick={() => openDialog(doc)}
                   type="button"
                 >
                   {doc.title}
@@ -177,18 +177,18 @@ export default function TermsAndConditions({ onComplete, location, setStep }) {
         </div>
       </div>
 
-      <DocumentDialog isOpen={modalOpen} setIsOpen={setModalOpen}>
+      <DocumentDialog isOpen={dialogOpen} onClose={setDialogOpen(false)}>
         <div className="flex flex-col items-center justify-center">
           <div className="absolute top-4 right-4">
             <XMarkIcon
               className="h-7 w-7 stroke-2 text-gray-800 dark:text-dark-300 cursor-pointer"
-              onClick={() => setModalOpen(false)}
+              onClick={() => setDialogOpen(false)}
             />
           </div>
-          <h3 className="text-2xl font-semibold mb-6">{modalDoc.title}</h3>
+          <h3 className="text-2xl font-semibold mb-6">{dialogDoc.title}</h3>
           <iframe
-            src={modalDoc.url}
-            title={modalDoc.title}
+            src={dialogDoc.url}
+            title={dialogDoc.title}
             className="w-full h-[70vh] rounded border"
           />
         </div>

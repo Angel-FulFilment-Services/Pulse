@@ -5,7 +5,7 @@ import 'ldrs/react/Hourglass.css'
 
 export default function ProgressDialog({
   isOpen,
-  setIsOpen,
+  onClose,
   title = "Exporting Payroll",
   description = "Please wait while we build your CSV export.",
   progress = 0,
@@ -44,7 +44,7 @@ export default function ProgressDialog({
         as="div" 
         className="relative z-50" 
         initialFocus={cancelButtonRef} 
-        onClose={onCancel ? () => { onCancel(); setIsOpen(false); } : () => {}}
+        onClose={onCancel ? () => { onCancel(); onClose(); } : () => {}}
       >
         <Transition.Child
           as={Fragment}
@@ -104,7 +104,7 @@ export default function ProgressDialog({
                       className="inline-flex justify-center rounded-md bg-white dark:bg-dark-900 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:ring-dark-600 dark:hover:bg-dark-800 border-none border-transparent"
                       onClick={() => {
                         if (onCancel) onCancel();
-                        setIsOpen(false);
+                        onClose();
                       }}
                       ref={cancelButtonRef}
                     >
