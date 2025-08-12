@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import VisualGuide from './VisualGuide';
 import VisualGuideBuilder from './VisualGuideBuilder';
 import { SmartImage } from '../../Utils/imageUtils.jsx';
+import { hasPermission } from '../../Utils/Permissions';
 
 export default function Article({ article, questions = [], resolutions = [] }) {
   const [showVisualGuide, setShowVisualGuide] = useState(false);
@@ -231,24 +232,26 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                         >
                           {isReloading ? 'Loading...' : 'Launch Visual Guide'}
                         </button>
-                        <button 
-                          onClick={isReloading ? undefined : () => setShowBuilder(true)}
-                          disabled={isReloading}
-                          className={`w-8 h-8 px-1 rounded-lg ${
-                            isReloading ? 'cursor-not-allowed' : ''
-                          }`}
-                          title="Edit Visual Guide"
-                        >
-                          <svg className={`w-6 h-6 transition-all ease-in-out ${
-                            isReloading 
-                              ? 'text-gray-400 dark:text-dark-500 opacity-50' 
-                              : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
-                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
+                        { hasPermission('pulse_edit_articles') ? (
+                          <button 
+                            onClick={isReloading ? undefined : () => setShowBuilder(true)}
+                            disabled={isReloading}
+                            className={`w-8 h-8 px-1 rounded-lg ${
+                              isReloading ? 'cursor-not-allowed' : ''
+                            }`}
+                            title="Edit Visual Guide"
+                          >
+                            <svg className={`w-6 h-6 transition-all ease-in-out ${
+                              isReloading 
+                                ? 'text-gray-400 dark:text-dark-500 opacity-50' 
+                                : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        ) : null}
                       </>
-                    ) : (
+                    ) : hasPermission('pulse_edit_articles') ? (
                       <button 
                         onClick={isReloading ? undefined : () => setShowBuilder(true)}
                         disabled={isReloading}
@@ -260,7 +263,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                       >
                         {isReloading ? 'Loading...' : 'Create Visual Guide'}
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               )}

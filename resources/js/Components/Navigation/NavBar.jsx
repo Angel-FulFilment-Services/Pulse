@@ -41,7 +41,7 @@ export default function NavBar({ page }) {
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
-    { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: 'pulse_view_knowledge_base' },
+    { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
 ], [currentPath]);
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function NavBar({ page }) {
                           <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Navigation</div>
                           <ul role="list" className="-mx-2 mt-2 space-y-1">
                             {navigation.map((item, i) => (
-                                hasPermission(item.right) && <NavItem item={item} key={i}></NavItem>
+                                (hasPermission(item.right) || !item.right) && <NavItem item={item} key={i}></NavItem>
                             ))}
                           </ul>
                         </li>
@@ -162,7 +162,7 @@ export default function NavBar({ page }) {
                   <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Navigation</div>
                   <ul role="list" className="-mx-2 mt-2 space-y-1">
                     {navigation.map((item, i) => (
-                      hasPermission(item.right) && <NavItem item={item} key={i}></NavItem>
+                      (hasPermission(item.right) || !item.right) && <NavItem item={item} key={i}></NavItem>
                     ))}
                   </ul>
                 </li>
