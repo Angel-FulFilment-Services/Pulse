@@ -74,8 +74,8 @@ export function getStatus(shift, timesheets, events) {
 
       // Filter timesheets to include only those entries that fall within an hour before the shift start and an hour after the shift end
       return (
-        (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
-        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
       );
     })
     .sort((a, b) => new Date(a.on_time) - new Date(b.on_time))[0];
@@ -296,8 +296,8 @@ const calculateReductionMinutes = (events = [], shiftStartDate, shiftEndDate) =>
   
       // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
       return (
-        (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
-        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
       );
     })
     .reduce((total, event) => {
@@ -371,8 +371,8 @@ export function calculateTimeBlocks (shift, timesheets, events) {
 
       // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
       return (
-        (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
-        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
       );
     })
     .map((record) => {
@@ -428,13 +428,13 @@ export function calculateTimeBlocks (shift, timesheets, events) {
 
         // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
         return (
-          (onTime >= new Date(shiftStartDate.getTime() - 30 * 60 * 1000) && onTime <= shiftEndDate) ||
-          (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 30 * 60 * 1000))
+          (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+          (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
         );
     })
     .map((record) => new Date(record.on_time))
     .sort((a, b) => a - b)[0];
-    
+
   if (earliestOnTime && earliestOnTime > shiftStartDate) {
     const lateMinutes = differenceInMinutes(earliestOnTime, shiftStartDate);
     const latePercentage = (lateMinutes / totalShiftMinutes) * 100;

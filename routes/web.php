@@ -18,6 +18,7 @@ use App\Http\Controllers\App\ReportingController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
+use App\Http\Controllers\App\KnowledgeBaseController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -49,7 +50,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 // Activation
 Route::get('/activate/token={token}', [ActivationController::class, 'index'])->name('activate')->middleware('signed');
-Route::post('/activate/token={token}', [ActivationController::class, 'activate'])->name('activate');
+Route::post('/activate/token={token}', [ActivationController::class, 'activate']);
 // // Forgot Password
 Route::get('/forgot', [ForgotController::class, 'index'])->name('forgot');
 Route::post('/forgot', [ForgotController::class, 'password_reset'])->name('password_reset');
@@ -117,6 +118,20 @@ Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setT
 
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting', 'log.access');
 
+
+/*
+|-----------------------
+| Knowledge Base
+|-----------------------
+*/
+Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
+Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
+Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');
+Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
+Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
+Route::post('/knowledge-base/upload-image', [KnowledgeBaseController::class, 'uploadImage'])->name('knowledge_base.upload_image');
+
+
 /*
 |-----------------------
 | Payroll
@@ -166,6 +181,7 @@ Route::get('/users', [UserController::class, 'users'])->name('users');
 |-----------------------
 */
 
+Route::get('/asset-management', [AssetController::class, 'index'])->name('asset_management');
 Route::get('/asset-management/support/events', [AssetController::class, 'events']);
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);

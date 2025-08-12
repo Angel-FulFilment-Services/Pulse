@@ -55,7 +55,7 @@ export default function TextInput(props) {
               {Icon && !error && <Icon className={`absolute right-2 top-1/2 transform w-5 h-5 text-gray-400 dark:text-dark-500 -translate-y-1/2 pointer-events-none`} />}
               {error && <ExclamationCircleIcon className={`absolute right-2 top-1/2 transform w-5 h-5 text-red-600 dark:text-red-700 -translate-y-1/2 pointer-events-none`} />}
           </div>
-          {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message}</div>}
+          {error && <div className="text-red-600 dark:text-red-700 text-sm pt-2">{error.message || error}</div>}
       </div>
     </div>
   )

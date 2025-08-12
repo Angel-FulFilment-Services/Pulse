@@ -147,7 +147,7 @@ const Payroll = ({ tabs, handleTabClick, activeTab }) => {
             </div>
             <ProgressDialog
                 isOpen={isDialogOpen}
-                setIsOpen={setIsDialogOpen}
+                onClose={() => setIsDialogOpen(false)}
                 progress={progress}
                 flavourTexts={[
                     "Cleaning Dirty Sage File . . .",

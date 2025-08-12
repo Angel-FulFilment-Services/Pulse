@@ -6,7 +6,6 @@ import { CheckIcon } from '@heroicons/react/20/solid';
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import { validateRequired, validateMatches } from '../../../Utils/Validation';
-import useFetchKits from '../../Fetches/Assets/useFetchKits';
 import ToggleInput from '../../Forms/ToggleInput';
 import { ComputerDesktopIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ButtonControl from '../../Controls/ButtonControl';
@@ -52,11 +51,10 @@ const visualCheckes = [
     { id: 5, value: 'Continued Use', item: 'continuedUse' },
 ];
 
-export default function Pat({ assetId, onCancel, initialData = null, refreshAsset  }) {    
-    const { kits } = useFetchKits();
-
+export default function Pat({ assetId, afsId, onCancel, initialData = null, refreshAsset  }) {    
     const [formData, setFormData] = useState({
         assetId: assetId || '',
+        afsId: afsId || '',
         socket: false,
         plug: false,
         switch: false,
@@ -320,7 +318,7 @@ export default function Pat({ assetId, onCancel, initialData = null, refreshAsse
                                 id="alias"
                                 label="Asset ID"
                                 placeholder="Please enter an ID"
-                                currentState={formData.assetId}
+                                currentState={formData.afsId}
                                 disabled={true}
                             />
                         </div>

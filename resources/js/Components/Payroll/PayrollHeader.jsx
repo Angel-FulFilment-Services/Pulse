@@ -187,7 +187,7 @@ export default function PayrollHeader({
       </header>
       <ProgressDialog
         isOpen={isDialogOpen}
-        setIsOpen={setIsDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
         progress={progress}
         flavourTexts={[
           "Returning Kits . . .",

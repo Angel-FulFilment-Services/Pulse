@@ -70,11 +70,13 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
     }, [setStep, stopCamera, onComplete]);
 
   const findUser = async (query) => {
+    setIsProcessing(true); // Set processing state to true to prevent multiple submissions
     try {
       const response = await axios.get(`/onsite/find-user`, {
         params: { guid: query },
       });
       const user = response.data;
+      setIsProcessing(false); // Reset processing state
       return user;
     } catch (err) {
       console.error('Error fetching employees:', err);
@@ -90,6 +92,7 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
             progress: undefined,
             theme: 'light',
         }); // 3 seconds
+      setIsProcessing(false); // Reset processing state
       return null;
     }
   };

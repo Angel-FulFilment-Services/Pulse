@@ -19,11 +19,11 @@ export default function Find({ handleClose }) {
   const goTo = (page) => setPages(prev => [...prev, page]);
 
   const goBack = () => {
-    const currentPage = pages[pages.length - 1];
-    if (currentPage.type === 'asset') {
-        asset(currentPage.assetId, true);
-    } else if (currentPage.type === 'kit') {
-        kit(currentPage.kitId, true);
+    const newPage = pages[pages.length - 2];
+    if (newPage.type === 'asset') {
+        asset(newPage.assetId, true);
+    } else if (newPage.type === 'kit') {
+        kit(newPage.kitId, true);
     }
     setPages(prev => prev.length > 1 ? prev.slice(0, -1) : prev)
  };
@@ -53,26 +53,26 @@ export default function Find({ handleClose }) {
   // Get the current page
   const currentPage = pages[pages.length - 1];
 
-  const asset = async (id = null, refresh = false) => {
+  const asset = async (id = null, refresh = false, afsId = null) => {
     if(!refresh)
         setIsProcessing(true);
 
     let assetId = id;
 
-    if (!assetId) {
+    if (!assetId && !afsId) {
         const currentAssetPage = pages.find(p => p.type === 'asset');
         assetId = currentAssetPage?.assetId;
     }
 
     try {
       const response = await axios.get('/asset-management/assets/load', {
-        params: { afs_id: assetId },
+        params: { afs_id: afsId, asset_id: assetId },
       });
 
       if(refresh){
         updatePageAsset(assetId, response.data);
       } else {
-        goTo({ type: 'asset', asset: response.data, assetId });
+        goTo({ type: 'asset', asset: response.data, assetId: assetId || response.data.asset.id });
         setIsProcessing(false);
       }
     } catch (error) {
@@ -174,7 +174,6 @@ export default function Find({ handleClose }) {
         return (
           <Asset
             data={page.asset}
-            assetId={page.assetId}
             changeAsset={(newId) => {
                 asset(newId);
             }}
@@ -214,7 +213,7 @@ export default function Find({ handleClose }) {
               </button>
               <button
                 className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
-                onClick={() => goTo({ type: 'create', assetId: page.assetId })}
+                onClick={() => goTo({ type: 'create', afsId: page.afs_id })}
               >
                 Create Asset
               </button>
@@ -244,7 +243,10 @@ export default function Find({ handleClose }) {
         return (
           <Create
             onCancel={goBack}
-            assetId={page.assetId}
+            changeAsset={(newId) => {
+                asset(newId);
+            }}
+            afsId={page.afsId}
           />
         );
       case 'pat':
@@ -252,6 +254,7 @@ export default function Find({ handleClose }) {
             <Pat
                 onCancel={goBack}
                 assetId={page.assetId}
+                afsId={page.afsId}
                 refreshAsset={() => {
                     asset(page.assetId, true);
                 }}

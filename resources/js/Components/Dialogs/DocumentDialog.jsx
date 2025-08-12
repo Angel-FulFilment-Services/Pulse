@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 
 export default function DocumentDialog({
   isOpen,
-  setIsOpen,
+  onClose,
   title = "Viewing Document",
   description = "",
   children,
@@ -13,7 +13,7 @@ export default function DocumentDialog({
       <Dialog
         as="div"
         className="relative z-50"
-        onClose={() => setIsOpen(false)}
+        onClose={onClose}
       >
         <Transition.Child
           as={Fragment}
