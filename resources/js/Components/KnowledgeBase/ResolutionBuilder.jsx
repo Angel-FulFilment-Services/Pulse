@@ -11,8 +11,11 @@ export default function ResolutionBuilder({
   isEditing,
   isParentInitialized = false,
   allQuestions = [], // Add access to all questions for next question selection
+  allResolutions = [], // Add access to all resolutions for next resolution selection
   onNavigateToQuestion = null, // Add callback for navigating to next question
+  onNavigateToResolution = null, // Add callback for navigating to next resolution
   onAddQuestion = null, // Add callback for adding new questions
+  onAddResolution = null, // Add callback for adding new resolutions
   isSaving = false
 }) {
   const [editingTitle, setEditingTitle] = useState(resolution.title);
@@ -23,6 +26,28 @@ export default function ResolutionBuilder({
       : null
   );
   const [editingNextQuestionId, setEditingNextQuestionId] = useState(resolution.next_question_id || null);
+  const [editingNextResolutionId, setEditingNextResolutionId] = useState(resolution.next_resolution_id || null);
+  const [editingNextArticleId, setEditingNextArticleId] = useState(resolution.next_article_id || null);
+  const [availableArticles, setAvailableArticles] = useState([]);
+  const isInitialMount = useRef(true);
+
+  // Fetch available articles for selection
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch('/knowledge-base/articles');
+        const data = await response.json();
+        setAvailableArticles(data.articles || []);
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+        setAvailableArticles([]);
+      }
+    };
+    
+    if (isEditing) {
+      fetchArticles();
+    }
+  }, [isEditing]);
 
   const handleNextQuestionChange = (value) => {
     if (value === 'ADD_NEW_QUESTION') {
@@ -33,9 +58,34 @@ export default function ResolutionBuilder({
     } else {
       const processedValue = value === '' ? null : value;
       setEditingNextQuestionId(processedValue);
+      // Clear resolution selection when question is selected
+      if (processedValue) {
+        setEditingNextResolutionId(null);
+      }
     }
   };
-  const isInitialMount = useRef(true);
+
+  const handleNextResolutionChange = (value) => {
+    if (value === 'ADD_NEW_RESOLUTION') {
+      // Add a new resolution and link it
+      if (onAddResolution) {
+        onAddResolution(); // This will create a new resolution
+      }
+    } else {
+      const processedValue = value === '' ? null : value;
+      setEditingNextResolutionId(processedValue);
+      // Clear question selection when resolution is selected
+      if (processedValue) {
+        setEditingNextQuestionId(null);
+      }
+    }
+  };
+
+  const handleNextArticleChange = (value) => {
+    const processedValue = value === '' ? null : value;
+    setEditingNextArticleId(processedValue);
+    // Article selection is independent of feedback navigation
+  };
 
   // Reset state when resolution changes
   useEffect(() => {
@@ -47,6 +97,8 @@ export default function ResolutionBuilder({
         : null
     );
     setEditingNextQuestionId(resolution.next_question_id || null);
+    setEditingNextResolutionId(resolution.next_resolution_id || null);
+    setEditingNextArticleId(resolution.next_article_id || null);
     // Reset the initial mount flag when resolution changes
     isInitialMount.current = true;
   }, [resolution.id]);
@@ -76,10 +128,16 @@ export default function ResolutionBuilder({
       image: editingImage,
       next_question_id: editingNextQuestionId && editingNextQuestionId !== '' && editingNextQuestionId !== 'null' 
         ? (editingNextQuestionId.toString().startsWith('temp_') ? editingNextQuestionId : Number(editingNextQuestionId))
+        : null,
+      next_resolution_id: editingNextResolutionId && editingNextResolutionId !== '' && editingNextResolutionId !== 'null' 
+        ? (editingNextResolutionId.toString().startsWith('temp_') ? editingNextResolutionId : Number(editingNextResolutionId))
+        : null,
+      next_article_id: editingNextArticleId && editingNextArticleId !== '' && editingNextArticleId !== 'null' 
+        ? Number(editingNextArticleId)
         : null
     };
     onResolutionUpdate(updatedResolution);
-  }, [editingTitle, editingBody, editingImage, editingNextQuestionId, isParentInitialized, isEditing]);
+  }, [editingTitle, editingBody, editingImage, editingNextQuestionId, editingNextResolutionId, editingNextArticleId, isParentInitialized, isEditing]);
 
   return (
     <div className="space-y-6">
@@ -221,40 +279,131 @@ export default function ResolutionBuilder({
         )}
       </div>
 
-      {/* Next Question Selection (Editing Mode) */}
+      {/* Next Question/Resolution Selection (Editing Mode) */}
       {isEditing && (
         <div className="max-w-3xl mx-auto mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
-            If User Clicks "No" - Go to Question
+          <label className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-4">
+            Navigation Options
           </label>
-          <select
-            value={editingNextQuestionId || ''}
-            onChange={isSaving ? undefined : (e) => handleNextQuestionChange(e.target.value)}
-            disabled={isSaving}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-              isSaving 
-                ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
-                : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:ring-theme-500 dark:focus:ring-theme-600'
-            }`}
-          >
-            <option value="">Do not show</option>
-            {allQuestions.map((question, index) => (
-              <option key={question.id} value={question.id}>
-                Q{index + 1}: {(question.question || 'Untitled Question').substring(0, 50)}{(question.question || '').length > 50 ? '...' : ''}
-              </option>
-            ))}
-            <option value="ADD_NEW_QUESTION" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-              + Add New Question
-            </option>
-          </select>
-          <div className="mt-1 text-sm text-gray-500 dark:text-dark-400">
-            Select which question users should go to if they click "No" to the feedback question.
+          
+          {/* Feedback Navigation */}
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-gray-600 dark:text-dark-400 mb-2">
+              If User Clicks "No" to Feedback Question - Go to:
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Question Selection */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-dark-400 mb-1">
+                  Question
+                </label>
+                <select
+                  value={editingNextQuestionId || ''}
+                  onChange={isSaving ? undefined : (e) => handleNextQuestionChange(e.target.value)}
+                  disabled={isSaving}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all text-sm ${
+                    isSaving 
+                      ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                      : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:ring-theme-500 dark:focus:ring-theme-600'
+                  }`}
+                >
+                  <option value="">None</option>
+                  {allQuestions.map((question, index) => (
+                    <option key={question.id} value={question.id}>
+                      Q{index + 1}: {(question.question || 'Untitled Question').substring(0, 30)}{(question.question || '').length > 30 ? '...' : ''}
+                    </option>
+                  ))}
+                  <option value="ADD_NEW_QUESTION" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                    + Add New Question
+                  </option>
+                </select>
+              </div>
+
+              {/* Resolution Selection */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-dark-400 mb-1">
+                  Resolution
+                </label>
+                <select
+                  value={editingNextResolutionId || ''}
+                  onChange={isSaving ? undefined : (e) => handleNextResolutionChange(e.target.value)}
+                  disabled={isSaving}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all text-sm ${
+                    isSaving 
+                      ? 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                      : 'border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:ring-theme-500 dark:focus:ring-theme-600'
+                  }`}
+                >
+                  <option value="">None</option>
+                  {allResolutions.filter(r => r.id !== resolution.id).map((res, index) => (
+                    <option key={res.id} value={res.id}>
+                      R{index + 1}: {(res.title || 'Untitled Resolution').substring(0, 30)}{(res.title || '').length > 30 ? '...' : ''}
+                    </option>
+                  ))}
+                  <option value="ADD_NEW_RESOLUTION" className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
+                    + Add New Resolution
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500 dark:text-dark-400">
+              Select which question or resolution users should go to if they click "No" to the feedback question. Only one can be selected.
+            </div>
+          </div>
+
+          {/* Related Article Link */}
+          <div className="bg-theme-50 dark:bg-theme-900/20 border border-theme-200 dark:border-theme-800 rounded-lg p-4">
+            <label className="block text-xs font-medium text-theme-800 dark:text-theme-200 mb-2">
+              Related Article (Separate Button)
+            </label>
+            <div>
+              <select
+                value={editingNextArticleId || ''}
+                onChange={isSaving ? undefined : (e) => handleNextArticleChange(e.target.value)}
+                disabled={isSaving}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all text-sm ${
+                  isSaving 
+                    ? 'border-theme-300 dark:border-theme-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 opacity-50 cursor-not-allowed' 
+                    : 'border-theme-300 dark:border-theme-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-100 focus:ring-theme-500 dark:focus:ring-theme-600'
+                }`}
+              >
+                <option value="">None</option>
+                {availableArticles.map((article) => (
+                  <option key={article.id} value={article.id}>
+                    {(article.title || 'Untitled Article').substring(0, 50)}{(article.title || '').length > 50 ? '...' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-2 text-sm text-theme-700 dark:text-theme-300">
+              Select an article to show as a "View Detailed Guide" button. This appears separately from the feedback question.
+            </div>
           </div>
         </div>
       )}
 
-      {/* Feedback Question (Preview Mode Only) - Only show if next_question_id is specified */}
-      {!isEditing && resolution.next_question_id && (
+      {/* Article Link Section (Preview Mode Only) - Show if next_article_id is specified */}
+      {!isEditing && resolution.next_article_id && (
+        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-center">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+              Related Article
+            </h4>
+            <button
+              onClick={() => window.location.href = `/knowledge-base/article/${resolution.next_article_id}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Detailed Guide
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Question (Preview Mode Only) - Only show if next_question_id or next_resolution_id is specified */}
+      {!isEditing && (resolution.next_question_id || resolution.next_resolution_id) && (
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -271,6 +420,8 @@ export default function ResolutionBuilder({
                 onClick={() => {
                   if (resolution.next_question_id && onNavigateToQuestion) {
                     onNavigateToQuestion(resolution.next_question_id);
+                  } else if (resolution.next_resolution_id && onNavigateToResolution) {
+                    onNavigateToResolution(resolution.next_resolution_id);
                   } else {
                     onClose();
                   }

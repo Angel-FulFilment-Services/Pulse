@@ -272,9 +272,17 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                     h3: ({node, ...props}) => <h3 className="text-2xl font-semibold text-gray-900 dark:text-dark-100 mb-3 mt-5" {...props} />,
                     h4: ({node, ...props}) => <h4 className="text-xl font-semibold text-gray-900 dark:text-dark-100 mb-3 mt-4" {...props} />,
                     p: ({node, ...props}) => <p className="text-gray-700 dark:text-dark-200 mb-4 leading-7" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-4 space-y-2 text-gray-700 dark:text-dark-200" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 space-y-2 text-gray-700 dark:text-dark-200" {...props} />,
-                    li: ({node, ...props}) => <li className="leading-7" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc mb-4 space-y-2 text-gray-700 dark:text-dark-200 ml-6" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal mb-4 space-y-2 text-gray-700 dark:text-dark-200 ml-6" {...props} />,
+                    li: ({node, ...props}) => {
+                      // Check if this li contains nested lists
+                      const hasNestedList = node.children && node.children.some(child => 
+                        child.type === 'element' && (child.tagName === 'ul' || child.tagName === 'ol')
+                      );
+                      return (
+                        <li className={`leading-7 ${hasNestedList ? 'mb-2' : ''}`} {...props} />
+                      );
+                    },
                     blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-theme-500 pl-4 italic text-gray-600 dark:text-dark-300 my-4" {...props} />,
                     code: ({node, inline, ...props}) => 
                       inline ? 

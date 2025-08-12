@@ -151,6 +151,15 @@ class KnowledgeBaseController extends Controller
                 // Remove image_url field as it's not a database column
                 unset($resolutionData['image_url']);
                 
+                // Handle image objects from frontend - convert to filename string
+                if (isset($resolutionData['image']) && is_array($resolutionData['image'])) {
+                    if (isset($resolutionData['image']['filename'])) {
+                        $resolutionData['image'] = $resolutionData['image']['filename'];
+                    } else {
+                        $resolutionData['image'] = null;
+                    }
+                }
+                
                 // Validate next_question_id references - handle temp IDs and validate existing IDs
                 if (isset($resolutionData['next_question_id'])) {
                     if (strpos($resolutionData['next_question_id'], 'temp_') === 0) {
@@ -183,6 +192,55 @@ class KnowledgeBaseController extends Controller
                         }
                     }
                 }
+
+                // Validate next_resolution_id references - handle temp IDs and validate existing IDs
+                if (isset($resolutionData['next_resolution_id'])) {
+                    if (strpos($resolutionData['next_resolution_id'], 'temp_') === 0) {
+                        // Set to null for now, will be updated in later pass
+                        $resolutionData['next_resolution_id'] = null;
+                    } else {
+                        // Validate that non-temp resolution exists
+                        $resolutionExists = false;
+                        
+                        // Check if it's in the current resolutions being saved
+                        foreach ($resolutions as $resolution) {
+                            if ($resolution['id'] == $resolutionData['next_resolution_id'] && $resolution['id'] != $resolutionData['id']) {
+                                $resolutionExists = true;
+                                break;
+                            }
+                        }
+                        
+                        // If not found in current resolutions, check if it exists in database
+                        if (!$resolutionExists) {
+                            $resolutionExists = DB::connection('pulse')
+                                ->table('knowledge_base_resolutions')
+                                ->where('id', $resolutionData['next_resolution_id'])
+                                ->where('id', '!=', $resolutionData['id']) // Prevent self-reference
+                                ->exists();
+                        }
+                        
+                        // If resolution doesn't exist, remove the reference
+                        if (!$resolutionExists) {
+                            $resolutionData['next_resolution_id'] = null;
+                            $originalResolutionData['next_resolution_id'] = null; // Update original too
+                        }
+                    }
+                }
+
+                // Validate next_article_id references
+                if (isset($resolutionData['next_article_id'])) {
+                    // Validate that article exists
+                    $articleExists = DB::connection('pulse')
+                        ->table('knowledge_base_articles')
+                        ->where('id', $resolutionData['next_article_id'])
+                        ->exists();
+                    
+                    // If article doesn't exist, remove the reference
+                    if (!$articleExists) {
+                        $resolutionData['next_article_id'] = null;
+                        $originalResolutionData['next_article_id'] = null; // Update original too
+                    }
+                }
                 
                 if (isset($resolutionData['id']) && strpos($resolutionData['id'], 'temp_') === 0) {
                     // New resolution
@@ -211,6 +269,15 @@ class KnowledgeBaseController extends Controller
                 
                 // Remove image_url field as it's not a database column
                 unset($questionData['image_url']);
+                
+                // Handle image objects from frontend - convert to filename string
+                if (isset($questionData['image']) && is_array($questionData['image'])) {
+                    if (isset($questionData['image']['filename'])) {
+                        $questionData['image'] = $questionData['image']['filename'];
+                    } else {
+                        $questionData['image'] = null;
+                    }
+                }
                 
                 // Update any temp ID references in answers
                 if (isset($questionData['answers'])) {
@@ -281,11 +348,12 @@ class KnowledgeBaseController extends Controller
                 }
             }
 
-            // Third pass: Update resolutions' next_question_id references
+            // Third pass: Update resolutions' next_question_id and next_resolution_id references
             foreach ($resolutionsToUpdate as $resolutionUpdate) {
                 $originalResolutionData = $resolutionUpdate['original'];
                 $resolutionId = $resolutionUpdate['realId'];
                 
+                // Handle next_question_id references
                 if (isset($originalResolutionData['next_question_id'])) {
                     if (isset($questionIdMap[$originalResolutionData['next_question_id']])) {
                         // Map temp ID to real ID
@@ -314,6 +382,62 @@ class KnowledgeBaseController extends Controller
                                 ->where('id', $resolutionId)
                                 ->update(['next_question_id' => null, 'updated_at' => now()]);
                         }
+                    }
+                }
+
+                // Handle next_resolution_id references
+                if (isset($originalResolutionData['next_resolution_id'])) {
+                    if (isset($resolutionIdMap[$originalResolutionData['next_resolution_id']])) {
+                        // Map temp ID to real ID
+                        $nextResolutionId = $resolutionIdMap[$originalResolutionData['next_resolution_id']];
+                        DB::connection('pulse')
+                            ->table('knowledge_base_resolutions')
+                            ->where('id', $resolutionId)
+                            ->update(['next_resolution_id' => $nextResolutionId, 'updated_at' => now()]);
+                    } else {
+                        // Check if it's already a real ID that exists in the resolutions table
+                        $existingResolution = DB::connection('pulse')
+                            ->table('knowledge_base_resolutions')
+                            ->where('id', $originalResolutionData['next_resolution_id'])
+                            ->where('id', '!=', $resolutionId) // Prevent self-reference
+                            ->exists();
+                        
+                        if ($existingResolution) {
+                            // It's a valid real ID, keep it as is
+                            DB::connection('pulse')
+                                ->table('knowledge_base_resolutions')
+                                ->where('id', $resolutionId)
+                                ->update(['next_resolution_id' => $originalResolutionData['next_resolution_id'], 'updated_at' => now()]);
+                        } else {
+                            // Invalid reference - set to null to avoid constraint violation
+                            DB::connection('pulse')
+                                ->table('knowledge_base_resolutions')
+                                ->where('id', $resolutionId)
+                                ->update(['next_resolution_id' => null, 'updated_at' => now()]);
+                        }
+                    }
+                }
+
+                // Handle next_article_id references
+                if (isset($originalResolutionData['next_article_id'])) {
+                    // Check if it's a valid ID that exists in the articles table
+                    $existingArticle = DB::connection('pulse')
+                        ->table('knowledge_base_articles')
+                        ->where('id', $originalResolutionData['next_article_id'])
+                        ->exists();
+                    
+                    if ($existingArticle) {
+                        // It's a valid article ID, keep it as is
+                        DB::connection('pulse')
+                            ->table('knowledge_base_resolutions')
+                            ->where('id', $resolutionId)
+                            ->update(['next_article_id' => $originalResolutionData['next_article_id'], 'updated_at' => now()]);
+                    } else {
+                        // Invalid reference - set to null to avoid constraint violation
+                        DB::connection('pulse')
+                            ->table('knowledge_base_resolutions')
+                            ->where('id', $resolutionId)
+                            ->update(['next_article_id' => null, 'updated_at' => now()]);
                     }
                 }
             }

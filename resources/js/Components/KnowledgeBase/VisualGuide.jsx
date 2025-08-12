@@ -107,6 +107,28 @@ export default function VisualGuide({ article, questions, onClose }) {
     setCurrentQuestionId(Number(questionId));
   };
 
+  const handleNavigateToResolution = async (resolutionId) => {
+    // When navigating from a resolution to another resolution, track the current resolution in history
+    if (currentResolution) {
+      setHistory(prev => [...prev, { type: 'resolution', resolutionId: currentResolution.id, fromQuestionId: history[history.length - 1] || null }]);
+    } else if (currentQuestionId) {
+      // Navigating from question to resolution
+      setHistory(prev => [...prev, currentQuestionId]);
+    }
+    
+    setLoadingResolution(true);
+    try {
+      const response = await axios.get(`/knowledge-base/resolution/${resolutionId}`);
+      setCurrentResolution(response.data.resolution);
+      setCurrentQuestionId(null);
+    } catch (error) {
+      console.error('Error fetching resolution:', error);
+      // Handle error - maybe show an error message
+    } finally {
+      setLoadingResolution(false);
+    }
+  };
+
   const currentQuestion = questions.find(q => q.id == currentQuestionId);
 
   if (!currentQuestion && !currentResolution && !loadingResolution) {
@@ -196,6 +218,7 @@ export default function VisualGuide({ article, questions, onClose }) {
           onRestart={handleRestart}
           onClose={onClose}
           onNavigateToQuestion={handleNavigateToQuestion}
+          onNavigateToResolution={handleNavigateToResolution}
           disabled={loadingResolution}
         />
       )}

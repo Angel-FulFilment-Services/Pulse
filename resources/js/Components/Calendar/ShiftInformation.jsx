@@ -17,9 +17,8 @@ export default function ShiftInformation({ selectedShift, selectedEvent, setShow
   
   const shiftEndDate = new Date(selectedShift.shift.shiftdate);
   shiftEndDate.setHours(Math.floor(selectedShift.shift.shiftend / 100), selectedShift.shift.shiftend % 100);
-  
-  const bufferStart = new Date(shiftStartDate.getTime() - 30 * 60 * 1000); // 30 min before shift start
-  const bufferEnd = new Date(shiftEndDate.getTime() + 30 * 60 * 1000);     // 30 min after shift end
+  const bufferStart = new Date(shiftStartDate.getTime() - 60 * 60 * 1000); // 60 min before shift start
+  const bufferEnd = new Date(shiftEndDate.getTime() + 60 * 60 * 1000);     // 60 min after shift end
 
   const handleRemoveEvent = async () => {
     try {

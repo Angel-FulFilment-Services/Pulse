@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import ImageWithLoading from './ImageWithLoading';
 
-export default function Resolution({ resolution, onRestart, onClose, onNavigateToQuestion }) {
+export default function Resolution({ resolution, onRestart, onClose, onNavigateToQuestion, onNavigateToResolution }) {
   return (
     <div className="space-y-6">
       {/* Success/Resolution Header */}
@@ -63,8 +63,28 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
         </div>
       </div>
 
-      {/* Feedback Question - Only show if next_question_id is specified */}
-      {resolution.next_question_id && (
+      {/* Article Link Section - Show if next_article_id is specified */}
+      {resolution.next_article_id && (
+        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-center">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+              Related Article
+            </h4>
+            <button
+              onClick={() => window.location.href = `/knowledge-base/article/${resolution.next_article_id}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Detailed Guide
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Question - Show if next_question_id or next_resolution_id is specified */}
+      {(resolution.next_question_id || resolution.next_resolution_id) && (
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -78,7 +98,16 @@ export default function Resolution({ resolution, onRestart, onClose, onNavigateT
                 Yes
               </button>
               <button
-                onClick={() => onNavigateToQuestion(Number(resolution.next_question_id))}
+                onClick={() => {
+                  if (resolution.next_question_id) {
+                    onNavigateToQuestion(Number(resolution.next_question_id));
+                  } else if (resolution.next_resolution_id) {
+                    onNavigateToResolution(Number(resolution.next_resolution_id));
+                  } else if (resolution.next_article_id) {
+                    // Navigate to the article
+                    window.location.href = `/knowledge-base/article/${resolution.next_article_id}`;
+                  }
+                }}
                 className="bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 min-w-[100px]"
               >
                 No

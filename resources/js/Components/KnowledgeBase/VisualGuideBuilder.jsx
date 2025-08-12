@@ -29,6 +29,8 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
   const [pendingResolutionNavigation, setPendingResolutionNavigation] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, type: null, id: null });
   const [deleteDialogContent, setDeleteDialogContent] = useState({ title: '', description: '' });
+  const [unsavedChangesConfirmation, setUnsavedChangesConfirmation] = useState({ isOpen: false, action: null, data: null });
+  const [unsavedChangesDialogContent, setUnsavedChangesDialogContent] = useState({ title: '', description: '' });
   const [isSaving, setIsSaving] = useState(false);
   const originalQuestions = useRef([]);
   const originalResolutions = useRef([]);
@@ -370,6 +372,57 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
     setDeleteConfirmation({ isOpen: false, type: null, id: null });
   };
 
+  const handleUnsavedChangesAction = () => {
+    const { action, data } = unsavedChangesConfirmation;
+    
+    if (action === 'navigateToArticle') {
+      // Proceed with navigation to article
+      window.location.href = `/knowledge-base/article/${data.articleId}`;
+    } else if (action === 'close') {
+      // Proceed with closing the builder
+      onClose();
+    }
+    
+    // Close the confirmation dialog
+    setUnsavedChangesConfirmation({ isOpen: false, action: null, data: null });
+  };
+
+  const handleNavigateToArticle = (articleId) => {
+    if (hasChanges) {
+      // Show confirmation dialog if there are unsaved changes
+      setUnsavedChangesDialogContent({
+        title: 'Unsaved Changes',
+        description: 'You have unsaved changes that will be lost if you navigate to another article. Are you sure you want to continue?'
+      });
+      setUnsavedChangesConfirmation({
+        isOpen: true,
+        action: 'navigateToArticle',
+        data: { articleId }
+      });
+    } else {
+      // Navigate directly if no unsaved changes
+      window.location.href = `/knowledge-base/article/${articleId}`;
+    }
+  };
+
+  const handleClose = () => {
+    if (hasChanges) {
+      // Show confirmation dialog if there are unsaved changes
+      setUnsavedChangesDialogContent({
+        title: 'Unsaved Changes',
+        description: 'You have unsaved changes that will be lost if you close the builder. Are you sure you want to continue?'
+      });
+      setUnsavedChangesConfirmation({
+        isOpen: true,
+        action: 'close',
+        data: null
+      });
+    } else {
+      // Close directly if no unsaved changes
+      onClose();
+    }
+  };
+
   const handleAddQuestion = (linkToAnswerIndex = null, sourceQuestionId = null) => {
     isAddingItem.current = true; // Set flag to prevent hasChanges during auto-linking operations
     
@@ -507,6 +560,19 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
     setCurrentResolution(null);
   };
 
+  const handleResolutionToResolutionNavigation = (resolutionId) => {
+    // This is called when navigating from resolution feedback to another resolution
+    // Add current resolution to history before navigating
+    if (currentResolution) {
+      setHistory(prev => [...prev, { type: 'resolution', id: currentResolution.id }]);
+    }
+    const targetResolution = editingResolutions.find(r => r.id === resolutionId);
+    if (targetResolution) {
+      setCurrentResolution(targetResolution);
+      setCurrentQuestionId(null);
+    }
+  };
+
   const handleResolutionNavigation = (resolutionId) => {
     // Set flag to prevent hasChanges during navigation
     isSwitchingModes.current = true;
@@ -619,7 +685,7 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                 ? 'text-gray-400 dark:text-dark-500 opacity-50 cursor-not-allowed' 
                 : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
             }`}
-            onClick={isSaving ? undefined : onClose}
+            onClick={isSaving ? undefined : handleClose}
           />
         </div>
       </div>
@@ -776,6 +842,19 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                                 ? editingQuestions.findIndex(q => q.id == targetResolution.next_question_id)
                                 : -1;
                               
+                              // Find the resolution's next resolution if it exists
+                              const resolutionNextResolution = targetResolution && targetResolution.next_resolution_id
+                                ? editingResolutions.find(r => r.id == targetResolution.next_resolution_id)
+                                : null;
+                              const resolutionNextResolutionIndex = resolutionNextResolution 
+                                ? editingResolutions.findIndex(r => r.id == targetResolution.next_resolution_id)
+                                : -1;
+                              
+                              // Find the resolution's next article if it exists
+                              const resolutionNextArticle = targetResolution && targetResolution.next_article_id
+                                ? { id: targetResolution.next_article_id, title: 'Related Article' }
+                                : null;
+                              
                               return (
                                 <div key={aIndex} className="flex items-center gap-2 text-gray-600 dark:text-dark-300">
                                   <span className="text-gray-400">└─</span>
@@ -805,6 +884,37 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
                                             onClick={isSaving ? undefined : () => handleQuestionNavigation(resolutionNextQuestion.id)}
                                           >
                                             Q{resolutionNextQuestionIndex + 1}
+                                          </span>
+                                        </>
+                                      )}
+                                      {resolutionNextResolution && (
+                                        <>
+                                          <span className="text-gray-400">→</span>
+                                          <span 
+                                            className={`cursor-pointer hover:underline transition-opacity ${
+                                              isSaving 
+                                                ? 'opacity-50 cursor-not-allowed' 
+                                                : 'text-green-600 dark:text-green-400'
+                                            }`}
+                                            onClick={isSaving ? undefined : () => handleResolutionNavigation(resolutionNextResolution.id)}
+                                          >
+                                            R{resolutionNextResolutionIndex + 1}
+                                          </span>
+                                        </>
+                                      )}
+                                      {resolutionNextArticle && (
+                                        <>
+                                          <span className="text-gray-400">→</span>
+                                          <span 
+                                            className={`cursor-pointer hover:underline transition-opacity ${
+                                              isSaving 
+                                                ? 'opacity-50 cursor-not-allowed' 
+                                                : 'text-blue-600 dark:text-blue-400'
+                                            }`}
+                                            onClick={isSaving ? undefined : () => handleNavigateToArticle(resolutionNextArticle.id)}
+                                            title="Navigate to Related Article"
+                                          >
+                                            A{resolutionNextArticle.id}
                                           </span>
                                         </>
                                       )}
@@ -894,8 +1004,11 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
           isEditing={isEditing}
           isParentInitialized={isInitialized}
           allQuestions={editingQuestions}
+          allResolutions={editingResolutions}
           onNavigateToQuestion={handleResolutionFeedbackNavigation}
+          onNavigateToResolution={handleResolutionToResolutionNavigation}
           onAddQuestion={handleAddQuestion}
+          onAddResolution={handleAddResolution}
           isSaving={isSaving}
         />
       )}
@@ -910,6 +1023,18 @@ export default function VisualGuideBuilder({ article, questions, resolutions = [
         yesText="Delete"
         cancelText="Cancel"
         isYes={confirmDelete}
+      />
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={unsavedChangesConfirmation.isOpen}
+        onClose={() => setUnsavedChangesConfirmation({ isOpen: false, action: null, data: null })}
+        title={unsavedChangesDialogContent.title}
+        description={unsavedChangesDialogContent.description}
+        type="warning"
+        yesText="Continue"
+        cancelText="Stay"
+        isYes={handleUnsavedChangesAction}
       />
     </div>
   );
