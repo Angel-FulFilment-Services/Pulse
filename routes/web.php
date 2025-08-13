@@ -24,8 +24,6 @@ use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\AccountController;
 use App\Http\Controllers\App\UserController;
 
-use App\Helper\T2SMS;
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -75,7 +73,8 @@ Route::post('/verify', [TwoFactorController::class, 'verify']);
 */
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-// Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
 /*
 |-----------------------
@@ -83,8 +82,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 |-----------------------
 */
 
-Route::get('', [RotaController::class, 'index'])->name('rota');
-Route::get('/', [RotaController::class, 'index'])->name('rota');
+// Route::get('', [RotaController::class, 'index'])->name('rota');
+// Route::get('/', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/shifts', [RotaController::class, 'shifts'])->withoutMiddleware('log.access');
@@ -94,6 +93,11 @@ Route::get('/rota/calls', [RotaController::class, 'calls'])->withoutMiddleware('
 Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
 Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 Route::post('/rota/remove-break', [RotaController::class, 'removeBreak']);
+
+Route::get('/user/rota/shifts', [UserController::class, 'shifts'])->withoutMiddleware('log.access');
+Route::get('/user/rota/timesheets', [UserController::class, 'timesheets'])->withoutMiddleware('log.access');
+Route::get('/user/rota/events', [UserController::class, 'events'])->withoutMiddleware('log.access');
+Route::get('/user/rota/calls', [UserController::class, 'calls'])->withoutMiddleware('log.access');
 
 /*
 |-----------------------
@@ -186,7 +190,7 @@ Route::get('/asset-management/support/events', [AssetController::class, 'events'
 Route::post('/asset-management/support/events/remove', [AssetController::class, 'remove']);
 Route::post('/asset-management/support/events/save', [AssetController::class, 'saveSupportEvent']);
 Route::post('/asset-management/support/events/resolved', [AssetController::class, 'resolved']);
-Route::get('/asset-management/kit', [AssetController::class, 'kit']);
+Route::get('/asset-management/kit', [AssetController::class, 'kit'])->withoutMiddleware('has.permission:pulse_view_assets');
 Route::get('/asset-management/kits', [AssetController::class, 'kits']);
 Route::get('/asset-management/assets', [AssetController::class, 'assets']);
 Route::get('/asset-management/assets/scan', [AssetController::class, 'scan']);
@@ -221,22 +225,3 @@ Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsi
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
 Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
 Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
-
-/*
-|-----------------------
-| T2 SMS Handler
-|-----------------------
-*/
-
-Route::post('/t2/send_sms', function (Request $request) {
-
-    $validated = $request->validate([
-        'from' => 'required|string',
-        'to' => 'required|string',
-        'message' => 'required|string',
-    ]);
-
-    $response = T2SMS::sendSms($validated['from'], $validated['to'], $validated['message']);
-
-    return response()->json(['status' => $response], 200);
-})->withoutMiddleware('log.access');

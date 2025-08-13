@@ -43,7 +43,11 @@ class TwoFactorController extends Controller
         }
         $user->reset_two_factor_code();
 
-        return redirect()->intended('/');
+        if(Permissions::hasPermission('pulse_view_rota')){
+            return redirect()->intended('/rota'); // '/' is your fallback
+        } else {
+            return redirect()->intended('/'); // '/' is your fallback
+        }
     }
 
     public function resend(){

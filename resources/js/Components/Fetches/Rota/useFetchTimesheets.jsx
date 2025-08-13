@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { hasPermission } from '../../../Utils/Permissions';
 
 const useFetchTimesheets = (startDate, endDate, hrId = null) => {
   const [timesheets, setTimesheets] = useState([]);
@@ -7,6 +8,7 @@ const useFetchTimesheets = (startDate, endDate, hrId = null) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
   const latestDates = useRef({ startDate, endDate }); // Ref to store the latest startDate and endDate
+  const url = hasPermission('pulse_view_rota') ? '/rota/timesheets' : '/user/rota/timesheets';
 
   const fetchTimesheets = async (controller) => {
     let loadingTimeout;
@@ -17,7 +19,7 @@ const useFetchTimesheets = (startDate, endDate, hrId = null) => {
         setIsLoading(true);
       }, 3000);
 
-      const response = await axios.get('/rota/timesheets', {
+      const response = await axios.get(url, {
         params: { start_date: latestDates.current.startDate, end_date: latestDates.current.endDate, hr_id: hrId },
         signal: controller.signal, // Attach the AbortController signal
       });

@@ -152,9 +152,13 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
             :
               <span>
-                {Math.floor(totalShiftMinutes / 60) > 0 && `${Math.floor(totalShiftMinutes / 60)} hours`}
-                {Math.floor(totalShiftMinutes / 60) > 0 && totalShiftMinutes % 60 > 0 && ', '}
-                {totalShiftMinutes % 60 > 0 && `${totalShiftMinutes % 60} minutes`}
+                {totalShiftMinutes ? 
+                  <>
+                    {Math.floor(totalShiftMinutes / 60) > 0 && `${Math.floor(totalShiftMinutes / 60)} hours`}
+                    {Math.floor(totalShiftMinutes / 60) > 0 && totalShiftMinutes % 60 > 0 && ', '}
+                    {totalShiftMinutes % 60 > 0 && `${totalShiftMinutes % 60} minutes`}
+                  </>
+                : "0"}
               </span>
             }
           </div>
@@ -167,9 +171,13 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                 <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
-                  {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
-                  {Math.floor(totalActualMinutes / 60) > 0 && totalActualMinutes % 60 > 0 && ', '}
-                  {totalActualMinutes % 60 > 0 && `${totalActualMinutes % 60} minutes`}
+                  {totalActualMinutes ? 
+                    <>
+                      {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
+                      {Math.floor(totalActualMinutes / 60) > 0 && totalActualMinutes % 60 > 0 && ', '}
+                      {totalActualMinutes % 60 > 0 && `${totalActualMinutes % 60} minutes`}
+                    </>
+                  : "0"}
                 </span>
               }
             </div>
@@ -230,9 +238,13 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                 <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
               :
                 <span>
-                  {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && `${Math.floor(totalActualMinutesExcludingBreaks / 60)} hours`}
-                  {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && totalActualMinutesExcludingBreaks % 60 > 0 && ', '}
-                  {totalActualMinutesExcludingBreaks % 60 > 0 && `${totalActualMinutesExcludingBreaks % 60} minutes`}
+                  {totalActualMinutesExcludingBreaks ? 
+                    <>
+                      {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && `${Math.floor(totalActualMinutesExcludingBreaks / 60)} hours`}
+                      {Math.floor(totalActualMinutesExcludingBreaks / 60) > 0 && totalActualMinutesExcludingBreaks % 60 > 0 && ', '}
+                      {totalActualMinutesExcludingBreaks % 60 > 0 && `${totalActualMinutesExcludingBreaks % 60} minutes`}
+                    </>
+                  : "0"}
                 </span>
               }
             </div>
