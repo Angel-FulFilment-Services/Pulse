@@ -177,7 +177,7 @@ export default function TermsAndConditions({ onComplete, location, setStep }) {
         </div>
       </div>
 
-      <DocumentDialog isOpen={dialogOpen} onClose={setDialogOpen(false)}>
+      <DocumentDialog isOpen={dialogOpen} onClose={() => setDialogOpen(false)}>
         <div className="flex flex-col items-center justify-center">
           <div className="absolute top-4 right-4">
             <XMarkIcon
