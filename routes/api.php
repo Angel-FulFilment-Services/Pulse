@@ -22,7 +22,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
+Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access')
+->middleware('auth')
+->withoutMiddleware('ipInRange')
+->withoutMiddleware('guest')
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1');
 
 Route::post('/onsite/access/sign-in-or-out', [SiteController::class, 'signInOrOutByAuth'])
 ->withoutMiddleware('ipInRange')

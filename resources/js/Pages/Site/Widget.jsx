@@ -31,7 +31,7 @@ export default function DeliveryAndVisitorWidget() {
                 const {deliveries: newDeliveries, visitors: newVisitors, employees: newEmployees} = response.data;
 
                 // Check for new deliveries
-                if (newDeliveries.length > 0) {
+                if (newDeliveries && newDeliveries.length > 0) {
                     const latestDeliveryId = newDeliveries[0].id; // Get the ID of the latest delivery
                     if (lastDeliveryId !== latestDeliveryId) {
                         notify = true;
@@ -39,7 +39,7 @@ export default function DeliveryAndVisitorWidget() {
                     }
                 }
 
-                if (newVisitors.length > 0) {
+                if (newVisitors && newVisitors.length > 0) {
                     const latestVisitorId = newVisitors[0].id; // Get the ID of the latest visitor
                     if (lastVisitorId !== latestVisitorId) {
                         notify = true;
@@ -47,7 +47,7 @@ export default function DeliveryAndVisitorWidget() {
                     }
                 }
 
-                if (newEmployees.length > 0) {
+                if (newEmployees && newEmployees.length > 0) {
                     const latestEmployeeId = newEmployees[0].id; // Get the ID of the latest visitor
                     if (lastEmployeeId !== latestEmployeeId) {
                         setLastEmployeeId(latestEmployeeId); // Update the last visitor ID
