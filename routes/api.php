@@ -31,6 +31,20 @@ Route::post('/onsite/access/sign-in-or-out', [SiteController::class, 'signInOrOu
 ->middleware('throttle:100,1')
 ->middleware('auth:api');
 
+Route::post('/onsite/access/sign-in', [SiteController::class, 'signInByAuth'])
+->withoutMiddleware('ipInRange')
+->withoutMiddleware('guest')
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1')
+->middleware('auth:api');
+
+Route::post('/onsite/access/sign-out', [SiteController::class, 'signOutByAuth'])
+->withoutMiddleware('ipInRange')
+->withoutMiddleware('guest')
+->withoutMiddleware('throttle:api')
+->middleware('throttle:100,1')
+->middleware('auth:api');
+
 Route::post('/asset-management/kits/status', [AssetController::class, 'isKitActive'])
 ->withoutMiddleware('auth')
 ->withoutMiddleware('twofactor')

@@ -340,6 +340,58 @@ class SiteController extends Controller
         }
     }
 
+    
+    public function signInByAuth(Request $request){
+        try {
+            $data = $request->json()->all();
+
+            $employee = auth()->user()->id;
+
+            $signedIn = $this->isUserSignedIn($employee);
+
+            if (!$signedIn){
+                DB::connection('wings_config')->table('site_access_log')->insert([
+                    'type' => 'access',
+                    'category' => 'employee',
+                    'signed_in' => now(),
+                    'location' => Str::title($data['location'] ?? null),
+                    'user_id' => $employee,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $action = 'sign-in';
+            } else {
+                return response()->json(['message' => 'User is already signed in'], 400);
+            }
+            return response()->json(['message' => 'Signed in successfully', 'action' => $action], 200);
+        } catch (\Throwable $th) {
+            return response()->json(['message' => 'Error processing sign in/out'], 500);
+        }
+    }
+
+    public function signOutByAuth(Request $request){
+        try {
+            $data = $request->json()->all();
+
+            $employee = auth()->user()->id;
+
+            $signedIn = $this->isUserSignedIn($employee);
+
+            if ($signedIn){
+                DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
+                    'signed_out' => now(),
+                    'updated_at' => now(),
+                ]);
+                $action = 'sign-out';
+            } else {
+                return response()->json(['message' => 'User is already signed out'], 400);
+            }
+            return response()->json(['message' => 'Signed out successfully', 'action' => $action], 200);
+        } catch (\Throwable $th) {
+            return response()->json(['message' => 'Error processing sign in/out'], 500);
+        }
+    }
+
     public function signIn(Request $request){
 
         if($request->has('user_id') && $this->isUserSignedIn($request->input('user_id'))) {
