@@ -41,11 +41,7 @@ class LoginController extends Controller
         // Check if the user has permission to access Pulse
         $user = User::where('email', STR::lower($request->email))->first();
         if($user){
-            // if (!$user->hasPermission('pulse_allow_access')) {
-            //     return back()->withErrors(['error' => 'You do not have permission to access this application.']);
-            // }
-
-            if ($user->client_ref !== 'ANGL') {
+            if (!$user->hasPermission('pulse_allow_access')) {
                 return back()->withErrors(['error' => 'You do not have permission to access this application.']);
             }
 
