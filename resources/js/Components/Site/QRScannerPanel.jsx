@@ -9,6 +9,7 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
   const isTimeout = useRef(false);
   const isStopped = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
 
   const stopCamera = useCallback(() => {
     codeReader.current = null;
@@ -35,12 +36,13 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
           null,
           videoElement,
           (result, error) => {
-            if (result && !isTimeout.current && !isProcessing) {
+            if (result && !isTimeout.current && !isProcessing && scanResult !== result.getText()) {
+              setScanResult(result.getText());
+
               if(isStopped.current){
                 stopCamera();
                 codeReader.current.reset();
               }
-
               isTimeout.current = true;
               findUser(result.getText()).then(user => {
                   if (user) {

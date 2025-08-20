@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use Log;
+use App\Models\Rota\Shift;
+use App\Models\Rota\Event;
 
 class UserController extends Controller
 {
@@ -50,6 +52,124 @@ class UserController extends Controller
         }
 
         return response()->json($userStates);
+    }
+
+    public function shifts(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = auth()->user()->employee->hr_id;
+
+        // Fetch shifts for the date range
+        $shifts = Shift::whereBetween('shiftdate', [$startDate, $endDate])
+        ->select("shifts2.*")
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('shifts2.hr_id', $hrId);
+        })
+        ->groupBy('hr_id','shiftdate','shiftstart','shiftend')
+        ->get();
+
+        return response()->json($shifts);
+    }
+
+    public function timesheets(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = auth()->user()->employee->hr_id;
+
+        // Fetch timesheet_today records for the date range
+        if((date('Y-m-d') >= $startDate) && (date('Y-m-d') <= $endDate)){
+            $timesheetToday = DB::table('apex_data.timesheet_today')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereNotIn('category', ['Holiday'])
+                ->where('hr_id', '<>', '9999')
+                ->when($hrId, function ($query) use ($hrId) {
+                    return $query->where('hr_id', $hrId);
+                })
+                ->get()
+                ->map(function ($record) {
+                    if (is_null($record->off_time)) {
+                        $record->off_time = Carbon::now();
+                    }
+                    return $record;
+                });
+        }
+
+        // Fetch timesheet_master records for the date range
+        $timesheetMaster = DB::table('apex_data.timesheet_master')
+            ->whereNotIn('category', ['Holiday'])
+            ->where('hr_id', '<>', '9999')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->when($hrId, function ($query) use ($hrId) {
+                return $query->where('hr_id', $hrId);
+            })
+            ->get();
+
+        // Merge timesheet_today and timesheet_master records
+        $timesheets = isset($timesheetToday) ? $timesheetToday->merge($timesheetMaster) : $timesheetMaster;
+
+        // Fetch breaksheet records for the date range        
+        $breaksheetMaster = DB::table('apex_data.breaksheet_master')
+        ->whereBetween('date', [$startDate, $endDate])
+        ->where('nosync_deleted', 0)
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_id', $hrId);
+        })
+        ->get();
+
+        // Merge breaksheet records with timesheets
+        $timesheets = isset($breaksheetMaster) ? $timesheets->merge($breaksheetMaster) : $timesheets;
+
+        return response()->json($timesheets);
+    }
+
+    public function events(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = auth()->user()->employee->hr_id;
+
+        // Fetch event records for the date range
+        $events = Event::whereBetween('on_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->select('events.*')
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('events.hr_id', $hrId)
+            ->leftJoin('wings_config.users', 'users.id', '=', 'events.created_by_user_id')
+            ->addSelect('users.name as logged_by');
+        })
+        ->get();
+
+        return response()->json($events);
+    }
+
+    public function calls(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $hrId = auth()->user()->employee->hr_id;
+
+        $calls = DB::connection("apex_data")
+        ->table("apex_data")
+        ->whereBetween('date', [$startDate, $endDate])
+        ->where(function($query){
+            $query->where('apex_data.answered','=','1');
+            $query->orWhere('apex_data.type','<>','Queue');
+        })
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_id', $hrId);
+        })
+        ->select('apex_data.hr_id', 'apex_data.date_time', 'apex_data.ddi', DB::raw('IF(apex_data.type <> "Queue", apex_data.ring_time + apex_data.calltime, apex_data.calltime) as time'))
+        ->get();
+
+        $callMonitoring = DB::table('call_monitoring.cm_log')
+        ->leftJoin('wings_data.hr_details', 'cm_log.user_id', '=', 'hr_details.user_id')
+        ->whereBetween('started_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('hr_details.hr_id', $hrId);
+        })
+        ->select('hr_details.hr_id', 'cm_log.started_at as date_time', DB::raw('TIMESTAMPDIFF(SECOND, cm_log.started_at, cm_log.ended_at) as time'))
+        ->get();
+
+        $calls = isset($callMonitoring) ? $calls->merge($callMonitoring) : $calls;
+
+        return response()->json($calls);
     }
 
     public function users(Request $request){

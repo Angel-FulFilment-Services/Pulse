@@ -25,9 +25,9 @@ class KnowledgeBaseController extends Controller
     public function articles(Request $request){
         $articles = DB::connection('pulse')
             ->table('knowledge_base_articles')
-            ->select('id', 'title', 'category', 'description', 'tags', 'article_image', 'published_at')
+            ->select('id', 'title', 'category', 'description', 'tags', 'article_image', 'published_at', 'visits')
             ->where('published_at', '<=', now())
-            ->orderBy('title', 'asc')
+            ->orderBy('visits', 'desc')
             ->get();
 
         return response()->json([
@@ -38,7 +38,7 @@ class KnowledgeBaseController extends Controller
     public function article($id){
         $article = DB::connection('pulse')
             ->table('knowledge_base_articles')
-            ->select('id', 'title', 'category', 'description', 'tags', 'body', 'article_image', 'published_at')
+            ->select('id', 'title', 'category', 'description', 'tags', 'body', 'article_image', 'published_at', 'visits')
             ->where('id', $id)
             ->first();
 
@@ -46,7 +46,16 @@ class KnowledgeBaseController extends Controller
             abort(404);
         }
 
-                $questions = DB::connection('pulse')
+        // Increment visit counter
+        DB::connection('pulse')
+            ->table('knowledge_base_articles')
+            ->where('id', $id)
+            ->increment('visits');
+
+        // Update the article object with the new visit count
+        $article->visits = $article->visits + 1;
+
+        $questions = DB::connection('pulse')
             ->table('knowledge_base_questions')
             ->where('article_id', $id)
             ->orderBy('order', 'asc')

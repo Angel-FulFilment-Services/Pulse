@@ -37,7 +37,7 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
       // { id: 'performance', name: 'Performance', icon: ChartBarIcon, current: false },
       // { id: 'meetings', name: 'Meetings', icon: UsersIcon, current: false },
       { id: 'employee', name: 'Employee', icon: UserIcon, current: false, visible: () => true },
-      { id: 'technical support', name: 'Technical Support', icon: WrenchIcon, current: false, visible: () => hasPermission('pulse_view_technical_support') && hasPermission('pulse_view_assets') },
+      { id: 'technical support', name: 'Technical Support', icon: WrenchIcon, current: false, visible: () => true },
   ]
 
   const handleDateChange = (item) => {   
@@ -133,13 +133,15 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
             />
           </div>
           <div className="z-10">
-            <button
-              type="button"
-              className="relative rounded-xl text-gray-500 hover:text-gray-600 dark:text-dark-400 dark:hover:text-dark-300 focus:outline-none"
-              onClick={handleClose}
-            >
-              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-            </button>
+            { handleClose && (
+              <button
+                type="button"
+                className="relative rounded-xl text-gray-500 hover:text-gray-600 dark:text-dark-400 dark:hover:text-dark-300 focus:outline-none"
+                onClick={handleClose}
+              >
+                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </div>

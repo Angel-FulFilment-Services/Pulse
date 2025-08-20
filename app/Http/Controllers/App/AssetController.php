@@ -422,7 +422,7 @@ class AssetController extends Controller
 
             $asset = Asset::create([
                 'status' => 'Active',
-                'afs_id' => $request->afs_id,
+                'afs_id' => $request->afsId,
                 'alias' => $request->alias,
                 'type' => $request->type,
                 'make' => $request->make,

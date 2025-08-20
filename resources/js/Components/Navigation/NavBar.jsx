@@ -32,10 +32,10 @@ export default function NavBar({ page }) {
 
   const teams = [
     { name: 'All Staff', href: '#', initial: 'A', current: false },
-    { name: employee?.job_title + "s", href: '#', initial: employee?.job_title.charAt(0).toUpperCase(), current: false },
   ]
 
   const navigation = useMemo(() => [
+    { name: 'Dashboard', href: '/', icon: HomeIcon, current: currentPath === '/', right: null },
     { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.startsWith('/rota'), right: 'pulse_view_rota' },
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },

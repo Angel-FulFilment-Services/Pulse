@@ -416,7 +416,7 @@ const payrollReportsConfig = [
             const endDate = format(setDate(subMonths(today, day <= 5 ? 1 : 0), 28), 'yyyy-MM-dd');
             return {
               default: { startDate, endDate },
-              maxDate: endDate,
+              maxDate: new Date(),
               minDate: new Date().setFullYear(new Date().getFullYear() - 1),
             };
           })(),

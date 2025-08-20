@@ -44,7 +44,7 @@ class LoginController extends Controller
             if (!$user->hasPermission('pulse_allow_access')) {
                 return back()->withErrors(['error' => 'You do not have permission to access this application.']);
             }
-    
+
             if ($user->active == -3) {
                 return back()->withErrors(['error' => 'Your account has been locked due to too many failed login attempts. Please contact support.']);
             }
@@ -93,6 +93,10 @@ class LoginController extends Controller
             }
         }
 
-        return redirect()->intended('/'); // '/' is your fallback
+        if(Permissions::hasPermission('pulse_view_rota')){
+            return redirect()->intended('/rota'); // '/' is your fallback
+        } else {
+            return redirect()->intended('/'); // '/' is your fallback
+        }
     }
 }

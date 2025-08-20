@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { hasPermission } from '../../../Utils/Permissions';
 
 const useFetchShifts = (startDate, endDate, hrId = null) => {
   const [shifts, setShifts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
+  const url = hasPermission('pulse_view_rota') ? '/rota/shifts' : '/user/rota/shifts';
 
   const fetchShifts = async (controller) => {
     let loadingTimeout;
@@ -16,7 +18,7 @@ const useFetchShifts = (startDate, endDate, hrId = null) => {
         setIsLoading(true);
       }, 500);
 
-      const response = await axios.get('/rota/shifts', {
+      const response = await axios.get(url, {
         params: { start_date: startDate, end_date: endDate, hr_id: hrId },
         signal: controller.signal, // Attach the AbortController signal
       });

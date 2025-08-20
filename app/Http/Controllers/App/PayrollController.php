@@ -61,19 +61,15 @@ class PayrollController extends Controller
             }
         )
         ->leftJoinSub(
-            DB::table('hr.dow_updates')
-            ->select('hr_id', DB::raw('dow as days_of_week'))
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->where('startdate', '<=', $startDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startDate);
-                    });
+            DB::table('hr.dow_updates as d1')
+            ->select('d1.hr_id', DB::raw('d1.dow as days_of_week'))
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('d1.enddate', [$startDate, $endDate])
+                    ->orWhereBetween('d1.startdate', [$startDate, $endDate]);
             })
-            ->orderBy('startdate', 'desc')
-            ->groupBy('hr_id'), 
-            'dow', 
+            ->whereRaw('d1.startdate = (SELECT MAX(d2.startdate) FROM hr.dow_updates d2 WHERE d2.hr_id = d1.hr_id AND ((d2.enddate BETWEEN ? AND ?) OR (d2.startdate BETWEEN ? AND ?)))', [$startDate, $endDate, $startDate, $endDate])
+            ->groupBy('d1.hr_id'),
+            'dow',
             function($join) {
                 $join->on('hr_details.hr_id', '=', 'dow.hr_id');
             }
@@ -241,19 +237,15 @@ class PayrollController extends Controller
             DB::raw('COALESCE(exceptions.items, JSON_ARRAY()) as items')
         )
         ->leftJoinSub(
-            DB::table('hr.dow_updates')
-            ->select('hr_id', DB::raw('dow as days_of_week'))
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->where('startdate', '<=', $startDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startDate);
-                    });
+            DB::table('hr.dow_updates as d1')
+            ->select('d1.hr_id', DB::raw('d1.dow as days_of_week'))
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('d1.enddate', [$startDate, $endDate])
+                    ->orWhereBetween('d1.startdate', [$startDate, $endDate]);
             })
-            ->orderBy('startdate', 'desc')
-            ->groupBy('hr_id'), 
-            'dow_updates', 
+            ->whereRaw('d1.startdate = (SELECT MAX(d2.startdate) FROM hr.dow_updates d2 WHERE d2.hr_id = d1.hr_id AND ((d2.enddate BETWEEN ? AND ?) OR (d2.startdate BETWEEN ? AND ?)))', [$startDate, $endDate, $startDate, $endDate])
+            ->groupBy('d1.hr_id'),
+            'dow_updates',
             function($join) {
                 $join->on('hr_details.hr_id', '=', 'dow_updates.hr_id');
             }
@@ -550,8 +542,8 @@ class PayrollController extends Controller
 
         // Leaver calculate add in remaining entitlement
         if( $leftDate && strtotime($leftDate) > strtotime($startDate) ){
-            if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)))) ){
-                $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime($startDate)) < '07-01' ? 'last year' : 'this year', strtotime($startDate)));
+            if( strtotime($startedDate) < strtotime(date('Y-07-01', strtotime(date('m-d', strtotime(date('Y-m-d'))) < '07-01' ? 'last year' : 'this year', strtotime(date('Y-m-d'))))) ){
+                $startedDate = date('Y-07-01', strtotime(date('m-d', strtotime(date('Y-m-d'))) < '07-01' ? 'last year' : 'this year', strtotime(date('Y-m-d'))));
             }
 
             $holidays = DB::connection('hr')
@@ -570,38 +562,44 @@ class PayrollController extends Controller
             ->where('type', '=', 'Paid Annual Leave')
             ->get();
 
-
             $dow_changes  = DB::table('hr.dow_updates')
             ->select('hr_id', 'startdate', 'enddate', DB::raw('dow as days_of_week'))
             ->where('hr_id', $hrId)
-            ->where(function($query) use ($startedDate, $endDate) {
-                $query->where('startdate', '<=', $startedDate)
-                    ->where('enddate', '>=', $endDate)
-                    ->orWhere(function($query) use ($startedDate, $endDate) {
-                        $query->where('startdate', '<=', $endDate)
-                            ->where('enddate', '>=', $startedDate);
-                    });
+            ->where(function ($query) use ($startedDate, $endDate) {
+                $query->whereBetween('enddate', [$startedDate, $endDate])
+                    ->orWhereBetween('startdate', [$startedDate, $endDate]);
             })
             ->orderBy('startdate', 'desc')
             ->get();
 
             $remainingEntitlement = 0;
             foreach($dow_changes as $dow_change){
+                $entitlementStartdate = $dow_change->startdate;
+                $entitlementEnddate = $dow_change->enddate;
+
+                if( strtotime($dow_change->startdate) >= strtotime($leftDate) ){
+                    continue; // Skip if the dow_change starts after the leftDate
+                }
+
+                if( strtotime($dow_change->enddate) > strtotime($leftDate) ){
+                    $entitlementEnddate = $leftDate; // Clamp enddate to leftDate if it is after leftDate
+                }
+
                 switch ($dow_change->days_of_week) {
                 case 5:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0767123);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0767123);
                     break;
                 case 4: 
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0613699);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0613699);
                     break;
                 case 3:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0460274);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0460274);
                     break;
                 case 2:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0306849);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0306849);
                     break;
                 case 1:
-                    $remainingEntitlement += (((strtotime($dow_change->enddate) - strtotime($dow_change->startdate)) / 86400) * 0.0153425);
+                    $remainingEntitlement += (((strtotime($entitlementEnddate) - strtotime($entitlementStartdate)) / 86400) * 0.0153425);
                     break;
                 }
             }
