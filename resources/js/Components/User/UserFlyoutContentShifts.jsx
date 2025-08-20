@@ -21,6 +21,78 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
     }
   }, [shifts, timesheets]);
 
+  // Find misaligned timesheets
+  const findMisalignedTimesheets = (shifts, timesheets) => {
+    return timesheets.filter((timesheet) => {
+      // Find the corresponding shift for this timesheet
+      const matchingShift = shifts.find((shift) => {
+        // Check if the timesheet date matches the shift date
+        const timesheetDate = new Date(timesheet.on_time).toDateString();
+        const shiftDate = new Date(shift.shiftdate).toDateString();
+        return timesheetDate === shiftDate;
+      });
+
+      if (!matchingShift) return true; // No matching shift found, consider it misaligned
+
+      // Calculate the shift start and end times
+      const shiftStartDate = new Date(matchingShift.shiftdate);
+      shiftStartDate.setHours(Math.floor(matchingShift.shiftstart / 100), matchingShift.shiftstart % 100);
+      
+      const shiftEndDate = new Date(matchingShift.shiftdate);
+      shiftEndDate.setHours(Math.floor(matchingShift.shiftend / 100), matchingShift.shiftend % 100);
+      
+      // Check if the timesheet record falls within the shift window
+      const onTime = new Date(timesheet.on_time);
+      const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
+      
+      // Check if the timesheet falls within an hour before shift start and an hour after shift end
+      const fallsWithinWindow = (
+        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
+      );
+      
+      // Return true if it does NOT fall within the window (misaligned)
+      return !fallsWithinWindow;
+    });
+  };
+
+  // Create dummy shifts from misaligned timesheets
+  const createDummyShiftsFromMisaligned = (misalignedTimesheets) => {
+    // Group misaligned timesheets by date
+    const timesheetsByDate = misalignedTimesheets.reduce((acc, timesheet) => {
+      const date = new Date(timesheet.on_time).toDateString();
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(timesheet);
+      return acc;
+    }, {});
+
+    // Create dummy shifts for each date
+    return Object.entries(timesheetsByDate).map(([dateString, timesheetsForDate]) => {
+      // Find earliest start time and latest end time for this date
+      const startTimes = timesheetsForDate.map(ts => new Date(ts.on_time));
+      const endTimes = timesheetsForDate
+        .filter(ts => ts.off_time)
+        .map(ts => new Date(ts.off_time));
+      
+      const earliestStart = new Date(Math.min(...startTimes));
+      const latestEnd = endTimes.length > 0 ? new Date(Math.max(...endTimes)) : earliestStart;
+
+      // Convert to shift format (HHMM)
+      const shiftstart = parseInt(format(earliestStart, 'HHmm'));
+      const shiftend = parseInt(format(latestEnd, 'HHmm'));
+
+      return {
+        id: `dummy_${dateString}`,
+        shiftdate: format(earliestStart, 'yyyy-MM-dd'),
+        shiftstart,
+        shiftend,
+        isDummy: true, // Flag to identify dummy shifts
+      };
+    });
+  };
+
   const calculateReductionMinutes = (events = []) => {
     return events
       .filter((event) => event.category === 'Reduced')
@@ -48,7 +120,16 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
     return workedPercentage > 0 ? Math.floor(workedPercentage) : 0;
   };
 
-  const totalShiftMinutes = calculateTotalShiftMinutes(shifts);
+  // Get misaligned timesheets and create dummy shifts
+  const misalignedTimesheets = findMisalignedTimesheets(shifts, timesheets);
+  const dummyShifts = createDummyShiftsFromMisaligned(misalignedTimesheets);
+
+  // Combine real shifts with dummy shifts for display
+  const allShifts = [...shifts, ...dummyShifts].sort((a, b) => 
+    new Date(a.shiftdate) - new Date(b.shiftdate)
+  );
+
+  const totalShiftMinutes = calculateTotalShiftMinutes(allShifts);
   const reductionMinutes = calculateReductionMinutes(events);
   const totalActualMinutes = Math.round(
     timesheets.reduce((total, timesheet) => {
@@ -82,7 +163,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
           </p>
         </div>
         <div className="flex gap-x-4 items-center">
-          {shifts.length > 0 && (
+          {allShifts.length > 0 && (
             <ButtonControl 
               id="refresh_button" 
               Icon={PhotoIcon} 
@@ -94,7 +175,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
           <DateInput startDateId={"startDate"} endDateId={"endDate"} label={null} showShortcuts={true} placeholder={"Date"} dateRange={true} minDate={new Date().setFullYear(new Date().getFullYear() - 100)} maxDate={new Date().setFullYear(new Date().getFullYear() + 100)} currentState={{startDate: dateRange.startDate, endDate: dateRange.endDate}} onDateChange={handleDateChange}/>
         </div>
       </div>
-      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white dark:bg-dark-900 ${shifts.length > 6 ? "pr-2" : ""}`} id="scrollable_container">
+      <div className={`w-full h-full pt-2 isolate overflow-auto bg-white dark:bg-dark-900 ${allShifts.length > 6 ? "pr-2" : ""}`} id="scrollable_container">
         <ul className="flex flex-col pb-2" id="scrollable_content">
           {isTransitioning
             ? Array.from({ length: 8 }).map((_, subRowIndex) => (
@@ -110,7 +191,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                   </div>
                 </li>
               ))
-            : shifts.map((shift) => {
+            : allShifts.map((shift) => {
                 const shiftStartDate = new Date(shift.shiftdate);
                 shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
 
@@ -121,10 +202,19 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                   <li className="py-1 pb-2" key={shift.id}>
                     <div className="flex flex-row w-full justify-between">
                       <div className="flex flex-col w-1/4 justify-center">
-                        <h4 className="font-medium text-xs text-gray-700 dark:text-dark-200">
-                          {format(new Date(shift.shiftdate), 'dd MMMM, yyyy')}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-dark-400">
+                        <div className="flex gap-x-4 items-center">
+                          <h4 className={`font-medium text-xs text-gray-700 dark:text-dark-200`}>
+                            {format(new Date(shift.shiftdate), 'dd MMMM, yyyy')}
+                          </h4>
+                          { shift.isDummy ? (
+                            <div
+                              className={'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset text-nowrap text-blue-700 bg-blue-50 ring-blue-600/20 dark:text-blue-700 dark:bg-blue-100/85 dark:ring-blue-800/10'}
+                            >
+                              Surplus
+                            </div>
+                          ) : null}
+                        </div>
+                        <p className={`text-xs text-gray-500 dark:text-dark-400`}>
                           {format(shiftStartDate, 'h:mm a').toLowerCase()} -{' '}
                           {format(shiftEndDate, 'h:mm a').toLowerCase()}
                         </p>
@@ -136,6 +226,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
                           events={events}
                           calls={calls}
                           isLoading={isTransitioning}
+                          isDummy={shift.isDummy}
                         />
                       </div>
                     </div>
@@ -231,7 +322,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
           </div>
         </div>
         <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
-          <div className="flex flex-col justify-center items-start">
+          <div className="flex flex-col justifycenter items-start">
             <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Excl. Breaks)</span></div>
             <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
               { isTransitioning ? 

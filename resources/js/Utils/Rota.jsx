@@ -177,11 +177,43 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
 
   // Add unallocated shifts logic here if timesheets is passed
   if (timesheets.length > 0) {
+    // First, get records that have no matching hr_id in shifts (original logic)
     const unallocatedRecords = timesheets.filter((record) => {
       return !shifts.some((shift) => shift.hr_id === record.hr_id);
     });
 
-    const unallocatedByHrId = unallocatedRecords.reduce((acc, record) => {
+    // Second, get records that have matching hr_id but timesheets don't fall within shift window
+    const misalignedRecords = timesheets.filter((record) => {
+      // Find the shift for this hr_id
+      const matchingShift = shifts.find((shift) => shift.hr_id === record.hr_id);
+      
+      if (!matchingShift) return false; // This would be caught by unallocatedRecords above
+      
+      // Calculate the shift start and end times
+      const shiftStartDate = new Date(matchingShift.shiftdate);
+      shiftStartDate.setHours(Math.floor(matchingShift.shiftstart / 100), matchingShift.shiftstart % 100);
+      
+      const shiftEndDate = new Date(matchingShift.shiftdate);
+      shiftEndDate.setHours(Math.floor(matchingShift.shiftend / 100), matchingShift.shiftend % 100);
+      
+      // Check if the timesheet record falls within the shift window (same logic as line 367-377)
+      const onTime = new Date(record.on_time);
+      const offTime = record.off_time ? new Date(record.off_time) : new Date();
+      
+      // Check if the timesheet falls within an hour before shift start and an hour after shift end
+      const fallsWithinWindow = (
+        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
+      );
+      
+      // Return true if it does NOT fall within the window (misaligned)
+      return !fallsWithinWindow;
+    });
+
+    // Combine both types of unallocated records
+    const allUnallocatedRecords = [...unallocatedRecords, ...misalignedRecords];
+
+    const unallocatedByHrId = allUnallocatedRecords.reduce((acc, record) => {
       if (!acc[record.hr_id]) {
         acc[record.hr_id] = [];
       }
