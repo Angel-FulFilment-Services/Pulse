@@ -8,12 +8,15 @@ import ShiftProgressBar from '../Calendar/ShiftProgressBar.jsx';
 import DateInput from '../Forms/DateInput.jsx';
 import ButtonControl from '../Controls/ButtonControl.jsx';
 import { PhotoIcon } from '@heroicons/react/24/outline';
+import { hasPermission } from '../../Utils/Permissions.jsx';
 
 export default function UserFlyoutContentShifts({ hrId, handleDateChange, handleExport, dateRange, isTransitioning, setIsTransitioning }) {
   const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(dateRange.startDate, dateRange.endDate, hrId);
   const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(dateRange.startDate, dateRange.endDate, hrId);
   const { events, isLoading: isLoadingEvents, isLoaded: isLoadedEvents } = useFetchEvents(dateRange.startDate, dateRange.endDate, hrId);
   const { calls, isLoading: isLoadingCalls, isLoaded: isLoadedCalls } = useFetchCalls(dateRange.startDate, dateRange.endDate, hrId);
+
+  const allowAdditionalHoursStatistics = hasPermission("pulse_view_rota");
 
   useEffect(() => {
     if (isLoadedShifts && isLoadedTimesheets) {
@@ -235,7 +238,7 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
               })}
         </ul>
       </div>
-      <div className="mx-auto pt-2 grid grid-cols-5 w-full justify-between">
+      <div className={`mx-auto pt-2 grid ${ allowAdditionalHoursStatistics ? "grid-cols-5" : "grid-cols-3" } w-full justify-between`}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Scheduled</div>
           <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
@@ -254,73 +257,43 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
             }
           </div>
         </div>
-        <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
-          <div className="flex flex-col justify-center items-start">
-            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
-              { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
-              :
-                <span>
-                  {totalActualMinutes ? 
-                    <>
-                      {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
-                      {Math.floor(totalActualMinutes / 60) > 0 && totalActualMinutes % 60 > 0 && ', '}
-                      {totalActualMinutes % 60 > 0 && `${totalActualMinutes % 60} minutes`}
-                    </>
-                  : "0"}
-                </span>
-              }
+        { allowAdditionalHoursStatistics && (
+          <>
+            <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+              <div className="flex flex-col justify-center items-start">
+                <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
+                <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
+                  { isTransitioning ? 
+                    <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                  :
+                    <span>
+                      {totalActualMinutes ? 
+                        <>
+                          {Math.floor(totalActualMinutes / 60) > 0 && `${Math.floor(totalActualMinutes / 60)} hours`}
+                          {Math.floor(totalActualMinutes / 60) > 0 && totalActualMinutes % 60 > 0 && ', '}
+                          {totalActualMinutes % 60 > 0 && `${totalActualMinutes % 60} minutes`}
+                        </>
+                      : "0"}
+                    </span>
+                  }
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        {/* <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
-          <div className="flex flex-col justify-center items-start">
-            <div className="text-sm font-medium leading-6 text-gray-600">Potential Earnings</div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
-              { isTransitioning ? 
-                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
-              :
-                <span>
-                  {Math.floor(totalShiftMinutes / 60) > 0 &&
-                  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
-                    Math.floor(totalShiftMinutes / 60) * 12.21
-                  )}
-                </span>
-              }
+            <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
+              <div className="flex flex-col justify-center items-center">
+                <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
+                <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
+                  { isTransitioning ? 
+                    <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
+                    :
+                    `${workedPercentage}%`
+                  }
+                  
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white w-full">
-          <div className="flex flex-col justify-center items-start">
-            <div className="text-sm font-medium leading-6 text-gray-600">Actual Earnings</div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900">
-              { isTransitioning ? 
-                <div className="bg-gray-100  h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
-              :
-                <span>
-                  {Math.floor(totalActualMinutes / 60) > 0 &&
-                  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
-                    Math.floor(totalActualMinutes / 60) * 12.21
-                  )}
-                </span>
-              }
-            </div>
-          </div>
-        </div> */}
-        <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
-          <div className="flex flex-col justify-center items-center">
-            <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Percentage Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Incl. Breaks)</span></div>
-            <div className="w-full flex-none leading-10 tracking-tight text-base font-semibold text-gray-900 dark:text-dark-100">
-              { isTransitioning ? 
-                <div className="bg-gray-100 dark:bg-dark-800 h-6 my-1 mt-3 animate-pulse rounded-full w-24"></div>
-                :
-                `${workedPercentage}%`
-              }
-              
-            </div>
-          </div>
-        </div>
+          </>
+        )}
         <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-0 bg-white dark:bg-dark-900 w-full">
           <div className="flex flex-col justifycenter items-start">
             <div className="text-sm font-medium leading-6 text-gray-600 dark:text-dark-400">Hours Worked <span className="text-gray-400 font-normal dark:text-dark-600">(Excl. Breaks)</span></div>
