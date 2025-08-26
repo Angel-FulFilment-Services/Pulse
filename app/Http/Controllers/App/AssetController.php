@@ -11,8 +11,12 @@ use App\Models\Asset\Kit;
 use App\Models\Asset\Item;
 use App\Models\Asset\PAT;
 use App\Models\HR\Employee;
+use App\Models\User\User;
 use App\Helper\Auditing;
 use App\Models\Asset\EquipmentReturn;
+use App\Notifications\EquipmentReturnNotification;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Storage;
 use Log;
 use DB;
@@ -686,6 +690,14 @@ class AssetController extends Controller
             // Optionally, log the action
             Auditing::log('Assets', auth()->user()->id, 'Equipment Return Processed', 'Kit ID: ' . $request->kit_id);
 
+            // Send email notification to users with permission
+            try {
+                $this->sendEquipmentReturnNotification($request, $user, $storedAttachments);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send equipment return email notification: ' . $e->getMessage());
+                // Don't fail the entire process if email fails
+            }
+
             return response()->json(['message' => 'Equipment return processed successfully!'], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -968,6 +980,143 @@ class AssetController extends Controller
         } catch (\Exception $e) {
             Log::error('Error saving absence event: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to save absence event.'], 500);
+        }
+    }
+
+    /**
+     * Send equipment return notification email
+     */
+    private function sendEquipmentReturnNotification($request, $returnedToUser, $attachments)
+    {
+        // Get users with the permission to receive equipment return emails
+        $recipients = User::whereHas('assignedPermissionsUser', function($query) {
+            $query->where('right', 'pulse_receive_equipment_return_emails');
+        })->get();
+
+        if ($recipients->isEmpty()) {
+            \Log::info('No users found with pulse_receive_equipment_return_emails permission');
+            return;
+        }
+
+        // Get kit information
+        $kit = Kit::find($request->kit_id);
+        if (!$kit) {
+            \Log::error('Kit not found for ID: ' . $request->kit_id);
+            return;
+        }
+
+        // Get processed by user information
+        $processedByUser = auth()->user()->employee;
+        if (!$processedByUser) {
+            \Log::error('Processed by user not found');
+            return;
+        }
+
+        // Get return record
+        $returnRecord = EquipmentReturn::where('kit_id', $request->kit_id)
+            ->orderBy('datetime', 'desc')
+            ->first();
+
+        if (!$returnRecord) {
+            \Log::error('Return record not found for kit ID: ' . $request->kit_id);
+            return;
+        }
+
+        // Collect all return items with their details
+        $returnItems = [];
+        
+        // Add functioning items
+        foreach ($request->functioning ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'functioning'
+                ];
+            }
+        }
+
+        // Add faulty items
+        foreach ($request->faulty ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'faulty'
+                ];
+            }
+        }
+
+        // Add damaged items
+        foreach ($request->damaged ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'damaged'
+                ];
+            }
+        }
+
+        // Add not returned items
+        foreach ($request->not_returned ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'not_returned'
+                ];
+            }
+        }
+
+        // Sort return items by AFS ID first, then by alias
+        usort($returnItems, function($a, $b) {
+            // Items with AFS IDs should come first
+            $aHasAfsId = !empty($a['afs_id']) && $a['afs_id'] !== 0 && $a['afs_id'] !== '0';
+            $bHasAfsId = !empty($b['afs_id']) && $b['afs_id'] !== 0 && $b['afs_id'] !== '0';
+            
+            // If one has AFS ID and other doesn't, prioritize the one with AFS ID
+            if ($aHasAfsId && !$bHasAfsId) {
+                return -1; // a comes first
+            }
+            if (!$aHasAfsId && $bHasAfsId) {
+                return 1; // b comes first
+            }
+            
+            // Both have AFS IDs - sort numerically
+            if ($aHasAfsId && $bHasAfsId) {
+                $afsComparison = (int)$a['afs_id'] - (int)$b['afs_id'];
+                if ($afsComparison != 0) {
+                    return $afsComparison;
+                }
+            }
+            
+            // Both don't have AFS IDs, or AFS IDs are the same - sort by alias
+            return strcmp($a['alias'] ?? '', $b['alias'] ?? '');
+        });
+
+        // Send email to each recipient
+        foreach ($recipients as $recipient) {
+            try {
+                $recipient->notify(new EquipmentReturnNotification(
+                    $returnRecord,
+                    $kit,
+                    $returnedToUser,
+                    $processedByUser,
+                    $returnItems,
+                    $attachments
+                ));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send equipment return notification to ' . $recipient->email . ': ' . $e->getMessage());
+            }
         }
     }
 }

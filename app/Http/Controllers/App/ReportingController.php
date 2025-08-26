@@ -629,10 +629,21 @@ class ReportingController extends Controller
     public function kitDetailsReport(Request $request){
         $data = DB::connection('wings_data')
         ->table('assets.kits')
-        ->leftJoin('assets.asset_log', function($join) {
-            $join->on('kits.id', '=', 'asset_log.kit_id');
-                // ->where('issued', '<=', date("Y-m-d"));
-        })
+        ->leftJoinSub(
+            DB::table('assets.asset_log as latest_log')
+                ->select('latest_log.*')
+                ->join(DB::raw('(
+                    SELECT kit_id, MAX(id) as max_id 
+                    FROM assets.asset_log 
+                    GROUP BY kit_id
+                ) as max_logs'), function($join) {
+                    $join->on('latest_log.kit_id', '=', 'max_logs.kit_id')
+                         ->on('latest_log.id', '=', 'max_logs.max_id');
+                })
+                ->where('latest_log.issued', true),
+            'asset_log',
+            'kits.id', '=', 'asset_log.kit_id'
+        )
         ->leftJoin('wings_config.users', 'users.id', '=', 'asset_log.user_id')
         ->leftJoin('assets.kit_items', 'kits.id', '=', 'kit_items.kit_id')
         ->leftJoin('assets.assets as laptop', function($join) {
@@ -649,12 +660,13 @@ class ReportingController extends Controller
         })
         ->select(DB::raw("
             kits.alias,
-            asset_log.issued as issued_on,
+            asset_log.issued_date as issued_on,
             users.name AS issued_to,
             IFNULL(MAX(laptop.alias), '') AS laptop_alias,
             IFNULL(MAX(laptop.make), '') AS laptop_make,
             IFNULL(MAX(telephone.alias), '') AS telephone_alias,
-            IFNULL(MAX(headset.alias), '') AS headset_alias
+            IFNULL(MAX(headset.alias), '') AS headset_alias,
+            IF(kits.active, IF(users.name IS NULL, 'Available', 'Issued'), 'Inactive') AS status
         "))
         ->orderBy('kits.alias', 'asc')
         ->groupBy('kits.alias')
