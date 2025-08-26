@@ -2,7 +2,7 @@
 {{-- Header --}}
 <x-slot:header>
 <x-mail::header :url="config('app.url')">
-{{ config('app.name') }}
+Pulse - Angel Fulfilment Services
 </x-mail::header>
 </x-slot:header>
 
