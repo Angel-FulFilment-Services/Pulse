@@ -206,7 +206,6 @@ Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassig
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
-Route::get('/test-email-image', [AssetController::class, 'testEmailImage']);
 
 /*
 |-----------------------
