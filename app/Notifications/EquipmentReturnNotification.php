@@ -70,9 +70,16 @@ class EquipmentReturnNotification extends Notification
 
         // Add attachments if they exist
         foreach ($this->attachments as $attachment) {
-            if (Storage::disk('r2')->exists($attachment['path'])) {
-                $fileContents = Storage::disk('r2')->get($attachment['path']);
-                $mailMessage->attachData($fileContents, $attachment['original_name']);
+            try {                
+                if (isset($attachment['path']) && Storage::disk('r2')->exists($attachment['path'])) {
+                    $fileContents = Storage::disk('r2')->get($attachment['path']);
+                    $fileName = $attachment['original_name'] ?? 'attachment';
+                    $mailMessage->attachData($fileContents, $fileName);
+                } else {
+                    \Log::warning('Attachment file not found or missing path: ' . ($attachment['path'] ?? 'no path'));
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to attach file: ' . $e->getMessage());
             }
         }
 

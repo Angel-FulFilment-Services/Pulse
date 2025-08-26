@@ -990,11 +990,11 @@ class AssetController extends Controller
     {
         // Get users with the permission to receive equipment return emails
         $recipients = User::whereHas('assignedPermissionsUser', function($query) {
-            $query->where('right', 'pulse_recieve_equipment_return_emails');
+            $query->where('right', 'pulse_receive_equipment_return_emails');
         })->get();
 
         if ($recipients->isEmpty()) {
-            \Log::info('No users found with pulse_recieve_equipment_return_emails permission');
+            \Log::info('No users found with pulse_receive_equipment_return_emails permission');
             return;
         }
 
@@ -1077,6 +1077,32 @@ class AssetController extends Controller
             }
         }
 
+        // Sort return items by AFS ID first, then by alias
+        usort($returnItems, function($a, $b) {
+            // Items with AFS IDs should come first
+            $aHasAfsId = !empty($a['afs_id']) && $a['afs_id'] !== 0 && $a['afs_id'] !== '0';
+            $bHasAfsId = !empty($b['afs_id']) && $b['afs_id'] !== 0 && $b['afs_id'] !== '0';
+            
+            // If one has AFS ID and other doesn't, prioritize the one with AFS ID
+            if ($aHasAfsId && !$bHasAfsId) {
+                return -1; // a comes first
+            }
+            if (!$aHasAfsId && $bHasAfsId) {
+                return 1; // b comes first
+            }
+            
+            // Both have AFS IDs - sort numerically
+            if ($aHasAfsId && $bHasAfsId) {
+                $afsComparison = (int)$a['afs_id'] - (int)$b['afs_id'];
+                if ($afsComparison != 0) {
+                    return $afsComparison;
+                }
+            }
+            
+            // Both don't have AFS IDs, or AFS IDs are the same - sort by alias
+            return strcmp($a['alias'] ?? '', $b['alias'] ?? '');
+        });
+
         // Send email to each recipient
         foreach ($recipients as $recipient) {
             try {
@@ -1088,8 +1114,6 @@ class AssetController extends Controller
                     $returnItems,
                     $attachments
                 ));
-                
-                \Log::info('Equipment return notification sent to: ' . $recipient->email);
             } catch (\Exception $e) {
                 \Log::error('Failed to send equipment return notification to ' . $recipient->email . ': ' . $e->getMessage());
             }
@@ -1223,21 +1247,58 @@ class AssetController extends Controller
                         }
                     }
 
-                    // Send test email to current user
-                    auth()->user()->notify(new EquipmentReturnNotification(
-                        $return,
-                        $kit,
-                        $returnedToUser,
-                        $processedByUser,
-                        $returnItems,
-                        $attachments
-                    ));
+                    // Sort return items by AFS ID first, then by alias
+                    usort($returnItems, function($a, $b) {
+                        // Items with AFS IDs should come first
+                        $aHasAfsId = !empty($a['afs_id']) && $a['afs_id'] !== 0 && $a['afs_id'] !== '0';
+                        $bHasAfsId = !empty($b['afs_id']) && $b['afs_id'] !== 0 && $b['afs_id'] !== '0';
+                        
+                        // If one has AFS ID and other doesn't, prioritize the one with AFS ID
+                        if ($aHasAfsId && !$bHasAfsId) {
+                            return -1; // a comes first
+                        }
+                        if (!$aHasAfsId && $bHasAfsId) {
+                            return 1; // b comes first
+                        }
+                        
+                        // Both have AFS IDs - sort numerically
+                        if ($aHasAfsId && $bHasAfsId) {
+                            $afsComparison = (int)$a['afs_id'] - (int)$b['afs_id'];
+                            if ($afsComparison != 0) {
+                                return $afsComparison;
+                            }
+                        }
+                        
+                        // Both don't have AFS IDs, or AFS IDs are the same - sort by alias
+                        return strcmp($a['alias'] ?? '', $b['alias'] ?? '');
+                    });
 
-                    $emailCount++;
-                    $results[] = "✓ Sent: Return ID {$return->id} (Kit: {$kit->alias}, Date: {$return->datetime})";
+                    // Send test email to users with the actual permission
+                    $recipients = User::whereHas('assignedPermissionsUser', function($query) {
+                        $query->where('right', 'pulse_receive_equipment_return_emails');
+                    })->get();
 
-                    // Add 2 second delay to avoid hitting rate limits
-                    sleep(2);
+                    $emailsSentForReturn = 0;
+                    foreach ($recipients as $recipient) {
+                        try {
+                            $recipient->notify(new EquipmentReturnNotification(
+                                $return,
+                                $kit,
+                                $returnedToUser,
+                                $processedByUser,
+                                $returnItems,
+                                $attachments
+                            ));
+                            $emailsSentForReturn++;
+
+                            sleep(0.5);
+                        } catch (\Exception $e) {
+                            $results[] = "✗ Failed to send to {$recipient->email}: " . $e->getMessage();
+                        }
+                    }
+
+                    $emailCount += $emailsSentForReturn;
+                    $results[] = "✓ Sent: Return ID {$return->id} (Kit: {$kit->alias}, Date: {$return->datetime}) - {$emailsSentForReturn} emails sent";
 
                 } catch (\Exception $e) {
                     $results[] = "✗ Error: Return ID {$return->id} - " . $e->getMessage();
