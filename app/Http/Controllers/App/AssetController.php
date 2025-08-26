@@ -11,8 +11,12 @@ use App\Models\Asset\Kit;
 use App\Models\Asset\Item;
 use App\Models\Asset\PAT;
 use App\Models\HR\Employee;
+use App\Models\User\User;
 use App\Helper\Auditing;
 use App\Models\Asset\EquipmentReturn;
+use App\Notifications\EquipmentReturnNotification;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Storage;
 use Log;
 use DB;
@@ -686,6 +690,14 @@ class AssetController extends Controller
             // Optionally, log the action
             Auditing::log('Assets', auth()->user()->id, 'Equipment Return Processed', 'Kit ID: ' . $request->kit_id);
 
+            // Send email notification to users with permission
+            try {
+                $this->sendEquipmentReturnNotification($request, $user, $storedAttachments);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send equipment return email notification: ' . $e->getMessage());
+                // Don't fail the entire process if email fails
+            }
+
             return response()->json(['message' => 'Equipment return processed successfully!'], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -968,6 +980,283 @@ class AssetController extends Controller
         } catch (\Exception $e) {
             Log::error('Error saving absence event: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to save absence event.'], 500);
+        }
+    }
+
+    /**
+     * Send equipment return notification email
+     */
+    private function sendEquipmentReturnNotification($request, $returnedToUser, $attachments)
+    {
+        // Get users with the permission to receive equipment return emails
+        $recipients = User::whereHas('assignedPermissionsUser', function($query) {
+            $query->where('right', 'pulse_recieve_equipment_return_emails');
+        })->get();
+
+        if ($recipients->isEmpty()) {
+            \Log::info('No users found with pulse_recieve_equipment_return_emails permission');
+            return;
+        }
+
+        // Get kit information
+        $kit = Kit::find($request->kit_id);
+        if (!$kit) {
+            \Log::error('Kit not found for ID: ' . $request->kit_id);
+            return;
+        }
+
+        // Get processed by user information
+        $processedByUser = auth()->user()->employee;
+        if (!$processedByUser) {
+            \Log::error('Processed by user not found');
+            return;
+        }
+
+        // Get return record
+        $returnRecord = EquipmentReturn::where('kit_id', $request->kit_id)
+            ->orderBy('datetime', 'desc')
+            ->first();
+
+        if (!$returnRecord) {
+            \Log::error('Return record not found for kit ID: ' . $request->kit_id);
+            return;
+        }
+
+        // Collect all return items with their details
+        $returnItems = [];
+        
+        // Add functioning items
+        foreach ($request->functioning ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'functioning'
+                ];
+            }
+        }
+
+        // Add faulty items
+        foreach ($request->faulty ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'faulty'
+                ];
+            }
+        }
+
+        // Add damaged items
+        foreach ($request->damaged ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'damaged'
+                ];
+            }
+        }
+
+        // Add not returned items
+        foreach ($request->not_returned ?? [] as $assetId) {
+            $asset = Asset::find($assetId);
+            if ($asset) {
+                $returnItems[] = [
+                    'afs_id' => $asset->afs_id,
+                    'alias' => $asset->alias,
+                    'type' => $asset->type,
+                    'status' => 'not_returned'
+                ];
+            }
+        }
+
+        // Send email to each recipient
+        foreach ($recipients as $recipient) {
+            try {
+                $recipient->notify(new EquipmentReturnNotification(
+                    $returnRecord,
+                    $kit,
+                    $returnedToUser,
+                    $processedByUser,
+                    $returnItems,
+                    $attachments
+                ));
+                
+                \Log::info('Equipment return notification sent to: ' . $recipient->email);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send equipment return notification to ' . $recipient->email . ': ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * TEMPORARY METHOD FOR TESTING EQUIPMENT RETURN EMAILS
+     * Generate test emails for equipment returns from the last 2 weeks
+     * TODO: Remove this method after testing is complete
+     */
+    public function testEquipmentReturnEmails(Request $request)
+    {
+        try {
+            // Get equipment returns from the last 2 weeks
+            $twoWeeksAgo = now()->subWeeks(2);
+            
+            $returns = EquipmentReturn::where('datetime', '>=', $twoWeeksAgo)
+                ->orderBy('datetime', 'desc')
+                ->get();
+
+            $emailCount = 0;
+            $results = [];
+
+            foreach ($returns as $return) {
+                try {
+                    // Get kit data
+                    $kit = Kit::find($return->kit_id);
+                    if (!$kit) {
+                        $results[] = "Skip: Return ID {$return->id} - Kit not found";
+                        continue;
+                    }
+
+                    // Get user data manually using the stored IDs
+                    $returnedToUser = null;
+                    if ($return->returned_by_user_id) {
+                        $returnedToUser = Employee::where('user_id', $return->returned_by_user_id)->first();
+                    }
+                    
+                    $processedByUser = null;
+                    if ($return->processed_by_user_id) {
+                        $processedByUser = Employee::where('user_id', $return->processed_by_user_id)->first();
+                    }
+                    
+                    if (!$returnedToUser || !$processedByUser) {
+                        $results[] = "Skip: Return ID {$return->id} - User data incomplete (returned_by: " . ($returnedToUser ? 'found' : 'missing') . ", processed_by: " . ($processedByUser ? 'found' : 'missing') . ")";
+                        continue;
+                    }
+
+                    // Get return items from the separate JSON arrays
+                    $returnItems = [];
+                    
+                    // Add functioning items
+                    if ($return->items_functioning) {
+                        $functioningIds = json_decode($return->items_functioning, true);
+                        if (is_array($functioningIds)) {
+                            foreach ($functioningIds as $assetId) {
+                                $asset = Asset::find($assetId);
+                                if ($asset) {
+                                    $returnItems[] = [
+                                        'afs_id' => $asset->afs_id,
+                                        'alias' => $asset->alias,
+                                        'type' => $asset->type,
+                                        'status' => 'functioning'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Add faulty items
+                    if ($return->items_faulty) {
+                        $faultyIds = json_decode($return->items_faulty, true);
+                        if (is_array($faultyIds)) {
+                            foreach ($faultyIds as $assetId) {
+                                $asset = Asset::find($assetId);
+                                if ($asset) {
+                                    $returnItems[] = [
+                                        'afs_id' => $asset->afs_id,
+                                        'alias' => $asset->alias,
+                                        'type' => $asset->type,
+                                        'status' => 'faulty'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Add damaged items
+                    if ($return->items_damaged) {
+                        $damagedIds = json_decode($return->items_damaged, true);
+                        if (is_array($damagedIds)) {
+                            foreach ($damagedIds as $assetId) {
+                                $asset = Asset::find($assetId);
+                                if ($asset) {
+                                    $returnItems[] = [
+                                        'afs_id' => $asset->afs_id,
+                                        'alias' => $asset->alias,
+                                        'type' => $asset->type,
+                                        'status' => 'damaged'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Add not returned items
+                    if ($return->items_not_returned) {
+                        $notReturnedIds = json_decode($return->items_not_returned, true);
+                        if (is_array($notReturnedIds)) {
+                            foreach ($notReturnedIds as $assetId) {
+                                $asset = Asset::find($assetId);
+                                if ($asset) {
+                                    $returnItems[] = [
+                                        'afs_id' => $asset->afs_id,
+                                        'alias' => $asset->alias,
+                                        'type' => $asset->type,
+                                        'status' => 'not_returned'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+
+                    // Get attachments
+                    $attachments = [];
+                    if ($return->attachments) {
+                        $attachmentData = json_decode($return->attachments, true);
+                        if (is_array($attachmentData)) {
+                            $attachments = $attachmentData;
+                        }
+                    }
+
+                    // Send test email to current user
+                    auth()->user()->notify(new EquipmentReturnNotification(
+                        $return,
+                        $kit,
+                        $returnedToUser,
+                        $processedByUser,
+                        $returnItems,
+                        $attachments
+                    ));
+
+                    $emailCount++;
+                    $results[] = "✓ Sent: Return ID {$return->id} (Kit: {$kit->alias}, Date: {$return->datetime})";
+
+                    // Add 2 second delay to avoid hitting rate limits
+                    sleep(2);
+
+                } catch (\Exception $e) {
+                    $results[] = "✗ Error: Return ID {$return->id} - " . $e->getMessage();
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Test completed! Sent {$emailCount} emails out of " . $returns->count() . " returns found.",
+                'emails_sent' => $emailCount,
+                'total_returns' => $returns->count(),
+                'results' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error running test: ' . $e->getMessage()
+            ], 500);
         }
     }
 }
