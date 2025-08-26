@@ -1,10 +1,10 @@
+@props(['url'])
 <tr>
 <td class="header">
-@if (trim($slot) == 'Pulse - Angel Fulfilment Services')
-<img src="data:image/webp;base64,{{ base64_encode(file_get_contents(public_path('images/hero-large.webp'))) }}" height="75" class="logo" alt="Pulse">
-@else
-{{ $slot }}
-@endif
+<a href="{{ $url }}" style="display: inline-block;">
+<div style="text-align: center; width: 100%;">
+<img src="{{ asset('images/hero-large.webp') }}" height="75" class="logo" alt="Pulse" style="display: block; margin: 0 auto; max-width: 100%;">
+</div>
 </a>
 </td>
 </tr>
