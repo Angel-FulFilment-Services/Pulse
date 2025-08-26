@@ -1,1 +1,1 @@
-[{{ $slot }}]({{ $url }})
+Pulse - Angel Fulfilment Services
