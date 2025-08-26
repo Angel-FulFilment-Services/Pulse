@@ -225,6 +225,3 @@ Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsi
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
 Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
 Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
-
-// TEMPORARY TESTING ROUTE - REMOVE AFTER TESTING
-Route::get('/test-equipment-return-emails', [AssetController::class, 'testEquipmentReturnEmails'])->middleware('auth', 'twofactor');
