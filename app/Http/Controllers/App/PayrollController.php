@@ -100,9 +100,9 @@ class PayrollController extends Controller
                 [$startDate, $endDate, $startDate, $endDate, $startDate, $endDate, $startDate, $endDate, $startDate, $endDate, $startDate, $endDate]
             )
             ->groupBy('d1.hr_id'),
-            'dow_updates',
+            'dow',
             function($join) {
-                $join->on('hr_details.hr_id', '=', 'dow_updates.hr_id');
+                $join->on('hr_details.hr_id', '=', 'dow.hr_id');
             }
         )
         ->leftJoinSub(
