@@ -41,6 +41,7 @@ class SiteController extends Controller
                 ->groupBy('users.id')
                 ->whereNotNull('hr_details.rank')
                 ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->where('users.active', 1)
                 ->orderBy('name', 'asc')
                 ->get();
             return response()->json($employees, 200);
@@ -51,6 +52,7 @@ class SiteController extends Controller
                 ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title')
                 ->groupBy('users.id')
                 ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->where('users.active', 1)
                 ->orderBy('name', 'asc')
                 ->get();
         }
