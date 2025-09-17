@@ -129,7 +129,10 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 |-----------------------
 */
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
+Route::get('/knowledge-base/technical-support', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.technical_support');
+Route::get('/knowledge-base/call-hub', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.call_quality');
 Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
+Route::post('/knowledge-base/create', [KnowledgeBaseController::class, 'create'])->name('knowledge_base.create');
 Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');
 Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
 Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
@@ -206,6 +209,7 @@ Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassig
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
+Route::get('/asset-management/kits/assignable-users', [AssetController::class, 'assignable_users']);
 
 /*
 |-----------------------

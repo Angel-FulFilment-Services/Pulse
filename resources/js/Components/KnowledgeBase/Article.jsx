@@ -165,7 +165,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                 </span>
               ))}  
             </div>
-            <Link href={`/knowledge-base`} className="text-sm font-medium text-gray-900 dark:text-dark-100 hover:text-gray-600 dark:hover:text-dark-200 flex items-center gap-x-2">
+            <Link href={`/knowledge-base/${article.category.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-medium text-gray-900 dark:text-dark-100 hover:text-gray-600 dark:hover:text-dark-200 flex items-center gap-x-2">
               <span className="pl-2 text-md font-semibold" aria-hidden="true">&larr;</span> Back to Knowledge Base
               <span className="sr-only">Back to Knowledge Base</span>
             </Link>
@@ -200,7 +200,9 @@ export default function Article({ article, questions = [], resolutions = [] }) {
             <div className="w-1 h-1 shrink-0 mt-1 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
             <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">{ article.category }</span>
             <div className="w-1 h-1 shrink-0 mt-1 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-            <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">10 minute read</span>
+            <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
+              {article.read_time ? `${article.read_time} minute read` : '1 minute read'}
+            </span>
           </h1>
         </div>
       </header>
@@ -209,7 +211,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
           <article className="bg-white dark:bg-dark-900 shadow-xl rounded-2xl mx-4 mb-8">
             <div className="px-8 py-8 lg:px-12 lg:py-12">
               {!showVisualGuide && !showBuilder && (
-                <div className="flex flex-row items-start justify-between mb-8">
+                <div className="flex flex-row items-start justify-between">
                   {article.article_image && (
                     <SmartImage 
                       filename={article.article_image}
@@ -218,8 +220,8 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                       path="articles"
                     />
                   )}
-                  <div className="flex gap-3 items-center">
-                    {questions.length > 0 ? (
+                  {/* Only show visual guide functionality for Technical Support articles */}
+                  {article.category === 'Technical Support' && (
                       <>
                         <button 
                           onClick={isReloading ? undefined : () => setShowVisualGuide(true)}
@@ -264,7 +266,8 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                         {isReloading ? 'Loading...' : 'Create Visual Guide'}
                       </button>
                     ) : null}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
               {!showVisualGuide && !showBuilder ? (
@@ -292,7 +295,65 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                         <code className="bg-gray-100 dark:bg-dark-800 px-1 py-0.5 rounded text-sm font-mono text-theme-600 dark:text-theme-400" {...props} /> :
                         <code className="block bg-gray-100 dark:bg-dark-800 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...props} />,
                     pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-dark-800 p-4 rounded-lg overflow-x-auto mb-4" {...props} />,
-                    a: ({node, ...props}) => <a className="text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 underline" {...props} />,
+                    a: ({node, ...props}) => {
+                      const href = props.href;
+                      const text = props.children;
+                      
+                      // Handle case where children is a string directly
+                      const textContent = typeof text === 'string' ? text : (Array.isArray(text) ? text[0] : '');
+                      
+                      // Check if this contains audio content
+                      if (typeof textContent === 'string' && textContent.includes('audio:')) {
+                        
+                        // Extract URL from text content: "audio:https://..."
+                        const audioMatch = textContent.match(/audio:(https?:\/\/[^\s]+)/);
+                        
+                        if (audioMatch && audioMatch[1]) {
+                          const audioUrl = audioMatch[1];
+                          const filename = audioUrl.split('/').pop() || 'Audio File';
+                                                    
+                          return (
+                            <audio 
+                              controls 
+                              className="w-full max-w-md"
+                              preload="metadata"
+                            >
+                              <source src={audioUrl} type="audio/mpeg" />
+                              <source src={audioUrl} type="audio/wav" />
+                              <source src={audioUrl} type="audio/ogg" />
+                              Your browser does not support the audio element.
+                            </audio>
+                          );
+                        } else {
+                          console.log('No valid audio URL found in match');
+                        }
+                      }
+                      
+                      // Check if this is an audio URL in href
+                      const isAudioUrl = href && (
+                        href.includes('/audio/') || 
+                        href.match(/\.(mp3|wav|ogg|m4a)$/i)
+                      );
+                      
+                      if (isAudioUrl) {
+                        const filename = href.split('/').pop() || 'Audio File';
+                        
+                        return (
+                          <audio 
+                            controls 
+                            className="w-full max-w-md"
+                            preload="metadata"
+                          >
+                            <source src={href} type="audio/mpeg" />
+                            <source src={href} type="audio/wav" />
+                            <source src={href} type="audio/ogg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        );
+                      }
+                      
+                      return <a className="text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 underline" {...props} />;
+                    },
                     strong: ({node, ...props}) => <strong className="font-semibold text-gray-900 dark:text-dark-100" {...props} />,
                     em: ({node, ...props}) => <em className="italic" {...props} />,
                   }}

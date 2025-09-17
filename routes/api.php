@@ -64,7 +64,7 @@ Route::post('/asset-management/kits/status', [AssetController::class, 'isKitActi
 
 Route::post('/t2/send_sms', function (Request $request) {
     $apiKey = $request->header('X-API-Key') ?? $request->input('api_key');
-    $validApiKey = env('VITE_T2_API_KEY', '3e82e582452732fb721dc00d38858bfff3a377620e4ce0aa4b03be83e0d15250');
+    $validApiKey = env('VITE_T2_API_KEY');
 
     if ($apiKey !== $validApiKey) {
         return response()->json(['error' => 'Invalid API key'], 401);

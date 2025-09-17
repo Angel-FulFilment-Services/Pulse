@@ -1,0 +1,227 @@
+/* Custom styles for ReactQuill in dark mode */
+.dark .ql-snow {
+  border-color: rgb(75 85 99);
+}
+
+.dark .ql-snow .ql-toolbar {
+  background-color: rgb(55 65 81);
+}
+
+.dark .ql-snow .ql-container {
+  background-color: rgb(55 65 81);
+  color: rgb(243 244 246);
+  /* Removed border-color since we're using border: none */
+}
+
+.dark .ql-snow .ql-editor {
+  color: rgb(243 244 246);
+}
+
+.dark .ql-snow .ql-editor.ql-blank::before {
+  color: rgb(156 163 175);
+}
+
+.dark .ql-snow .ql-toolbar .ql-stroke {
+  stroke: rgb(243 244 246);
+}
+
+.dark .ql-snow .ql-toolbar .ql-fill {
+  fill: rgb(243 244 246);
+}
+
+.dark .ql-snow .ql-toolbar button:hover,
+.dark .ql-snow .ql-toolbar button:focus,
+.dark .ql-snow .ql-toolbar button.ql-active {
+  background-color: rgb(75 85 99);
+}
+
+.dark .ql-snow .ql-tooltip {
+  background-color: rgb(55 65 81);
+  border-color: rgb(75 85 99);
+  color: rgb(243 244 246);
+}
+
+.dark .ql-snow .ql-tooltip input[type=text] {
+  background-color: rgb(31 41 55);
+  border-color: rgb(75 85 99);
+  color: rgb(243 244 246);
+}
+
+.dark .ql-snow .ql-picker-options {
+  background-color: rgb(55 65 81);
+  border-color: rgb(75 85 99);
+}
+
+.dark .ql-snow .ql-picker-item:hover {
+  background-color: rgb(75 85 99);
+  color: rgb(243 244 246);
+}
+
+/* Ensure proper height for the editor */
+.quill-editor .ql-container {
+  min-height: 300px;
+}
+
+.quill-editor .ql-editor {
+  min-height: 260px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.quill {
+    padding: 1.5px;
+}
+
+/* Style the editor to match our design system */
+.ql-snow {
+  border: 1px solid rgb(209 213 219) !important; /* border-gray-300 */
+  border-radius: 0.375rem; /* rounded-md */
+}
+
+.dark .ql-snow {
+  border-color: rgb(75 85 99) !important; /* dark:border-dark-600 */
+}
+
+.ql-snow .ql-toolbar {
+  border: none !important; /* Remove individual borders */
+  border-bottom: 1px solid rgb(209 213 219) !important; /* border-gray-300 */
+  border-radius: 0.375rem 0.375rem 0 0; /* rounded-md top corners */
+}
+
+.dark .ql-snow .ql-toolbar {
+  border-bottom-color: rgb(75 85 99) !important; /* dark:border-dark-600 */
+}
+
+.ql-snow .ql-container {
+  border: none !important; /* Remove individual borders */
+  border-radius: 0 0 0.375rem 0.375rem; /* rounded-md bottom corners */
+}
+
+/* Focus states to match form inputs - only when editor is focused, not toolbar */
+.ql-snow .ql-editor:focus {
+  outline: none;
+}
+
+.ql-snow:has(.ql-editor:focus) {
+  border-color: rgb(var(--theme-600)) !important;
+  box-shadow: 0 0 0 1px rgb(var(--theme-600)) !important; /* Outer ring like ring-2 */
+}
+
+.dark .ql-snow:has(.ql-editor:focus) {
+  border-color: rgb(var(--theme-700)) !important;
+  box-shadow: 0 0 0 1px rgb(var(--theme-700)) !important; /* Outer ring like ring-2 */
+}
+
+/* Flexbox support for ReactQuill to take remaining space */
+.quill-editor.flex-1 {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* Allow shrinking to make room for help text */
+}
+
+.quill-editor.flex-1 .ql-snow {
+  display: flex;
+  flex-direction: column; /* Stack toolbar and editor vertically */
+  flex: 1;
+  min-height: 0; /* Add space between toolbar and container */
+}
+
+.quill-editor.flex-1 .ql-toolbar {
+  flex-shrink: 0; /* Fixed toolbar height */
+  flex-direction: row; /* Keep toolbar items in a row */
+  margin-bottom: 10px;
+}
+
+.quill-editor.flex-1 .ql-container {
+  flex: 1; /* Takes remaining space */
+  min-height: 0; /* Override the 300px min-height rule */
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 52px); /* Subtract toolbar height explicitly */
+}
+
+.quill-editor.flex-1 .ql-editor {
+  flex: 1; /* Take remaining space in container instead of 100% height */
+  min-height: 0; /* Override the 260px min-height rule */
+  overflow-y: auto; /* Scroll when content exceeds */
+  padding-bottom: 20px; /* Ensure bottom content is visible */
+  box-sizing: border-box; /* Include padding in height calculation */
+}
+
+.ql-snow.ql-toolbar button:hover,
+.ql-snow .ql-toolbar button:hover,
+.ql-snow.ql-toolbar button:focus,
+.ql-snow .ql-toolbar button:focus,
+.ql-snow.ql-toolbar button.ql-active,
+.ql-snow .ql-toolbar button.ql-active,
+.ql-snow.ql-toolbar .ql-picker-label:hover,
+.ql-snow .ql-toolbar .ql-picker-label:hover,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active,
+.ql-snow.ql-toolbar .ql-picker-item:hover,
+.ql-snow .ql-toolbar .ql-picker-item:hover,
+.ql-snow.ql-toolbar .ql-picker-item.ql-selected,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected {
+  color: rgb(var(--theme-600)) !important;
+}
+.ql-snow.ql-toolbar button:hover .ql-fill,
+.ql-snow .ql-toolbar button:hover .ql-fill,
+.ql-snow.ql-toolbar button:focus .ql-fill,
+.ql-snow .ql-toolbar button:focus .ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-item:hover .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-item:hover .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-fill,
+.ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar button:hover .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar button:focus .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar button:focus .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar .ql-picker-item:hover .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar .ql-picker-item:hover .ql-stroke.ql-fill,
+.ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke.ql-fill,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke.ql-fill {
+  fill: rgb(var(--theme-600)) !important;
+}
+.ql-snow.ql-toolbar button:hover .ql-stroke,
+.ql-snow .ql-toolbar button:hover .ql-stroke,
+.ql-snow.ql-toolbar button:focus .ql-stroke,
+.ql-snow .ql-toolbar button:focus .ql-stroke,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-item:hover .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-item:hover .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke,
+.ql-snow.ql-toolbar button:hover .ql-stroke-miter,
+.ql-snow .ql-toolbar button:hover .ql-stroke-miter,
+.ql-snow.ql-toolbar button:focus .ql-stroke-miter,
+.ql-snow .ql-toolbar button:focus .ql-stroke-miter,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke-miter,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke-miter,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-stroke-miter,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke-miter,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke-miter,
+.ql-snow.ql-toolbar .ql-picker-item:hover .ql-stroke-miter,
+.ql-snow .ql-toolbar .ql-picker-item:hover .ql-stroke-miter,
+.ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke-miter,
+.ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke-miter {
+  stroke: rgb(var(--theme-600)) !important;
+}

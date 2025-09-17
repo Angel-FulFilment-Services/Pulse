@@ -1,24 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { router } from '@inertiajs/react';
 import '../../Components/Reporting/ReportingStyles.css';
 import Header from '../../Components/KnowledgeBase/Header.jsx';
 import Feed from '../../Components/KnowledgeBase/Feed.jsx';
 
 const Reporting = () => {
     const [search, setSearch] = useState('');
-    const navigate = useNavigate();
-    const location = useLocation();
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Get current URL to determine active tab
+    const currentPath = window.location.pathname;
 
     const tabs = [
-        { id: 'technical_support', label: 'Technical Support', path: '/reporting/rota', current: true },
+        { id: 'technical-support', label: 'Technical Support', path: '/knowledge-base/technical-support', current: true },
+        { id: 'call-hub', label: 'Call Hub', path: '/knowledge-base/call-hub', current: true },
     ];
 
-    const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
+    const activeTab = tabs.find((tab) => currentPath.includes(tab.id))?.id || tabs[0].id;
 
     const handleTabClick = (path) => {
-        setArticle([]);
-        navigate(path);
+        router.visit(path);
+    };
+
+    const handlePostCreated = (newPost) => {
+        // Trigger refresh of the feed
+        setRefreshTrigger(prev => prev + 1);
     };
 
     useEffect(() => {
@@ -46,10 +52,15 @@ const Reporting = () => {
                         handleTabClick={handleTabClick}
                         search={search}
                         setSearch={setSearch}
+                        onPostCreated={handlePostCreated}
                     />
                 </div>
             </div>
-            <Feed searchTerm={search} />
+            <Feed 
+                searchTerm={search} 
+                activeTab={activeTab} 
+                refreshTrigger={refreshTrigger}
+            />
         </div>
     );
 };

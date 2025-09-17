@@ -24,6 +24,8 @@ export default function UserInput(props) {
     disabled,
     uppercase,
     annotation,
+    endpoint = '/users', // Default endpoint to fetch users, defaults to /users to get only active users.
+    confirmChange = true,
   } = props;
 
   const [items, setItems] = useState([]);
@@ -36,7 +38,7 @@ export default function UserInput(props) {
 
   // Fetch users on mount
   useEffect(() => {
-    axios.get('/users')
+    axios.get(endpoint)
       .then(response => {
         const users = response.data.map(user => ({
           id: user.id,
@@ -76,9 +78,11 @@ export default function UserInput(props) {
     selectedItem,
     onInputValueChange: ({ inputValue }) => setInputValue(inputValue),
     onSelectedItemChange: ({ selectedItem }) => {
-      if (selectedItem) {
+      if (selectedItem && confirmChange) {
         setPendingSelection(selectedItem);
         setIsDialogOpen(true);
+      } else {
+        handleComboChange(selectedItem);
       }
     },
     defaultSelectedItem: selectedItem,

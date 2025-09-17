@@ -1119,4 +1119,21 @@ class AssetController extends Controller
             }
         }
     }
+
+    public function assignable_users(Request $request){
+        // Fetch all users with their HR details
+        $users = User::where('client_ref', '=', 'ANGL')
+            ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
+            ->leftJoin('assets.asset_log', function($join) {
+                $join->on('asset_log.user_id', '=', 'users.id')
+                    ->where('asset_log.issued', '=', 1)
+                    ->where('asset_log.returned', '=', 0);
+            })
+            ->select('users.id', 'users.name', 'users.email', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title', 'asset_log.id as asset_log_id')
+            ->groupBy('users.id')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json($users, 200);
+    }
 }

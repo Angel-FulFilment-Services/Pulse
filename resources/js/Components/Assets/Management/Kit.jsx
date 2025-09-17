@@ -518,7 +518,7 @@ export default function Kit({ onCancel, goBack, goTo, changeAsset, refreshAsset,
                                                     assignKit(value[0]?.userId);
                                                 }}
                                                 placeholder="Assign to kit to"
-
+                                                endpoint="/asset-management/kits/assignable-users"
                                             />
                                         </div>
                                     )}

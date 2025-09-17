@@ -1,7 +1,14 @@
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
+import React, { useState } from 'react';
 import TextInput from '../../Components/Forms/TextInput';
+import { usePage } from '@inertiajs/react';
+import { hasPermission } from '../../Utils/Permissions';
+import PostModal from './PostModal';
 
-export default function Header({ tabs, activeTab, handleTabClick, search, setSearch }) {
+export default function Header({ tabs, activeTab, handleTabClick, search, setSearch, onPostCreated }) {  
+  const { auth } = usePage().props;
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
   }
@@ -47,17 +54,34 @@ export default function Header({ tabs, activeTab, handleTabClick, search, setSea
         <div className="absolute inset-x-0 bottom-0 h-px bg-gray-900/5 dark:bg-dark-100/5" />
       </div>
       <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
-        <div className="w-full flex items-center gap-x-2">
+        <div className="w-full flex items-center gap-x-4">
           <div className="max-w-96 w-full relative">
             <TextInput
               id="view-select"
               Icon={MagnifyingGlassIcon}
               onTextChange={setSearch}
-              placeholder={`Start typing your issue or question...`}
+              placeholder={`Start typing your issue, question or topic...`}
               currentState={search}
               returnRaw={true}
             />
           </div>
+          
+          {hasPermission("pulse_create_articles") && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-x-2 rounded-lg bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 transition-colors duration-200 dark:bg-theme-600 dark:hover:bg-theme-500"
+            >
+              <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+              Create Article
+            </button>
+          )}
+          
+          <PostModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            activeTab={activeTab}
+            onPostCreated={onPostCreated}
+          />
         </div>
       </div>
     </header>

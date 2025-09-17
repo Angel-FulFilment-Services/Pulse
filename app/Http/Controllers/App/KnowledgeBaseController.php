@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class KnowledgeBaseController extends Controller
@@ -25,8 +26,12 @@ class KnowledgeBaseController extends Controller
     public function articles(Request $request){
         $articles = DB::connection('pulse')
             ->table('knowledge_base_articles')
-            ->select('id', 'title', 'category', 'description', 'tags', 'article_image', 'published_at', 'visits')
+            ->select('id', 'title', 'category', 'description', 'tags', 'article_image', 'published_at', 'visits', 'read_time')
             ->where('published_at', '<=', now())
+            ->when($request->category, function ($query, $category) {
+                $category = str_replace('-', ' ', $category);
+                return $query->where('category', $category);
+            })
             ->orderBy('visits', 'desc')
             ->get();
 
@@ -38,12 +43,34 @@ class KnowledgeBaseController extends Controller
     public function article($id){
         $article = DB::connection('pulse')
             ->table('knowledge_base_articles')
-            ->select('id', 'title', 'category', 'description', 'tags', 'body', 'article_image', 'published_at', 'visits')
+            ->select('id', 'title', 'category', 'description', 'tags', 'body', 'soundfiles', 'article_image', 'published_at', 'visits', 'read_time')
             ->where('id', $id)
             ->first();
 
         if (!$article) {
             abort(404);
+        }
+
+        // Process soundfiles to add temporary URLs
+        if (!is_null($article->soundfiles)) {
+            $soundfiles = json_decode($article->soundfiles, true);
+            $article->soundfiles = array_map(function ($soundfile) {
+                return [
+                    'path' => Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60)),
+                    'original_name' => $soundfile['original_name'],
+                    'mime_type' => $soundfile['mime_type'] ?? 'audio/wav',
+                    'size' => $soundfile['size'] ?? 0,
+                ];
+            }, $soundfiles);
+
+            // Process article body to replace audio references with temporary URLs
+            $body = $article->body;
+            foreach ($soundfiles as $soundfile) {
+                $temporaryUrl = Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60));
+                $audioReference = "[AUDIO:{$soundfile['path']}]";
+                $body = str_replace($audioReference, $temporaryUrl, $body);
+            }
+            $article->body = $body;
         }
 
         // Increment visit counter
@@ -547,5 +574,111 @@ class KnowledgeBaseController extends Controller
                 'message' => 'Failed to upload image: ' . $e->getMessage()
             ], 500);
         }
+    }
+    public function create(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:500',
+            'content' => 'required|string',
+            'tags' => 'required|array|min:1|max:10',
+            'tags.*' => 'string|max:50',
+            'category' => 'required|string|max:100',
+            'soundfiles.*' => 'file|mimes:wav,mp3,ogg,gsm|max:2048', // 2MB max per audio file (matching PHP limit)
+        ]);
+
+        if ($validator->fails()) {            
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Handle audio file uploads (store in R2)
+            $storedSoundfiles = [];
+            $content = $request->content;
+            if ($request->hasFile('soundfiles')) {
+                foreach ($request->file('soundfiles') as $file) {
+                    $path = $file->store('knowledge-base/audio', 'r2');
+                    
+                    $storedSoundfiles[] = [
+                        'path' => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                    ];
+                    // Replace blob URLs and filenames with a reference format that can be converted to temporary URLs later
+                    $audioReference = "[AUDIO:{$path}]";
+                    $content = str_replace($file->getClientOriginalName(), $audioReference, $content);
+                    // Also handle any blob URLs that might still be in the content
+                    $content = preg_replace('/\(blob:[^)]+\)/', "($audioReference)", $content);
+                }
+            }
+
+            // Convert category from slug to normal string (replace hyphens with spaces and capitalize)
+            $category = ucwords(str_replace('-', ' ', $request->category));
+
+            // Calculate read time
+            $readTime = $this->calculateReadTime($content, $storedSoundfiles);
+
+            // Insert the new article
+            $articleId = DB::connection('pulse')
+                ->table('knowledge_base_articles')
+                ->insertGetId([
+                    'title' => $request->title,
+                    'category' => $category,
+                    'description' => $request->description,
+                    'tags' => json_encode($request->tags),
+                    'body' => $content,
+                    'soundfiles' => json_encode($storedSoundfiles),
+                    'article_image' => null, // Can be added later via image upload
+                    'read_time' => $readTime,
+                    'published_at' => now(),
+                    'visits' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'message' => 'Article created successfully',
+                'article_id' => $articleId
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('Error creating knowledge base article: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'An error occurred while creating the article'
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate estimated read time for an article
+     * 
+     * @param string $content The article content (markdown)
+     * @return int Estimated read time in minutes
+     */
+    private function calculateReadTime($content)
+    {
+        // Average reading speed is 100-200 words per minute
+        // We'll use 100 to be conservative
+        $wordsPerMinute = 100;
+        
+        // Strip markdown and HTML to get plain text word count
+        $plainText = strip_tags(preg_replace('/\[.*?\]\(.*?\)/', '', $content)); // Remove markdown links
+        $plainText = preg_replace('/[#*_`>-]/', '', $plainText); // Remove markdown formatting
+        $plainText = preg_replace('/\[AUDIO:.*?\]/', '', $plainText); // Remove audio references
+        
+        // Count words
+        $wordCount = str_word_count($plainText);
+        
+        // Calculate base reading time
+        $readingTimeMinutes = $wordCount / $wordsPerMinute;
+        
+        // Round up to nearest minute, minimum 1 minute
+        return max(1, ceil($readingTimeMinutes));
     }
 }

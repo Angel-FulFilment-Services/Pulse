@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const useFetchArticles = () => {
+const useFetchArticles = (category, refreshTrigger = 0) => {
   const [articles, setArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -14,6 +14,9 @@ const useFetchArticles = () => {
     
       const response = await axios.get('/knowledge-base/articles', {
         signal: controller.signal, // Attach the AbortController signal
+        params: {
+          category, // Include the tab parameter in the request
+        },
       });
 
       clearTimeout(loadingTimeout);
@@ -51,7 +54,7 @@ const useFetchArticles = () => {
       controller.abort(); // Cancel the ongoing request
       clearTimeout(debounceTimeout.current); // Clear the debounce timeout
     };
-  }, []); // Re-run when startDate or endDate changes
+  }, [category, refreshTrigger]); // Re-run when category or refreshTrigger changes
 
   useEffect(() => {
     // Listen for the custom "refreshArticles" event

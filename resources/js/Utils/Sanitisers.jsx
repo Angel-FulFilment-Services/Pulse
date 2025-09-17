@@ -1,4 +1,5 @@
 import validator from 'validator';
+import TurndownService from 'turndown';
 
 /**
  * Sanitizes the input by removing all characters that appear in the blacklist.
@@ -160,4 +161,67 @@ export const sanitizeTelephoneNumber = (input) => {
 export const sanitizeURL = (input) => {
     // Remove any characters that are not allowed in URLs
     return input.replace(/[^a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=%]/g, '');
+};
+
+/**
+ * Strips HTML tags from the input string.
+ * @param {string} htmlContent - The HTML content to sanitize.
+ * @returns {string} - The text content without HTML tags.
+ */
+export const stripHtmlTags = (htmlContent) => {
+    if (!htmlContent || typeof htmlContent !== 'string') {
+        return '';
+    }
+    return htmlContent.replace(/<[^>]*>/g, '').trim();
+};
+
+/**
+ * Converts HTML content to Markdown format.
+ * @param {string} htmlContent - The HTML content to convert.
+ * @returns {string} - The converted Markdown content.
+ */
+export const convertToMarkdown = (htmlContent) => {
+    if (!htmlContent || typeof htmlContent !== 'string') {
+        return '';
+    }
+    
+    const turndownService = new TurndownService({
+        headingStyle: 'atx',
+        bulletListMarker: '-',
+        codeBlockStyle: 'fenced',
+        fence: '```',
+        emDelimiter: '*',
+        strongDelimiter: '**',
+        linkStyle: 'inlined',
+        linkReferenceStyle: 'full'
+    });
+    
+    // Add custom rule for audio elements
+    turndownService.addRule('audio', {
+        filter: 'audio',
+        replacement: function (content, node) {
+            const src = node.getAttribute('src');
+            const name = node.getAttribute('data-audio-name') || '';
+            return `[audio:${name || src}](${src})`;
+        }
+    });
+    
+    return turndownService.turndown(htmlContent);
+};
+
+/**
+ * Converts Markdown content with custom audio syntax back to HTML.
+ * @param {string} markdownContent - The Markdown content to convert.
+ * @returns {string} - The converted HTML content.
+ */
+export const convertFromMarkdown = (markdownContent) => {
+    if (!markdownContent || typeof markdownContent !== 'string') {
+        return '';
+    }
+    
+    // Convert custom audio syntax [audio:filename](url) back to HTML
+    const audioRegex = /\[audio:(.*?)\]\((.*?)\)/g;
+    return markdownContent.replace(audioRegex, (match, name, src) => {
+        return `<audio controls src="${src}" data-audio-name="${name}"></audio>`;
+    });
 };
