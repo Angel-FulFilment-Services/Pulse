@@ -16,8 +16,13 @@ export default function DateInput(props) {
   }
 
   useEffect(() => { 
-    const min = minDate ? new Date(minDate) : null;
-    const max = maxDate ? new Date(maxDate) : null;
+    // Validate dates before passing to dateSelectorOptions
+    const isValidDate = (date) => date && !isNaN(new Date(date).getTime());
+    const validMinDate = minDate && isValidDate(minDate) ? minDate : null;
+    const validMaxDate = maxDate && isValidDate(maxDate) ? maxDate : null;
+    
+    const min = validMinDate ? new Date(validMinDate) : null;
+    const max = validMaxDate ? new Date(validMaxDate) : null;
 
     setShortcuts(dateSelectorOptions(min, max)); 
   }, [minDate, maxDate])
