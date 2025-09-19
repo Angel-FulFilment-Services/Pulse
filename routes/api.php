@@ -83,26 +83,24 @@ Route::post('/t2/send_sms', function (Request $request) {
 
 /*
 |-----------------------
-| Camera Streaming API
+| Camera Streaming API - PeerJS Signaling
 |-----------------------
 */
 
-Route::post('/camera/offer', [SiteController::class, 'handleCameraOffer'])
+// QR Scanner stores its peer ID for viewers to find
+Route::post('/camera/stream-offer', [SiteController::class, 'handleStreamOffer'])
 ->withoutMiddleware('log.access')
-->withoutMiddleware('guest');
+->withoutMiddleware('guest')
+->middleware('throttle:100,1');
 
-Route::post('/camera/answer', [SiteController::class, 'handleCameraAnswer'])
+// Camera Viewer gets QR Scanner's peer ID
+Route::get('/camera/get-stream-offer', [SiteController::class, 'getStreamOffer'])
 ->withoutMiddleware('log.access')
-->withoutMiddleware('guest');
+->withoutMiddleware('guest')
+->middleware('throttle:100,1');
 
-Route::post('/camera/ice-candidate', [SiteController::class, 'handleIceCandidate'])
+// Clear stored peer IDs when needed
+Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers'])
 ->withoutMiddleware('log.access')
-->withoutMiddleware('guest');
-
-Route::get('/camera/signaling', [SiteController::class, 'cameraSignaling'])
-->withoutMiddleware('log.access')
-->withoutMiddleware('guest');
-
-Route::get('/camera/answer-stream/{clientId}', [SiteController::class, 'answerStream'])
-->withoutMiddleware('log.access')
-->withoutMiddleware('guest');
+->withoutMiddleware('guest')
+->middleware('throttle:100,1');

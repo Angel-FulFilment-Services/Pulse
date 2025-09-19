@@ -448,116 +448,58 @@ class SiteController extends Controller
     private $streamingAnswers = [];
     private $iceCandidates = [];
 
-    public function handleCameraOffer(Request $request) {
+    /**
+     * Handle stream offer from QR Scanner - stores PeerJS peer ID for discovery
+     */
+    public function handleStreamOffer(Request $request) {
         $offer = $request->input('offer');
-        $clientId = $request->input('clientId');
+        $streamId = $request->input('streamId', 'default');
         
-        // Store the offer temporarily (in production, use Redis or database)
-        session(['camera_offer_' . $clientId => $offer]);
+        if (!$offer) {
+            return response()->json(['error' => 'No offer provided'], 400);
+        }
         
-        return response()->json(['status' => 'offer_received']);
+        // Store PeerJS peer ID in cache for cross-browser access
+        \Cache::put("stream_offer_{$streamId}", $offer, 300); // 5 minutes
+        
+        \Log::info('QR Scanner peer ID stored in cache', [
+            'streamId' => $streamId,
+            'peerId' => $offer['peerId'] ?? 'unknown'
+        ]);
+        
+        return response()->json(['status' => 'offer_stored']);
+    }
+    
+    /**
+     * Get available stream offer for viewer - returns PeerJS peer ID
+     */
+    public function getStreamOffer(Request $request) {
+        $streamId = $request->input('streamId', 'qr-scanner-stream');
+        $offer = \Cache::get("stream_offer_{$streamId}");
+        
+        if (!$offer) {
+            return response()->json(['offer' => null]);
+        }
+        
+        return response()->json(['offer' => $offer]);
     }
 
-    public function handleCameraAnswer(Request $request) {
-        $answer = $request->input('answer');
-        $clientId = $request->input('clientId');
-        
-        // Store the answer temporarily
-        session(['camera_answer_' . $clientId => $answer]);
-        
-        return response()->json(['status' => 'answer_received']);
-    }
-
-    public function handleIceCandidate(Request $request) {
-        $candidate = $request->input('candidate');
-        $clientId = $request->input('clientId');
-        
-        // Store ICE candidates temporarily
-        $candidates = session('ice_candidates_' . $clientId, []);
-        $candidates[] = $candidate;
-        session(['ice_candidates_' . $clientId => $candidates]);
-        
-        return response()->json(['status' => 'candidate_received']);
-    }
-
-    public function cameraSignaling(Request $request) {
-        // Simple Server-Sent Events implementation for signaling
-        $response = response()->stream(function () {
-            while (true) {
-                // Check for new offers
-                $sessionKeys = array_keys(session()->all());
-                foreach ($sessionKeys as $key) {
-                    if (str_starts_with($key, 'camera_offer_')) {
-                        $clientId = str_replace('camera_offer_', '', $key);
-                        $offer = session($key);
-                        session()->forget($key);
-                        
-                        echo "data: " . json_encode([
-                            'type' => 'offer',
-                            'offer' => $offer,
-                            'clientId' => $clientId
-                        ]) . "\n\n";
-                        
-                        ob_flush();
-                        flush();
-                    }
-                }
-                
-                sleep(1);
-            }
-        });
-
-        $response->headers->set('Content-Type', 'text/event-stream');
-        $response->headers->set('Cache-Control', 'no-cache');
-        $response->headers->set('Connection', 'keep-alive');
-        
-        return $response;
-    }
-
-    public function answerStream($clientId) {
-        $response = response()->stream(function () use ($clientId) {
-            $timeout = 30; // 30 seconds timeout
-            $start = time();
+    /**
+     * Clear stored PeerJS peer IDs when needed
+     */
+    public function clearCameraOffers(Request $request) {
+        // Clear PeerJS peer IDs from cache
+        // Note: This is a simple implementation - in production you might want to track keys
+        try {
+            // Try to clear known stream IDs
+            \Cache::forget('stream_offer_qr-scanner-stream');
+            \Cache::forget('stream_offer_default');
             
-            while (time() - $start < $timeout) {
-                // Check for answer
-                $answer = session('camera_answer_' . $clientId);
-                if ($answer) {
-                    session()->forget('camera_answer_' . $clientId);
-                    
-                    echo "data: " . json_encode([
-                        'type' => 'answer',
-                        'answer' => $answer
-                    ]) . "\n\n";
-                    
-                    ob_flush();
-                    flush();
-                    break;
-                }
-                
-                // Check for ICE candidates
-                $candidates = session('ice_candidates_' . $clientId, []);
-                if (!empty($candidates)) {
-                    foreach ($candidates as $candidate) {
-                        echo "data: " . json_encode([
-                            'type' => 'ice-candidate',
-                            'candidate' => $candidate
-                        ]) . "\n\n";
-                    }
-                    session()->forget('ice_candidates_' . $clientId);
-                    
-                    ob_flush();
-                    flush();
-                }
-                
-                sleep(1);
-            }
-        });
-
-        $response->headers->set('Content-Type', 'text/event-stream');
-        $response->headers->set('Cache-Control', 'no-cache');
-        $response->headers->set('Connection', 'keep-alive');
+            \Log::info('Camera offers cleared');
+        } catch (\Exception $e) {
+            \Log::warning('Error clearing camera offers: ' . $e->getMessage());
+        }
         
-        return $response;
+        return response()->json(['status' => 'offers_cleared']);
     }
 }
