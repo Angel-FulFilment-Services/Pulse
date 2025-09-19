@@ -188,13 +188,13 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
     title: article.title,
     description: article.description,
     category: article.category,
-    date: new Date(article.published_at).toLocaleDateString('en-UK', {
+    date: article.published_at ? new Date(article.published_at).toLocaleDateString('en-UK', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-    }),
+    }) : 'No date',
     datetime: article.published_at ? article.published_at : new Date().toISOString(),
-    tags: JSON.parse(article.tags),
+    tags: JSON.parse(article.tags || '[]'),
     visits: article.visits || 0,
     read_time: article.read_time || 1,
   })), [articles]);

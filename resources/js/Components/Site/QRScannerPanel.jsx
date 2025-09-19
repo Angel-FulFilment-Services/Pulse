@@ -10,9 +10,28 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
   const isStopped = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  
+  // WebRTC streaming states
+  const localStream = useRef(null);
+  const peerConnections = useRef(new Map());
+  const [viewerCount, setViewerCount] = useState(0);
+  const [streamingActive, setStreamingActive] = useState(false);
+
+  // WebRTC configuration
+  const rtcConfiguration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ],
+    iceCandidatePoolSize: 10
+  };
 
   const stopCamera = useCallback(() => {
     codeReader.current = null;
+    
+    // Stop WebRTC streaming
+    stopStreaming();
+    
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject;
       const tracks = stream.getTracks();
@@ -20,6 +39,134 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
       videoRef.current.srcObject = null;
     }
   }, []);
+
+  // WebRTC streaming functions
+  const stopStreaming = useCallback(() => {
+    // Close all peer connections
+    peerConnections.current.forEach(pc => pc.close());
+    peerConnections.current.clear();
+    
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => track.stop());
+      localStream.current = null;
+    }
+    
+    setStreamingActive(false);
+    setViewerCount(0);
+  }, []);
+
+  const initializeStreaming = useCallback(async (stream) => {
+    localStream.current = stream;
+    setStreamingActive(true);
+    
+    // Set up signaling for incoming connections
+    const eventSource = new EventSource('/api/camera/signaling');
+    
+    eventSource.onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'offer') {
+        await handleViewerOffer(data.offer, data.clientId);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.log('Signaling connection lost, attempting to reconnect...');
+      // Will automatically reconnect
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
+  const handleViewerOffer = async (offer, clientId) => {
+    try {
+      const peerConnection = new RTCPeerConnection(rtcConfiguration);
+      peerConnections.current.set(clientId, peerConnection);
+
+      // Set up ICE candidate handler FIRST
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          fetch('/api/camera/ice-candidate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              candidate: event.candidate,
+              clientId: clientId
+            })
+          }).catch(error => {
+            console.error('Error sending ICE candidate:', error);
+          });
+        }
+      };
+
+      // Set up connection state handler
+      peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === 'connected') {
+          setViewerCount(prev => prev + 1);
+        } else if (peerConnection.connectionState === 'disconnected' || 
+                   peerConnection.connectionState === 'failed') {
+          peerConnections.current.delete(clientId);
+          setViewerCount(prev => Math.max(0, prev - 1));
+        }
+      };
+
+      // Add local stream to peer connection
+      if (localStream.current) {
+        localStream.current.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream.current);
+        });
+      }
+
+      // Validate and set remote description
+      if (offer && offer.type === 'offer' && offer.sdp) {
+        // Clean the SDP to remove problematic lines
+        const cleanedSdp = offer.sdp
+          .split('\n')
+          .filter(line => !line.includes('a=fmtp:49 repair-window='))
+          .join('\n');
+        
+        const cleanedOffer = {
+          type: offer.type,
+          sdp: cleanedSdp
+        };
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(cleanedOffer));
+        
+        // Create answer
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        // Send answer back
+        await fetch('/api/camera/answer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          },
+          body: JSON.stringify({
+            answer: answer,
+            clientId: clientId
+          })
+        });
+      } else {
+        throw new Error('Invalid offer received');
+      }
+
+    } catch (error) {
+      console.error('Error handling viewer offer:', error);
+      // Clean up the failed connection
+      if (peerConnections.current.has(clientId)) {
+        const pc = peerConnections.current.get(clientId);
+        pc.close();
+        peerConnections.current.delete(clientId);
+      }
+    }
+  };
 
     const startCamera = useCallback(async () => {
       try {
@@ -29,8 +176,21 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
         const constraints = {
           video: {
             facingMode: 'user', // Request the front camera
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           },
         };
+
+        // Get the camera stream
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        // Ensure video element gets the stream first
+        if (videoElement) {
+          videoElement.srcObject = stream;
+        }
+        
+        // Initialize streaming silently
+        await initializeStreaming(stream);
 
         await codeReader.current.decodeFromVideoDevice(
           null,
@@ -65,9 +225,9 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
           }, constraints
         );
       } catch (error) {
-        // Optionally handle camera errors here
+        console.error('Camera or streaming error:', error);
       }
-    }, [setStep, stopCamera, onComplete]);
+    }, [setStep, stopCamera, onComplete, initializeStreaming]);
 
   const findUser = async (query) => {
     setIsProcessing(true); // Set processing state to true to prevent multiple submissions
@@ -181,6 +341,7 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
         disablePictureInPicture
         controls={false}
       />
+      
       <div className="absolute bottom-10 left pointer-events-none">
         <p className="text-3xl font-medium text-white font-sans">
           Show your QR code here

@@ -438,4 +438,126 @@ class SiteController extends Controller
 
         return response()->json(['message' => 'Signed out successfully'], 200);
     }
+
+    public function cameraViewer(Request $request){
+        return Inertia::render('Site/CameraViewer');
+    }
+
+    // WebRTC signaling methods for camera streaming
+    private $streamingOffers = [];
+    private $streamingAnswers = [];
+    private $iceCandidates = [];
+
+    public function handleCameraOffer(Request $request) {
+        $offer = $request->input('offer');
+        $clientId = $request->input('clientId');
+        
+        // Store the offer temporarily (in production, use Redis or database)
+        session(['camera_offer_' . $clientId => $offer]);
+        
+        return response()->json(['status' => 'offer_received']);
+    }
+
+    public function handleCameraAnswer(Request $request) {
+        $answer = $request->input('answer');
+        $clientId = $request->input('clientId');
+        
+        // Store the answer temporarily
+        session(['camera_answer_' . $clientId => $answer]);
+        
+        return response()->json(['status' => 'answer_received']);
+    }
+
+    public function handleIceCandidate(Request $request) {
+        $candidate = $request->input('candidate');
+        $clientId = $request->input('clientId');
+        
+        // Store ICE candidates temporarily
+        $candidates = session('ice_candidates_' . $clientId, []);
+        $candidates[] = $candidate;
+        session(['ice_candidates_' . $clientId => $candidates]);
+        
+        return response()->json(['status' => 'candidate_received']);
+    }
+
+    public function cameraSignaling(Request $request) {
+        // Simple Server-Sent Events implementation for signaling
+        $response = response()->stream(function () {
+            while (true) {
+                // Check for new offers
+                $sessionKeys = array_keys(session()->all());
+                foreach ($sessionKeys as $key) {
+                    if (str_starts_with($key, 'camera_offer_')) {
+                        $clientId = str_replace('camera_offer_', '', $key);
+                        $offer = session($key);
+                        session()->forget($key);
+                        
+                        echo "data: " . json_encode([
+                            'type' => 'offer',
+                            'offer' => $offer,
+                            'clientId' => $clientId
+                        ]) . "\n\n";
+                        
+                        ob_flush();
+                        flush();
+                    }
+                }
+                
+                sleep(1);
+            }
+        });
+
+        $response->headers->set('Content-Type', 'text/event-stream');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('Connection', 'keep-alive');
+        
+        return $response;
+    }
+
+    public function answerStream($clientId) {
+        $response = response()->stream(function () use ($clientId) {
+            $timeout = 30; // 30 seconds timeout
+            $start = time();
+            
+            while (time() - $start < $timeout) {
+                // Check for answer
+                $answer = session('camera_answer_' . $clientId);
+                if ($answer) {
+                    session()->forget('camera_answer_' . $clientId);
+                    
+                    echo "data: " . json_encode([
+                        'type' => 'answer',
+                        'answer' => $answer
+                    ]) . "\n\n";
+                    
+                    ob_flush();
+                    flush();
+                    break;
+                }
+                
+                // Check for ICE candidates
+                $candidates = session('ice_candidates_' . $clientId, []);
+                if (!empty($candidates)) {
+                    foreach ($candidates as $candidate) {
+                        echo "data: " . json_encode([
+                            'type' => 'ice-candidate',
+                            'candidate' => $candidate
+                        ]) . "\n\n";
+                    }
+                    session()->forget('ice_candidates_' . $clientId);
+                    
+                    ob_flush();
+                    flush();
+                }
+                
+                sleep(1);
+            }
+        });
+
+        $response->headers->set('Content-Type', 'text/event-stream');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('Connection', 'keep-alive');
+        
+        return $response;
+    }
 }

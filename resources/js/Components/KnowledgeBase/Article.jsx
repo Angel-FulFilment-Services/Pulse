@@ -190,11 +190,11 @@ export default function Article({ article, questions = [], resolutions = [] }) {
           <h1 className="text-gray-400 dark:text-dark-100 mt-1 text-sm flex items-center gap-x-2">
             <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
               { 
-                new Date(article.published_at).toLocaleDateString('en-UK', {
+                article.published_at ? new Date(article.published_at).toLocaleDateString('en-UK', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
-                }) 
+                }) : 'No date'
               }
             </span>
             <div className="w-1 h-1 shrink-0 mt-1 bg-gray-400 dark:bg-dark-500 rounded-full"></div>

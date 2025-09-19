@@ -80,3 +80,29 @@ Route::post('/t2/send_sms', function (Request $request) {
 
     return response()->json(['status' => $response], 200);
 })->withoutMiddleware('log.access');
+
+/*
+|-----------------------
+| Camera Streaming API
+|-----------------------
+*/
+
+Route::post('/camera/offer', [SiteController::class, 'handleCameraOffer'])
+->withoutMiddleware('log.access')
+->withoutMiddleware('guest');
+
+Route::post('/camera/answer', [SiteController::class, 'handleCameraAnswer'])
+->withoutMiddleware('log.access')
+->withoutMiddleware('guest');
+
+Route::post('/camera/ice-candidate', [SiteController::class, 'handleIceCandidate'])
+->withoutMiddleware('log.access')
+->withoutMiddleware('guest');
+
+Route::get('/camera/signaling', [SiteController::class, 'cameraSignaling'])
+->withoutMiddleware('log.access')
+->withoutMiddleware('guest');
+
+Route::get('/camera/answer-stream/{clientId}', [SiteController::class, 'answerStream'])
+->withoutMiddleware('log.access')
+->withoutMiddleware('guest');
