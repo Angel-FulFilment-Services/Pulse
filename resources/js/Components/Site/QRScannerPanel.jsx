@@ -2,160 +2,35 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import Peer from 'peerjs';
 
-export default function QRScannerPanel({ onComplete, setStep, location }) {
+export default function QRScannerPanel({ onComplete, setStep, location, cameraStream }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
   const isTimeout = useRef(false);
   const isStopped = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState(null);
-  
-  // WebRTC streaming states
-  const localStream = useRef(null);
-  const peerConnections = useRef(new Map());
-  const [viewerCount, setViewerCount] = useState(0);
-  const [streamingActive, setStreamingActive] = useState(false);
 
-  // WebRTC configuration
-  const PC_CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ],
-    iceCandidatePoolSize: 10,
-    sdpSemantics: 'unified-plan' // Ensure unified-plan semantics
-  };
-
-  const stopCamera = useCallback(() => {
-    codeReader.current = null;
-    
-    // Stop WebRTC streaming
-    stopStreaming();
-    
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+  const stopScanning = useCallback(() => {
+    if (codeReader.current) {
+      codeReader.current = null;
     }
+    isStopped.current = true;
   }, []);
 
-  // WebRTC streaming functions
-  const stopStreaming = useCallback(() => {
-    // Close all peer connections
-    peerConnections.current.forEach(pc => pc.close());
-    peerConnections.current.clear();
-    
-    if (localStream.current) {
-      localStream.current.getTracks().forEach(track => track.stop());
-      localStream.current = null;
-    }
-    
-    setStreamingActive(false);
-    setViewerCount(0);
-  }, []);
-
-  const initializeStreaming = useCallback(async (stream) => {
-    localStream.current = stream;
-    setStreamingActive(true);
-    
-    // Clear any existing offers
-    try {
-      await fetch('/api/camera/clear-offers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+  const startScanning = useCallback(async () => {
+      try {
+        if (!cameraStream) {
+          return;
         }
-      });
-    } catch (error) {
-      console.log('Could not clear existing offers:', error);
-    }
-    
-    // PeerJS WebRTC streaming - Even cleaner!
-    const createStreamOffer = async () => {
-      try {
-        console.log('📱 QR SCANNER: Starting PeerJS stream');
         
-        // Create peer with random ID
-        const peer = new Peer();
-        
-        peer.on('open', async (id) => {
-          console.log('📡 QR SCANNER: Peer opened with ID:', id);
-          
-          // Store our peer ID for viewers to find us
-          await fetch('/api/camera/stream-offer', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-              offer: { peerId: id },
-              streamId: 'qr-scanner-stream'
-            })
-          });
-          
-          console.log('✅ QR SCANNER: Peer ID stored');
-        });
-        
-        // Handle incoming calls from viewers
-        peer.on('call', (call) => {
-          console.log('📞 QR SCANNER: Incoming call, answering with video stream');
-          
-          call.answer(localStream.current);
-          
-          call.on('stream', (remoteStream) => {
-            console.log('🎬 QR SCANNER: Connected to viewer');
-          });
-          
-          call.on('close', () => {
-            console.log('📞 QR SCANNER: Call closed');
-          });
-        });
-        
-        peer.on('error', (err) => {
-          console.error('❌ QR SCANNER Peer error:', err);
-        });
-        
-      } catch (error) {
-        console.error('Error in createStreamOffer:', error);
-      }
-    };
-    
-    // Create the offer immediately
-    createStreamOffer();
-    
-    return () => {
-      // Cleanup function
-    };
-  }, []);  
-
-  const startCamera = useCallback(async () => {
-      try {
         codeReader.current = new BrowserMultiFormatReader();
         const videoElement = videoRef.current;
-
-        const constraints = {
-          video: {
-            facingMode: 'user', // Request the front camera
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-        };
-
-        // Get the camera stream
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
-        // Ensure video element gets the stream first
+        // Set the camera stream to the video element
         if (videoElement) {
-          videoElement.srcObject = stream;
+          videoElement.srcObject = cameraStream;
         }
-        
-        // Initialize streaming silently
-        await initializeStreaming(stream);
 
         await codeReader.current.decodeFromVideoDevice(
           null,
@@ -165,8 +40,8 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
               setScanResult(result.getText());
 
               if(isStopped.current){
-                stopCamera();
-                codeReader.current.reset();
+                stopScanning();
+                return;
               }
               isTimeout.current = true;
               findUser(result.getText()).then(user => {
@@ -187,12 +62,12 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
                 isTimeout.current = false;
               }, 3000);
             }
-          }, constraints
+          }
         );
       } catch (error) {
-        console.error('Camera or streaming error:', error);
+        // Silently handle scanning error
       }
-    }, [setStep, stopCamera, onComplete, initializeStreaming]);
+    }, [setStep, stopScanning, onComplete, cameraStream]);
 
   const findUser = async (query) => {
     setIsProcessing(true); // Set processing state to true to prevent multiple submissions
@@ -291,9 +166,12 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
   };
 
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, [startCamera, stopCamera]);
+    if (cameraStream) {
+      isStopped.current = false;
+      startScanning();
+    }
+    return () => stopScanning();
+  }, [startScanning, stopScanning, cameraStream]);
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full w-full">

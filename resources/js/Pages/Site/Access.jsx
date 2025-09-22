@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SplashScreen from '../../Components/Site/SplashScreen';
 import ModeSelector from '../../Components/Site/ModeSelector';
 import QRScannerPanel from '../../Components/Site/QRScannerPanel';
@@ -16,12 +16,127 @@ import ThankYouMessage from '../../Components/Site/ThankYouMessage';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Peer from 'peerjs';
 
 export default function Access({ location }) {
   const [step, setStep] = useState('splash'); // Initial step set to terms and conditions
   const [formData, setFormData] = useState(); // Form data
   const [signInType, setSignInType] = useState(null); // Tracks the type of sign in (employee, visitor, contractor)
   const [signOutType, setSignOutType] = useState(null); // Tracks the type of sign out (employee, visitor, contractor)
+  
+  // Camera and streaming state
+  const localStream = useRef(null);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [streamingActive, setStreamingActive] = useState(false);
+
+  // Initialize camera and streaming
+  const initializeCamera = useCallback(async () => {
+    try {
+      const constraints = {
+        video: {
+          facingMode: 'user', // Request the front camera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+      };
+
+      // Get the camera stream
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStream.current = stream;
+      setCameraStream(stream);
+      
+      // Initialize streaming
+      await initializeStreaming(stream);
+      
+    } catch (error) {
+      // Silently handle camera initialization error
+    }
+  }, []);
+
+  // Initialize PeerJS streaming
+  const initializeStreaming = useCallback(async (stream) => {
+    setStreamingActive(true);
+
+    // Clear any existing offers
+    try {
+      await fetch('/api/camera/clear-offers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+      });
+    } catch (error) {
+      // Silently handle error
+    }
+    
+    // PeerJS WebRTC streaming
+    const createStreamOffer = async () => {
+      try {
+        // Create peer with local-only configuration
+        const peer = new Peer(undefined, {
+          config: {
+            iceServers: [], // No external STUN/TURN servers - local network only
+            iceTransportPolicy: 'all',
+            iceCandidatePoolSize: 0
+          },
+          debug: 0 // Disable debug to prevent data leakage
+        });
+        
+        peer.on('open', async (id) => {
+          // Store our peer ID for viewers to find us
+          await fetch('/api/camera/stream-offer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              offer: { peerId: id },
+              streamId: 'qr-scanner-stream'
+            })
+          });
+        });
+        
+        // Handle incoming calls from viewers
+        peer.on('call', (call) => {
+          call.answer(stream);
+          
+          // Explicitly add tracks to the peer connection
+          setTimeout(() => {
+            if (call.peerConnection && stream) {
+              const videoTrack = stream.getVideoTracks()[0];
+              if (videoTrack) {
+                try {
+                  // Check if track is already added
+                  const senders = call.peerConnection.getSenders();
+                  const hasVideoSender = senders.some(sender => 
+                    sender.track && sender.track.kind === 'video'
+                  );
+                  
+                  if (!hasVideoSender) {
+                    call.peerConnection.addTrack(videoTrack, stream);
+                  }
+                } catch (error) {
+                  // Silently handle error
+                }
+              }
+            }
+          }, 100);
+        });
+        
+        peer.on('error', (err) => {
+          // Silently handle peer errors
+        });
+        
+      } catch (error) {
+        // Silently handle error
+      }
+    };
+    
+    // Create the offer immediately
+    createStreamOffer();
+  }, []);
 
   useEffect(() => {
     if(step === 'splash') {
@@ -30,6 +145,11 @@ export default function Access({ location }) {
       setFormData(null); // Reset formData when returning to splash
     }
   }, [step])
+
+  // Initialize camera when component mounts
+  useEffect(() => {
+    initializeCamera();
+  }, [initializeCamera]);
 
   // Example handlers
   const handleSplashContinue = () => setStep('mode');
@@ -136,7 +256,7 @@ export default function Access({ location }) {
             <ModeSelector setStep={setStep} location={location} />
           </div>
           <div className="w-1/2">
-            <QRScannerPanel onComplete={setFormData} setStep={setStep} location={location} />
+            <QRScannerPanel onComplete={setFormData} setStep={setStep} location={location} cameraStream={cameraStream} />
           </div>
         </div>
       </div>
