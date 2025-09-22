@@ -131,7 +131,7 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
 Route::get('/knowledge-base/technical-support', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.technical_support');
 Route::get('/knowledge-base/call-hub', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.call_quality');
-Route::get('/knowledge-base/call-hub/create-from-apex/{apexId}', [KnowledgeBaseController::class, 'createFromApex'])->name('knowledge_base.create_from_apex');
+Route::get('/knowledge-base/call-hub/create-from-apex?apex-id={apexId}&tags={tags}', [KnowledgeBaseController::class, 'createFromApex'])->name('knowledge_base.create_from_apex');
 Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
 Route::post('/knowledge-base/create', [KnowledgeBaseController::class, 'create'])->name('knowledge_base.create');
 Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');

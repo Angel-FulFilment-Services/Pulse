@@ -689,11 +689,37 @@ class KnowledgeBaseController extends Controller
      * @param string $apexId The Apex call ID to convert
      * @return \Inertia\Response
      */
-    public function createFromApex($apexId)
+    public function createFromApex($apexId, $tags)
     {
+        // Convert URL-encoded tags string to array
+        $presetData = [];
+        if ($tags) {
+            try {
+                // URL decode and parse JSON
+                $decodedTags = urldecode($tags);
+                $parsedTags = json_decode($decodedTags, true);
+                
+                // Ensure it's an array and filter out invalid entries
+                if (is_array($parsedTags)) {
+                    $validTags = array_filter($parsedTags, function($tag) {
+                        return is_string($tag) && !empty(trim($tag));
+                    });
+                    
+                    // Structure as preset object with form field keys
+                    if (!empty($validTags)) {
+                        $presetData['tags'] = $validTags;
+                    }
+                }
+            } catch (\Exception $e) {
+                // If parsing fails, default to empty array
+                $presetData = [];
+            }
+        }
+
         return Inertia::render('KnowledgeBase/KnowledgeBase', [
             'apexId' => $apexId,
-            'showCreateForm' => true
+            'showCreateForm' => true,
+            'presetData' => $presetData
         ]);
     }
 

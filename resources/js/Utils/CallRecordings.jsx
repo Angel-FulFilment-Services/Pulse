@@ -1,68 +1,12 @@
-import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import PromiseDialog from '../Components/Dialogs/PromiseDialog';
-
-/**
- * ApexConversionDialog Component
- * Manages the conversion dialog internally
- */
-export const ApexConversionDialog = ({ apexId, onSuccess, onError, triggerConversion, resetTrigger }) => {
-    const [showDialog, setShowDialog] = useState(false);
-    const [currentPromise, setCurrentPromise] = useState(null);
-
-    // Watch for trigger changes
-    React.useEffect(() => {
-        if (triggerConversion && apexId) {
-            const promise = CallRecordings.convertApexCall(apexId);
-            setCurrentPromise(promise);
-            setShowDialog(true);
-            if (resetTrigger) resetTrigger(); // Reset the trigger
-        }
-    }, [triggerConversion, apexId, resetTrigger]);
-
-    const handleSuccess = (data) => {
-        if (onSuccess) onSuccess(data);
-    };
-
-    const handleError = (error) => {
-        if (onError) onError(error);
-    };
-
-    const handleClose = () => {
-        setShowDialog(false);
-        setCurrentPromise(null);
-    };
-
-    return (
-        <PromiseDialog
-            isOpen={showDialog}
-            onClose={handleClose}
-            promise={currentPromise}
-            pendingTitle="Converting Call"
-            pendingDescription="Converting call recording from GSM to WAV format..."
-            successTitle="Conversion Complete"
-            successDescription="Call recording has been successfully converted."
-            errorTitle="Conversion Failed"
-            errorDescription="Failed to convert call recording. Please try again."
-            pendingTexts={[
-                "Downloading GSM recording...",
-                "Converting to WAV format...",
-                "Processing audio data...",
-                "Almost ready!"
-            ]}
-            onSuccess={handleSuccess}
-            onError={handleError}
-            autoCloseDelay={1000}
-        />
-    );
-};
 
 /**
  * CallRecordings Utility
  * Handles Apex call conversion and audio processing
  */
 export class CallRecordings {
+    
     /**
      * Convert an Apex call to knowledge base format
      * @param {string} apexId - The Apex call ID
@@ -135,42 +79,6 @@ export class CallRecordings {
                 draggable: true,
             }
         );
-    }
-
-    /**
-     * Convert Apex call with PromiseDialog (handles dialog internally)
-     * @param {string} apexId - The Apex call ID
-     * @returns {Promise<Object>} - Converted call data
-     */
-    static async convertApexCallPromise(apexId) {
-        // For now, this is the same as the basic conversion
-        // The PromiseDialog would be handled by a higher-level component
-        // that wraps this utility call
-        return this.convertApexCall(apexId);
-    }
-
-    /**
-     * Get PromiseDialog configuration for Apex conversion
-     * @param {string} apexId - The Apex call ID
-     * @returns {Object} - Configuration object for PromiseDialog
-     */
-    static getPromiseDialogConfig(apexId) {
-        return {
-            promise: this.convertApexCall(apexId),
-            pendingTitle: "Converting Call",
-            pendingDescription: "Converting call recording from GSM to WAV format...",
-            successTitle: "Conversion Complete",
-            successDescription: "Call recording has been successfully converted.",
-            errorTitle: "Conversion Failed",
-            errorDescription: "Failed to convert call recording. Please try again.",
-            pendingTexts: [
-                "Downloading GSM recording...",
-                "Converting to WAV format...",
-                "Processing audio data...",
-                "Almost ready!"
-            ],
-            autoCloseDelay: 1000
-        };
     }
 
     /**

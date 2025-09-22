@@ -19,7 +19,8 @@ export default function PostModal({
   onPostCreated, 
   onPostUpdated,
   editPost = null, // Post object to edit, null for creating new post
-  apexId = null // Apex ID to convert and load into content
+  apexId = null, // Apex ID to convert and load into content
+  presetData = {} // Preset form data object with field keys
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,11 +52,26 @@ export default function PostModal({
     } else if (isOpen && !isEditMode && apexId) {
       // Convert Apex call and load into content
       handleApexConversion();
+      
+      // Apply preset data if available
+      if (presetData) {
+        if (presetData.title) setTitle(presetData.title);
+        if (presetData.description) setDescription(presetData.description);
+        if (presetData.tags) setTags(presetData.tags);
+        // Add more fields as needed in the future
+      }
     } else if (isOpen && !isEditMode) {
-      // Reset form for new post without Apex data
+      // Reset form for new post and apply preset data if available
       resetForm();
+      
+      if (presetData) {
+        if (presetData.title) setTitle(presetData.title);
+        if (presetData.description) setDescription(presetData.description);
+        if (presetData.tags) setTags(presetData.tags);
+        // Add more fields as needed in the future
+      }
     }
-  }, [editPost, isEditMode, isOpen, apexId]);
+  }, [editPost, isEditMode, isOpen, apexId, presetData]);
 
   // Handle Apex call conversion
   const handleApexConversion = () => {

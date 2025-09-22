@@ -14,7 +14,8 @@ export default function Header({
   onPostCreated, 
   showCreateModal, 
   setShowCreateModal, 
-  apexId 
+  apexId,
+  presetData 
 }) {  
   const { auth } = usePage().props;
   
@@ -91,6 +92,7 @@ export default function Header({
             activeTab={activeTab}
             onPostCreated={onPostCreated}
             apexId={apexId}
+            presetData={presetData}
           />
         </div>
       </div>

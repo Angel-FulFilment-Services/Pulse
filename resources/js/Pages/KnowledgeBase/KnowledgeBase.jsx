@@ -5,7 +5,7 @@ import Header from '../../Components/KnowledgeBase/Header.jsx';
 import Feed from '../../Components/KnowledgeBase/Feed.jsx';
 
 const Reporting = () => {
-    const { apexId, showCreateForm } = usePage().props;
+    const { apexId, showCreateForm, presetData } = usePage().props;
     const [search, setSearch] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [showCreateModal, setShowCreateModal] = useState(showCreateForm || false);
@@ -60,6 +60,7 @@ const Reporting = () => {
                         showCreateModal={showCreateModal}
                         setShowCreateModal={setShowCreateModal}
                         apexId={apexId}
+                        presetData={presetData}
                     />
                 </div>
             </div>
