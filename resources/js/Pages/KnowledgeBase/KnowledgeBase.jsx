@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import '../../Components/Reporting/ReportingStyles.css';
 import Header from '../../Components/KnowledgeBase/Header.jsx';
 import Feed from '../../Components/KnowledgeBase/Feed.jsx';
 
 const Reporting = () => {
+    const { apexId, showCreateForm } = usePage().props;
     const [search, setSearch] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [showCreateModal, setShowCreateModal] = useState(showCreateForm || false);
 
     // Get current URL to determine active tab
     const currentPath = window.location.pathname;
@@ -25,6 +27,8 @@ const Reporting = () => {
     const handlePostCreated = (newPost) => {
         // Trigger refresh of the feed
         setRefreshTrigger(prev => prev + 1);
+        // Close create modal
+        setShowCreateModal(false);
     };
 
     useEffect(() => {
@@ -53,6 +57,9 @@ const Reporting = () => {
                         search={search}
                         setSearch={setSearch}
                         onPostCreated={handlePostCreated}
+                        showCreateModal={showCreateModal}
+                        setShowCreateModal={setShowCreateModal}
+                        apexId={apexId}
                     />
                 </div>
             </div>

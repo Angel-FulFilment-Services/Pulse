@@ -5,9 +5,18 @@ import { usePage } from '@inertiajs/react';
 import { hasPermission } from '../../Utils/Permissions';
 import PostModal from './PostModal';
 
-export default function Header({ tabs, activeTab, handleTabClick, search, setSearch, onPostCreated }) {  
+export default function Header({ 
+  tabs, 
+  activeTab, 
+  handleTabClick, 
+  search, 
+  setSearch, 
+  onPostCreated, 
+  showCreateModal, 
+  setShowCreateModal, 
+  apexId 
+}) {  
   const { auth } = usePage().props;
-  const [showCreateModal, setShowCreateModal] = useState(false);
   
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
@@ -81,6 +90,7 @@ export default function Header({ tabs, activeTab, handleTabClick, search, setSea
             onClose={() => setShowCreateModal(false)}
             activeTab={activeTab}
             onPostCreated={onPostCreated}
+            apexId={apexId}
           />
         </div>
       </div>

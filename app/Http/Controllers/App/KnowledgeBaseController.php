@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use App\Helper\CallRecordings;
 
 class KnowledgeBaseController extends Controller
 {
@@ -681,4 +682,19 @@ class KnowledgeBaseController extends Controller
         // Round up to nearest minute, minimum 1 minute
         return max(1, ceil($readingTimeMinutes));
     }
+
+    /**
+     * Create a knowledge base article from an Apex call
+     * 
+     * @param string $apexId The Apex call ID to convert
+     * @return \Inertia\Response
+     */
+    public function createFromApex($apexId)
+    {
+        return Inertia::render('KnowledgeBase/KnowledgeBase', [
+            'apexId' => $apexId,
+            'showCreateForm' => true
+        ]);
+    }
+
 }

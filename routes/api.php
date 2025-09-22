@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\AssetController;
+use App\Http\Controllers\App\CallRecordingController;
 
 use App\Helper\T2SMS;
 
@@ -21,6 +22,8 @@ use App\Helper\T2SMS;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/call/convert', [CallRecordingController::class, 'convertCall'])->name('api.call.convert');
 
 Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access')
 ->middleware('auth')

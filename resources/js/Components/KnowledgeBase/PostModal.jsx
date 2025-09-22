@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { router } from '@inertiajs/react';
 import Modal from '../Modals/Modal';
+import PromiseDialog from '../Dialogs/PromiseDialog';
 import TextInput from '../Forms/TextInput';
 import TextAreaInput from '../Forms/TextAreaInput';
 import EditorInput from '../Forms/EditorInput';
@@ -8,38 +10,16 @@ import { stripHtmlTags, convertToMarkdown } from '../../Utils/Sanitisers';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { TagIcon } from '@heroicons/react/24/outline';
+import CallRecordings from '../../Utils/CallRecordings.jsx';
 
-/**
- * PostModal - A unified component for creating and editing knowledge base posts
- * 
- * Always uses full viewport height with internal scrolling for optimal UX.
- * 
- * Usage:
- * 
- * For creating new posts:
- * <PostModal 
- *   isOpen={showModal} 
- *   onClose={() => setShowModal(false)}
- *   activeTab="technical-support"
- *   onPostCreated={(newPost) => handleNewPost(newPost)}
- * />
- * 
- * For editing existing posts:
- * <PostModal 
- *   isOpen={showEditModal} 
- *   onClose={() => setShowEditModal(false)}
- *   activeTab="technical-support"
- *   editPost={selectedPost}
- *   onPostUpdated={(updatedPost) => handleUpdatedPost(updatedPost)}
- * />
- */
 export default function PostModal({ 
   isOpen, 
   onClose, 
   activeTab, 
   onPostCreated, 
   onPostUpdated,
-  editPost = null // Post object to edit, null for creating new post
+  editPost = null, // Post object to edit, null for creating new post
+  apexId = null // Apex ID to convert and load into content
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -47,6 +27,8 @@ export default function PostModal({
   const [tags, setTags] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showPromiseDialog, setShowPromiseDialog] = useState(false);
+  const [conversionPromise, setConversionPromise] = useState(null);
 
   const isEditMode = !!editPost;
 
@@ -59,25 +41,73 @@ export default function PostModal({
       .join(' ');
   };
 
-  // Load post data when editing
+  // Load post data when editing or handle Apex conversion when creating
   useEffect(() => {
     if (isEditMode && editPost) {
       setTitle(editPost.title || '');
       setDescription(editPost.description || '');
       setContent(editPost.content || '');
       setTags(editPost.tags || []);
+    } else if (isOpen && !isEditMode && apexId) {
+      // Convert Apex call and load into content
+      handleApexConversion();
     } else if (isOpen && !isEditMode) {
-      // Only reset form when modal is opening for new posts, not when closing
+      // Reset form for new post without Apex data
       resetForm();
     }
-  }, [editPost, isEditMode, isOpen]);
+  }, [editPost, isEditMode, isOpen, apexId]);
+
+  // Handle Apex call conversion
+  const handleApexConversion = () => {
+    const promise = CallRecordings.convertApexCallPromise(apexId);
+    setConversionPromise(promise);
+    setShowPromiseDialog(true);
+  };
+
+  // Handle successful conversion
+  const handleConversionSuccess = (recordingData) => {
+    // Insert audio directly into content like QuillAudioModule does
+    let updatedContent = '';
+    if (recordingData) {
+      updatedContent = CallRecordings.insertAudioIntoContent(
+        updatedContent, 
+        recordingData
+      );
+    }
+    
+    setContent(updatedContent);
+    setErrors({}); // Clear any existing errors
+  };
+
+  // Handle conversion error
+  const handleConversionError = (error) => {
+    console.error('Error converting Apex call:', error);
+  };
 
   const resetForm = () => {
+    // Clean up any audio blobs before resetting
+    cleanupAudioBlobs();
+    
     setTitle('');
     setDescription('');
     setContent('');
     setTags([]);
     setErrors({});
+  };
+
+  // Clean up audio blobs from content to prevent memory leaks
+  const cleanupAudioBlobs = () => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'text/html');
+      const audioElements = doc.querySelectorAll('audio[src^="blob:"]');
+      
+      audioElements.forEach(audio => {
+        CallRecordings.cleanupAudioBlob(audio);
+      });
+    } catch (error) {
+      console.warn('Error cleaning up audio blobs:', error);
+    }
   };
 
   const clearErrors = () => {
@@ -354,6 +384,16 @@ export default function PostModal({
   const handleClose = () => {
     if (!isSubmitting) {
       onClose();
+      
+      // If we had an apexId, revert URL back to knowledge-base/call-hub
+      if (apexId) {
+        router.visit('/knowledge-base/call-hub', { 
+          preserveState: true,
+          preserveScroll: true,
+          replace: true 
+        });
+      }
+      
       // Delay form reset to allow modal closing animation to complete
       setTimeout(() => {
         resetForm();
@@ -379,8 +419,8 @@ export default function PostModal({
       }
       description={
         isEditMode 
-          ? "Edit the knowledge base article with rich content and tags." 
-          : "Create a new knowledge base article with rich content and tags."
+            ? "Edit the knowledge base article with rich content and tags." 
+            : "Create a new knowledge base article with rich content and tags."
       }
       size="xl"
       fullHeight={true}
@@ -483,6 +523,28 @@ export default function PostModal({
           </button>
         </div>
       </div>
+
+      {/* Promise Dialog for Apex call conversion */}
+      <PromiseDialog
+        isOpen={showPromiseDialog}
+        onClose={() => setShowPromiseDialog(false)}
+        promise={conversionPromise}
+        pendingTitle="Converting Call"
+        pendingDescription="Converting call recording from GSM to WAV format..."
+        successTitle="Conversion Complete"
+        successDescription="Call recording has been successfully converted and added to the article content."
+        errorTitle="Conversion Failed"
+        errorDescription="Failed to convert call recording. Please try again."
+        pendingTexts={[
+          "Downloading GSM recording...",
+          "Converting to WAV format...",
+          "Processing audio data...",
+          "Almost ready!"
+        ]}
+        onSuccess={handleConversionSuccess}
+        onError={handleConversionError}
+        autoCloseDelay={1000}
+      />
     </Modal>
   );
 }
