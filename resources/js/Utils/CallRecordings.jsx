@@ -40,8 +40,8 @@ export class CallRecordings {
         }
     }
 
-    /**
-     * Convert Apex call with toast notifications
+     /**
+     * Convert Apex call (direct promise for use with Toast)
      * @param {string} apexId - The Apex call ID
      * @returns {Promise<Object>} - Converted call data
      */
@@ -79,6 +79,15 @@ export class CallRecordings {
                 draggable: true,
             }
         );
+    }
+
+    /**
+     * Convert Apex call (direct promise for use with PromiseDialog)
+     * @param {string} apexId - The Apex call ID
+     * @returns {Promise<Object>} - Converted call data
+     */
+    static convertApexCallPromise(apexId) {
+        return this.convertApexCall(apexId);
     }
 
     /**
