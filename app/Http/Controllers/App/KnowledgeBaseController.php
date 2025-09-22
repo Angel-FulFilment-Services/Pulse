@@ -689,8 +689,11 @@ class KnowledgeBaseController extends Controller
      * @param string $apexId The Apex call ID to convert
      * @return \Inertia\Response
      */
-    public function createFromApex($apexId, $tags)
+    public function createFromApex(Request $request)
     {
+        $apexId = $request->query('apex-id');
+        $tags = $request->query('tags');
+        
         // Convert URL-encoded tags string to array
         $presetData = [];
         if ($tags) {
