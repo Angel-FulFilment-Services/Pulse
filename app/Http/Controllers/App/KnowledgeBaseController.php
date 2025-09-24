@@ -586,7 +586,7 @@ class KnowledgeBaseController extends Controller
             'tags' => 'required|array|min:1|max:10',
             'tags.*' => 'string|max:50',
             'category' => 'required|string|max:100',
-            'soundfiles.*' => 'file|mimes:wav,mp3,ogg,gsm|max:2048', // 2MB max per audio file (matching PHP limit)
+            'soundfiles.*' => 'file|mimes:wav,mp3,ogg,gsm|max:15360', // 15MB max per audio file (matching PHP limit)
         ]);
 
         if ($validator->fails()) {            
