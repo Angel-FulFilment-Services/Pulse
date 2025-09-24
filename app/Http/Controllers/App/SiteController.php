@@ -290,17 +290,17 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($request->input('location', null)),
                     'user_id' => $request->input('user_id', null),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             }
@@ -322,17 +322,17 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($data['location'] ?? null),
                     'user_id' => $employee,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             }
@@ -355,11 +355,11 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($data['location'] ?? null),
                     'user_id' => $employee,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
@@ -381,8 +381,8 @@ class SiteController extends Controller
 
             if ($signedIn){
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             } else {
@@ -403,7 +403,7 @@ class SiteController extends Controller
         DB::connection('wings_config')->table('site_access_log')->insert([
             'type' => $request->input('type', null),
             'category' => $request->input('category', null),
-            'signed_in' => now(),
+            'signed_in' => date('Y-m-d H:i:s'),
             'location' => Str::title($request->input('location', null)),
             'user_id' => $request->input('user_id', null),
             'visitor_name' => $request->input('visitor_name', null),
@@ -411,8 +411,8 @@ class SiteController extends Controller
             'visitor_visiting' => $request->input('visitor_visiting', null),
             'visitor_visiting_user_id' => $request->input('visitor_visiting_user_id', null),
             'visitor_car_registration' => strtoupper($request->input('visitor_car_registration', null)),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         return response()->json(['message' => 'Signed in successfully'], 200);
@@ -426,13 +426,13 @@ class SiteController extends Controller
 
         if($request->has('id')) {
             DB::connection('wings_config')->table('site_access_log')->where('id', '=', $request->input('id'))->limit(1)->update([
-                'signed_out' => now(),
-                'updated_at' => now(),
+                'signed_out' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         } else {
             DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $request->has('user_id'))->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                'signed_out' => now(),
-                'updated_at' => now(),
+                'signed_out' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
 
