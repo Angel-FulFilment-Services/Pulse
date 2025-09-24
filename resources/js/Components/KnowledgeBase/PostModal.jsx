@@ -240,10 +240,10 @@ export default function PostModal({
             
             const file = new File([blob], audioFile.filename, { type: mimeType });
 
-            // Check file size (15MB limit to match PHP settings)
-            const maxSize = 15 * 1024 * 1024; // 15MB in bytes
+            // Check file size (100MB limit to match PHP settings)
+            const maxSize = 100 * 1024 * 1024; // 100MB in bytes
             if (file.size > maxSize) {
-              toast.error(`Audio file "${audioFile.filename}" is too large. Maximum size is 15MB.`, {
+              toast.error(`Audio file "${audioFile.filename}" is too large. Maximum size is 100MB.`, {
                 position: 'top-center',
                 autoClose: 3000,
                 hideProgressBar: false,

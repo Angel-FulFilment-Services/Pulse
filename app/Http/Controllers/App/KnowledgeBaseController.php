@@ -16,8 +16,10 @@ class KnowledgeBaseController extends Controller
 {
     // Block logged out users from using dashboard
     public function __construct(){
-        $this->middleware(['auth', 'twofactor']);
-        $this->middleware(['log.access']);
+        $this->middleware(['auth', 'twofactor'])->except(['publicArticle']);
+        $this->middleware(['log.access'])->except(['publicArticle']);
+        $this->middleware(['has.permission:pulse_edit_articles'])->only(['sendSMS']);
+        $this->middleware(['has.permission:pulse_create_articles'])->only(['create']);
     }
 
     public function index(){
@@ -576,6 +578,164 @@ class KnowledgeBaseController extends Controller
             ], 500);
         }
     }
+
+    public function sendSMS(Request $request, $id)
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:wings_config.users,id'
+        ]);
+
+        try {
+            // Get the article
+            $article = DB::connection('pulse')
+                ->table('knowledge_base_articles')
+                ->select('id', 'title')
+                ->where('id', $id)
+                ->first();
+
+            if (!$article) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Article not found.'
+                ], 404);
+            }
+
+            // Get the user and their mobile phone
+            $user = DB::connection('wings_config')
+                ->table('users')
+                ->leftJoin('wings_data.hr_details', 'users.id', '=', 'hr_details.user_id')
+                ->select('users.name', 'hr_details.contact_mobile_phone')
+                ->where('users.id', $request->user_id)
+                ->first();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found.'
+                ], 404);
+            }
+
+            if (empty($user->contact_mobile_phone)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User does not have a mobile phone number on file.'
+                ], 400);
+            }
+
+            // Generate temporary signed URL (valid for 7 days)
+            $signedUrl = \URL::temporarySignedRoute(
+                'knowledge_base.article.public',
+                now()->addDays(7),
+                ['id' => $id]
+            );
+
+            // Prepare SMS message
+            $message = "Hi {$user->name}, you've been sent this article: \"{$article->title}\". View it here: {$signedUrl}";
+
+            // Send SMS using T2SMS helper
+            $response = \App\Helper\T2SMS::sendSms(
+                'Angel FS', // From
+                $user->contact_mobile_phone, // To
+                $message // Message
+            );
+
+            // Check if SMS was sent successfully
+            if ($response && $response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "SMS sent successfully to {$user->name}."
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send SMS. Please try again.'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to send article SMS: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while sending the SMS.'
+            ], 500);
+        }
+    }
+
+    // Public article view (no auth required)
+    public function publicArticle($id)
+    {
+        $article = DB::connection('pulse')
+            ->table('knowledge_base_articles')
+            ->select('id', 'title', 'category', 'description', 'tags', 'body', 'article_image', 'published_at', 'visits')
+            ->where('id', $id)
+            ->first();
+
+        if (!$article) {
+            abort(404);
+        }
+
+        // Increment visit counter
+        DB::connection('pulse')
+            ->table('knowledge_base_articles')
+            ->where('id', $id)
+            ->increment('visits');
+
+        // Update the article object with the new visit count
+        $article->visits = $article->visits + 1;
+
+        $questions = DB::connection('pulse')
+            ->table('knowledge_base_questions')
+            ->where('article_id', $id)
+            ->orderBy('order', 'asc')
+            ->get();
+
+        // Add full image URLs to questions
+        $questions = $questions->map(function ($question) {
+            if ($question->image) {
+                $question->image_url = $this->getImageUrl($question->image);
+            }
+            return $question;
+        });
+
+        // Get all resolution IDs referenced by these questions
+        $resolutionIds = [];
+        foreach ($questions as $question) {
+            if ($question->answers) {
+                $answers = json_decode($question->answers, true);
+                if (is_array($answers)) {
+                    foreach ($answers as $answer) {
+                        if (isset($answer['resolution_id']) && $answer['resolution_id']) {
+                            $resolutionIds[] = $answer['resolution_id'];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Load the referenced resolutions
+        $resolutions = [];
+        if (!empty($resolutionIds)) {
+            $resolutions = DB::connection('pulse')
+                ->table('knowledge_base_resolutions')
+                ->whereIn('id', array_unique($resolutionIds))
+                ->get();
+            
+            // Add full image URLs to resolutions
+            $resolutions = $resolutions->map(function ($resolution) {
+                if ($resolution->image) {
+                    $resolution->image_url = $this->getImageUrl($resolution->image);
+                }
+                return $resolution;
+            });
+        }
+
+        return Inertia::render('KnowledgeBase/PublicArticle', [
+            'article' => $article,
+            'questions' => $questions,
+            'resolutions' => $resolutions,
+        ]);
+    }
+
     public function create(Request $request)
     {
         // Validate the request
@@ -586,7 +746,7 @@ class KnowledgeBaseController extends Controller
             'tags' => 'required|array|min:1|max:10',
             'tags.*' => 'string|max:50',
             'category' => 'required|string|max:100',
-            'soundfiles.*' => 'file|mimes:wav,mp3,ogg,gsm|max:15360', // 15MB max per audio file (matching PHP limit)
+            'soundfiles.*' => 'file|mimes:wav,mp3,ogg,gsm|max:102400', // 100MB max per audio file
         ]);
 
         if ($validator->fails()) {            
