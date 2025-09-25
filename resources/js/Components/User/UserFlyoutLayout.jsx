@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CalendarIcon, CalendarDaysIcon, XMarkIcon, UserIcon, WrenchIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import { exportHTMLToImage } from '../../Utils/Exports.jsx'
-import { format, startOfDay, endOfDay, subDays } from 'date-fns';
+import { format, startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { hasPermission } from '../../Utils/Permissions';
 import UserFlyoutContentShifts from './UserFlyoutContentShifts';
 import UserFlyoutContentEmployee from './UserFlyoutContentEmployee';
@@ -13,11 +13,11 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-export default function UserFlyoutLayout({hrId, handleClose, jobTitle}) {
+export default function UserFlyoutLayout({hrId, handleClose, jobTitle, startDate, endDate}) {
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [activeTab, setActiveTab] = useState('shifts');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [dateRange, setDateRange ] = useState({startDate: format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: format(endOfDay(currentDate), 'yyyy-MM-dd')});
+  const [dateRange, setDateRange ] = useState({startDate: startDate ? startDate : format(startOfDay(subDays(currentDate, 7)), 'yyyy-MM-dd'), endDate: endDate ? endDate : format(endOfDay(currentDate), 'yyyy-MM-dd')});
   const divRef = useRef();
 
   const allowViewEvents = () => {

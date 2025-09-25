@@ -27,35 +27,36 @@ export default function UserFlyoutContentShifts({ hrId, handleDateChange, handle
   // Find misaligned timesheets
   const findMisalignedTimesheets = (shifts, timesheets) => {
     return timesheets.filter((timesheet) => {
-      // Find the corresponding shift for this timesheet
-      const matchingShift = shifts.find((shift) => {
-        // Check if the timesheet date matches the shift date
-        const timesheetDate = new Date(timesheet.on_time).toDateString();
+      // Find ALL shifts for this person on the timesheet date (to handle split shifts)
+      const timesheetDate = new Date(timesheet.on_time).toDateString();
+      const matchingShifts = shifts.filter((shift) => {
         const shiftDate = new Date(shift.shiftdate).toDateString();
         return timesheetDate === shiftDate;
       });
 
-      if (!matchingShift) return true; // No matching shift found, consider it misaligned
+      if (matchingShifts.length === 0) return true; // No matching shift found, consider it misaligned
 
-      // Calculate the shift start and end times
-      const shiftStartDate = new Date(matchingShift.shiftdate);
-      shiftStartDate.setHours(Math.floor(matchingShift.shiftstart / 100), matchingShift.shiftstart % 100);
-      
-      const shiftEndDate = new Date(matchingShift.shiftdate);
-      shiftEndDate.setHours(Math.floor(matchingShift.shiftend / 100), matchingShift.shiftend % 100);
-      
-      // Check if the timesheet record falls within the shift window
       const onTime = new Date(timesheet.on_time);
       const offTime = timesheet.off_time ? new Date(timesheet.off_time) : new Date();
       
-      // Check if the timesheet falls within an hour before shift start and an hour after shift end
-      const fallsWithinWindow = (
-        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
-        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
-      );
+      // Check if the timesheet record falls within ANY of the shift windows for this date
+      const fallsWithinAnyShiftWindow = matchingShifts.some((shift) => {
+        // Calculate the shift start and end times
+        const shiftStartDate = new Date(shift.shiftdate);
+        shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
+        
+        const shiftEndDate = new Date(shift.shiftdate);
+        shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
+        
+        // Check if the timesheet falls within an hour before shift start and an hour after shift end
+        return (
+          (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+          (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
+        );
+      });
       
-      // Return true if it does NOT fall within the window (misaligned)
-      return !fallsWithinWindow;
+      // Return true if it does NOT fall within ANY shift window (truly misaligned)
+      return !fallsWithinAnyShiftWindow;
     });
   };
 
