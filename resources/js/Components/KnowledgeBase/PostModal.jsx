@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { TagIcon } from '@heroicons/react/24/outline';
 import CallRecordings from '../../Utils/CallRecordings.jsx';
+import { has } from 'lodash';
 
 // Utility functions
 function toProperCase(str) {
@@ -219,7 +220,7 @@ export default function PostModal({
         
         // Append tags as individual array items
         tags.forEach((tag, index) => {
-          formData.append(`tags[${index}]`, toProperCase(tag));
+          formData.append(`tags[${index}]`, tag);
         });
         
         formData.append('category', activeTab || 'general');
@@ -322,7 +323,7 @@ export default function PostModal({
           title: toProperCase(title.trim()),
           description: capitalizeFirst(description.trim()),
           content: markdownContent.trim(),
-          tags: tags.map(toProperCase),
+          tags: tags,
           category: activeTab || 'general'
         };
       }
@@ -338,8 +339,8 @@ export default function PostModal({
         : 'Article created successfully!';
 
       const pendingMessage = isEditMode 
-        ? 'Updating article...' 
-        : 'Creating article...';
+        ? 'Updating article' + (hasAudioFiles ? ', this may take a moment...' : '...')
+        : 'Creating article' + (hasAudioFiles ? ', this may take a moment...' : '...');
 
       toast.promise(
         axios({
@@ -525,7 +526,7 @@ export default function PostModal({
               annotation=""
               error={errors.tags}
               clearErrors={clearErrors}
-              onTagsChange={(tags) => setTags(tags.map(toProperCase))}
+              onTagsChange={setTags}
               placeholder="Add tags..."
               maxTags={10}
               Icon={TagIcon}

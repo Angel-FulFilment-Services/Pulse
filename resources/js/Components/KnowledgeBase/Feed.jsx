@@ -163,9 +163,21 @@ const ArticleCondensed = ({ post, config, onDelete, onEdit, onTagClick }) => {
   };
 
   const handleDeleteConfirm = async () => {
-    try {
-      await axios.delete(`/knowledge-base/article/${post.id}`);
-      toast.success('Article deleted successfully!', {
+    setShowDeleteDialog(false);
+    
+    toast.promise(
+      axios.delete(`/knowledge-base/article/${post.id}`),
+      {
+        pending: 'Deleting article...',
+        success: 'Article deleted successfully!',
+        error: {
+          render({ data }) {
+            console.error('Error deleting article:', data);
+            return 'Failed to delete article. Please try again.';
+          }
+        }
+      },
+      {
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -174,25 +186,14 @@ const ArticleCondensed = ({ post, config, onDelete, onEdit, onTagClick }) => {
         draggable: true,
         progress: undefined,
         theme: 'light',
-      });
+      }
+    ).then(() => {
       if (onDelete) {
         onDelete(post.id);
       }
-    } catch (error) {
-      console.error('Error deleting article:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete article', {
-        position: 'top-center',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
-      });
-    } finally {
-      setShowDeleteDialog(false);
-    }
+    }).catch(() => {
+      // Error is already handled by toast.promise
+    });
   };
 
   return (

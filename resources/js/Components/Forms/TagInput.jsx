@@ -1,6 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { XMarkIcon, ExclamationCircleIcon } from '@heroicons/react/20/solid';
 
+// Utility function to convert to proper case
+function toProperCase(str) {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+}
+
 export default function TagInput(props) {
   const { 
     id,
@@ -38,9 +45,17 @@ export default function TagInput(props) {
   }, [inputValue]);
 
   const addTag = (tagText) => {
-    if (tagText && !tags.includes(tagText) && tags.length < maxTags) {
-      onTagsChange([...tags, tagText]);
-      if (clearErrors) clearErrors();
+    if (tagText) {
+      const properCasedTag = toProperCase(tagText);
+      // Check for duplicates using case-insensitive comparison
+      const isDuplicate = tags.some(existingTag => 
+        existingTag.toLowerCase() === properCasedTag.toLowerCase()
+      );
+      
+      if (!isDuplicate && tags.length < maxTags) {
+        onTagsChange([...tags, properCasedTag]);
+        if (clearErrors) clearErrors();
+      }
     }
     setInputValue('');
   };
