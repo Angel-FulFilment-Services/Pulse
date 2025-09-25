@@ -134,17 +134,21 @@
 }
 
 .quill-editor.flex-1 .ql-container {
-  flex: 1; /* Takes remaining space */
+  flex: 0 0 auto; /* Don't grow or shrink, use natural height */
+  height: 100%; /* Fill parent height */
   min-height: 0; /* Override the 300px min-height rule */
+  max-height: 100%; /* Never exceed parent height */
   display: flex;
   flex-direction: column;
   height: calc(100% - 52px); /* Subtract toolbar height explicitly */
+  overflow: hidden; /* Prevent container from expanding */
 }
 
 .quill-editor.flex-1 .ql-editor {
-  flex: 1; /* Take remaining space in container instead of 100% height */
-  min-height: 0; /* Override the 260px min-height rule */
-  overflow-y: auto; /* Scroll when content exceeds */
+  flex: 1 1 0; /* Grow to fill space but never beyond container */
+  min-height: 0 !important; /* Override the 260px min-height rule */
+  max-height: 100% !important; /* Absolutely prevent expanding beyond container */
+  overflow-y: auto !important; /* Force internal scrolling */
   padding-bottom: 20px; /* Ensure bottom content is visible */
   box-sizing: border-box; /* Include padding in height calculation */
 }

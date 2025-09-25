@@ -12,13 +12,14 @@ export default function Header({
   search, 
   setSearch, 
   onPostCreated, 
+  onPostUpdated,
   showCreateModal, 
   setShowCreateModal, 
+  onModalClose,
   apexId,
-  presetData 
-}) {  
-  const { auth } = usePage().props;
-  
+  presetData,
+  editArticle
+}) {    
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
   }
@@ -88,11 +89,13 @@ export default function Header({
           
           <PostModal
             isOpen={showCreateModal}
-            onClose={() => setShowCreateModal(false)}
+            onClose={onModalClose || (() => setShowCreateModal(false))}
             activeTab={activeTab}
             onPostCreated={onPostCreated}
+            onPostUpdated={onPostUpdated}
             apexId={apexId}
             presetData={presetData}
+            editPost={editArticle}
           />
         </div>
       </div>

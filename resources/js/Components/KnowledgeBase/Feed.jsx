@@ -1,8 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
+import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import useFetchArticles from '../Fetches/KnowledgeBase/useFetchArticles';
 import { Link } from '@inertiajs/react'
+import { hasPermission } from '../../Utils/Permissions';
 import FilterControl from '../Controls/FilterControl.jsx';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import ConfirmationDialog from '../Dialogs/ConfirmationDialog';
 
 // Layout configuration - easily changeable by developers
 const LAYOUT_CONFIG = {
@@ -93,7 +98,7 @@ function applyFilters(data, filters = []) {
 }
 
 // Card layout component (current layout)
-const ArticleCard = ({ post, config }) => (
+const ArticleCard = ({ post, config, onTagClick }) => (
   <article className="flex max-w-full flex-col items-start justify-between pt-4">
     <div className="flex items-center gap-x-4 text-xs">
       <time dateTime={post.datetime} className="text-gray-500">
@@ -114,7 +119,12 @@ const ArticleCard = ({ post, config }) => (
           {post.tags && post.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="relative z-10 rounded-full bg-theme-50 px-3 py-1.5 font-medium text-theme-600 ring-1 ring-theme-500/10 dark:bg-theme-600 dark:text-theme-300 dark:ring-theme-700/20 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onTagClick && onTagClick(tag);
+              }}
+              className="relative z-10 rounded-full bg-theme-50 px-3 py-1.5 font-medium text-theme-600 ring-1 ring-theme-500/10 dark:bg-theme-600 dark:text-theme-300 dark:ring-theme-700/20 cursor-pointer hover:bg-theme-100 dark:hover:bg-theme-500 transition-colors duration-200"
             >
               {tag}
             </span>
@@ -135,53 +145,154 @@ const ArticleCard = ({ post, config }) => (
 );
 
 // Condensed list layout component
-const ArticleCondensed = ({ post, config }) => (
-  <article className="flex items-center justify-between py-3">
-    <div className="flex-1 min-w-0 group relative cursor-pointer">
-      <div className="flex items-center gap-x-3">
-        <div className="">
-          <h3 className="font-semibold text-gray-900 dark:text-dark-100 group-hover:text-gray-600 truncate">
-            <Link href={`/knowledge-base/article/${post.id}`} className="focus:outline-none">
-              <span className="absolute inset-0" />
-              {post.title}
-            </Link>
-          </h3>
+const ArticleCondensed = ({ post, config, onDelete, onEdit, onTagClick }) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const handleDeleteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteDialog(true);
+  };
+
+  const handleEditClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(post);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await axios.delete(`/knowledge-base/article/${post.id}`);
+      toast.success('Article deleted successfully!', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+      if (onDelete) {
+        onDelete(post.id);
+      }
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete article', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+    } finally {
+      setShowDeleteDialog(false);
+    }
+  };
+
+  return (
+    <article className="flex items-center justify-between py-3">
+      <div className="flex-1 min-w-0 group relative cursor-pointer">
+        <div className="flex items-center gap-x-3">
+          <div className="">
+            <h3 className="font-semibold text-gray-900 dark:text-dark-100 group-hover:text-gray-600 truncate">
+              <Link href={`/knowledge-base/article/${post.id}`} className="focus:outline-none">
+                <span className="absolute inset-0" />
+                {post.title}
+              </Link>
+            </h3>
+          </div>
+          {config.showTags && post.tags && post.tags.slice(0, config.maxTags).map((tag, idx) => (
+            <span
+              key={idx}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onTagClick && onTagClick(tag);
+              }}
+              className="relative z-10 rounded-full bg-theme-50 px-3 py-1.5 font-medium text-xs text-theme-600 ring-1 ring-theme-500/10 dark:bg-theme-600 dark:text-theme-300 dark:ring-theme-700/20 cursor-pointer hover:bg-theme-100 dark:hover:bg-theme-500 transition-colors duration-200"
+            >
+              {tag}
+            </span>
+          ))}
+          {config.showTags && post.tags && post.tags.length > config.maxTags && (
+            <span className="text-xs text-gray-500 dark:text-dark-400">
+              +{post.tags.length - config.maxTags} more
+            </span>
+          )}
         </div>
-        {config.showTags && post.tags && post.tags.slice(0, config.maxTags).map((tag, idx) => (
-          <span
-            key={idx}
-            className="relative z-10 rounded-full bg-theme-50 px-3 py-1.5 font-medium text-xs text-theme-600 ring-1 ring-theme-500/10 dark:bg-theme-600 dark:text-theme-300 dark:ring-theme-700/20 cursor-pointer"
-          >
-            {tag}
-          </span>
-        ))}
-        {config.showTags && post.tags && post.tags.length > config.maxTags && (
-          <span className="text-xs text-gray-500 dark:text-dark-400">
-            +{post.tags.length - config.maxTags} more
-          </span>
+        {config.showDescription && (
+          <p className="text-sm text-gray-600 dark:text-dark-300 line-clamp-1 mt-2">{post.description}</p>
         )}
       </div>
-      {config.showDescription && (
-        <p className="text-sm text-gray-600 dark:text-dark-300 line-clamp-1 mt-2">{post.description}</p>
-      )}
-    </div>
-    <div className="flex items-center gap-x-4 text-xs text-gray-500 dark:text-dark-400 ml-4 flex-shrink-0">
-      <time dateTime={post.datetime}>{post.date}</time>
-      {config.showReadTime && (
-        <span>{post.read_time} min read</span>
-      )}
-      {config.showViews && (
-        <span>{post.visits} views</span>
-      )}
-    </div>
-  </article>
-);
+      <div className="flex items-center gap-x-4 text-xs text-gray-500 dark:text-dark-400 ml-4 flex-shrink-0">
+        <time dateTime={post.datetime}>{post.date}</time>
+        {config.showReadTime && (
+          <span>{post.read_time} min read</span>
+        )}
+        {config.showViews && (
+          <span>{post.visits} views</span>
+        )}
+        <div className="flex items-center gap-x-2 border-l border-gray-200 dark:border-dark-700 pl-2">
+          {hasPermission("pulse_create_articles") && (
+            <button
+              onClick={handleEditClick}
+              className="relative p-1 text-gray-500 hover:text-gray-600 dark:text-dark-400 dark:hover:text-dark-300 transition-colors duration-200"
+              title={`Edit "${post.title}"`}
+            >
+              <PencilIcon className="h-5 w-5" />
+            </button>
+          )}
+          {hasPermission("pulse_delete_articles") && (
+            <button
+              onClick={handleDeleteClick}
+              className="relative p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors duration-200"
+              title={`Delete "${post.title}"`}
+            >
+              <TrashIcon className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        title="Delete Article"
+        description={`Are you sure you want to delete article "${post.title}"? This action cannot be undone.`}
+        isYes={handleDeleteConfirm}
+        type="delete"
+        yesText="Delete"
+        cancelText="Cancel"
+      />
+    </article>
+  );
+};
 
-export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
-  const { articles, isLoading, isLoaded } = useFetchArticles(activeTab, refreshTrigger);
+export default function Feed({ searchTerm, activeTab, refreshTrigger, onEditArticle }) {
+  const { articles, isLoading, isLoaded, refetch } = useFetchArticles(activeTab, refreshTrigger);
 
   // Get the layout configuration for the current tab
   const layoutConfig = LAYOUT_CONFIG[activeTab] || LAYOUT_CONFIG.default;
+
+  // Handle article deletion
+  const handleArticleDelete = (deletedId) => {
+    // Refetch articles to update the list
+    refetch();
+  };
+
+  // Handle article editing
+  const handleArticleEdit = (article) => {
+    if (onEditArticle) {
+      onEditArticle(article);
+    }
+  };
 
   const formattedPosts = useMemo(() => articles.map((article) => ({
     id: article.id,
@@ -201,6 +312,26 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
 
   // State for filters - initialize as empty array
   const [filters, setFilters] = useState([]);
+
+  // Handle tag click - add tag to filters
+  const handleTagClick = (tagValue) => {
+    setFilters(prevFilters => {
+      return prevFilters.map(filter => {
+        if (filter.id === 'tags') {
+          // Find the tag option and toggle it
+          const updatedOptions = filter.options.map(option => {
+            if (option.value === tagValue) {
+              return { ...option, checked: !option.checked };
+            }
+            return option;
+          });
+          
+          return { ...filter, options: updatedOptions };
+        }
+        return filter;
+      });
+    });
+  };
 
   // Initialize filters when articles are loaded for the first time
   useEffect(() => {
@@ -351,7 +482,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                       className="bg-white dark:bg-dark-900"
                     >
-                      <ArticleCondensed post={post} config={layoutConfig} />
+                      <ArticleCondensed post={post} config={layoutConfig} onDelete={handleArticleDelete} onEdit={handleArticleEdit} onTagClick={handleTagClick} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -373,7 +504,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                       className="flex justify-between gap-x-6 py-2 bg-white dark:bg-dark-900"
                     >
-                      <ArticleCard post={post} config={layoutConfig} />
+                      <ArticleCard post={post} config={layoutConfig} onTagClick={handleTagClick} />
                     </motion.li>
                   ))}
                 </AnimatePresence>

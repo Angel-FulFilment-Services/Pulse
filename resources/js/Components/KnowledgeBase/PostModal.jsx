@@ -6,11 +6,22 @@ import TextInput from '../Forms/TextInput';
 import TextAreaInput from '../Forms/TextAreaInput';
 import EditorInput from '../Forms/EditorInput';
 import TagInput from '../Forms/TagInput';
-import { stripHtmlTags, convertToMarkdown } from '../../Utils/Sanitisers';
+import { stripHtmlTags, convertToMarkdown, convertFromMarkdown } from '../../Utils/Sanitisers';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { TagIcon } from '@heroicons/react/24/outline';
 import CallRecordings from '../../Utils/CallRecordings.jsx';
+
+// Utility functions
+function toProperCase(str) {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+}
+
+function capitalizeFirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 export default function PostModal({ 
   isOpen, 
@@ -20,7 +31,7 @@ export default function PostModal({
   onPostUpdated,
   editPost = null, // Post object to edit, null for creating new post
   apexId = null, // Apex ID to convert and load into content
-  presetData = {} // Preset form data object with field keys
+  presetData = null // Preset form data object with field keys
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -47,14 +58,16 @@ export default function PostModal({
     if (isEditMode && editPost) {
       setTitle(editPost.title || '');
       setDescription(editPost.description || '');
-      setContent(editPost.content || '');
+      // Convert Markdown content back to HTML for editing, passing soundfiles for URL mapping
+      const htmlContent = convertFromMarkdown(editPost.content || '', editPost.soundfiles);
+      setContent(htmlContent);
       setTags(editPost.tags || []);
     } else if (isOpen && !isEditMode && apexId) {
       // Convert Apex call and load into content
       handleApexConversion();
       
       // Apply preset data if available
-      if (presetData) {
+      if (presetData && Object.keys(presetData).length > 0) {
         if (presetData.title) setTitle(presetData.title);
         if (presetData.description) setDescription(presetData.description);
         if (presetData.tags) setTags(presetData.tags);
@@ -64,7 +77,7 @@ export default function PostModal({
       // Reset form for new post and apply preset data if available
       resetForm();
       
-      if (presetData) {
+      if (presetData && Object.keys(presetData).length > 0) {
         if (presetData.title) setTitle(presetData.title);
         if (presetData.description) setDescription(presetData.description);
         if (presetData.tags) setTags(presetData.tags);
@@ -189,27 +202,52 @@ export default function PostModal({
       // Extract audio files from the content
       const audioFiles = extractAudioFiles(content);
 
-      // Check if we have audio files to upload
+      // Check if we have audio files to upload or existing soundfiles to preserve
       const hasAudioFiles = audioFiles && audioFiles.length > 0;
+      const hasExistingSoundfiles = isEditMode && editPost && editPost.soundfiles && editPost.soundfiles.length > 0;
+      const needsFormData = hasAudioFiles || hasExistingSoundfiles;
       
       let requestData;
       let requestConfig = {};
       
-      if (hasAudioFiles) {
+      if (needsFormData) {
         // We need to fetch the blob URLs and convert them to File objects
         const formData = new FormData();
-        formData.append('title', title.trim());
-        formData.append('description', description.trim());
+        formData.append('title', toProperCase(title.trim()));
+        formData.append('description', capitalizeFirst(description.trim()));
         formData.append('content', markdownContent.trim());
         
         // Append tags as individual array items
         tags.forEach((tag, index) => {
-          formData.append(`tags[${index}]`, tag);
+          formData.append(`tags[${index}]`, toProperCase(tag));
         });
         
         formData.append('category', activeTab || 'general');
         
-        // Fetch and add audio files
+        // Include existing soundfiles that should be preserved
+        if (isEditMode && editPost && editPost.soundfiles) {
+          editPost.soundfiles.forEach((soundfile, index) => {
+            // Extract the base file path from the temporary URL (without query parameters)
+            const baseFilePath = soundfile.path ? soundfile.path.split('?')[0] : '';
+            const fileName = baseFilePath.split('/').pop(); // Get just the filename part
+            
+            // Check if this soundfile is still referenced in the content
+            // Look for the filename part in the content since temporary URLs change
+            const isStillReferenced = content.includes(fileName) || 
+                                     content.includes(soundfile.original_name);
+            
+            if (isStillReferenced) {
+              const existingSoundfileData = JSON.stringify({
+                id: soundfile.id,
+                filename: soundfile.original_name,
+                file_path: baseFilePath.replace('https://1a89dd102cb27ebd264873bd97545f6a.r2.cloudflarestorage.com/pulse-angelfs/', '')
+              });
+              formData.append(`existing_soundfiles[${index}]`, existingSoundfileData);
+            }
+          });
+        }
+        
+        // Fetch and add new audio files
         for (let i = 0; i < audioFiles.length; i++) {
           const audioFile = audioFiles[i];
           try {
@@ -281,19 +319,19 @@ export default function PostModal({
     } else {
         // Use regular JSON for requests without files
         requestData = {
-          title: title.trim(),
-          description: description.trim(),
+          title: toProperCase(title.trim()),
+          description: capitalizeFirst(description.trim()),
           content: markdownContent.trim(),
-          tags: tags,
+          tags: tags.map(toProperCase),
           category: activeTab || 'general'
         };
       }
 
       const endpoint = isEditMode 
-        ? `/knowledge-base/${editPost.id}` 
+        ? `/knowledge-base/article/${editPost.id}/edit` 
         : '/knowledge-base/create';
       
-      const method = isEditMode ? 'PUT' : 'POST';
+      const method = isEditMode ? 'POST' : 'POST';
       
       const successMessage = isEditMode 
         ? 'Article updated successfully!' 
@@ -452,7 +490,7 @@ export default function PostModal({
               label="Title"
               placeholder="Enter article title..."
               currentState={title}
-              onTextChange={(value) => setTitle(value)}
+              onTextChange={(value) => setTitle(toProperCase(value))}
               returnRaw={true}
               error={errors.title}
               clearErrors={clearErrors}
@@ -467,7 +505,7 @@ export default function PostModal({
               label="Description"
               placeholder="Brief description of the article..."
               currentState={description}
-              onTextChange={(data) => setDescription(data[0].value)}
+              onTextChange={(data) => setDescription(capitalizeFirst(data[0].value))}
               rows={3}
               height="h-16"
               maxLength={200}
@@ -487,7 +525,7 @@ export default function PostModal({
               annotation=""
               error={errors.tags}
               clearErrors={clearErrors}
-              onTagsChange={setTags}
+              onTagsChange={(tags) => setTags(tags.map(toProperCase))}
               placeholder="Add tags..."
               maxTags={10}
               Icon={TagIcon}

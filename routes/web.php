@@ -134,7 +134,10 @@ Route::get('/knowledge-base/call-hub', [KnowledgeBaseController::class, 'index']
 Route::get('/knowledge-base/call-hub/create-from-apex', [KnowledgeBaseController::class, 'createFromApex'])->name('knowledge_base.create_from_apex');
 Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
 Route::post('/knowledge-base/create', [KnowledgeBaseController::class, 'create'])->name('knowledge_base.create');
+Route::post('/knowledge-base/article/{id}/edit', [KnowledgeBaseController::class, 'update'])->name('knowledge_base.update');
 Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');
+Route::get('/knowledge-base/article/{id}/edit', [KnowledgeBaseController::class, 'articleForEdit'])->name('knowledge_base.article_for_edit');
+Route::delete('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'delete'])->name('knowledge_base.delete');
 Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
 Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
 Route::post('/knowledge-base/upload-image', [KnowledgeBaseController::class, 'uploadImage'])->name('knowledge_base.upload_image');

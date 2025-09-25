@@ -81,7 +81,10 @@ const useFetchArticles = (category, refreshTrigger = 0) => {
     };
   }, []); // Re-run when startDate or endDate changes
 
-  return { articles, isLoading, isLoaded };
+  return { articles, isLoading, isLoaded, refetch: () => {
+    const controller = new AbortController();
+    fetchArticles(controller);
+  } };
 };
 
 export default useFetchArticles;
