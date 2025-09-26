@@ -491,7 +491,8 @@ export default function PostModal({
               label="Title"
               placeholder="Enter article title..."
               currentState={title}
-              onTextChange={(value) => setTitle(toProperCase(value))}
+              onTextChange={setTitle}
+              onBlur={(value) => setTitle(toProperCase(value))}
               returnRaw={true}
               error={errors.title}
               clearErrors={clearErrors}
@@ -506,7 +507,8 @@ export default function PostModal({
               label="Description"
               placeholder="Brief description of the article..."
               currentState={description}
-              onTextChange={(data) => setDescription(capitalizeFirst(data[0].value))}
+              onTextChange={(data) => setDescription(data[0].value)}
+              onBlur={(data) => setDescription(capitalizeFirst(data[0].value))}
               rows={3}
               height="h-16"
               maxLength={200}
