@@ -201,7 +201,38 @@ export const convertToMarkdown = (htmlContent) => {
         filter: 'audio',
         replacement: function (content, node) {
             const src = node.getAttribute('src');
-            const name = node.getAttribute('data-audio-name') || '';
+            let name = node.getAttribute('data-audio-name') || '';
+            
+            // If no data-audio-name, try to extract filename from URL
+            if (!name && src) {
+                try {
+                    const url = new URL(src);
+                    const pathname = url.pathname;
+                    // Extract filename from path, handling both direct paths and nested paths
+                    const parts = pathname.split('/');
+                    const filename = parts[parts.length - 1];
+                    
+                    // Only use extracted filename if it looks like a valid audio file
+                    if (filename && /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(filename)) {
+                        name = filename;
+                    }
+                } catch (e) {
+                    // If URL parsing fails, try simple regex extraction
+                    const match = src.match(/([^\/]+\.(mp3|wav|ogg|m4a|aac|flac))(\?.*)?$/i);
+                    if (match) {
+                        name = match[1];
+                    }
+                }
+            }
+            
+            // If we have a filename, format it as the proper path format
+            if (name && name !== src) {
+                // Check if name already includes the path, if not add it
+                const audioPath = name.includes('knowledge-base/audio/') ? name : `knowledge-base/audio/${name}`;
+                return `[audio:${audioPath}]([AUDIO:${audioPath}])`;
+            }
+            
+            // Fallback to URL format if we can't extract a proper filename
             return `[audio:${name || src}](${src})`;
         }
     });
