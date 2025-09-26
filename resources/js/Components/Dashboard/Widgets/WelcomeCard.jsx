@@ -361,25 +361,28 @@ const WelcomeCard = ({ employee, testTime = null }) => {
         const timeStops = [
             // Night to dawn
             { time: 0, from: { r: 67, g: 56, b: 202 }, via: { r: 88, g: 28, b: 135 }, to: { r: 15, g: 23, b: 42 } },
-            { time: 3, from: { r: 55, g: 48, b: 163 }, via: { r: 76, g: 29, b: 149 }, to: { r: 30, g: 41, b: 59 } },
-            { time: 5, from: { r: 88, g: 28, b: 135 }, via: { r: 244, g: 114, b: 182 }, to: { r: 253, g: 186, b: 116 } },
+            { time: 4, from: { r: 55, g: 48, b: 163 }, via: { r: 76, g: 29, b: 149 }, to: { r: 30, g: 41, b: 59 } },
+            { time: 5.5, from: { r: 88, g: 28, b: 135 }, via: { r: 244, g: 114, b: 182 }, to: { r: 253, g: 186, b: 116 } },
             
-            // Dawn to morning
-            { time: 6, from: { r: 254, g: 205, b: 211 }, via: { r: 254, g: 215, b: 170 }, to: { r: 253, g: 224, b: 71 } },
-            { time: 8, from: { r: 254, g: 215, b: 170 }, via: { r: 253, g: 224, b: 71 }, to: { r: 251, g: 146, b: 60 } },
+            // Dawn to morning (faster transition)
+            { time: 6.5, from: { r: 254, g: 205, b: 211 }, via: { r: 254, g: 215, b: 170 }, to: { r: 253, g: 224, b: 71 } },
+            { time: 8.5, from: { r: 254, g: 215, b: 170 }, via: { r: 253, g: 224, b: 71 }, to: { r: 251, g: 146, b: 60 } },
             
             // Morning to midday
-            { time: 12, from: { r: 147, g: 197, b: 253 }, via: { r: 56, g: 189, b: 248 }, to: { r: 103, g: 232, b: 249 } },
+            { time: 9, from: { r: 147, g: 197, b: 253 }, via: { r: 56, g: 189, b: 248 }, to: { r: 103, g: 232, b: 249 } },
             
+            // Hold midday blue longer
+            { time: 15, from: { r: 147, g: 197, b: 253 }, via: { r: 56, g: 189, b: 248 }, to: { r: 103, g: 232, b: 249 } },
+
             // Midday to afternoon
-            { time: 16, from: { r: 253, g: 224, b: 71 }, via: { r: 253, g: 186, b: 116 }, to: { r: 251, g: 191, b: 36 } },
+            { time: 18.5, from: { r: 253, g: 224, b: 71 }, via: { r: 253, g: 186, b: 116 }, to: { r: 251, g: 191, b: 36 } },
             
-            // Afternoon to evening
-            { time: 18, from: { r: 251, g: 146, b: 60 }, via: { r: 248, g: 113, b: 113 }, to: { r: 236, g: 72, b: 153 } },
-            { time: 19.5, from: { r: 220, g: 38, b: 127 }, via: { r: 147, g: 51, b: 234 }, to: { r: 67, g: 56, b: 202 } },
+            // Afternoon to evening (starts later)
+            { time: 19, from: { r: 251, g: 146, b: 60 }, via: { r: 248, g: 113, b: 113 }, to: { r: 236, g: 72, b: 153 } },
+            { time: 21.5, from: { r: 220, g: 38, b: 127 }, via: { r: 147, g: 51, b: 234 }, to: { r: 67, g: 56, b: 202 } },
             
-            // Evening to night
-            { time: 21, from: { r: 67, g: 56, b: 202 }, via: { r: 88, g: 28, b: 135 }, to: { r: 15, g: 23, b: 42 } },
+            // Evening to night (faster transition)
+            { time: 22, from: { r: 67, g: 56, b: 202 }, via: { r: 88, g: 28, b: 135 }, to: { r: 15, g: 23, b: 42 } },
             { time: 24, from: { r: 67, g: 56, b: 202 }, via: { r: 88, g: 28, b: 135 }, to: { r: 15, g: 23, b: 42 } }
         ];
         
@@ -431,12 +434,12 @@ const WelcomeCard = ({ employee, testTime = null }) => {
             { time: 0, from: { r: 88, g: 28, b: 135, a: 0.9 }, via: { r: 55, g: 48, b: 163, a: 0.4 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             { time: 3, from: { r: 88, g: 28, b: 135, a: 0.85 }, via: { r: 55, g: 48, b: 163, a: 0.35 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             
-            // Dawn overlay
-            { time: 5, from: { r: 236, g: 72, b: 153, a: 0.7 }, via: { r: 251, g: 146, b: 60, a: 0.25 }, to: { r: 0, g: 0, b: 0, a: 0 } },
-            { time: 6, from: { r: 251, g: 146, b: 60, a: 0.7 }, via: { r: 253, g: 186, b: 116, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            // Dawn overlay (faster transition)
+            { time: 5.5, from: { r: 236, g: 72, b: 153, a: 0.7 }, via: { r: 251, g: 146, b: 60, a: 0.25 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            { time: 6.5, from: { r: 251, g: 146, b: 60, a: 0.7 }, via: { r: 253, g: 186, b: 116, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             
             // Morning overlay
-            { time: 8, from: { r: 245, g: 158, b: 11, a: 0.75 }, via: { r: 234, g: 179, b: 8, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            { time: 7.5, from: { r: 245, g: 158, b: 11, a: 0.75 }, via: { r: 234, g: 179, b: 8, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             
             // Midday overlay
             { time: 12, from: { r: 37, g: 99, b: 235, a: 0.8 }, via: { r: 14, g: 165, b: 233, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
@@ -444,12 +447,12 @@ const WelcomeCard = ({ employee, testTime = null }) => {
             // Afternoon overlay
             { time: 16, from: { r: 202, g: 138, b: 4, a: 0.75 }, via: { r: 251, g: 146, b: 60, a: 0.35 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             
-            // Evening overlay
-            { time: 18, from: { r: 220, g: 38, b: 127, a: 0.8 }, via: { r: 251, g: 146, b: 60, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
-            { time: 19.5, from: { r: 220, g: 38, b: 38, a: 0.8 }, via: { r: 251, g: 146, b: 60, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            // Evening overlay (starts later, faster transition)
+            { time: 18.5, from: { r: 220, g: 38, b: 127, a: 0.8 }, via: { r: 251, g: 146, b: 60, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            { time: 20, from: { r: 220, g: 38, b: 38, a: 0.8 }, via: { r: 251, g: 146, b: 60, a: 0.3 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             
             // Night overlay
-            { time: 21, from: { r: 88, g: 28, b: 135, a: 0.85 }, via: { r: 55, g: 48, b: 163, a: 0.35 }, to: { r: 0, g: 0, b: 0, a: 0 } },
+            { time: 20.5, from: { r: 88, g: 28, b: 135, a: 0.85 }, via: { r: 55, g: 48, b: 163, a: 0.35 }, to: { r: 0, g: 0, b: 0, a: 0 } },
             { time: 24, from: { r: 88, g: 28, b: 135, a: 0.9 }, via: { r: 55, g: 48, b: 163, a: 0.4 }, to: { r: 0, g: 0, b: 0, a: 0 } }
         ];
         
@@ -498,16 +501,16 @@ const WelcomeCard = ({ employee, testTime = null }) => {
     const getSunMoonPositions = () => {
         const hour = getCurrentHour();
         
-        // Create a realistic sun path: sunrise at 6am (bottom-left), noon at 12pm (top), sunset at 6pm (bottom-right)
+        // Create a narrower sun/moon path that fits better within the div
         // Map hours to angle on a semicircle: 6am = 180°, 12pm = 90°, 6pm = 0°, midnight = 270°
         const sunAngle = (((hour - 6) * 15) + 180) * (Math.PI / 180); // Convert to radians, 6am starts at 180°
         const moonAngle = sunAngle + Math.PI; // Moon is opposite to sun
         
-        // Ellipse parameters - wider arc for more natural look
+        // Ellipse parameters - very slight adjustment to fit better within div
         const centerX = 50; // Center horizontally
-        const centerY = 90; // Move center down so bottom of ellipse is hidden
-        const radiusX = 60; // Wider horizontal radius for natural arc
-        const radiusY = 50; // Vertical radius for proper height
+        const centerY = 90; // Keep center low for proper arc
+        const radiusX = 55; // Very slight reduction in horizontal radius
+        const radiusY = 40; // Keep vertical radius for proper height
         
         // Calculate positions
         const sunX = centerX + Math.cos(sunAngle) * radiusX;
@@ -519,19 +522,19 @@ const WelcomeCard = ({ employee, testTime = null }) => {
         // Calculate scale based on vertical position (higher = larger)
         // Only visible when above the horizon (Y < 100%)
         const getSunScale = () => {
-            if (sunY > 100) return 0.6; // Below horizon, minimum scale
+            if (sunY > 100) return 0.4; // Below horizon, smaller scale
             const visibleHeight = Math.max(0, Math.min(100, sunY)); // Clamp to 0-100
             const normalizedY = visibleHeight / 100; // 0 to 1
             const heightFactor = 1 - normalizedY; // Invert so top = 1, bottom = 0
-            return 0.6 + (heightFactor * 0.4); // Scale from 0.6 to 1.0
+            return 0.4 + (heightFactor * 0.8); // Scale from 0.4 to 1.2 (more dramatic)
         };
         
         const getMoonScale = () => {
-            if (moonY > 100) return 0.6; // Below horizon, minimum scale
-            const visibleHeight = Math.max(0, Math.min(100, moonY)); // Clamp to 0-100
+            if (moonY > 100) return 0.4; // Below horizon, smaller scale
+            const visibleHeight = Math.max(0, Math.min(100, moonY)); // Clamp to 0-100 (fixed: was using sunY!)
             const normalizedY = visibleHeight / 100; // 0 to 1
             const heightFactor = 1 - normalizedY; // Invert so top = 1, bottom = 0
-            return 0.6 + (heightFactor * 0.4); // Scale from 0.6 to 1.0
+            return 0.4 + (heightFactor * 0.8); // Scale from 0.4 to 1.2 (more dramatic)
         };
         
         return {
@@ -555,22 +558,30 @@ const WelcomeCard = ({ employee, testTime = null }) => {
         const positions = getSunMoonPositions();
         const sunY = parseFloat(positions.sun.top);
         
-        // Base opacity based on time of day
         let baseOpacity;
-        if (hour >= 6 && hour <= 18) {
-            baseOpacity = 1; // Full opacity during day
+        
+        // Precise sun timing: fade in 6:30am-8:30am, full day, fade out 3:30pm-5:30pm
+        if (hour >= 6.5 && hour <= 17.5) {
+            if (hour >= 6.5 && hour <= 8.5) {
+                // Sunrise transition: fade in from 6:30am to 8:30am
+                baseOpacity = (hour - 6.5) / 2; // 0 to 1 over 2 hours
+            } else if (hour >= 8.5 && hour <= 15.5) {
+                // Full day: 8:30am to 3:30pm
+                baseOpacity = 1;
+            } else if (hour >= 15.5 && hour <= 17.5) {
+                // Sunset transition: fade out from 3:30pm to 5:30pm
+                baseOpacity = (17.5 - hour) / 2; // 1 to 0 over 2 hours
+            }
         } else {
-            // Reduce opacity at night but keep visible for orbital effect
-            const nightTime = hour > 18 ? hour - 18 : hour + 6; // 0-12 scale
-            baseOpacity = Math.max(0.1, 0.3 - (nightTime / 12) * 0.2); // 0.1 to 0.3 opacity
+            baseOpacity = 0; // Invisible at night
         }
         
-        // Dim further if below horizon
+        // Position-based opacity modifier
         if (sunY > 100) {
-            baseOpacity = Math.max(0.05, baseOpacity * 0.2); // Very dim when below horizon
+            baseOpacity = Math.max(0, baseOpacity * 0.2); // Very dim when below horizon
         }
         
-        return baseOpacity;
+        return Math.max(0, Math.min(1, baseOpacity));
     };
 
     const getMoonOpacity = () => {
@@ -578,22 +589,30 @@ const WelcomeCard = ({ employee, testTime = null }) => {
         const positions = getSunMoonPositions();
         const moonY = parseFloat(positions.moon.top);
         
-        // Base opacity based on time of day
         let baseOpacity;
-        if (hour >= 18 || hour <= 6) {
-            baseOpacity = 1; // Full opacity at night
+        
+        // Precise moon timing: fade in 5:30pm-7:30pm, full night, fade out 3:30am-5:30am
+        if (hour >= 17.5 || hour <= 5.5) {
+            if (hour >= 17.5 && hour <= 19.5) {
+                // Moonrise transition: fade in from 5:30pm to 7:30pm
+                baseOpacity = (hour - 17.5) / 2; // 0 to 1 over 2 hours
+            } else if ((hour >= 19.5 && hour <= 24) || (hour >= 0 && hour <= 3.5)) {
+                // Full night: 7:30pm to 3:30am
+                baseOpacity = 1;
+            } else if (hour >= 3.5 && hour <= 5.5) {
+                // Moonset transition: fade out from 3:30am to 5:30am
+                baseOpacity = (5.5 - hour) / 2; // 1 to 0 over 2 hours
+            }
         } else {
-            // Reduce opacity during day but keep visible for orbital effect  
-            const dayTime = hour - 6; // 0-12 scale
-            baseOpacity = Math.max(0.1, 0.3 - (dayTime / 12) * 0.2); // 0.1 to 0.3 opacity
+            baseOpacity = 0; // Invisible during day
         }
         
-        // Dim further if below horizon
+        // Position-based opacity modifier
         if (moonY > 100) {
-            baseOpacity = Math.max(0.05, baseOpacity * 0.2); // Very dim when below horizon
+            baseOpacity = Math.max(0, baseOpacity * 0.2); // Very dim when below horizon
         }
         
-        return baseOpacity;
+        return Math.max(0, Math.min(1, baseOpacity));
     };
 
     const getStarOpacity = () => {
@@ -606,8 +625,8 @@ const WelcomeCard = ({ employee, testTime = null }) => {
 
     const getCloudOpacity = () => {
         const hour = getCurrentHour();
-        if (hour >= 6 && hour <= 18) return 1; // Full clouds during day
-        if (hour > 18 && hour < 21) return Math.max(0.15, (21 - hour) / 3 * 0.85); // Fade out evening (to 15% minimum)
+        if (hour >= 6 && hour <= 19) return 1; // Full clouds during day
+        if (hour > 19 && hour < 22) return Math.max(0.15, (22 - hour) / 3 * 0.85); // Fade out evening (to 15% minimum)
         if (hour >= 3 && hour < 6) return 0.15 + ((hour - 3) / 3) * 0.85; // Fade in morning (from 15%)
         return 0.15; // Very transparent clouds at night (15% instead of 30%)
     };
@@ -622,7 +641,31 @@ const WelcomeCard = ({ employee, testTime = null }) => {
     };
 
     return (
-        <div className="relative rounded-2xl shadow-lg overflow-hidden h-40">
+        <div className="relative rounded-2xl shadow-lg h-40 overflow-hidden">
+            {/* Orbital path debug - positioned outside the main container */}
+            <div className="absolute inset-0 pointer-events-none">
+                <svg 
+                    width="400" 
+                    height="300" 
+                    className="absolute" 
+                    style={{ 
+                        left: '-100px', 
+                        top: '-50px',
+                        overflow: 'visible'
+                    }}
+                >
+                    {/* Draw the orbital ellipse - red line showing full orbit */}
+                    <ellipse
+                        cx="200"
+                        cy="200"
+                        rx="100"
+                        ry="80"
+                        fill="none"
+                        stroke="red"
+                        strokeWidth="3"
+                    />
+                </svg>
+            </div>
             {/* CSS animations for cloud floating and star twinkling */}
             <style>{`
                 @keyframes cloudFloat1 {
