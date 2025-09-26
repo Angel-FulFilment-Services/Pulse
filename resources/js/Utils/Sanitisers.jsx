@@ -227,9 +227,19 @@ export const convertToMarkdown = (htmlContent) => {
             
             // If we have a filename, format it as the proper path format
             if (name && name !== src) {
-                // Check if name already includes the path, if not add it
-                const audioPath = name.includes('knowledge-base/audio/') ? name : `knowledge-base/audio/${name}`;
-                return `[audio:${audioPath}]([AUDIO:${audioPath}])`;
+                // Check if name already includes the [AUDIO: format first (most specific)
+                if (name.startsWith('[AUDIO:') && name.endsWith(']')) {
+                    // Already in [AUDIO:path] format, extract the inner path for display
+                    const innerPath = name.slice(7, -1); // Remove [AUDIO: and ]
+                    return `[audio:${innerPath}](${name})`;
+                } else if (name.includes('knowledge-base/audio/') && !name.startsWith('[AUDIO:')) {
+                    // Already has the path but not wrapped, wrap in [AUDIO:]
+                    return `[audio:${name}]([AUDIO:${name}])`;
+                } else {
+                    // Just filename, add the full path and wrap
+                    const audioPath = `knowledge-base/audio/${name}`;
+                    return `[audio:${audioPath}]([AUDIO:${audioPath}])`;
+                }
             }
             
             // Fallback to URL format if we can't extract a proper filename

@@ -15,12 +15,14 @@ import { has } from 'lodash';
 
 // Utility functions
 function toProperCase(str) {
+  if (!str || typeof str !== 'string') return str || '';
   return str.replace(/\w\S*/g, (txt) =>
     txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
   );
 }
 
 function capitalizeFirst(str) {
+  if (!str || typeof str !== 'string') return str || '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
@@ -492,7 +494,7 @@ export default function PostModal({
               placeholder="Enter article title..."
               currentState={title}
               onTextChange={setTitle}
-              onBlur={(value) => setTitle(toProperCase(value))}
+              onBlur={() => setTitle(toProperCase(title))}
               returnRaw={true}
               error={errors.title}
               clearErrors={clearErrors}
@@ -508,7 +510,7 @@ export default function PostModal({
               placeholder="Brief description of the article..."
               currentState={description}
               onTextChange={(data) => setDescription(data[0].value)}
-              onBlur={(data) => setDescription(capitalizeFirst(data[0].value))}
+              onBlur={() => setDescription(capitalizeFirst(description))}
               rows={3}
               height="h-16"
               maxLength={200}

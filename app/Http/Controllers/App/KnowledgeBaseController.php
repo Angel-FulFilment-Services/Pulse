@@ -827,7 +827,7 @@ class KnowledgeBaseController extends Controller
                     ];
                     // Replace blob URLs and filenames with a reference format that can be converted to temporary URLs later
                     $audioReference = "[AUDIO:{$path}]";
-                    $content = str_replace($file->getClientOriginalName(), $audioReference, $content);
+                    $content = str_replace($file->getClientOriginalName(), basename($path), $content);
                     // Also handle any blob URLs that might still be in the content
                     $content = preg_replace('/\(blob:[^)]+\)/', "($audioReference)", $content);
                 }
@@ -956,7 +956,7 @@ class KnowledgeBaseController extends Controller
                     ];
                     // Replace blob URLs and filenames with a reference format that can be converted to temporary URLs later
                     $audioReference = "[AUDIO:{$path}]";
-                    $content = str_replace($file->getClientOriginalName(), $audioReference, $content);
+                    $content = str_replace($file->getClientOriginalName(), basename($path), $content);
                     // Also handle any blob URLs that might still be in the content
                     $content = preg_replace('/\(blob:[^)]+\)/', "($audioReference)", $content);
                 }

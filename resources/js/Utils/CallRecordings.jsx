@@ -194,12 +194,25 @@ export class CallRecordings {
 
         const audioData = this.formatRecordingForEditor(recordingData);
         
+        // Extract just the filename part, handling both [AUDIO:path] format and direct filename
+        let cleanFilename = audioData.filename;
+        if (cleanFilename.startsWith('[AUDIO:') && cleanFilename.endsWith(']')) {
+            // Extract from [AUDIO:knowledge-base/audio/filename.ext] format
+            const match = cleanFilename.match(/\[AUDIO:.*\/([^\/\]]+)\]/);
+            if (match) {
+                cleanFilename = match[1];
+            }
+        } else if (cleanFilename.includes('/')) {
+            // Extract from path/to/filename.ext format
+            cleanFilename = cleanFilename.split('/').pop();
+        }
+        
         // Create audio HTML element for the editor
         const audioHtml = `
             <audio 
                 controls 
                 src="${audioData.url}" 
-                data-audio-name="${audioData.filename}"
+                data-audio-name="${cleanFilename}"
                 data-apex-id="${audioData.apexId}"
                 style="width: 100%;">
                 Your browser does not support the audio element.
