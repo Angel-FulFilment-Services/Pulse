@@ -10,6 +10,10 @@ export function getOrdinalSuffix(day) {
 
 function toMidnight(date) {
   const d = new Date(date);
+  // Check if date is valid
+  if (isNaN(d.getTime())) {
+    return new Date(); // Return current date if invalid
+  }
   d.setHours(0, 0, 0, 0);
   return d;
 }
@@ -38,9 +42,11 @@ function clampDate(date, min, max) {
 }
 
 export function dateSelectorOptions(minDate, maxDate){
-
-  const min = minDate ? toMidnight(new Date(minDate)) : null;
-  const max = maxDate ? toMidnight(new Date(maxDate)) : null;
+  // Validate input dates
+  const isValidDate = (date) => date && !isNaN(new Date(date).getTime());
+  
+  const min = minDate && isValidDate(minDate) ? toMidnight(new Date(minDate)) : null;
+  const max = maxDate && isValidDate(maxDate) ? toMidnight(new Date(maxDate)) : null;
   const today = toMidnight(new Date());
   const yesterday = toMidnight(new Date(today.getTime() - 86400000));
   const weekStart = toMidnight(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 1));

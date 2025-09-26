@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Event;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 
 class CallRecordings
 {
@@ -46,6 +47,88 @@ class CallRecordings
         }
 
         return $response;
+    }
+
+    public static function getConvertedRecording($apex_id){
+        $apex_data = DB::connection('apex_data')
+        ->table('apex_data')
+        ->where('apex_data.uniqueid', $apex_id)
+        ->select(DB::raw('
+            month(apex_data.date) as month,
+            year(apex_data.date) as year
+        '))
+        ->first();
+        
+        // Extract year and month from apex_data
+        $year = $apex_data->year;
+        $month = str_pad($apex_data->month, 2, '0', STR_PAD_LEFT);       
+
+        // Set variables
+        $folder = storage_path('app/soundfiles/');
+        $filename = str_replace('.','_',$apex_id) . $year . '_' . $month . '_' . str()->random(20);
+        
+        $url = self::find_recording($apex_id, $year, $month);
+        if(!$url){
+            return [
+                'success' => false,
+                'message' => 'Recording not found',
+                'data' => null
+            ];
+        }
+
+        $response = Http::get($url);
+
+        // Store the file locally under a random filename.
+        if($response->successful()){
+            Storage::disk('soundfiles')->put($filename . '.gsm', $response->body());
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Failed to download recording',
+                'data' => null
+            ];
+        }
+
+        // Tell SoX to convert the file from .gsm to .wav
+        // Once converted delete the .gsm file.
+        if(Storage::disk('soundfiles')->exists($filename . '.gsm')){
+            self::convert_gsm_to_wav($folder, $filename);
+            Storage::disk('soundfiles')->delete($filename . '.gsm');
+        } else {
+            return [
+                'success' => false,
+                'message' => 'GSM file not found for conversion',
+                'data' => null
+            ];
+        }
+
+        // Get the converted file data
+        if(Storage::disk('soundfiles')->exists($filename . '.wav')){
+            $fileData = Storage::disk('soundfiles')->get($filename . '.wav');
+            $fileSize = Storage::disk('soundfiles')->size($filename . '.wav');
+            
+            // Clean up the temporary file
+            Storage::disk('soundfiles')->delete($filename . '.wav');
+            
+            return [
+                'success' => true,
+                'message' => 'Recording converted successfully',
+                'data' => [
+                    'content' => base64_encode($fileData),
+                    'filename' => $apex_id . '.wav',
+                    'size' => $fileSize,
+                    'mime_type' => 'audio/wav',
+                    'apex_id' => $apex_id,
+                    'original_url' => $url
+                ]
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Conversion failed - WAV file not created',
+                'data' => null
+            ];
+        }
     }
 
     public static function ConvertRecording($apex_id, $year, $month, $file){

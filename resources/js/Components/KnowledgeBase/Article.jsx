@@ -165,7 +165,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                 </span>
               ))}  
             </div>
-            <Link href={`/knowledge-base`} className="text-sm font-medium text-gray-900 dark:text-dark-100 hover:text-gray-600 dark:hover:text-dark-200 flex items-center gap-x-2">
+            <Link href={`/knowledge-base/${article.category.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-medium text-gray-900 dark:text-dark-100 hover:text-gray-600 dark:hover:text-dark-200 flex items-center gap-x-2">
               <span className="pl-2 text-md font-semibold" aria-hidden="true">&larr;</span> Back to Knowledge Base
               <span className="sr-only">Back to Knowledge Base</span>
             </Link>
@@ -190,17 +190,19 @@ export default function Article({ article, questions = [], resolutions = [] }) {
           <h1 className="text-gray-400 dark:text-dark-100 mt-1 text-sm flex items-center gap-x-2">
             <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
               { 
-                new Date(article.published_at).toLocaleDateString('en-UK', {
+                article.published_at ? new Date(article.published_at).toLocaleDateString('en-UK', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
-                }) 
+                }) : 'No date'
               }
             </span>
             <div className="w-1 h-1 shrink-0 mt-1 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
             <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">{ article.category }</span>
             <div className="w-1 h-1 shrink-0 mt-1 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-            <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">10 minute read</span>
+            <span className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
+              {article.read_time ? `${article.read_time} minute read` : '1 minute read'}
+            </span>
           </h1>
         </div>
       </header>
@@ -209,7 +211,7 @@ export default function Article({ article, questions = [], resolutions = [] }) {
           <article className="bg-white dark:bg-dark-900 shadow-xl rounded-2xl mx-4 mb-8">
             <div className="px-8 py-8 lg:px-12 lg:py-12">
               {!showVisualGuide && !showBuilder && (
-                <div className="flex flex-row items-start justify-between mb-8">
+                <div className="flex flex-row items-start justify-between">
                   {article.article_image && (
                     <SmartImage 
                       filename={article.article_image}
@@ -218,37 +220,41 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                       path="articles"
                     />
                   )}
-                  <div className="flex gap-3 items-center">
-                    {questions.length > 0 ? (
-                      <>
-                        <button 
-                          onClick={isReloading ? undefined : () => setShowVisualGuide(true)}
-                          disabled={isReloading}
-                          className={`font-semibold px-4 py-2 rounded-lg transition-all duration-200 ${
-                            isReloading 
-                              ? 'bg-theme-400 dark:bg-theme-500 text-white dark:text-dark-50 opacity-60 cursor-not-allowed' 
-                              : 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50'
-                          }`}
-                        >
-                          {isReloading ? 'Loading...' : 'Launch Visual Guide'}
-                        </button>
-                        { hasPermission('pulse_edit_articles') ? (
+                  {/* Only show visual guide functionality for Technical Support articles */}
+                  {article.category === 'Technical Support' && (
+                    <div className="flex gap-3 items-center">
+                      {questions.length > 0 ? (
+                        <>
                           <button 
-                            onClick={isReloading ? undefined : () => setShowBuilder(true)}
+                            onClick={isReloading ? undefined : () => setShowVisualGuide(true)}
                             disabled={isReloading}
-                            className={`w-8 h-8 px-1 rounded-lg ${
-                              isReloading ? 'cursor-not-allowed' : ''
-                            }`}
-                            title="Edit Visual Guide"
-                          >
-                            <svg className={`w-6 h-6 transition-all ease-in-out ${
+                            className={`font-semibold px-4 py-2 rounded-lg transition-all duration-200 ${
                               isReloading 
-                                ? 'text-gray-400 dark:text-dark-500 opacity-50' 
-                                : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                                ? 'bg-theme-400 dark:bg-theme-500 text-white dark:text-dark-50 opacity-60 cursor-not-allowed' 
+                                : 'bg-theme-500 dark:bg-theme-600 hover:bg-theme-600 dark:hover:bg-theme-500 focus-visible:outline-theme-600 dark:focus-visible:outline-theme-500 text-white dark:text-dark-50'
+                            }`}
+                          >
+                            {isReloading ? 'Loading...' : 'Launch Visual Guide'}
                           </button>
+                          { hasPermission('pulse_edit_articles') ? (
+                          <>
+                            <button 
+                              onClick={isReloading ? undefined : () => setShowBuilder(true)}
+                              disabled={isReloading}
+                              className={`w-8 h-8 px-1 rounded-lg ${
+                                isReloading ? 'cursor-not-allowed' : ''
+                              }`}
+                              title="Edit Visual Guide"
+                            >
+                              <svg className={`w-6 h-6 transition-all ease-in-out ${
+                                isReloading 
+                                  ? 'text-gray-400 dark:text-dark-500 opacity-50' 
+                                  : 'text-gray-400 hover:text-gray-500 dark:text-dark-500 dark:hover:text-gray-400'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          </>
                         ) : null}
                       </>
                     ) : hasPermission('pulse_edit_articles') ? (
@@ -264,7 +270,8 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                         {isReloading ? 'Loading...' : 'Create Visual Guide'}
                       </button>
                     ) : null}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
               {!showVisualGuide && !showBuilder ? (
@@ -292,7 +299,65 @@ export default function Article({ article, questions = [], resolutions = [] }) {
                         <code className="bg-gray-100 dark:bg-dark-800 px-1 py-0.5 rounded text-sm font-mono text-theme-600 dark:text-theme-400" {...props} /> :
                         <code className="block bg-gray-100 dark:bg-dark-800 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...props} />,
                     pre: ({node, ...props}) => <pre className="bg-gray-100 dark:bg-dark-800 p-4 rounded-lg overflow-x-auto mb-4" {...props} />,
-                    a: ({node, ...props}) => <a className="text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 underline" {...props} />,
+                    a: ({node, ...props}) => {
+                      const href = props.href;
+                      const text = props.children;
+                      
+                      // Handle case where children is a string directly
+                      const textContent = typeof text === 'string' ? text : (Array.isArray(text) ? text[0] : '');
+                      
+                      // Check if this contains audio content
+                      if (typeof textContent === 'string' && textContent.includes('audio:')) {
+                        
+                        // Extract URL from text content: "audio:https://..."
+                        const audioMatch = textContent.match(/audio:(https?:\/\/[^\s]+)/);
+                        
+                        if (audioMatch && audioMatch[1]) {
+                          const audioUrl = audioMatch[1];
+                          const filename = audioUrl.split('/').pop() || 'Audio File';
+                                                    
+                          return (
+                            <audio 
+                              controls 
+                              className="w-full max-w-md"
+                              preload="metadata"
+                            >
+                              <source src={audioUrl} type="audio/mpeg" />
+                              <source src={audioUrl} type="audio/wav" />
+                              <source src={audioUrl} type="audio/ogg" />
+                              Your browser does not support the audio element.
+                            </audio>
+                          );
+                        } else {
+                          console.log('No valid audio URL found in match');
+                        }
+                      }
+                      
+                      // Check if this is an audio URL in href
+                      const isAudioUrl = href && (
+                        href.includes('/audio/') || 
+                        href.match(/\.(mp3|wav|ogg|m4a)$/i)
+                      );
+                      
+                      if (isAudioUrl) {
+                        const filename = href.split('/').pop() || 'Audio File';
+                        
+                        return (
+                          <audio 
+                            controls 
+                            className="w-full max-w-md"
+                            preload="metadata"
+                          >
+                            <source src={href} type="audio/mpeg" />
+                            <source src={href} type="audio/wav" />
+                            <source src={href} type="audio/ogg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        );
+                      }
+                      
+                      return <a className="text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 underline" {...props} />;
+                    },
                     strong: ({node, ...props}) => <strong className="font-semibold text-gray-900 dark:text-dark-100" {...props} />,
                     em: ({node, ...props}) => <em className="italic" {...props} />,
                   }}

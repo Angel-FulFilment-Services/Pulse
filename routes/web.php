@@ -129,8 +129,15 @@ Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utili
 |-----------------------
 */
 Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge_base');
+Route::get('/knowledge-base/technical-support', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.technical_support');
+Route::get('/knowledge-base/call-hub', [KnowledgeBaseController::class, 'index'])->name('knowledge_base.call_quality');
+Route::get('/knowledge-base/call-hub/create-from-apex', [KnowledgeBaseController::class, 'createFromApex'])->name('knowledge_base.create_from_apex');
 Route::get('/knowledge-base/articles', [KnowledgeBaseController::class, 'articles'])->name('knowledge_base.articles');
+Route::post('/knowledge-base/create', [KnowledgeBaseController::class, 'create'])->name('knowledge_base.create');
+Route::post('/knowledge-base/article/{id}/edit', [KnowledgeBaseController::class, 'update'])->name('knowledge_base.update');
 Route::get('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'article'])->name('knowledge_base.article');
+Route::get('/knowledge-base/article/{id}/edit', [KnowledgeBaseController::class, 'articleForEdit'])->name('knowledge_base.article_for_edit');
+Route::delete('/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'delete'])->name('knowledge_base.delete');
 Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
 Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
 Route::post('/knowledge-base/upload-image', [KnowledgeBaseController::class, 'uploadImage'])->name('knowledge_base.upload_image');
@@ -206,6 +213,7 @@ Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassig
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
 Route::post('/asset-management/kits/returns/process', [AssetController::class, 'processEquipmentReturn']);
+Route::get('/asset-management/kits/assignable-users', [AssetController::class, 'assignable_users']);
 
 /*
 |-----------------------
@@ -225,3 +233,6 @@ Route::get('/onsite/find-user', [SiteController::class, 'findUser'])->name('onsi
 Route::get('/onsite/has-profile-photo', [SiteController::class, 'hasProfilePhoto'])->name('onsite.has_profile_photo');
 Route::post('/onsite/access-control/account/photo/set', [SiteController::class, 'setProfilePhoto'])->name('onsite.access_control.account.photo.set');
 Route::get('/employees', [SiteController::class, 'employees'])->name('employees');
+
+// Camera streaming routes
+Route::get('/camera/viewer', [SiteController::class, 'cameraViewer'])->name('camera.viewer');

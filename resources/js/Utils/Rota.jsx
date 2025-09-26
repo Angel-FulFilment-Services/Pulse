@@ -182,32 +182,34 @@ export function groupShifts(shifts, merge = false, groupBy = (shift) => `${shift
       return !shifts.some((shift) => shift.hr_id === record.hr_id);
     });
 
-    // Second, get records that have matching hr_id but timesheets don't fall within shift window
+    // Second, get records that have matching hr_id but timesheets don't fall within ANY shift window for that person
     const misalignedRecords = timesheets.filter((record) => {
-      // Find the shift for this hr_id
-      const matchingShift = shifts.find((shift) => shift.hr_id === record.hr_id);
+      // Find ALL shifts for this hr_id (to handle split shifts)
+      const matchingShifts = shifts.filter((shift) => shift.hr_id === record.hr_id);
       
-      if (!matchingShift) return false; // This would be caught by unallocatedRecords above
+      if (matchingShifts.length === 0) return false; // This would be caught by unallocatedRecords above
       
-      // Calculate the shift start and end times
-      const shiftStartDate = new Date(matchingShift.shiftdate);
-      shiftStartDate.setHours(Math.floor(matchingShift.shiftstart / 100), matchingShift.shiftstart % 100);
-      
-      const shiftEndDate = new Date(matchingShift.shiftdate);
-      shiftEndDate.setHours(Math.floor(matchingShift.shiftend / 100), matchingShift.shiftend % 100);
-      
-      // Check if the timesheet record falls within the shift window (same logic as line 367-377)
       const onTime = new Date(record.on_time);
       const offTime = record.off_time ? new Date(record.off_time) : new Date();
       
-      // Check if the timesheet falls within an hour before shift start and an hour after shift end
-      const fallsWithinWindow = (
-        (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
-        (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
-      );
+      // Check if the timesheet record falls within ANY of the shift windows for this person
+      const fallsWithinAnyShiftWindow = matchingShifts.some((shift) => {
+        // Calculate the shift start and end times
+        const shiftStartDate = new Date(shift.shiftdate);
+        shiftStartDate.setHours(Math.floor(shift.shiftstart / 100), shift.shiftstart % 100);
+        
+        const shiftEndDate = new Date(shift.shiftdate);
+        shiftEndDate.setHours(Math.floor(shift.shiftend / 100), shift.shiftend % 100);
+        
+        // Check if the timesheet falls within an hour before shift start and an hour after shift end
+        return (
+          (onTime >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && onTime <= shiftEndDate) ||
+          (offTime >= shiftStartDate && offTime <= new Date(shiftEndDate.getTime() + 60 * 60 * 1000))
+        );
+      });
       
-      // Return true if it does NOT fall within the window (misaligned)
-      return !fallsWithinWindow;
+      // Return true if it does NOT fall within ANY shift window (truly misaligned)
+      return !fallsWithinAnyShiftWindow;
     });
 
     // Combine both types of unallocated records

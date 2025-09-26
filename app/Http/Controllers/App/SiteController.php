@@ -41,6 +41,7 @@ class SiteController extends Controller
                 ->groupBy('users.id')
                 ->whereNotNull('hr_details.rank')
                 ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->where('users.active', 1)
                 ->orderBy('name', 'asc')
                 ->get();
             return response()->json($employees, 200);
@@ -51,6 +52,7 @@ class SiteController extends Controller
                 ->select('users.id', 'users.name', 'users.qr_token', 'hr_details.profile_photo', 'hr_details.hr_id', 'hr_details.rank', 'hr_details.job_title')
                 ->groupBy('users.id')
                 ->where('users.name', 'LIKE', '%'.$request->input('name', '').'%')
+                ->where('users.active', 1)
                 ->orderBy('name', 'asc')
                 ->get();
         }
@@ -288,17 +290,17 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($request->input('location', null)),
                     'user_id' => $request->input('user_id', null),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             }
@@ -320,17 +322,17 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($data['location'] ?? null),
                     'user_id' => $employee,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             }
@@ -353,11 +355,11 @@ class SiteController extends Controller
                 DB::connection('wings_config')->table('site_access_log')->insert([
                     'type' => 'access',
                     'category' => 'employee',
-                    'signed_in' => now(),
+                    'signed_in' => date('Y-m-d H:i:s'),
                     'location' => Str::title($data['location'] ?? null),
                     'user_id' => $employee,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-in';
             } else {
@@ -379,8 +381,8 @@ class SiteController extends Controller
 
             if ($signedIn){
                 DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $employee)->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                    'signed_out' => now(),
-                    'updated_at' => now(),
+                    'signed_out' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 $action = 'sign-out';
             } else {
@@ -401,7 +403,7 @@ class SiteController extends Controller
         DB::connection('wings_config')->table('site_access_log')->insert([
             'type' => $request->input('type', null),
             'category' => $request->input('category', null),
-            'signed_in' => now(),
+            'signed_in' => date('Y-m-d H:i:s'),
             'location' => Str::title($request->input('location', null)),
             'user_id' => $request->input('user_id', null),
             'visitor_name' => $request->input('visitor_name', null),
@@ -409,8 +411,8 @@ class SiteController extends Controller
             'visitor_visiting' => $request->input('visitor_visiting', null),
             'visitor_visiting_user_id' => $request->input('visitor_visiting_user_id', null),
             'visitor_car_registration' => strtoupper($request->input('visitor_car_registration', null)),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         return response()->json(['message' => 'Signed in successfully'], 200);
@@ -424,16 +426,80 @@ class SiteController extends Controller
 
         if($request->has('id')) {
             DB::connection('wings_config')->table('site_access_log')->where('id', '=', $request->input('id'))->limit(1)->update([
-                'signed_out' => now(),
-                'updated_at' => now(),
+                'signed_out' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         } else {
             DB::connection('wings_config')->table('site_access_log')->where('user_id', '=', $request->has('user_id'))->whereNull('signed_out')->orderBy('created_at', 'desc')->limit(1)->update([
-                'signed_out' => now(),
-                'updated_at' => now(),
+                'signed_out' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
 
         return response()->json(['message' => 'Signed out successfully'], 200);
+    }
+
+    public function cameraViewer(Request $request){
+        return Inertia::render('Site/CameraViewer');
+    }
+
+    // WebRTC signaling methods for camera streaming
+    private $streamingOffers = [];
+    private $streamingAnswers = [];
+    private $iceCandidates = [];
+
+    /**
+     * Handle stream offer from QR Scanner - stores PeerJS peer ID for discovery
+     */
+    public function handleStreamOffer(Request $request) {
+        $offer = $request->input('offer');
+        $streamId = $request->input('streamId', 'default');
+        
+        if (!$offer) {
+            return response()->json(['error' => 'No offer provided'], 400);
+        }
+        
+        // Store PeerJS peer ID in cache for cross-browser access
+        \Cache::put("stream_offer_{$streamId}", $offer, 300); // 5 minutes
+        
+        \Log::info('QR Scanner peer ID stored in cache', [
+            'streamId' => $streamId,
+            'peerId' => $offer['peerId'] ?? 'unknown'
+        ]);
+        
+        return response()->json(['status' => 'offer_stored']);
+    }
+    
+    /**
+     * Get available stream offer for viewer - returns PeerJS peer ID
+     */
+    public function getStreamOffer(Request $request) {
+        $streamId = $request->input('streamId', 'qr-scanner-stream');
+        $offer = \Cache::get("stream_offer_{$streamId}");
+        
+        if (!$offer) {
+            return response()->json(['offer' => null]);
+        }
+        
+        return response()->json(['offer' => $offer]);
+    }
+
+    /**
+     * Clear stored PeerJS peer IDs when needed
+     */
+    public function clearCameraOffers(Request $request) {
+        // Clear PeerJS peer IDs from cache
+        // Note: This is a simple implementation - in production you might want to track keys
+        try {
+            // Try to clear known stream IDs
+            \Cache::forget('stream_offer_qr-scanner-stream');
+            \Cache::forget('stream_offer_default');
+            
+            \Log::info('Camera offers cleared');
+        } catch (\Exception $e) {
+            \Log::warning('Error clearing camera offers: ' . $e->getMessage());
+        }
+        
+        return response()->json(['status' => 'offers_cleared']);
     }
 }

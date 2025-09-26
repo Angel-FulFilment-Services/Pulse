@@ -3,7 +3,7 @@ import { BrowserMultiFormatReader } from '@zxing/browser';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-export default function QRScannerPanel({ onComplete, setStep, location }) {
+export default function QRScannerPanel({ onComplete, setStep, location, cameraStream }) {
   const videoRef = useRef(null);
   const codeReader = useRef(null);
   const isTimeout = useRef(false);
@@ -11,26 +11,26 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState(null);
 
-  const stopCamera = useCallback(() => {
-    codeReader.current = null;
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+  const stopScanning = useCallback(() => {
+    if (codeReader.current) {
+      codeReader.current = null;
     }
+    isStopped.current = true;
   }, []);
 
-    const startCamera = useCallback(async () => {
+  const startScanning = useCallback(async () => {
       try {
+        if (!cameraStream) {
+          return;
+        }
+        
         codeReader.current = new BrowserMultiFormatReader();
         const videoElement = videoRef.current;
-
-        const constraints = {
-          video: {
-            facingMode: 'user', // Request the front camera
-          },
-        };
+        
+        // Set the camera stream to the video element
+        if (videoElement) {
+          videoElement.srcObject = cameraStream;
+        }
 
         await codeReader.current.decodeFromVideoDevice(
           null,
@@ -40,8 +40,8 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
               setScanResult(result.getText());
 
               if(isStopped.current){
-                stopCamera();
-                codeReader.current.reset();
+                stopScanning();
+                return;
               }
               isTimeout.current = true;
               findUser(result.getText()).then(user => {
@@ -62,12 +62,12 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
                 isTimeout.current = false;
               }, 3000);
             }
-          }, constraints
+          }
         );
       } catch (error) {
-        // Optionally handle camera errors here
+        // Silently handle scanning error
       }
-    }, [setStep, stopCamera, onComplete]);
+    }, [setStep, stopScanning, onComplete, cameraStream]);
 
   const findUser = async (query) => {
     setIsProcessing(true); // Set processing state to true to prevent multiple submissions
@@ -166,9 +166,12 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
   };
 
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, [startCamera, stopCamera]);
+    if (cameraStream) {
+      isStopped.current = false;
+      startScanning();
+    }
+    return () => stopScanning();
+  }, [startScanning, stopScanning, cameraStream]);
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full w-full">
@@ -181,6 +184,7 @@ export default function QRScannerPanel({ onComplete, setStep, location }) {
         disablePictureInPicture
         controls={false}
       />
+      
       <div className="absolute bottom-10 left pointer-events-none">
         <p className="text-3xl font-medium text-white font-sans">
           Show your QR code here

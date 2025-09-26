@@ -17,3 +17,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+CAMERA_STREAMING_SETUP.md

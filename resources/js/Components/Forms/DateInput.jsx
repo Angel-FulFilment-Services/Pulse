@@ -6,6 +6,42 @@ export default function DateInput(props) {
   const { startDateId, endDateId, label, autoComplete, placeholder, annotation, dateRange, showShortcuts, minDate, maxDate, currentState, onDateChange, onBlur, error, clearErrors, width = "w-56" } = props;
   const [shortcuts, setShortcuts] = useState({});
 
+  // Helper function to validate and sanitize dates
+  const sanitizeDate = (date) => {
+    if (!date) return null;
+    const parsedDate = new Date(date);
+    return isNaN(parsedDate.getTime()) ? null : parsedDate;
+  };
+
+  // Helper function to sanitize the current state value
+  const sanitizeCurrentState = (state) => {
+    if (!state) return null;
+    
+    // Handle different formats that currentState might have
+    if (typeof state === 'string') {
+      const parsed = new Date(state);
+      return isNaN(parsed.getTime()) ? null : { startDate: parsed, endDate: parsed };
+    }
+    
+    if (state && typeof state === 'object') {
+      // Handle object format with startDate/endDate
+      if (state.startDate || state.endDate) {
+        const start = state.startDate ? sanitizeDate(state.startDate) : null;
+        const end = state.endDate ? sanitizeDate(state.endDate) : null;
+        
+        // Return null if both dates are invalid
+        if (!start && !end) return null;
+        
+        return {
+          startDate: start,
+          endDate: end || start // Use start date as end date if end is missing
+        };
+      }
+    }
+    
+    return null;
+  };
+
   const handleDateChange = (event) => {   
     if (dateRange) {
       onDateChange([{id: startDateId, value: event.startDate}, {id: endDateId, value: event.endDate}]);
@@ -16,11 +52,21 @@ export default function DateInput(props) {
   }
 
   useEffect(() => { 
-    const min = minDate ? new Date(minDate) : null;
-    const max = maxDate ? new Date(maxDate) : null;
+    // Validate dates before passing to dateSelectorOptions
+    const isValidDate = (date) => date && !isNaN(new Date(date).getTime());
+    const validMinDate = minDate && isValidDate(minDate) ? minDate : null;
+    const validMaxDate = maxDate && isValidDate(maxDate) ? maxDate : null;
+    
+    const min = validMinDate ? new Date(validMinDate) : null;
+    const max = validMaxDate ? new Date(validMaxDate) : null;
 
     setShortcuts(dateSelectorOptions(min, max)); 
   }, [minDate, maxDate])
+
+  // Sanitize all date props before passing to Datepicker
+  const sanitizedMinDate = sanitizeDate(minDate);
+  const sanitizedMaxDate = sanitizeDate(maxDate);
+  const sanitizedCurrentState = sanitizeCurrentState(currentState);
 
   return (
     <div>
@@ -40,13 +86,13 @@ export default function DateInput(props) {
               primaryColor={"orange"} 
               separator="-"
               inputClassName={`border-0 bg-transparent py-1.5 pl-3 ${error ? "text-red-800 dark:text-red-900" : "text-gray-900 dark:text-dark-100"} placeholder:text-gray-400 dark:placeholder:text-dark-600 focus:ring-0 sm:text-sm sm:leading-6 focus:outline-none cursor-pointer z-40`}
-              minDate={minDate} 
-              maxDate={maxDate} 
+              minDate={sanitizedMinDate} 
+              maxDate={sanitizedMaxDate} 
               placeholder={placeholder}
               useRange={false} 
               asSingle={!dateRange} 
               showShortcuts={showShortcuts}
-              value={currentState} 
+              value={sanitizedCurrentState} 
               onChange={handleDateChange} 
               onBlur={ e => { if(onBlur) onBlur([id]);}}
               configs={{

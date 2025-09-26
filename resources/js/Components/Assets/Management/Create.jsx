@@ -31,7 +31,8 @@ const items = [
     { value: 1, label: '1m CAT5e Network Cable' },
     { value: 2, label: '10m CAT5e Network Cable' },
     { value: 3, label: '1m USB Power Cable' },
-    { value: 4, label: 'USB Mouse' }
+    { value: 4, label: 'USB Mouse' },
+    { value: 1124, label: 'Yealink Headset' }
 ];
 
 export default function Create({ afsId, onCancel, changeAsset }) {    

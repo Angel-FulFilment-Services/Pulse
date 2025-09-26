@@ -44,6 +44,11 @@ return [
             'throw' => false,
         ],
 
+        'soundfiles' => [
+            'driver' => 'local',
+            'root' => storage_path('app/soundfiles'),
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
