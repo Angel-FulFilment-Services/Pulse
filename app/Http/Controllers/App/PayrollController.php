@@ -232,8 +232,8 @@ class PayrollController extends Controller
     }
 
     public function payrollExport(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date('Y-m-d', strtotime($request->query('start_date')));
+        $endDate = date('Y-m-d', strtotime($request->query('end_date')));
 
         $cpaData = $this->getCPAData($startDate, $endDate);
         $apexData = $cpaData['apex_data'] ?? collect();
@@ -793,7 +793,13 @@ class PayrollController extends Controller
                 ->whereNotIn('cust.status',['DELE','TEST','NAUT'])
                 ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
                 ->whereIn('ords.ddi', $campaign->ddis)
-                ->whereIn('ords.product', $products)
+                ->where(function ($query) use ($products, $campaign) {
+                    if ($campaign->client == 'WAID') {
+                        $query->whereIn('ords.halo_prod', $products);
+                    } else {
+                        $query->whereIn('ords.product', $products);
+                    }
+                })
                 ->join(DB::raw('halo_data.' . $customers . ' as cust'),'ords.orderref','=','cust.orderref')
                 ->select(
                     DB::raw('count(ords.orderref) as sign_ups'),
@@ -853,8 +859,9 @@ class PayrollController extends Controller
     }
 
     public function exceptions(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('startDate')));
+        $endDate = date("Y-m-d", strtotime($request->query('endDate')));
+
         $hrId = $request->query('hr_id');
 
         // Fetch event records for the date range

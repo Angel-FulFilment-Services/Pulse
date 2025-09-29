@@ -28,8 +28,8 @@ class RotaController extends Controller
     }
 
     public function shifts(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
         $hrId = $request->query('hr_id');
 
         // Fetch shifts for the date range
@@ -45,8 +45,8 @@ class RotaController extends Controller
     }
 
     public function timesheets(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
         $hrId = $request->query('hr_id');
 
         // Fetch timesheet_today records for the date range
@@ -96,8 +96,8 @@ class RotaController extends Controller
     }
 
     public function events(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
         $hrId = $request->query('hr_id');
 
         // Fetch event records for the date range
@@ -114,8 +114,8 @@ class RotaController extends Controller
     }
 
     public function calls(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
         $hrId = $request->query('hr_id');
 
         $calls = DB::connection("apex_data")

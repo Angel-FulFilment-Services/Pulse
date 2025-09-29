@@ -24,8 +24,8 @@ class ReportingController extends Controller
     }
 
     public function attendenceReport(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         // Fetch shifts for the date range
         $data = DB::connection('wings_data')
@@ -256,8 +256,8 @@ class ReportingController extends Controller
     }
 
     public function hoursComparisonReport(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         // Fetch shifts for the date range
         $data = DB::connection('halo_rota')
@@ -485,8 +485,8 @@ class ReportingController extends Controller
     }
 
     public function eventLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_data')
         ->table('apex_data.events')
@@ -508,8 +508,8 @@ class ReportingController extends Controller
     }
 
     public function smsLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_config')
         ->table('wings_config.sms_out_log as sms_log')
@@ -531,8 +531,8 @@ class ReportingController extends Controller
     }
 
     public function auditLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_config')
         ->table('audit_log_pulse as audit_log')
@@ -552,8 +552,8 @@ class ReportingController extends Controller
     }
 
     public function accessLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_config')
         ->table('access_logs as access_log')
@@ -576,8 +576,8 @@ class ReportingController extends Controller
     }
 
     public function siteAccessLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_config')
         ->table('site_access_log as access_log')
@@ -603,8 +603,8 @@ class ReportingController extends Controller
     }
 
     public function technicalSupportLog(Request $request){
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $data = DB::connection('wings_data')
         ->table('assets.support_log')
