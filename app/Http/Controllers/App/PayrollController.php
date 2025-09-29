@@ -859,8 +859,8 @@ class PayrollController extends Controller
     }
 
     public function exceptions(Request $request){
-        $startDate = date("Y-m-d", strtotime($request->query('startDate')));
-        $endDate = date("Y-m-d", strtotime($request->query('endDate')));
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
         $hrId = $request->query('hr_id');
 
