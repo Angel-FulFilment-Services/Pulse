@@ -1,8 +1,9 @@
-const CACHE_NAME = 'pulse-dna-v1';
+const CACHE_NAME = 'pulse-dna-v2';
+const DOMAIN = 'https://pulse.angelfs.co.uk';
 const urlsToCache = [
-  '/',
-  '/manifest.json',
-  '/images/logo3.webp'
+  `${DOMAIN}/`,
+  `${DOMAIN}/manifest.json`,
+  `${DOMAIN}/images/logo3.webp`
 ];
 
 self.addEventListener('install', function(event) {
@@ -11,8 +12,10 @@ self.addEventListener('install', function(event) {
       .then(function(cache) {
         return cache.addAll(urlsToCache);
       })
+      .catch(function(error) {
+        console.log('Cache installation failed:', error);
+      })
   );
-  // Force the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
@@ -28,18 +31,39 @@ self.addEventListener('activate', function(event) {
       );
     })
   );
-  // Ensure the service worker takes control immediately
   self.clients.claim();
 });
 
 self.addEventListener('fetch', function(event) {
-  // Network first strategy for main navigation
+  // Only handle requests to our domain
+  if (!event.request.url.startsWith(DOMAIN)) {
+    return;
+  }
+
+  // Network first strategy for navigation requests
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .catch(function() {
-          return caches.match('/');
-        })
+      fetch(event.request, {
+        cache: 'no-cache',
+        credentials: 'same-origin'
+      })
+      .then(function(response) {
+        // Clone the response before caching
+        if (response.ok) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(function(error) {
+        console.log('Network request failed, trying cache:', error);
+        return caches.match(event.request)
+          .then(function(response) {
+            return response || caches.match(`${DOMAIN}/`);
+          });
+      })
     );
     return;
   }
@@ -52,6 +76,10 @@ self.addEventListener('fetch', function(event) {
           return response;
         }
         return fetch(event.request);
+      })
+      .catch(function(error) {
+        console.log('Fetch failed:', error);
+        throw error;
       })
   );
 });

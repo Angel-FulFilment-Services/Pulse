@@ -12,6 +12,11 @@
         <meta name="apple-mobile-web-app-title" content="Pulse">
         <meta name="mobile-web-app-capable" content="yes">
         
+        <!-- Additional mobile meta tags -->
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="apple-touch-fullscreen" content="yes">
+        
         <!-- Web App Manifest -->
         <link rel="manifest" href="/manifest.json">
         
