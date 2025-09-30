@@ -1,0 +1,27 @@
+{
+  "name": "Pulse DNA",
+  "short_name": "Pulse",
+  "description": "Pulse DNA Application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/images/logo3.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/logo3.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable any"
+    }
+  ]
+}
