@@ -762,7 +762,7 @@ const payrollReportsConfig = [
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerAnnotation: "",
               format: (value) => {
-                if (!value || isNaN(value) || Number(value) <= 0) return "0";
+                if (!value || isNaN(value)) return "0";
                 const num = Number(value);
                 return Number.isInteger(num) ? Math.round(num) : num.toFixed(2);
               },
