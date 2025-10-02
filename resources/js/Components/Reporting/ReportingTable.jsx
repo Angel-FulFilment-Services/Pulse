@@ -401,8 +401,51 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                                     ) + '%'
                                   : weightedAverage + '%';
                               } else {
-                                // Sum numeric columns, use format with parameters if present
-                                const totalValue = sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0);
+                                // Handle different total types based on column.totalType
+                                const totalType = column.totalType || 'sum'; // Default to sum
+                                let totalValue;
+
+                                switch (totalType) {
+                                  case 'average':
+                                    const validValues = sortedData
+                                      .map(row => parseFloat(row[column.id]))
+                                      .filter(val => !isNaN(val));
+                                    totalValue = validValues.length > 0 
+                                      ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
+                                      : 0;
+                                    break;
+                                  
+                                  case 'count':
+                                    totalValue = sortedData.filter(row => 
+                                      row[column.id] !== null && 
+                                      row[column.id] !== undefined && 
+                                      row[column.id] !== ''
+                                    ).length;
+                                    break;
+                                  
+                                  case 'min':
+                                    const minValues = sortedData
+                                      .map(row => parseFloat(row[column.id]))
+                                      .filter(val => !isNaN(val));
+                                    totalValue = minValues.length > 0 ? Math.min(...minValues) : 0;
+                                    break;
+                                  
+                                  case 'max':
+                                    const maxValues = sortedData
+                                      .map(row => parseFloat(row[column.id]))
+                                      .filter(val => !isNaN(val));
+                                    totalValue = maxValues.length > 0 ? Math.max(...maxValues) : 0;
+                                    break;
+                                  
+                                  case 'none':
+                                    return column.totalLabel || '';
+                                  
+                                  case 'sum':
+                                  default:
+                                    totalValue = sortedData.reduce((sum, row) => sum + (parseFloat(row[column.id]) || 0), 0);
+                                    break;
+                                }
+
                                 return column.format
                                   ? (
                                       column.requires

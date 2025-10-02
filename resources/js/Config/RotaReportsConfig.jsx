@@ -334,6 +334,29 @@ const rotaReportsConfig = [
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
+          {
+            id: "bradford_factor",
+            label: "Bradford Factor",
+            dataType: "integer",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            totalType: 'average',
+            format: (value) => {
+              if (!isNaN(value)) {
+                return parseFloat(value).toFixed(0); // Convert to float and round to two decimal places
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          }
         ],
         filters: [
             {

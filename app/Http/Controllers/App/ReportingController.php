@@ -165,13 +165,45 @@ class ReportingController extends Controller
                     DB::raw('SUM(IF(category = "Reduced", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS reduced_minutes'),
                     DB::raw('SUM(IF(category = "Sick", 1, 0)) AS sick_count'),
                     DB::raw('SUM(IF(category = "AWOL", 1, 0)) AS awol_count'),
-                    DB::raw('SUM(IF(category = "Absent", 1, 0)) AS absent_count')
+                    DB::raw('SUM(IF(category = "Absent", 1, 0)) AS absent_count'),
+                    DB::raw('
+                        SUM(IF(category IN ("Sick", "AWOL", "Absent"), 
+                            TIMESTAMPDIFF(DAY, DATE(on_time), DATE(off_time)) + 1, 
+                            0
+                        )) AS total_absence_days
+                    ')
                 )
                 ->whereBetween('date', [$startDate, $endDate])
                 ->groupBy('hr_id'),
             'events',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'events.hr_id');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.events as e1')
+                ->select('e1.hr_id', 
+                    DB::raw('
+                        COUNT(CASE 
+                            WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                                AND (
+                                    NOT EXISTS (
+                                        SELECT 1 FROM apex_data.events e2 
+                                        WHERE e2.hr_id = e1.hr_id 
+                                        AND e2.category IN ("Sick", "AWOL", "Absent")
+                                        AND DATE(e2.date) = DATE_SUB(DATE(e1.date), INTERVAL 1 DAY)
+                                    )
+                                )
+                            THEN 1 
+                            ELSE NULL 
+                        END) AS absence_spells
+                    ')
+                )
+                ->whereBetween('e1.date', [$startDate, $endDate])
+                ->groupBy('e1.hr_id'),
+            'absence_spells',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'absence_spells.hr_id');
             }
         )        
         ->leftJoinSub(
@@ -239,7 +271,16 @@ class ReportingController extends Controller
             IFNULL(SUM(events.awol_count), 0) AS shifts_awol,
             IFNULL((SUM(events.awol_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS awol_percentage,
             IFNULL(SUM(events.absent_count), 0) AS shifts_absent,
-            IFNULL((SUM(events.absent_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS absent_percentage
+            IFNULL((SUM(events.absent_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS absent_percentage,
+            IFNULL(SUM(events.total_absence_days), 0) AS total_absence_days,
+            IFNULL(SUM(absence_spells.absence_spells), 0) AS absence_spells,
+            IFNULL(
+                CASE 
+                    WHEN SUM(absence_spells.absence_spells) > 0 AND SUM(events.total_absence_days) > 0
+                    THEN POW(SUM(absence_spells.absence_spells), 2) * SUM(events.total_absence_days)
+                    ELSE 0
+                END, 0
+            ) AS bradford_factor
         "))
         ->where('shifts.shifts_scheduled', '>', 0)
         ->orWhere(function ($query) {
