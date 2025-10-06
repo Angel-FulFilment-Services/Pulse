@@ -27,6 +27,8 @@ class ReportingController extends Controller
         $startDate = date("Y-m-d", strtotime($request->query('start_date')));
         $endDate = date("Y-m-d", strtotime($request->query('end_date')));
 
+        set_time_limit(300);
+
         // Fetch shifts for the date range
         $data = DB::connection('wings_data')
         ->table('hr_details as hr')
@@ -205,58 +207,43 @@ class ReportingController extends Controller
         )
         ->leftJoinSub(
             DB::table('apex_data.events as e1')
-                ->leftJoinSub(
-                    DB::table('halo_rota.shifts2')
-                        ->select(
-                            'hr_id',
-                            'shiftdate',
-                            DB::raw('SUM(TIMESTAMPDIFF(MINUTE, 
-                                STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
-                                STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftend, 4, "0")), "%Y-%m-%d %H%i")
-                            )) as total_daily_shift_minutes')
-                        )
-                        ->groupBy('hr_id', 'shiftdate'),
-                    'daily_shifts',
-                    function($join) {
-                        $join->on('e1.hr_id', '=', 'daily_shifts.hr_id')
-                             ->on(DB::raw('DATE(e1.date)'), '=', 'daily_shifts.shiftdate');
-                    }
-                )
+                ->leftJoin('halo_rota.shifts2 as s1', function($join) {
+                    $join->on('e1.hr_id', '=', 's1.hr_id')
+                         ->on(DB::raw('DATE(e1.date)'), '=', 's1.shiftdate');
+                })
                 ->select('e1.hr_id', 
                     DB::raw('
                         COUNT(CASE 
                             WHEN e1.category IN ("Sick", "AWOL", "Absent") 
                                 AND (
-                                    daily_shifts.hr_id IS NULL OR
+                                    s1.hr_id IS NULL OR
                                     TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
-                                    (daily_shifts.total_daily_shift_minutes / 2)
+                                    (TIMESTAMPDIFF(MINUTE, 
+                                        STR_TO_DATE(CONCAT(s1.shiftdate, " ", LPAD(s1.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                                        STR_TO_DATE(CONCAT(s1.shiftdate, " ", LPAD(s1.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                                    ) / 2)
                                 )
                                 AND NOT EXISTS (
-                                    SELECT 1 FROM apex_data.events e2 
-                                    INNER JOIN halo_rota.shifts2 s3 ON s3.hr_id = e1.hr_id 
-                                        AND s3.shiftdate < DATE(e1.date)
-                                        AND s3.shiftdate BETWEEN "' . $startDate . '" AND "' . $endDate . '"
-                                    LEFT JOIN (
-                                        SELECT 
-                                            hr_id,
-                                            shiftdate,
-                                            SUM(TIMESTAMPDIFF(MINUTE, 
-                                                STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
-                                                STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftend, 4, "0")), "%Y-%m-%d %H%i")
-                                            )) as total_daily_shift_minutes
-                                        FROM halo_rota.shifts2
-                                        GROUP BY hr_id, shiftdate
-                                    ) s4 ON e2.hr_id = s4.hr_id AND DATE(e2.date) = s4.shiftdate
+                                    SELECT 1 
+                                    FROM apex_data.events e2
+                                    INNER JOIN halo_rota.shifts2 s2 ON s2.hr_id = e1.hr_id AND DATE(e2.date) = s2.shiftdate
                                     WHERE e2.hr_id = e1.hr_id 
                                     AND e2.category IN ("Sick", "AWOL", "Absent")
-                                    AND DATE(e2.date) = s3.shiftdate
                                     AND (
-                                        s4.hr_id IS NULL OR
+                                        s2.hr_id IS NULL OR
                                         TIMESTAMPDIFF(MINUTE, e2.on_time, e2.off_time) >= 
-                                        (s4.total_daily_shift_minutes / 2)
+                                        (TIMESTAMPDIFF(MINUTE, 
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                                        ) / 2)
                                     )
-                                    ORDER BY s3.shiftdate DESC
-                                    LIMIT 1
+                                    AND s2.shiftdate = (
+                                        SELECT MAX(s3.shiftdate) 
+                                        FROM halo_rota.shifts2 s3 
+                                        WHERE s3.hr_id = e1.hr_id 
+                                        AND s3.shiftdate < DATE(e1.date)
+                                        AND s3.shiftdate BETWEEN "' . $startDate . '" AND "' . $endDate . '"
+                                    )
                                 )
                             THEN 1 
                             ELSE NULL 
