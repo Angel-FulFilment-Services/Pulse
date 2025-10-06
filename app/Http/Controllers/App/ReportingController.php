@@ -29,6 +29,164 @@ class ReportingController extends Controller
 
         set_time_limit(300);
 
+        // Bradford Factor calculation - 12 month rolling period with minimum date of April 1st 2025
+        $bradfordStartDate = max('2025-04-01', date('Y-m-d', strtotime('-12 months')));
+        $bradfordEndDate = date('Y-m-d');
+        
+        $bradfordFactors = DB::connection('wings_data')
+            ->table('apex_data.events as e1')
+            ->leftJoinSub(
+                DB::table('halo_rota.shifts2')
+                    ->select(
+                        'hr_id',
+                        'shiftdate',
+                        DB::raw('SUM(TIMESTAMPDIFF(MINUTE, 
+                            STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                            STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                        )) as total_daily_shift_minutes')
+                    )
+                    ->whereBetween('shiftdate', [$bradfordStartDate, $bradfordEndDate])
+                    ->groupBy('hr_id', 'shiftdate'),
+                'daily_shifts',
+                function($join) {
+                    $join->on('e1.hr_id', '=', 'daily_shifts.hr_id')
+                         ->on(DB::raw('DATE(e1.date)'), '=', 'daily_shifts.shiftdate');
+                }
+            )
+            ->select(
+                'e1.hr_id',
+                // Count absence spells - look at previous scheduled shift
+                DB::raw('
+                    COUNT(CASE 
+                        WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                            AND (
+                                daily_shifts.hr_id IS NULL OR
+                                TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
+                                (daily_shifts.total_daily_shift_minutes / 2)
+                            )
+                            AND NOT EXISTS (
+                                SELECT 1 
+                                FROM apex_data.events e2
+                                INNER JOIN halo_rota.shifts2 s2 ON s2.hr_id = e1.hr_id AND DATE(e2.date) = s2.shiftdate
+                                WHERE e2.hr_id = e1.hr_id 
+                                AND e2.category IN ("Sick", "AWOL", "Absent")
+                                AND (
+                                    s2.hr_id IS NULL OR
+                                    TIMESTAMPDIFF(MINUTE, e2.on_time, e2.off_time) >= 
+                                    (TIMESTAMPDIFF(MINUTE, 
+                                        STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                                        STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                                    ) / 2)
+                                )
+                                AND s2.shiftdate = (
+                                    SELECT MAX(s3.shiftdate) 
+                                    FROM halo_rota.shifts2 s3 
+                                    WHERE s3.hr_id = e1.hr_id 
+                                    AND s3.shiftdate < DATE(e1.date)
+                                    AND s3.shiftdate BETWEEN "' . $bradfordStartDate . '" AND "' . $bradfordEndDate . '"
+                                )
+                            )
+                        THEN 1 
+                        ELSE NULL 
+                    END) AS absence_spells
+                '),
+                // Count total absence days
+                DB::raw('
+                    COUNT(DISTINCT CASE 
+                        WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                            AND (
+                                daily_shifts.hr_id IS NULL OR
+                                TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
+                                (daily_shifts.total_daily_shift_minutes / 2)
+                            )
+                        THEN DATE(e1.date)
+                        ELSE NULL 
+                    END) AS total_absence_days
+                '),
+                // Calculate Bradford Factor: Spells² × Days
+                DB::raw('
+                    CASE 
+                        WHEN COUNT(CASE 
+                            WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                                AND (
+                                    daily_shifts.hr_id IS NULL OR
+                                    TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
+                                    (daily_shifts.total_daily_shift_minutes / 2)
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 
+                                    FROM apex_data.events e2
+                                    INNER JOIN halo_rota.shifts2 s2 ON s2.hr_id = e1.hr_id AND DATE(e2.date) = s2.shiftdate
+                                    WHERE e2.hr_id = e1.hr_id 
+                                    AND e2.category IN ("Sick", "AWOL", "Absent")
+                                    AND (
+                                        s2.hr_id IS NULL OR
+                                        TIMESTAMPDIFF(MINUTE, e2.on_time, e2.off_time) >= 
+                                        (TIMESTAMPDIFF(MINUTE, 
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                                        ) / 2)
+                                    )
+                                    AND s2.shiftdate = (
+                                        SELECT MAX(s3.shiftdate) 
+                                        FROM halo_rota.shifts2 s3 
+                                        WHERE s3.hr_id = e1.hr_id 
+                                        AND s3.shiftdate < DATE(e1.date)
+                                        AND s3.shiftdate BETWEEN "' . $bradfordStartDate . '" AND "' . $bradfordEndDate . '"
+                                    )
+                                )
+                            THEN 1 
+                            ELSE NULL 
+                        END) > 0 
+                        THEN POW(COUNT(CASE 
+                            WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                                AND (
+                                    daily_shifts.hr_id IS NULL OR
+                                    TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
+                                    (daily_shifts.total_daily_shift_minutes / 2)
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 
+                                    FROM apex_data.events e2
+                                    INNER JOIN halo_rota.shifts2 s2 ON s2.hr_id = e1.hr_id AND DATE(e2.date) = s2.shiftdate
+                                    WHERE e2.hr_id = e1.hr_id 
+                                    AND e2.category IN ("Sick", "AWOL", "Absent")
+                                    AND (
+                                        s2.hr_id IS NULL OR
+                                        TIMESTAMPDIFF(MINUTE, e2.on_time, e2.off_time) >= 
+                                        (TIMESTAMPDIFF(MINUTE, 
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
+                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftend, 4, "0")), "%Y-%m-%d %H%i")
+                                        ) / 2)
+                                    )
+                                    AND s2.shiftdate = (
+                                        SELECT MAX(s3.shiftdate) 
+                                        FROM halo_rota.shifts2 s3 
+                                        WHERE s3.hr_id = e1.hr_id 
+                                        AND s3.shiftdate < DATE(e1.date)
+                                        AND s3.shiftdate BETWEEN "' . $bradfordStartDate . '" AND "' . $bradfordEndDate . '"
+                                    )
+                                )
+                            THEN 1 
+                            ELSE NULL 
+                        END), 2) * COUNT(DISTINCT CASE 
+                            WHEN e1.category IN ("Sick", "AWOL", "Absent") 
+                                AND (
+                                    daily_shifts.hr_id IS NULL OR
+                                    TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
+                                    (daily_shifts.total_daily_shift_minutes / 2)
+                                )
+                            THEN DATE(e1.date)
+                            ELSE NULL 
+                        END)
+                        ELSE 0
+                    END AS bradford_factor
+                ')
+            )
+            ->whereBetween('e1.date', [$bradfordStartDate, $bradfordEndDate])
+            ->groupBy('e1.hr_id')
+            ->get();
+
         // Fetch shifts for the date range
         $data = DB::connection('wings_data')
         ->table('hr_details as hr')
