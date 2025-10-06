@@ -364,58 +364,6 @@ class ReportingController extends Controller
             }
         )
         ->leftJoinSub(
-            DB::table('apex_data.events as e1')
-                ->leftJoin('halo_rota.shifts2 as s1', function($join) {
-                    $join->on('e1.hr_id', '=', 's1.hr_id')
-                         ->on(DB::raw('DATE(e1.date)'), '=', 's1.shiftdate');
-                })
-                ->select('e1.hr_id', 
-                    DB::raw('
-                        COUNT(CASE 
-                            WHEN e1.category IN ("Sick", "AWOL", "Absent") 
-                                AND (
-                                    s1.hr_id IS NULL OR
-                                    TIMESTAMPDIFF(MINUTE, e1.on_time, e1.off_time) >= 
-                                    (TIMESTAMPDIFF(MINUTE, 
-                                        STR_TO_DATE(CONCAT(s1.shiftdate, " ", LPAD(s1.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
-                                        STR_TO_DATE(CONCAT(s1.shiftdate, " ", LPAD(s1.shiftend, 4, "0")), "%Y-%m-%d %H%i")
-                                    ) / 2)
-                                )
-                                AND NOT EXISTS (
-                                    SELECT 1 
-                                    FROM apex_data.events e2
-                                    INNER JOIN halo_rota.shifts2 s2 ON s2.hr_id = e1.hr_id AND DATE(e2.date) = s2.shiftdate
-                                    WHERE e2.hr_id = e1.hr_id 
-                                    AND e2.category IN ("Sick", "AWOL", "Absent")
-                                    AND (
-                                        s2.hr_id IS NULL OR
-                                        TIMESTAMPDIFF(MINUTE, e2.on_time, e2.off_time) >= 
-                                        (TIMESTAMPDIFF(MINUTE, 
-                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
-                                            STR_TO_DATE(CONCAT(s2.shiftdate, " ", LPAD(s2.shiftend, 4, "0")), "%Y-%m-%d %H%i")
-                                        ) / 2)
-                                    )
-                                    AND s2.shiftdate = (
-                                        SELECT MAX(s3.shiftdate) 
-                                        FROM halo_rota.shifts2 s3 
-                                        WHERE s3.hr_id = e1.hr_id 
-                                        AND s3.shiftdate < DATE(e1.date)
-                                        AND s3.shiftdate BETWEEN "' . $startDate . '" AND "' . $endDate . '"
-                                    )
-                                )
-                            THEN 1 
-                            ELSE NULL 
-                        END) AS absence_spells
-                    ')
-                )
-                ->whereBetween('e1.date', [$startDate, $endDate])
-                ->groupBy('e1.hr_id'),
-            'absence_spells',
-            function ($join) {
-                $join->on('hr.hr_id', '=', 'absence_spells.hr_id');
-            }
-        )        
-        ->leftJoinSub(
             DB::table('apex_data.breaksheet_master')
                 ->select(
                     'breaksheet_master.hr_id',
@@ -430,6 +378,7 @@ class ReportingController extends Controller
         )
         ->select(DB::raw("
             users.name AS agent,
+            hr.hr_id, 
             IF(hr.leave_date IS NOT NULL, true, false) AS leaver,
             IFNULL(SUM(shifts.shifts_scheduled), 0) AS shifts_scheduled,
             (
@@ -481,15 +430,7 @@ class ReportingController extends Controller
             IFNULL((SUM(events.awol_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS awol_percentage,
             IFNULL(SUM(events.absent_count), 0) AS shifts_absent,
             IFNULL((SUM(events.absent_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS absent_percentage,
-            IFNULL(SUM(events.total_absence_days), 0) AS total_absence_days,
-            IFNULL(SUM(absence_spells.absence_spells), 0) AS absence_spells,
-            IFNULL(
-                CASE 
-                    WHEN SUM(absence_spells.absence_spells) > 0 AND SUM(events.total_absence_days) > 0
-                    THEN POW(SUM(absence_spells.absence_spells), 2) * SUM(events.total_absence_days)
-                    ELSE 0
-                END, 0
-            ) AS bradford_factor
+            IFNULL(SUM(events.total_absence_days), 0) AS total_absence_days
         "))
         ->where('shifts.shifts_scheduled', '>', 0)
         ->orWhere(function ($query) {
@@ -499,6 +440,15 @@ class ReportingController extends Controller
         ->groupBy('hr.hr_id')
         ->orderBy('agent')
         ->get();
+
+        // Merge Bradford factors with main data
+        $bradfordFactorsIndexed = $bradfordFactors->keyBy('hr_id');
+        
+        foreach ($data as $row) {
+            $bradfordData = $bradfordFactorsIndexed->get($row->hr_id);
+            $row->absence_spells = $bradfordData ? $bradfordData->absence_spells : 0;
+            $row->bradford_factor = $bradfordData ? $bradfordData->bradford_factor : 0;
+        }
 
         $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Attendence Report')->value('targets');
                 
