@@ -141,6 +141,10 @@ Route::delete('/knowledge-base/article/{id}', [KnowledgeBaseController::class, '
 Route::get('/knowledge-base/resolution/{id}', [KnowledgeBaseController::class, 'resolution'])->name('knowledge_base.resolution');
 Route::post('/knowledge-base/article/{id}/save-guide', [KnowledgeBaseController::class, 'saveGuide'])->name('knowledge_base.save_guide');
 Route::post('/knowledge-base/upload-image', [KnowledgeBaseController::class, 'uploadImage'])->name('knowledge_base.upload_image');
+Route::get('/knowledge-base/audio/{filename}', [KnowledgeBaseController::class, 'streamAudio'])->name('knowledge_base.audio.stream');
+
+// Public routes (no auth required)
+Route::get('/public/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'publicArticle'])->name('knowledge_base.article.public');
 
 
 /*

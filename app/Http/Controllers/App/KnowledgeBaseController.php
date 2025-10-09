@@ -55,24 +55,19 @@ class KnowledgeBaseController extends Controller
             abort(404);
         }
 
-        // Process soundfiles to add temporary URLs
+        // Process soundfiles to add streaming URLs
         if (!is_null($article->soundfiles)) {
             $soundfiles = json_decode($article->soundfiles, true);
-            $article->soundfiles = array_map(function ($soundfile) {
-                return [
-                    'path' => Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60)),
-                    'original_name' => $soundfile['original_name'],
-                    'mime_type' => $soundfile['mime_type'] ?? 'audio/wav',
-                    'size' => $soundfile['size'] ?? 0,
-                ];
-            }, $soundfiles);
 
-            // Process article body to replace audio references with temporary URLs
+            // Process article body to replace audio references with streaming URLs
             $body = $article->body;
             foreach ($soundfiles as $soundfile) {
-                $temporaryUrl = Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60));
+                // Extract filename for the route
+                $filename = basename($soundfile['path']);
+                $streamUrl = route('knowledge_base.audio.stream', ['filename' => $filename]);
+                // Use the original path from the database for the audio reference
                 $audioReference = "[AUDIO:{$soundfile['path']}]";
-                $body = str_replace($audioReference, $temporaryUrl, $body);
+                $body = str_replace($audioReference, $streamUrl, $body);
             }
             $article->body = $body;
         }
@@ -153,9 +148,10 @@ class KnowledgeBaseController extends Controller
             return response()->json(['error' => 'Article not found'], 404);
         }
 
-        // Process soundfiles to add temporary URLs (same logic as article() method but without visit increment)
+        // Process soundfiles to add streaming URLs (same logic as article() method but without visit increment)
         if (!is_null($article->soundfiles)) {
             $soundfiles = json_decode($article->soundfiles, true);
+            
             $article->soundfiles = array_map(function ($soundfile) {
                 return [
                     'path' => Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60)),
@@ -165,19 +161,21 @@ class KnowledgeBaseController extends Controller
                 ];
             }, $soundfiles);
 
-            // Process article body to replace audio references with temporary URLs
+            // Process article body to replace audio references with streaming URLs
             // Handle both formats: [AUDIO:{path}] and [audio:filename](url)
             $body = $article->body;
             foreach ($soundfiles as $soundfile) {
-                $temporaryUrl = Storage::disk('r2')->temporaryUrl($soundfile['path'], now()->addMinutes(60));
+                // Extract filename for the route
+                $filename = basename($soundfile['path']);
+                $streamUrl = route('knowledge_base.audio.stream', ['filename' => $filename]);
                 
                 // Handle backend format: [AUDIO:{path}]
                 $audioReference = "[AUDIO:{$soundfile['path']}]";
-                $body = str_replace($audioReference, $temporaryUrl, $body);
+                $body = str_replace($audioReference, $streamUrl, $body);
                 
-                // Handle frontend format: [audio:filename](blob:url) -> [audio:filename](temporary_url)
+                // Handle frontend format: [audio:filename](blob:url) -> [audio:filename](stream_url)
                 $frontendPattern = '/\[audio:' . preg_quote($soundfile['original_name'], '/') . '\]\([^)]+\)/';
-                $replacement = '[audio:' . $soundfile['original_name'] . '](' . $temporaryUrl . ')';
+                $replacement = '[audio:' . $soundfile['original_name'] . '](' . $streamUrl . ')';
                 $body = preg_replace($frontendPattern, $replacement, $body);
             }
             $article->body = $body;
@@ -560,7 +558,7 @@ class KnowledgeBaseController extends Controller
         return "/storage/articles/questions/{$filename}";
     }
 
-    public function uploadImage(Request $request) {
+    public function uploadImage(Request $request){
         try {
             // Check if file exists in request
             if (!$request->hasFile('image')) {
@@ -634,8 +632,7 @@ class KnowledgeBaseController extends Controller
         }
     }
 
-    public function sendSMS(Request $request, $id)
-    {
+    public function sendSMS(Request $request, $id){
         $request->validate([
             'user_id' => 'required|integer|exists:wings_config.users,id'
         ]);
@@ -717,8 +714,7 @@ class KnowledgeBaseController extends Controller
     }
 
     // Public article view (no auth required)
-    public function publicArticle($id)
-    {
+    public function publicArticle($id){
         $article = DB::connection('pulse')
             ->table('knowledge_base_articles')
             ->select('id', 'title', 'category', 'description', 'tags', 'body', 'article_image', 'published_at', 'visits')
@@ -1108,6 +1104,41 @@ class KnowledgeBaseController extends Controller
             return response()->json([
                 'message' => 'Failed to delete article, please try again later.' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Stream audio file through Laravel
+     * 
+     * @param string $filename The audio file path
+     * @return \Illuminate\Http\Response
+     */
+    public function streamAudio($filename)
+    {
+        try {
+            // Validate filename format to prevent path traversal (just the filename, not full path)
+            if (!preg_match('/^[a-zA-Z0-9\-_.]+\.(mp3|wav|ogg|gsm)$/', $filename)) {
+                abort(404);
+            }
+            
+            // Construct the full path for R2 storage
+            $fullPath = 'knowledge-base/audio/' . $filename;
+            
+            // Check if file exists
+            if (!Storage::disk('r2')->exists($fullPath)) {
+                abort(404);
+            }
+            
+            // Get file content and metadata
+            $fileContent = Storage::disk('r2')->get($fullPath);
+            $mimeType = Storage::disk('r2')->mimeType($fullPath);
+            
+            return response($fileContent)
+                ->header('Content-Type', $mimeType)
+                ->header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+                
+        } catch (\Exception $e) {
+            abort(404);
         }
     }
 
