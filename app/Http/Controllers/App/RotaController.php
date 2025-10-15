@@ -180,11 +180,10 @@ class RotaController extends Controller
         try {
             $request->validate($rules, $messages);
 
-
-
             // Validate that an event hasn't been created between this time period for this user already.
             $existingEvent = Event::where('hr_id', $request->hrID)
                 ->whereDate('date', date("Y-m-d", strtotime($request->date)))
+                ->whereIn('category', ['Sick', 'Late', 'AWOL', 'Absent'])
                 ->where(function ($query) use ($request) {
                     $query->whereBetween(DB::raw("TIME(on_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])
                           ->orWhereBetween(DB::raw("TIME(off_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])

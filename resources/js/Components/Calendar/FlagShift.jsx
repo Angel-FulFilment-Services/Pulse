@@ -262,6 +262,8 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
       // Make the POST request to the API
       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
+      console.log(payload);
+
       const response = await fetch('/rota/save-event', {
         method: 'POST',
         headers: {
@@ -309,18 +311,16 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
       }, 1000);
     } catch (error) {
       console.error(error);
-      if (error.message !== 'Validation failed') {
-        toast.error(isUpdating ? 'Event could not be updated, Please try again.' : 'Shift could not be flagged. Please try again.', {
-          position: 'top-center',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          progress: undefined,
-          theme: 'light',
-        });
-      }
+      toast.error(isUpdating ? 'Event could not be updated, Please try again.' : 'Shift could not be flagged. Please try again.', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
       setIsProcessing(false);
       setIsSuccess(false);
     }
@@ -339,7 +339,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
           onSelectChange={(value) => handleChange('flagType', value[0].value)}
           placeholder="Select a flag type"
           onBlur={() => validate(['flagType'])}
-          error={errors.flagType}
+          error={errors?.flagType}
         />
 
         {!isNote && (
@@ -352,7 +352,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
               endTime={shiftEnd}
               currentState={formData.startTime}
               onTimeChange={(value) => handleChange('startTime', value)}
-              error={errors.startTime}
+              error={errors?.startTime}
             />
 
             {/* End Time */}
@@ -363,7 +363,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
               endTime={shiftEnd}
               currentState={formData.endTime}
               onTimeChange={(value) => handleChange('endTime', value)}
-              error={errors.endTime}
+              error={errors?.endTime}
             />
           </>
         )}
@@ -420,7 +420,7 @@ export default function FlagShift({ selectedShift, selectedEvent, onCancel, allo
           onTextChange={(value) => handleChange('notes', value[0].value)}
           placeholder="Add any additional notes"
           onBlur={() => validate(['notes'])}
-          error={errors.notes}
+          error={errors?.notes}
         />
       </div>
 
