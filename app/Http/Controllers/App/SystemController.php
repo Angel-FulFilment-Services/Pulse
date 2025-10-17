@@ -31,7 +31,8 @@ public function clients(Request $request){
                 ->where(function ($query) {
                     $query->whereNull('active')
                           ->orWhere('active','=', '');
-                });
+                })
+                ->groupBy('clientname');
             
             return $query->get()->map(function ($client) {
                 return [
