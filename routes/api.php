@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\CallRecordingController;
+use App\Http\Controllers\App\SystemController;
 
 use App\Helper\T2SMS;
 
@@ -58,6 +59,11 @@ Route::post('/asset-management/kits/status', [AssetController::class, 'isKitActi
 ->withoutMiddleware('twofactor')
 ->withoutMiddleware('has.permission:pulse_view_assets')
 ->middleware('throttle:100,1');
+
+Route::get('/system/clients', [SystemController::class, 'clients'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:250,1')
+->middleware('auth:api');
 
 /*
 |-----------------------
