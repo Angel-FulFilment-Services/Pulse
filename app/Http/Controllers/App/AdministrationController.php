@@ -24,7 +24,7 @@ class AdministrationController extends Controller
 
     public function angelGiftConfigurations(){
         try {
-            $angelGiftApiUrl = config('app.angel_gift_api_url', 'https://angel-gift.co.uk/api/template/list');
+            $angelGiftApiUrl = config('app.angel_gift_api_url', 'https://free-gifts.co.uk/api/template/list');
             $angelGiftApiToken = config('app.angel_gift_api_token');
 
             $apiResponse = Http::timeout(10)

@@ -186,6 +186,6 @@ return [
     ])->toArray(),
 
 
-    'angel_gift_api_url' => env('ANGEL_GIFT_API_URL', 'https://angel-gift.co.uk/api/template/list'),
+    'angel_gift_api_url' => env('ANGEL_GIFT_API_URL', 'https://free-gifts.co.uk/api/template/list'),
     'angel_gift_api_token' => env('ANGEL_GIFT_API_TOKEN'),
 ];
