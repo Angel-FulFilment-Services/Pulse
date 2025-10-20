@@ -141,7 +141,7 @@ const ArticleCondensed = ({ post, config, refetch }) => {
     e.stopPropagation();
 
     toast.promise(
-      axios.post('https://angel-gift.co.uk/api/template/generate-template-edit-url', {
+      axios.post('https://free-gifts.co.uk/api/template/generate-template-edit-url', {
         template_id: post.id
       }, {
         headers: {

@@ -25,7 +25,7 @@ export default function Header({
     e.stopPropagation();
 
     toast.promise(
-      axios.post('https://angel-gift.co.uk/api/template/generate-template-url', {}, {
+      axios.post('https://free-gifts.co.uk/api/template/generate-template-url', {}, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_ANGEL_GIFT_API_TOKEN}`,
           'Content-Type': 'application/json'
