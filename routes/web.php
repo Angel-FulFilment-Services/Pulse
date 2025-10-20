@@ -43,7 +43,7 @@ use App\Http\Controllers\App\UserController;
 */
 Route::get('/administration', [AdministrationController::class, 'index'])->name('administration');
 Route::get('/administration/{page}', [AdministrationController::class, 'index'])->name('administration.page');
-Route::get('/administration/angel-gift/configurations', [AdministrationController::class, 'angelGiftConfigurations'])->name('administration.settings.angel_gift_configurations');
+Route::get('/administration/free-gifts/configurations', [AdministrationController::class, 'angelGiftConfigurations'])->name('administration.settings.angel_gift_configurations');
 
 
 /*

@@ -12,7 +12,7 @@ const useFetchConfigurations = (category, refreshTrigger = 0) => {
     try {
       setIsLoading(true);
 
-      const response = await axios.get('/administration/angel-gift/configurations', {
+      const response = await axios.get('/administration/free-gifts/configurations', {
         signal: controller.signal, // Attach the AbortController signal
         params: {
           category, // Include the tab parameter in the request
