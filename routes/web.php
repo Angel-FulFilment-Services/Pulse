@@ -19,6 +19,7 @@ use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
+use App\Http\Controllers\App\AdministrationController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -34,6 +35,16 @@ use App\Http\Controllers\App\UserController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+/*
+|-----------------------
+| Administration
+|-----------------------
+*/
+Route::get('/administration', [AdministrationController::class, 'index'])->name('administration');
+Route::get('/administration/{page}', [AdministrationController::class, 'index'])->name('administration.page');
+Route::get('/administration/angel-gift/configurations', [AdministrationController::class, 'angelGiftConfigurations'])->name('administration.settings.angel_gift_configurations');
+
 
 /*
 |-----------------------
