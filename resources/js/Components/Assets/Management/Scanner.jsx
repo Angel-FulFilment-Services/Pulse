@@ -98,7 +98,7 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
   }, [startCamera, stopCamera]);
 
   return (
-    <div className={`flex flex-col items-center gap-4 h-full justify-center w-full ${!cameraError && 'mb-44'}`}>
+    <div className={`flex flex-col items-center gap-4 h-full justify-center w-full ${!cameraError && 'items-center'}`}>
       <div className="mb-4 text-center w-full">
         {cameraError ? (
           <>
@@ -112,23 +112,6 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
             <p className="text-base text-gray-600 dark:text-dark-400">
               Or you can search for an asset below.
             </p>
-            <div className="w-full mt-6 flex flex-col gap-y-4 items-center justify-center">
-                <SearchControl
-                  items={availableAssets}
-                  placeholder="Start typing to search for an asset..."
-                  width='w-96'
-                  onSelectChange={(item) => {
-                    if (!item) return;
-                    handleScan(null, null, item);
-                  }}
-                />  
-                <button
-                  className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
-                  onClick={() => goTo({ type: 'create', assetId: null })}
-                >
-                  Create Asset
-                </button>
-            </div>
           </>
         ) : (
           <>
@@ -137,7 +120,7 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
             </div>  
             <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Scan Barcode</h1>
             <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
-              Align the barcode within the frame to scan.
+              Align the barcode within the frame to scan or search below.
             </p>
           </>
         )}
@@ -159,6 +142,27 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
           <div className="absolute top-1/2 left-0 w-full h-1 bg-theme-500 dark:bg-theme-600 transform -translate-y-1/2 pointer-events-none" />
         </div>
       )}
+
+      {/* Search functionality - now always visible */}
+      <div className="w-full mt-6 flex flex-col gap-y-4 items-center justify-center">
+        <SearchControl
+          items={availableAssets}
+          placeholder="Start typing to search for an asset..."
+          width='w-96'
+          onSelectChange={(item) => {
+            if (!item) return;
+            handleScan(null, null, item);
+          }}
+        />  
+        <div className="flex items-center space-x-3">
+          <button
+            className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
+            onClick={() => goTo({ type: 'create', assetId: null })}
+          >
+            Create Asset
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
