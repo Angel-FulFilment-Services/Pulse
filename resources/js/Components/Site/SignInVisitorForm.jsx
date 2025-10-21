@@ -3,6 +3,12 @@ import { ArrowLeftIcon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/
 import axios from 'axios';
 import UserIcon from '../User/UserIcon';
 import './Styles.css'; // Import your CSS for animations
+import {
+  sanitizeEscape,
+  sanitizeProperCase,
+  sanitizeToUpperCase,
+  sanitizeTrim
+} from '../../Utils/sanitisers.jsx';
 
 const inputs = [
   { label: 'Full name', key: 'fullName' },
@@ -59,15 +65,20 @@ export default function SignInVisitorForm({ onComplete, setStep, location }) {
     }, 50); // Match the animation duration (0.2s)
   };
 
+  const sanitizeFormData = (data) => {
+    return {
+      visitor_name: sanitizeProperCase(sanitizeTrim(sanitizeEscape(data.fullName))),
+      visitor_company: sanitizeProperCase(sanitizeTrim(sanitizeEscape(data.company))),
+      visitor_visiting: sanitizeProperCase(sanitizeTrim(sanitizeEscape(data.visiting))),
+      visitor_visiting_user_id: data.visitingId,
+      visitor_car_registration: sanitizeToUpperCase(sanitizeTrim(sanitizeEscape(data.carReg))),
+    }
+  };
+
   const handleComplete = () => {
     setAnimationClass('fade-out'); // Trigger fade-out animation
-    onComplete({
-      visitor_name: form.fullName,
-      visitor_company: form.company,
-      visitor_visiting: form.visiting,
-      visitor_visiting_user_id: form.visitingId,
-      visitor_car_registration: form.carReg,
-    });
+    const sanitizedData = sanitizeFormData(form);
+    onComplete(sanitizedData);
     setStep('terms-and-conditions');
   };
 

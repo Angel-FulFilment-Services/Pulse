@@ -176,6 +176,22 @@ export const stripHtmlTags = (htmlContent) => {
 };
 
 /**
+ * Sanitizes the input by capitalizing the first letter of each word.
+ * Useful for names, addresses, and other text that should be in proper case.
+ * Preserves existing capital letters and handles word boundaries properly.
+ * @param {string} input - The input to sanitize.
+ * @returns {string} - The sanitized input with proper case formatting.
+ */
+export const sanitizeProperCase = (input) => {
+    if (!input || typeof input !== 'string') {
+        return input;
+    }
+    
+    // Capitalize first letter of each word (\b\w matches word boundaries)
+    return input.replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
+/**
  * Converts HTML content to Markdown format.
  * @param {string} htmlContent - The HTML content to convert.
  * @returns {string} - The converted Markdown content.
