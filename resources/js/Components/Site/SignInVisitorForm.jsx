@@ -8,7 +8,7 @@ import {
   sanitizeProperCase,
   sanitizeToUpperCase,
   sanitizeTrim
-} from '../../Utils/sanitisers.jsx';
+} from '../../Utils/Sanitisers.jsx';
 
 const inputs = [
   { label: 'Full name', key: 'fullName' },
