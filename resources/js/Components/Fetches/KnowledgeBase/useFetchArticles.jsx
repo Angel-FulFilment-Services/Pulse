@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const useFetchArticles = (category, refreshTrigger = 0) => {
   const [articles, setArticles] = useState([]);
+  const [visits, setVisits] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const debounceTimeout = useRef(null); // Ref to store the debounce timeout
@@ -22,6 +23,7 @@ const useFetchArticles = (category, refreshTrigger = 0) => {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
       setArticles(response.data.articles);
+      setVisits(response.data.visits);
       setIsLoaded(true);
     } catch (error) {
       clearTimeout(loadingTimeout);
@@ -81,7 +83,7 @@ const useFetchArticles = (category, refreshTrigger = 0) => {
     };
   }, []); // Re-run when startDate or endDate changes
 
-  return { articles, isLoading, isLoaded, refetch: () => {
+  return { articles, visits, isLoading, isLoaded, refetch: () => {
     const controller = new AbortController();
     fetchArticles(controller);
   } };

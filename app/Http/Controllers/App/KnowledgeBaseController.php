@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use App\Helper\CallRecordings;
 use App\Helper\Auditing;
+use App\Models\System\Audit;
 
 class KnowledgeBaseController extends Controller
 {
@@ -39,8 +40,15 @@ class KnowledgeBaseController extends Controller
             ->orderBy('visits', 'desc')
             ->get();
 
+        $visits = Audit::where('type', 'Knowledge Base - ' . (str_replace('-', ' ', $request->category) ?? 'All Categories'))
+            ->where('action', 'Article Viewed')
+            ->whereBetween('created_at', [now()->subDays(7), now()])
+            ->get()
+            ->count();
+
         return response()->json([
             'articles' => $articles,
+            'visits' => $visits
         ]);
     }
 

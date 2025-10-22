@@ -277,7 +277,7 @@ const ArticleCondensed = ({ post, config, onDelete, onEdit, onTagClick }) => {
 };
 
 export default function Feed({ searchTerm, activeTab, refreshTrigger, onEditArticle }) {
-  const { articles, isLoading, isLoaded, refetch } = useFetchArticles(activeTab, refreshTrigger);
+  const { articles, visits, isLoading, isLoaded, refetch } = useFetchArticles(activeTab, refreshTrigger);
 
   // Get the layout configuration for the current tab
   const layoutConfig = LAYOUT_CONFIG[activeTab] || LAYOUT_CONFIG.default;
@@ -462,6 +462,12 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger, onEditArti
           </div>
         )
       }
+
+      {filteredPosts.length && layoutConfig.style === 'condensed' ? (
+        <div className="px-6 lg:px-8 pt-4 text-xs text-gray-600 dark:text-dark-400">
+            <p>Article views (Last 7 days): <span className="font-medium">{visits}</span></p>
+        </div>
+      ) : null }
       
       <div className="mx-auto max-w-full w-full px-6 lg:px-8">
         <div className="mx-auto max-w-full w-full">
