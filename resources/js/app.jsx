@@ -145,6 +145,17 @@ createInertiaApp({
           </AppWrapper>
         );
         break;
+      case name.startsWith('Dashboard/Wallboard'):
+        page.default.layout = (page) => (
+          <AppWrapper>
+            {() => (
+              <div className="min-h-screen bg-black text-white">
+                <div children={page} />
+              </div>
+            )}
+          </AppWrapper>
+        );
+        break;
       default:
         page.default.layout = (page) => (
           <AppWrapper>

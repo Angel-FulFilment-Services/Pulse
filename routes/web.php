@@ -86,6 +86,7 @@ Route::post('/verify', [TwoFactorController::class, 'verify']);
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/wallboard', [DashboardController::class, 'wallboard'])->name('wallboard');
 
 /*
 |-----------------------
