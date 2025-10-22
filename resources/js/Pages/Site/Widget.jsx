@@ -144,6 +144,223 @@ export default function DeliveryAndVisitorWidget() {
         }
     }, [employees, visitors]);
 
+    // Auto-scroll functionality for all three sections
+    useEffect(() => {
+        const scrollSpeed = 0.3;
+        const scrollInterval = 16; // 20ms = ~50fps for smoother animation
+        const initialDelay = 5000;
+        const pauseDuration = 5000;
+        const directionChangePause = 2500;
+        const notificationDuration = 150000; // 150 seconds
+
+        const setupAutoScroll = (ref, sectionKey, data) => {
+            const element = ref.current;
+            if (!element) return null;
+
+            const hasScrollbar = () => element.scrollHeight > element.clientHeight;
+            
+            let scrollIntervalId = null;
+            let scrollDirection = 'down';
+            let isActive = false;
+            let userScrollTimeout = null;
+            let initialTimeout = null;
+            let isPaused = false;
+            let pauseTimeout = null;
+            let notificationHoldTimeout = null;
+            let newItemCheckInterval = null;
+            let lastCheckedItemId = null;
+            let isHoldingForNotification = false;
+            let accumulatedScroll = 0; // Track fractional pixels
+
+            // Check if there's a new item (visitor or delivery) that we haven't responded to yet
+            const hasNewItem = () => {
+                if (!data || data.length === 0) return false;
+                const latestItem = data[0];
+                if (!latestItem || !latestItem.created_at || !latestItem.id) return false;
+                
+                const time = new Date(latestItem.created_at);
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - time) / 1000);
+                const isRecent = diffInSeconds < 150;
+                
+                // Only trigger if recent AND it's a different item than we last checked
+                return isRecent && lastCheckedItemId !== latestItem.id;
+            };
+
+            const handleNewItemDetected = () => {
+                // Mark this item as checked
+                if (data && data[0]) {
+                    lastCheckedItemId = data[0].id;
+                }
+                
+                // Stop any active scrolling
+                if (scrollIntervalId) {
+                    clearInterval(scrollIntervalId);
+                    scrollIntervalId = null;
+                }
+                if (pauseTimeout) {
+                    clearTimeout(pauseTimeout);
+                    pauseTimeout = null;
+                }
+                
+                // Scroll to top instantly
+                if (element) {
+                    element.scrollTop = 0;
+                    accumulatedScroll = 0; // Reset accumulated scroll
+                }
+                
+                // Mark as holding for notification
+                isHoldingForNotification = true;
+                isPaused = true;
+                
+                // Hold at top for notification duration
+                if (notificationHoldTimeout) {
+                    clearTimeout(notificationHoldTimeout);
+                }
+                notificationHoldTimeout = setTimeout(() => {
+                    isPaused = false;
+                    isHoldingForNotification = false;
+                    scrollDirection = 'down';
+                    if (hasScrollbar() && !scrollIntervalId) {
+                        startScrolling();
+                    }
+                }, notificationDuration);
+            };
+
+            const startScrolling = () => {
+                if (scrollIntervalId || !hasScrollbar() || isHoldingForNotification) return;
+                
+                isActive = true;
+                accumulatedScroll = element.scrollTop; // Initialize with current position
+                
+                scrollIntervalId = setInterval(() => {
+                    if (!element) return;
+                    
+                    if (isPaused) return;
+                    
+                    const maxScroll = element.scrollHeight - element.clientHeight;
+
+                    if (scrollDirection === 'down') {
+                        accumulatedScroll += scrollSpeed;
+                        
+                        if (accumulatedScroll >= maxScroll) {
+                            if (!isPaused) {
+                                isPaused = true;
+                                accumulatedScroll = maxScroll;
+                                element.scrollTop = maxScroll;
+                                pauseTimeout = setTimeout(() => {
+                                    scrollDirection = 'up';
+                                    isPaused = false;
+                                }, directionChangePause);
+                            }
+                        } else {
+                            element.scrollTop = Math.round(accumulatedScroll);
+                        }
+                    } else {
+                        accumulatedScroll -= scrollSpeed;
+                        
+                        if (accumulatedScroll <= 0) {
+                            if (!isPaused) {
+                                isPaused = true;
+                                accumulatedScroll = 0;
+                                element.scrollTop = 0;
+                                pauseTimeout = setTimeout(() => {
+                                    scrollDirection = 'down';
+                                    isPaused = false;
+                                }, directionChangePause);
+                            }
+                        } else {
+                            element.scrollTop = Math.round(accumulatedScroll);
+                        }
+                    }
+                }, scrollInterval);
+            };
+
+            const stopScrolling = () => {
+                if (scrollIntervalId) {
+                    clearInterval(scrollIntervalId);
+                    scrollIntervalId = null;
+                }
+                if (pauseTimeout) {
+                    clearTimeout(pauseTimeout);
+                    pauseTimeout = null;
+                }
+                if (notificationHoldTimeout) {
+                    clearTimeout(notificationHoldTimeout);
+                    notificationHoldTimeout = null;
+                }
+                if (newItemCheckInterval) {
+                    clearInterval(newItemCheckInterval);
+                    newItemCheckInterval = null;
+                }
+                isActive = false;
+                isPaused = false;
+                isHoldingForNotification = false;
+            };
+
+            const handleUserScroll = (e) => {
+                if (!isActive) return;
+                
+                stopScrolling();
+                
+                if (userScrollTimeout) {
+                    clearTimeout(userScrollTimeout);
+                }
+                
+                userScrollTimeout = setTimeout(() => {
+                    if (hasScrollbar()) {
+                        startScrolling();
+                    }
+                }, pauseDuration);
+            };
+
+            // Set up continuous monitoring for new items (only for visitors and deliveries)
+            if (sectionKey === 'visitor' || sectionKey === 'delivery') {
+                newItemCheckInterval = setInterval(() => {
+                    if (hasNewItem()) {
+                        handleNewItemDetected();
+                    }
+                }, 1000); // Check every second
+            }
+
+            // Check for scrollbar and start auto-scroll after initial delay
+            const checkAndStartScroll = () => {
+                if (hasScrollbar()) {
+                    initialTimeout = setTimeout(() => {
+                        startScrolling();
+                    }, initialDelay);
+                } else {
+                    // Check again in 500ms if no scrollbar yet
+                    initialTimeout = setTimeout(checkAndStartScroll, 500);
+                }
+            };
+
+            checkAndStartScroll();
+
+            element.addEventListener('wheel', handleUserScroll, { passive: true });
+            element.addEventListener('touchmove', handleUserScroll, { passive: true });
+
+            // Cleanup function
+            return () => {
+                stopScrolling();
+                if (initialTimeout) clearTimeout(initialTimeout);
+                if (userScrollTimeout) clearTimeout(userScrollTimeout);
+                element.removeEventListener('wheel', handleUserScroll);
+                element.removeEventListener('touchmove', handleUserScroll);
+            };
+        };
+
+        const cleanupEmployee = setupAutoScroll(employeeScrollRef, 'employee', employees);
+        const cleanupVisitor = setupAutoScroll(visitorScrollRef, 'visitor', visitors);
+        const cleanupDelivery = setupAutoScroll(deliveryScrollRef, 'delivery', deliveries);
+
+        return () => {
+            if (cleanupEmployee) cleanupEmployee();
+            if (cleanupVisitor) cleanupVisitor();
+            if (cleanupDelivery) cleanupDelivery();
+        };
+    }, [employees.length, visitors.length, deliveries.length]);
+
     const formatTimeSince = (timestamp) => {
         const time = new Date(timestamp);
         const now = new Date();
@@ -168,7 +385,7 @@ export default function DeliveryAndVisitorWidget() {
         const time = new Date(timestamp);
         const now = new Date();
         const diffInSeconds = Math.floor((now - time) / 1000);
-        return diffInSeconds < 150; // Returns true if less than a minute old
+        return diffInSeconds < 150;
     };
 
     const toggleRollCall = () => {

@@ -15,7 +15,7 @@ const Wallboard = () => {
             {/* Right iframe - 35% width */}
             <div className="w-[35%] h-full">
                 <iframe 
-                    src="https://pulse.angelfs.co.uk"
+                    src="https://pulse.angelfs.co.uk/onsite/widgets/access-control"
                     className="w-full h-full border-0"
                     title="Secondary Display"
                 />
