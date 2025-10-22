@@ -146,6 +146,9 @@ export default function DeliveryAndVisitorWidget() {
 
     // Auto-scroll functionality for all three sections
     useEffect(() => {
+        // Don't setup auto-scroll when roll call mode is active
+        if (rollCall) return;
+
         const scrollSpeed = 0.3;
         const scrollInterval = 16; // 20ms = ~50fps for smoother animation
         const initialDelay = 5000;
@@ -359,7 +362,7 @@ export default function DeliveryAndVisitorWidget() {
             if (cleanupVisitor) cleanupVisitor();
             if (cleanupDelivery) cleanupDelivery();
         };
-    }, [employees.length, visitors.length, deliveries.length]);
+    }, [employees.length, visitors.length, deliveries.length, rollCall]);
 
     const formatTimeSince = (timestamp) => {
         const time = new Date(timestamp);
