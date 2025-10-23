@@ -20,12 +20,15 @@ export default function SplashScreen({ onContinue, setStep }) {
               className="w-72"
             />
           </div>
-          <div className="flex flex-col items-start justify-start">
+          <div className="flex flex-col items-start justify-start -mt-8">
             <h1 className="text-9xl font-semibold text-white dark:text-dark-100 mb-6">
               Hello,
             </h1>
             <h1 className="text-7xl font-semibold text-white dark:text-dark-100 mb-6">
               Please sign in here.
+            </h1>
+            <h1 className="text-4xl font-semibold text-white/85 dark:text-dark-100 mb-6 ml-1">
+              For Angel employees and visitors only.
             </h1>
           </div>
         </div>
