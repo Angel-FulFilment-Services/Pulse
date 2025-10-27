@@ -1,25 +1,298 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getWallboardList, getWallboard } from '../../Config/Wallboards';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 
-const Wallboard = () => {
+/**
+ * IFrame Component - Reusable iframe wrapper
+ */
+const IFrame = ({ source, title }) => {
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-gray-900">
-            {/* Left iframe - 65% width */}
+        <iframe 
+            src={source}
+            className="w-full h-full border-0"
+            title={title || 'Display'}
+        />
+    );
+};
+
+/**
+ * Layout Components
+ */
+
+// Single full-screen tile
+const LayoutSingle = ({ sources }) => {
+    const source = sources[0];
+    return (
+        <div className="w-full h-full">
+            <IFrame source={source?.source} title={source?.title} />
+        </div>
+    );
+};
+
+// 65% / 35% vertical split
+const LayoutSplitVertical6535 = ({ sources }) => {
+    const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
+    const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
+    
+    return (
+        <div className="flex h-full w-full">
+            <div className="w-[65%] h-full">
+                <IFrame source={tile1?.source} title={tile1?.title} />
+            </div>
+            <div className="w-[35%] h-full">
+                <IFrame source={tile2?.source} title={tile2?.title} />
+            </div>
+        </div>
+    );
+};
+
+// 50% / 50% vertical split
+const LayoutSplitVertical5050 = ({ sources }) => {
+    const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
+    const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
+    
+    return (
+        <div className="flex h-full w-full">
+            <div className="w-1/2 h-full">
+                <IFrame source={tile1?.source} title={tile1?.title} />
+            </div>
+            <div className="w-1/2 h-full">
+                <IFrame source={tile2?.source} title={tile2?.title} />
+            </div>
+        </div>
+    );
+};
+
+// 50% / 50% horizontal split
+const LayoutSplitHorizontal5050 = ({ sources }) => {
+    const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
+    const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
+    
+    return (
+        <div className="flex flex-col h-full w-full">
+            <div className="w-full h-1/2">
+                <IFrame source={tile1?.source} title={tile1?.title} />
+            </div>
+            <div className="w-full h-1/2">
+                <IFrame source={tile2?.source} title={tile2?.title} />
+            </div>
+        </div>
+    );
+};
+
+// 2x2 Grid
+const LayoutGrid2x2 = ({ sources }) => {
+    // Fill tiles in order, respecting tile_id if specified
+    const tiles = [1, 2, 3, 4].map(tileNum => {
+        // First check if there's a source with this specific tile_id
+        const assignedSource = sources.find(s => s.tile_id === tileNum);
+        if (assignedSource) return assignedSource;
+        
+        // Otherwise, find the first source without a tile_id that hasn't been used
+        return sources.find(s => !s.tile_id && !sources.some(used => used === s));
+    });
+    
+    return (
+        <div className="grid grid-cols-2 grid-rows-2 h-full w-full gap-0">
+            {tiles.map((tile, index) => (
+                <div key={index} className="w-full h-full">
+                    {tile && <IFrame source={tile.source} title={tile.title} />}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// 3x3 Grid
+const LayoutGrid3x3 = ({ sources }) => {
+    const tiles = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(tileNum => {
+        const assignedSource = sources.find(s => s.tile_id === tileNum);
+        if (assignedSource) return assignedSource;
+        return sources.find(s => !s.tile_id && !sources.some(used => used === s));
+    });
+    
+    return (
+        <div className="grid grid-cols-3 grid-rows-3 h-full w-full gap-0">
+            {tiles.map((tile, index) => (
+                <div key={index} className="w-full h-full">
+                    {tile && <IFrame source={tile.source} title={tile.title} />}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// Triple column layout
+const LayoutTripleColumn = ({ sources }) => {
+    const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
+    const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
+    const tile3 = sources.find(s => s.tile_id === 3) || sources[2];
+    
+    return (
+        <div className="flex h-full w-full">
+            <div className="w-1/3 h-full">
+                <IFrame source={tile1?.source} title={tile1?.title} />
+            </div>
+            <div className="w-1/3 h-full">
+                <IFrame source={tile2?.source} title={tile2?.title} />
+            </div>
+            <div className="w-1/3 h-full">
+                <IFrame source={tile3?.source} title={tile3?.title} />
+            </div>
+        </div>
+    );
+};
+
+// Main area with sidebar (70% / 30%)
+const LayoutMainSidebar = ({ sources }) => {
+    const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
+    const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
+    
+    return (
+        <div className="flex h-full w-full">
             <div className="w-[70%] h-full">
-                <iframe 
-                    src="https://wings.angelfs.co.uk"
-                    className="w-full h-full border-0"
-                    title="Main Display"
-                />
+                <IFrame source={tile1?.source} title={tile1?.title} />
+            </div>
+            <div className="w-[30%] h-full">
+                <IFrame source={tile2?.source} title={tile2?.title} />
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Layout Renderer - Selects the appropriate layout component
+ */
+const LayoutRenderer = ({ layout, sources }) => {
+    // Process sources to auto-assign tiles
+    const processedSources = [...sources];
+    let nextAvailableTile = 1;
+    
+    // Auto-assign tile_id to sources that don't have one
+    processedSources.forEach(source => {
+        if (!source.tile_id) {
+            // Find next available tile that's not already assigned
+            while (processedSources.some(s => s.tile_id === nextAvailableTile)) {
+                nextAvailableTile++;
+            }
+            source.tile_id = nextAvailableTile;
+            nextAvailableTile++;
+        }
+    });
+    
+    const layoutMap = {
+        'single': LayoutSingle,
+        'split-vertical-65-35': LayoutSplitVertical6535,
+        'split-vertical-50-50': LayoutSplitVertical5050,
+        'split-horizontal-50-50': LayoutSplitHorizontal5050,
+        'grid-2x2': LayoutGrid2x2,
+        'grid-3x3': LayoutGrid3x3,
+        'triple-column': LayoutTripleColumn,
+        'main-sidebar': LayoutMainSidebar,
+    };
+    
+    const LayoutComponent = layoutMap[layout] || LayoutSingle;
+    return <LayoutComponent sources={processedSources} />;
+};
+
+/**
+ * Wallboard Selection Screen
+ */
+const WallboardSelector = ({ onSelect }) => {
+    const wallboards = getWallboardList();
+    
+    return (
+        <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-dark-900">
+            <div className="max-w-4xl w-full p-8">
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-dark-50 mb-8 text-center">
+                    Select Wallboard
+                </h1>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                    {wallboards.map((wallboard) => (
+                        <button
+                            key={wallboard.id}
+                            onClick={() => onSelect(wallboard.id)}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:text-dark-100 p-6 rounded-lg transition-colors duration-200 border-2 border-gray-200 hover:border-theme-500 dark:bg-dark-800 dark:border-dark-700 dark:hover:border-theme-600"
+                        >
+                            <h2 className="text-xl font-semibold mb-2">
+                                {wallboard.name}
+                            </h2>
+                            <p className="text-gray-500 dark:text-dark-400 text-sm">
+                                Layout: {wallboard.layout_name}
+                            </p>
+                        </button>
+                    ))}
+                </div>
+                
+                <div className="mt-8 text-center">
+                    <p className="text-gray-600 dark:text-dark-500 text-sm">
+                        Click on a wallboard to display it
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Main Wallboard Engine Component
+ */
+const Wallboard = () => {
+    const [selectedWallboard, setSelectedWallboard] = useState(null);
+    const [config, setConfig] = useState(null);
+    
+    useEffect(() => {
+        // Check if there's a wallboard ID in the URL
+        const params = new URLSearchParams(window.location.search);
+        const wallboardId = params.get('board');
+        
+        if (wallboardId) {
+            handleWallboardSelect(wallboardId);
+        }
+    }, []);
+    
+    const handleWallboardSelect = (wallboardId) => {
+        const wallboardConfig = getWallboard(wallboardId);
+        setSelectedWallboard(wallboardId);
+        setConfig(wallboardConfig);
+        
+        // Update URL without page reload
+        const url = new URL(window.location);
+        url.searchParams.set('board', wallboardId);
+        window.history.pushState({}, '', url);
+    };
+    
+    const handleBackToSelection = () => {
+        setSelectedWallboard(null);
+        setConfig(null);
+        
+        // Remove board parameter from URL
+        const url = new URL(window.location);
+        url.searchParams.delete('board');
+        window.history.pushState({}, '', url);
+    };
+    
+    // Show selection screen if no wallboard is selected
+    if (!selectedWallboard || !config) {
+        return <WallboardSelector onSelect={handleWallboardSelect} />;
+    }
+    
+    // Render the selected wallboard
+    return (
+        <div className="h-screen w-screen overflow-hidden bg-white dark:bg-dark-900 relative">
+            {/* Back button - shows on hover */}
+            <div className="group max-w-xs w-full h-20 absolute top-4 left-1/2 transform -translate-x-1/2 z-40 flex justify-center">
+                <button
+                    onClick={handleBackToSelection}
+                    className="dark:bg-dark-700 dark:hover:bg-dark-800 text-white bg-neutral-900/50 hover:bg-neutral-900/60 px-2 py-2 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                >
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
             </div>
             
-            {/* Right iframe - 35% width */}
-            <div className="w-[30%] h-full">
-                <iframe 
-                    src="https://pulse.angelfs.co.uk/onsite/widgets/access-control"
-                    className="w-full h-full border-0"
-                    title="Secondary Display"
-                />
-            </div>
+            {/* Render the layout */}
+            <LayoutRenderer layout={config.layout} sources={config.sources} />
         </div>
     );
 };
