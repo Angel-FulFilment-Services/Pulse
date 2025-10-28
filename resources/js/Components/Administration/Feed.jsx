@@ -255,7 +255,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
 
   // Initialize filters when configurations are loaded for the first time
   useEffect(() => {
-    if (formattedConfigurations.length > 0 && filters.length === 0) {
+    if (formattedConfigurations.length > 0) {
       // Get unique product names and client names for filters
       const uniqueProductNames = [...new Set(formattedConfigurations.map(config => config.product_name))].sort();
       const uniqueClientNames = [...new Set(formattedConfigurations.map(config => config.client_name))].sort();
@@ -287,7 +287,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
       
       setFilters(initialFilters);
     }
-  }, [formattedConfigurations.length]);
+  }, [formattedConfigurations]);
 
   // Filter configurations based on search term
   const searchFilteredConfigurations = formattedConfigurations.filter((config) => {
