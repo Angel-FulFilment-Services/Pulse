@@ -85,53 +85,6 @@ function applyFilters(data, filters = []) {
   });
 }
 
-// Card layout component (current layout)
-const ArticleCard = ({ post, config, onTagClick }) => (
-  <article className="flex max-w-full flex-col items-start justify-between pt-4">
-    <div className="flex items-center gap-x-4 text-xs">
-      <time dateTime={post.datetime} className="text-gray-500">
-        {post.date}
-      </time>
-      {config.showReadTime && (
-        <span className="text-gray-500">
-          {post.read_time} min read
-        </span>
-      )}
-      {config.showViews && (
-        <span className="text-gray-500">
-          {post.visits} views
-        </span>
-      )}
-      {config.showTags && (
-        <div className="flex flex-wrap gap-2">
-          {post.tags && post.tags.map((tag, idx) => (
-            <span
-              key={idx}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onTagClick && onTagClick(tag);
-              }}
-              className="relative z-10 rounded-full bg-theme-50 px-3 py-1.5 font-medium text-theme-600 ring-1 ring-theme-500/10 dark:bg-theme-600 dark:text-theme-300 dark:ring-theme-700/20 cursor-pointer hover:bg-theme-100 dark:hover:bg-theme-500 transition-colors duration-200"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-    <div className="group relative cursor-pointer">
-      <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 group-hover:text-gray-600">
-        <Link href={`/knowledge-base/article/${post.id}`} className="focus:outline-none">
-          <span className="absolute inset-0" />
-          {post.title}
-        </Link>
-      </h3>
-      <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-600">{post.description}</p>
-    </div>
-  </article>
-);
-
 // Condensed list layout component
 const ArticleCondensed = ({ post, config, refetch }) => {
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
@@ -216,6 +169,7 @@ const ArticleCondensed = ({ post, config, refetch }) => {
   };
 
   return (
+
     <article className="flex items-center justify-between py-3">
       <div className="flex-1 min-w-0 group relative">
         <div className="flex items-center gap-x-3">
@@ -231,11 +185,17 @@ const ArticleCondensed = ({ post, config, refetch }) => {
         <p className="text-sm text-gray-600 dark:text-dark-300 line-clamp-1 mt-2">{post.product_name}</p>
       </div>
       <div className="flex items-center gap-x-4 text-xs text-gray-500 dark:text-dark-400 ml-4 flex-shrink-0">
+        <p>Template ID: <span className="font-medium text-gray-600 dark:text-dark-100 pl-1">{post.id}</span></p>
+        <div className="border-l border-gray-200 dark:border-dark-700 h-4" />
         <time dateTime={post.created_at}>Created: { new Date(post.created_at).toLocaleString('en-GB')}</time>
         { post.updated_at && post.updated_at !== post.created_at && (
-          <time dateTime={post.updated_at}>Last Updated: { new Date(post.updated_at).toLocaleString('en-GB')}</time>
+          <>
+            <div className="border-l border-gray-200 dark:border-dark-700 h-4" />
+            <time dateTime={post.updated_at}>Last Updated: { new Date(post.updated_at).toLocaleString('en-GB')}</time>
+          </>
         )}
-        <div className="flex items-center gap-x-2 border-l border-gray-200 dark:border-dark-700 pl-2">
+        <div className="border-l border-gray-200 dark:border-dark-700 h-4" />
+        <div className="flex items-center gap-x-2">
           <button
             onClick={handleEditClick}
             className="relative p-1 text-gray-500 hover:text-gray-600 dark:text-dark-400 dark:hover:text-dark-300 transition-colors duration-200"
@@ -392,58 +352,68 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger }) {
           </div>
         )
       }
-      
-      <div className="mx-auto max-w-full w-full px-6 lg:px-8">
-        <div className="mx-auto max-w-full w-full">
-          <div className="mt-2 w-full space-y-4">
-            {layoutConfig.style === 'condensed' ? (
-              // Condensed list layout
-              <motion.div
-                className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
-                layout
-              >
-                <AnimatePresence>
-                  {filteredConfigurations.map((config) => (
-                    <motion.div
-                      key={config.id}
-                      layout
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      className="bg-white dark:bg-dark-900"
-                    >
-                      <ArticleCondensed post={config} config={layoutConfig} onDelete={handleConfigurationDelete} refetch={refetch} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            ) : (
-              // Card layout (original)
-              <motion.ul
-                className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
-                layout
-              >
-                <AnimatePresence>
-                  {filteredConfigurations.map((config) => (
-                    <motion.li
-                      key={config.id}
-                      layout
-                      initial={{ opacity: 0, y: -30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 30 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      className="flex justify-between gap-x-6 py-2 bg-white dark:bg-dark-900"
-                    >
-                      <ArticleCard post={config} config={layoutConfig} onDelete={handleConfigurationDelete} />
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-              </motion.ul>
-            )}
+      {isLoading && !isLoaded && (
+        <div className="flex flex-col items-center min-h-svh justify-center w-full pb-72">
+          <div className="flex gap-3 justify-center">
+            <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader"></div>
+            <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-200"></div>
+            <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-[400ms]"></div>
           </div>
         </div>
-      </div>
+      )}
+      { isLoaded && (
+        <div className="mx-auto max-w-full w-full px-6 lg:px-8">
+          <div className="mx-auto max-w-full w-full">
+            <div className="mt-2 w-full space-y-4">
+              {layoutConfig.style === 'condensed' ? (
+                // Condensed list layout
+                <motion.div
+                  className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
+                  layout
+                >
+                  <AnimatePresence>
+                    {filteredConfigurations.map((config) => (
+                      <motion.div
+                        key={config.id}
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className="bg-white dark:bg-dark-900"
+                      >
+                        <ArticleCondensed post={config} config={layoutConfig} onDelete={handleConfigurationDelete} refetch={refetch} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              ) : (
+                // Card layout (original)
+                <motion.ul
+                  className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
+                  layout
+                >
+                  <AnimatePresence>
+                    {filteredConfigurations.map((config) => (
+                      <motion.li
+                        key={config.id}
+                        layout
+                        initial={{ opacity: 0, y: -30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 30 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className="flex justify-between gap-x-6 py-2 bg-white dark:bg-dark-900"
+                      >
+                        <ArticleCard post={config} config={layoutConfig} onDelete={handleConfigurationDelete} />
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
+                </motion.ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
