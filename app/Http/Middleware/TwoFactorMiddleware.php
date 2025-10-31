@@ -25,6 +25,10 @@ class twofactorMiddleware
                     ->withStatus('Your one-time verification passcode has expired. Please login to receive another.');
             }
             if (!$request->is('verify*')) {
+                // Store the intended URL before redirecting to verify (only if not already set)
+                if (!$request->is('login*') && !session()->has('url.intended')) {
+                    session()->put('url.intended', $request->url());   
+                }
                 return redirect()->route('verify');
             }
         }

@@ -16,6 +16,7 @@ use App\Helper\T2SMS;
 use DateTime;
 use Str;
 use URL;
+use Log;
 
 class LoginController extends Controller
 {
@@ -33,6 +34,12 @@ class LoginController extends Controller
     
     public function login(request $request)
     {
+        Log::debug('Login attempt from IP: ' . $request->ip());
+        Log::debug('Long IP: ' . ip2long($request->ip()));
+        Log::debug('Environment: ' . app()->environment());
+        Log::debug('Allowed Long IP Range: ' . (3232235520 . ' - ' . 3232301055));
+        Log::debug('Allowed IP Range: ' . (long2ip(3232235520) . ' - ' . long2ip(3232301055)));
+
         $this->validate($request, [
             'email' => 'required|email',
             'password' => 'required'
@@ -80,23 +87,24 @@ class LoginController extends Controller
         if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055) && app()->environment(['production', 'staging'])) {
             if (Permissions::hasPermission('sms_2fa_enabled') || Permissions::hasPermission('email_2fa_enabled')) {
                 auth()->user()->generate_two_factor_code();
-            }
+                
+                // Send 2FA SMS if enabled
+                if (Permissions::hasPermission('sms_2fa_enabled')) {
+                    SendTwoFactorSMS::dispatch(auth()->user())->onQueue('pulse');
+                }
 
-            // Send 2FA SMS if enabled
-            if (Permissions::hasPermission('sms_2fa_enabled')) {
-                SendTwoFactorSMS::dispatch(auth()->user())->onQueue('pulse');
-            }
-
-            // Send 2FA email if enabled
-            if (Permissions::hasPermission('email_2fa_enabled')) {
-                SendTwoFactorEmail::dispatch(auth()->user())->onQueue('pulse');
+                // Send 2FA email if enabled
+                if (Permissions::hasPermission('email_2fa_enabled')) {
+                    SendTwoFactorEmail::dispatch(auth()->user())->onQueue('pulse');
+                }
             }
         }
 
+        // Use intended() - middleware will preserve the original intended URL
         if(Permissions::hasPermission('pulse_view_rota')){
-            return redirect()->intended('/rota'); // '/' is your fallback
+            return redirect()->intended('/rota');
         } else {
-            return redirect()->intended('/'); // '/' is your fallback
+            return redirect()->intended('/');
         }
     }
 }

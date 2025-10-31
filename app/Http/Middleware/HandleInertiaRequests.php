@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
                 ? $request->user()->only('id', 'name', 'profile_photo')
                 : null,
             'employee' => fn () => $request->user()
-                ? Employee::where('user_id', $request->user()->id)->first()->only('complete', 'hr_id', 'profile_photo', 'job_title')
+                ? optional(Employee::where('user_id', $request->user()->id)->first())->only('complete', 'hr_id', 'profile_photo', 'job_title')
                 : null,
             'permissions' => fn () => $request->user()
                 ? $request->user()->assignedPermissions()->pluck('right')

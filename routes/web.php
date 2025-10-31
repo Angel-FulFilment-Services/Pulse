@@ -94,8 +94,6 @@ Route::get('/wallboard', [DashboardController::class, 'wallboard'])->name('wallb
 |-----------------------
 */
 
-// Route::get('', [RotaController::class, 'index'])->name('rota');
-// Route::get('/', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/administration', [RotaController::class, 'index'])->name('rota');
 Route::get('/rota/shifts', [RotaController::class, 'shifts'])->withoutMiddleware('log.access');

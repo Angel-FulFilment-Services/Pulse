@@ -38,9 +38,6 @@ export default function TwoFactorAuthForm() {
 
     post('/verify', {
       preserveScroll: true,
-      onSuccess: () => {
-        router.visit('/'); // Redirect on success
-      },
       onError: (e) => {
         toast.error(e.error, {
           position: 'top-right',

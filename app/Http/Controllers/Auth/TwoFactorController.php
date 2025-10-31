@@ -41,12 +41,13 @@ class TwoFactorController extends Controller
         if ($passcode !== $user->pulse_two_factor_code) {
             return back()->withErrors(['error' => "The passcode you entered doesn't match our records"])->withInput();
         }
+        
         $user->reset_two_factor_code();
-
+        
         if(Permissions::hasPermission('pulse_view_rota')){
-            return redirect()->intended('/rota'); // '/' is your fallback
+            return redirect()->intended('/rota');
         } else {
-            return redirect()->intended('/'); // '/' is your fallback
+            return redirect()->intended('/');
         }
     }
 

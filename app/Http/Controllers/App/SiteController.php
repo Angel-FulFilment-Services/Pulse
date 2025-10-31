@@ -16,7 +16,7 @@ class SiteController extends Controller
 {
     // Block logged out users from using dashboard
     public function __construct(){
-        $this->middleware(['guest']);
+        $this->middleware(['guest'])->except('widget');
         //$this->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
         $this->middleware(['log.access']);
     }
