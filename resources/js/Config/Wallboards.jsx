@@ -12,6 +12,16 @@
  * - 'grid-3x3': Nine tiles in a 3x3 grid
  * - 'triple-column': Three equal columns
  * - 'main-sidebar': Large main area (70%) with sidebar (30%)
+ * - 'slideshow': Cycles through sources automatically
+ * 
+ * For slideshow layout:
+ * - Add slideInterval: number (in seconds) at wallboard level for global default
+ * - Add slideInterval: number (in seconds) on individual sources to override global default
+ * - Global default is 10 seconds if not specified
+ * 
+ * Permissions:
+ * - Add permission: 'permission_name' to restrict access to a wallboard
+ * - If no permission is specified, wallboard is accessible to all users
  */
 
 export const wallboards = {
@@ -52,6 +62,42 @@ export const wallboards = {
             }
         ]
     },
+
+    // Example: Slideshow with 15 second intervals
+    "dashboard-slideshow": {
+        name: 'IT Dashboard Slideshow',
+        layout: 'slideshow',
+        layout_name: 'Slideshow',
+        permission: 'pulse_view_administration', // Restrict to users with this permission
+        slideInterval: 10, // Global default time in seconds for each slide
+        sources: [
+            {
+                source: 'https://prtg.angelfs.co.uk:8443/public/mapshow.htm?id=2969&mapid=F075D4E9-D782-4F61-8078-0AE653A26CC5',
+                title: 'Server Room Monitoring',
+                slideInterval: 10
+            },
+            {
+                source: 'https://prtg.angelfs.co.uk:8443/public/mapshow.htm?id=3036&mapid=67B553D2-596F-4412-A03D-103E25E9FB50',
+                title: 'Network Overview',
+                slideInterval: 10
+            },
+            {
+                source: 'https://prtg.angelfs.co.uk:8443/public/mapshow.htm?id=3131&mapid=BC9293FC-2B55-4FA7-9655-81B194F6F2B4',
+                title: 'PBX Overview',
+                slideInterval: 10 // Override: show this slide for 10 seconds
+            },
+            {
+                source: 'https://wings.angelfs.co.uk/call-centre/wallboard',
+                title: 'Call Centre Wallboard',
+                slideInterval: 10 // Uses global default of 10 seconds
+            },
+            {
+                source: 'https://angelfs.atlassian.net/jira/dashboards/wallboard?dashboardId=10003',
+                title: 'Jira Wallboard',
+                slideInterval: 10 // Override: show this slide for 20 seconds
+            }
+        ]
+    },
 };
 
 // Get list of all available wallboards for selection
@@ -60,7 +106,8 @@ export const getWallboardList = () => {
         id: key,
         name: wallboards[key].name,
         layout: wallboards[key].layout,
-        layout_name: wallboards[key].layout_name
+        layout_name: wallboards[key].layout_name,
+        permission: wallboards[key].permission
     }));
 };
 

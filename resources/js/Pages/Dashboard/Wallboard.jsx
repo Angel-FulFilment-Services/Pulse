@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getWallboardList, getWallboard } from '../../Config/Wallboards';
-import { XMarkIcon } from '@heroicons/react/24/solid';
+import { PauseIcon, PlayIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { hasPermission } from '../../Utils/Permissions.jsx';
 
 /**
  * IFrame Component - Reusable iframe wrapper
@@ -160,10 +161,70 @@ const LayoutMainSidebar = ({ sources }) => {
     );
 };
 
+// Slideshow - cycles through sources with configurable timing
+const LayoutSlideshow = ({ sources, slideInterval = 10 }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    
+    useEffect(() => {
+        if (sources.length <= 1 || isPaused) return;
+        
+        // Use the current source's slideInterval if specified, otherwise use global default
+        const currentSource = sources[currentIndex];
+        const interval = currentSource?.slideInterval || slideInterval;
+        
+        const timer = setInterval(() => {
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % sources.length);
+        }, interval * 1000);
+        
+        return () => clearInterval(timer);
+    }, [sources, currentIndex, slideInterval, isPaused]);
+    
+    return (
+        <div className="w-full h-full relative">
+            {/* Render all iframes but only show the current one */}
+            {sources.map((source, index) => (
+                <div 
+                    key={index}
+                    className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
+                        index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
+                >
+                    <IFrame source={source?.source} title={source?.title} />
+                </div>
+            ))}
+            
+            {/* Slide indicator */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 z-20">
+                {sources.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentIndex(index)}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                            index === currentIndex 
+                                ? 'bg-theme-500 w-8' 
+                                : 'bg-gray-400/45 dark:bg-dark-500/70'
+                        }`}
+                    />
+                ))}
+                {isPaused ? (
+                    <button onClick={() => setIsPaused(false)}>
+                        <PlayIcon className="w-6 h-6 text-gray-400/45 hover:text-theme-500 cursor-pointer transition-colors" />
+                    </button>
+                ) : (
+                    <button onClick={() => setIsPaused(true)}>
+                        <PauseIcon className="w-6 h-6 text-gray-400/45 hover:text-theme-500 cursor-pointer transition-colors" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
 /**
  * Layout Renderer - Selects the appropriate layout component
  */
-const LayoutRenderer = ({ layout, sources }) => {
+const LayoutRenderer = ({ layout, sources, slideInterval }) => {
     // Process sources to auto-assign tiles
     const processedSources = [...sources];
     let nextAvailableTile = 1;
@@ -189,10 +250,11 @@ const LayoutRenderer = ({ layout, sources }) => {
         'grid-3x3': LayoutGrid3x3,
         'triple-column': LayoutTripleColumn,
         'main-sidebar': LayoutMainSidebar,
+        'slideshow': LayoutSlideshow,
     };
     
     const LayoutComponent = layoutMap[layout] || LayoutSingle;
-    return <LayoutComponent sources={processedSources} />;
+    return <LayoutComponent sources={processedSources} slideInterval={slideInterval} />;
 };
 
 /**
@@ -200,6 +262,11 @@ const LayoutRenderer = ({ layout, sources }) => {
  */
 const WallboardSelector = ({ onSelect }) => {
     const wallboards = getWallboardList();
+    
+    // Filter wallboards based on permissions
+    const accessibleWallboards = wallboards.filter(wallboard => 
+        !wallboard.permission || hasPermission(wallboard.permission)
+    );
     
     return (
         <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-dark-900">
@@ -209,7 +276,7 @@ const WallboardSelector = ({ onSelect }) => {
                 </h1>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                    {wallboards.map((wallboard) => (
+                    {accessibleWallboards.map((wallboard) => (
                         <button
                             key={wallboard.id}
                             onClick={() => onSelect(wallboard.id)}
@@ -292,7 +359,11 @@ const Wallboard = () => {
             </div>
             
             {/* Render the layout */}
-            <LayoutRenderer layout={config.layout} sources={config.sources} />
+            <LayoutRenderer 
+                layout={config.layout} 
+                sources={config.sources} 
+                slideInterval={config.slideInterval}
+            />
         </div>
     );
 };
