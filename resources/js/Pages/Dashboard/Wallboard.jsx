@@ -41,14 +41,22 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
     const width = pip.width || 'w-96';
     const height = pip.height || 'h-56';
     const opacity = pip.opacity || 'opacity-75';
+    const scale = pip.scale || 1;
     
     return (
         <div 
             className={`fixed ${position} ${width} ${height} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm`}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
         >
-            <div className={`w-full h-full ${opacity}`}>
-                <IFrame source={pip.source} title={pip.title} refreshKey={refreshKey} />
+            <div className={`${opacity} overflow-hidden`} style={{ width: '100%', height: '100%' }}>
+                <div style={{ 
+                    width: `${100 / scale}%`, 
+                    height: `${100 / scale}%`, 
+                    transform: `scale(${scale})`, 
+                    transformOrigin: 'top left' 
+                }}>
+                    <IFrame source={pip?.source} title={pip?.title} refreshKey={refreshKey} />
+                </div>
             </div>
         </div>
     );

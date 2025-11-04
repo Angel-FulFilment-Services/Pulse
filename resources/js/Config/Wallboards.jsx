@@ -31,7 +31,9 @@
  *                 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'
  * - pip.width: Tailwind width class (default: 'w-96')
  * - pip.height: Tailwind height class (default: 'h-64')
- * - pip.opacity: Background opacity class (default: 'bg-opacity-90')
+ * - pip.opacity: Background opacity class (default: 'opacity-75')
+ * - pip.scale: Scale factor for the content (default: 0.5 = 50%)
+ *              Use 0.3 for zoomed out view, 0.7 for closer view
  */
 
 export const wallboards = {
@@ -110,8 +112,11 @@ export const wallboards = {
         pip: {
             source: 'http://192.168.3.209:8080/?action=stream',
             title: 'Widget Name',
-            position: 'top-right',  // See positions below
-            opacity: 'opacity-75'   // Background opacity (0-100)
+            position: 'bottom-right',  // See positions below
+            opacity: 'opacity-75',   // Background opacity (0-100)
+            width: 'w-[20rem]',
+            height: 'h-[15rem]',
+            scale: 0.5
         }
     },
 };
