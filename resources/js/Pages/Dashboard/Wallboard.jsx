@@ -6,9 +6,10 @@ import { hasPermission } from '../../Utils/Permissions.jsx';
 /**
  * IFrame Component - Reusable iframe wrapper
  */
-const IFrame = ({ source, title }) => {
+const IFrame = ({ source, title, refreshKey }) => {
     return (
         <iframe 
+            key={refreshKey}
             src={source}
             className="w-full h-full border-0"
             title={title || 'Display'}
@@ -17,72 +18,109 @@ const IFrame = ({ source, title }) => {
 };
 
 /**
+ * Picture-in-Picture Overlay Component
+ * Displays a semi-transparent overlay on top of any layout
+ */
+const PictureInPictureOverlay = ({ pip, refreshKey }) => {
+    if (!pip || !pip.source) return null;
+    
+    // Position mapping
+    const positionClasses = {
+        'top-left': 'top-4 left-4',
+        'top-center': 'top-4 left-1/2 -translate-x-1/2',
+        'top-right': 'top-4 right-4',
+        'center-left': 'top-1/2 left-4 -translate-y-1/2',
+        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        'center-right': 'top-1/2 right-4 -translate-y-1/2',
+        'bottom-left': 'bottom-4 left-4',
+        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+        'bottom-right': 'bottom-4 right-4',
+    };
+    
+    const position = positionClasses[pip.position] || positionClasses['bottom-right'];
+    const width = pip.width || 'w-96';
+    const height = pip.height || 'h-56';
+    const opacity = pip.opacity || 'opacity-75';
+    
+    return (
+        <div 
+            className={`fixed ${position} ${width} ${height} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm`}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
+        >
+            <div className={`w-full h-full ${opacity}`}>
+                <IFrame source={pip.source} title={pip.title} refreshKey={refreshKey} />
+            </div>
+        </div>
+    );
+};
+
+/**
  * Layout Components
  */
 
 // Single full-screen tile
-const LayoutSingle = ({ sources }) => {
+const LayoutSingle = ({ sources, refreshKey }) => {
     const source = sources[0];
     return (
         <div className="w-full h-full">
-            <IFrame source={source?.source} title={source?.title} />
+            <IFrame source={source?.source} title={source?.title} refreshKey={refreshKey} />
         </div>
     );
 };
 
 // 65% / 35% vertical split
-const LayoutSplitVertical6535 = ({ sources }) => {
+const LayoutSplitVertical6535 = ({ sources, refreshKey }) => {
     const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
     const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
     
     return (
         <div className="flex h-full w-full">
             <div className="w-[65%] h-full">
-                <IFrame source={tile1?.source} title={tile1?.title} />
+                <IFrame source={tile1?.source} title={tile1?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-[35%] h-full">
-                <IFrame source={tile2?.source} title={tile2?.title} />
+                <IFrame source={tile2?.source} title={tile2?.title} refreshKey={refreshKey} />
             </div>
         </div>
     );
 };
 
 // 50% / 50% vertical split
-const LayoutSplitVertical5050 = ({ sources }) => {
+const LayoutSplitVertical5050 = ({ sources, refreshKey }) => {
     const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
     const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
     
     return (
         <div className="flex h-full w-full">
             <div className="w-1/2 h-full">
-                <IFrame source={tile1?.source} title={tile1?.title} />
+                <IFrame source={tile1?.source} title={tile1?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-1/2 h-full">
-                <IFrame source={tile2?.source} title={tile2?.title} />
+                <IFrame source={tile2?.source} title={tile2?.title} refreshKey={refreshKey} />
             </div>
         </div>
     );
 };
 
 // 50% / 50% horizontal split
-const LayoutSplitHorizontal5050 = ({ sources }) => {
+const LayoutSplitHorizontal5050 = ({ sources, refreshKey }) => {
     const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
     const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
     
     return (
         <div className="flex flex-col h-full w-full">
             <div className="w-full h-1/2">
-                <IFrame source={tile1?.source} title={tile1?.title} />
+                <IFrame source={tile1?.source} title={tile1?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-full h-1/2">
-                <IFrame source={tile2?.source} title={tile2?.title} />
+                <IFrame source={tile2?.source} title={tile2?.title} refreshKey={refreshKey} />
             </div>
         </div>
     );
 };
 
 // 2x2 Grid
-const LayoutGrid2x2 = ({ sources }) => {
+const LayoutGrid2x2 = ({ sources, refreshKey }) => {
     // Fill tiles in order, respecting tile_id if specified
     const tiles = [1, 2, 3, 4].map(tileNum => {
         // First check if there's a source with this specific tile_id
@@ -97,7 +135,7 @@ const LayoutGrid2x2 = ({ sources }) => {
         <div className="grid grid-cols-2 grid-rows-2 h-full w-full gap-0">
             {tiles.map((tile, index) => (
                 <div key={index} className="w-full h-full">
-                    {tile && <IFrame source={tile.source} title={tile.title} />}
+                    {tile && <IFrame source={tile.source} title={tile.title} refreshKey={refreshKey} />}
                 </div>
             ))}
         </div>
@@ -105,7 +143,7 @@ const LayoutGrid2x2 = ({ sources }) => {
 };
 
 // 3x3 Grid
-const LayoutGrid3x3 = ({ sources }) => {
+const LayoutGrid3x3 = ({ sources, refreshKey }) => {
     const tiles = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(tileNum => {
         const assignedSource = sources.find(s => s.tile_id === tileNum);
         if (assignedSource) return assignedSource;
@@ -116,7 +154,7 @@ const LayoutGrid3x3 = ({ sources }) => {
         <div className="grid grid-cols-3 grid-rows-3 h-full w-full gap-0">
             {tiles.map((tile, index) => (
                 <div key={index} className="w-full h-full">
-                    {tile && <IFrame source={tile.source} title={tile.title} />}
+                    {tile && <IFrame source={tile.source} title={tile.title} refreshKey={refreshKey} />}
                 </div>
             ))}
         </div>
@@ -124,7 +162,7 @@ const LayoutGrid3x3 = ({ sources }) => {
 };
 
 // Triple column layout
-const LayoutTripleColumn = ({ sources }) => {
+const LayoutTripleColumn = ({ sources, refreshKey }) => {
     const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
     const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
     const tile3 = sources.find(s => s.tile_id === 3) || sources[2];
@@ -132,37 +170,37 @@ const LayoutTripleColumn = ({ sources }) => {
     return (
         <div className="flex h-full w-full">
             <div className="w-1/3 h-full">
-                <IFrame source={tile1?.source} title={tile1?.title} />
+                <IFrame source={tile1?.source} title={tile1?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-1/3 h-full">
-                <IFrame source={tile2?.source} title={tile2?.title} />
+                <IFrame source={tile2?.source} title={tile2?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-1/3 h-full">
-                <IFrame source={tile3?.source} title={tile3?.title} />
+                <IFrame source={tile3?.source} title={tile3?.title} refreshKey={refreshKey} />
             </div>
         </div>
     );
 };
 
 // Main area with sidebar (70% / 30%)
-const LayoutMainSidebar = ({ sources }) => {
+const LayoutMainSidebar = ({ sources, refreshKey }) => {
     const tile1 = sources.find(s => s.tile_id === 1) || sources[0];
     const tile2 = sources.find(s => s.tile_id === 2) || sources[1];
     
     return (
         <div className="flex h-full w-full">
             <div className="w-[70%] h-full">
-                <IFrame source={tile1?.source} title={tile1?.title} />
+                <IFrame source={tile1?.source} title={tile1?.title} refreshKey={refreshKey} />
             </div>
             <div className="w-[30%] h-full">
-                <IFrame source={tile2?.source} title={tile2?.title} />
+                <IFrame source={tile2?.source} title={tile2?.title} refreshKey={refreshKey} />
             </div>
         </div>
     );
 };
 
 // Slideshow - cycles through sources with configurable timing
-const LayoutSlideshow = ({ sources, slideInterval = 10 }) => {
+const LayoutSlideshow = ({ sources, slideInterval = 10, refreshKey }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     
@@ -190,7 +228,7 @@ const LayoutSlideshow = ({ sources, slideInterval = 10 }) => {
                         index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
                 >
-                    <IFrame source={source?.source} title={source?.title} />
+                    <IFrame source={source?.source} title={source?.title} refreshKey={refreshKey} />
                 </div>
             ))}
             
@@ -224,7 +262,7 @@ const LayoutSlideshow = ({ sources, slideInterval = 10 }) => {
 /**
  * Layout Renderer - Selects the appropriate layout component
  */
-const LayoutRenderer = ({ layout, sources, slideInterval }) => {
+const LayoutRenderer = ({ layout, sources, slideInterval, refreshKey, pip }) => {
     // Process sources to auto-assign tiles
     const processedSources = [...sources];
     let nextAvailableTile = 1;
@@ -254,7 +292,13 @@ const LayoutRenderer = ({ layout, sources, slideInterval }) => {
     };
     
     const LayoutComponent = layoutMap[layout] || LayoutSingle;
-    return <LayoutComponent sources={processedSources} slideInterval={slideInterval} />;
+    
+    return (
+        <>
+            <LayoutComponent sources={processedSources} slideInterval={slideInterval} refreshKey={refreshKey} />
+            <PictureInPictureOverlay pip={pip} refreshKey={refreshKey} />
+        </>
+    );
 };
 
 /**
@@ -308,6 +352,7 @@ const WallboardSelector = ({ onSelect }) => {
 const Wallboard = () => {
     const [selectedWallboard, setSelectedWallboard] = useState(null);
     const [config, setConfig] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(Date.now());
     
     useEffect(() => {
         // Check if there's a wallboard ID in the URL
@@ -317,6 +362,26 @@ const Wallboard = () => {
         if (wallboardId) {
             handleWallboardSelect(wallboardId);
         }
+    }, []);
+    
+    // Setup daily refresh at midnight
+    useEffect(() => {
+        const scheduleNextRefresh = () => {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setHours(24, 0, 0, 0); // Next midnight
+            
+            const msUntilMidnight = tomorrow - now;
+            
+            return setTimeout(() => {
+                setRefreshKey(Date.now()); // Trigger iframe refresh
+                scheduleNextRefresh(); // Schedule next day's refresh
+            }, msUntilMidnight);
+        };
+        
+        const timeoutId = scheduleNextRefresh();
+        
+        return () => clearTimeout(timeoutId);
     }, []);
     
     const handleWallboardSelect = (wallboardId) => {
@@ -363,6 +428,8 @@ const Wallboard = () => {
                 layout={config.layout} 
                 sources={config.sources} 
                 slideInterval={config.slideInterval}
+                refreshKey={refreshKey}
+                pip={config.pip}
             />
         </div>
     );

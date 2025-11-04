@@ -22,6 +22,16 @@
  * Permissions:
  * - Add permission: 'permission_name' to restrict access to a wallboard
  * - If no permission is specified, wallboard is accessible to all users
+ * 
+ * Picture-in-Picture (PiP):
+ * - Add pip: {} object to overlay a semi-transparent window on any layout
+ * - pip.source: URL of the content to display
+ * - pip.title: Title for the iframe
+ * - pip.position: 'top-left', 'top-center', 'top-right', 'center-left', 'center', 
+ *                 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'
+ * - pip.width: Tailwind width class (default: 'w-96')
+ * - pip.height: Tailwind height class (default: 'h-64')
+ * - pip.opacity: Background opacity class (default: 'bg-opacity-90')
  */
 
 export const wallboards = {
@@ -32,7 +42,7 @@ export const wallboards = {
         layout_name: '65/35 Vertical Split',
         sources: [
             {
-                source: 'https://wings.angelfs.co.uk',
+                source: 'https://wings.angelfs.co.uk/dashboard/group/management',
                 tile_id: 1,
                 title: 'Wings Dashboard'
             },
@@ -51,7 +61,7 @@ export const wallboards = {
         layout_name: '50/50 Vertical Split',
         sources: [
             {
-                source: 'https://wings.angelfs.co.uk',
+                source: 'https://wings.angelfs.co.uk/dashboard/group/call-centre',
                 tile_id: 1,
                 title: 'Wings Dashboard'
             },
@@ -60,7 +70,7 @@ export const wallboards = {
                 tile_id: 2,
                 title: 'Call Centre Wallboard'
             }
-        ]
+        ],
     },
 
     // Example: Slideshow with 15 second intervals
@@ -96,7 +106,13 @@ export const wallboards = {
                 title: 'Jira Wallboard',
                 slideInterval: 10 // Override: show this slide for 20 seconds
             }
-        ]
+        ],
+        pip: {
+            source: 'http://192.168.3.209:8080/?action=stream',
+            title: 'Widget Name',
+            position: 'top-right',  // See positions below
+            opacity: 'opacity-75'   // Background opacity (0-100)
+        }
     },
 };
 
