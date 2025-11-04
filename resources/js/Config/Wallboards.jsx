@@ -110,10 +110,10 @@ export const wallboards = {
             }
         ],
         pip: {
-            source: 'http://192.168.3.209:8080/?action=stream',
-            title: 'Widget Name',
-            position: 'bottom-right',  // See positions below
-            opacity: 'opacity-75',   // Background opacity (0-100)
+            source: '/proxy/cameras/3d-printer', // Proxied through Laravel to convert HTTP to HTTPS
+            title: 'Camera Feed',
+            position: 'bottom-right',
+            opacity: 'opacity-75',
             width: 'w-[20rem]',
             height: 'h-[15rem]',
             scale: 0.5

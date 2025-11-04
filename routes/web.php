@@ -20,6 +20,7 @@ use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\AdministrationController;
+use App\Http\Controllers\App\ProxyController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -76,6 +77,14 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 Route::get('/verify', [TwoFactorController::class, 'index'])->name('verify');
 Route::get('/verify/resend', [TwoFactorController::class, 'resend'])->name('resend');
 Route::post('/verify', [TwoFactorController::class, 'verify']);
+
+/*
+|-----------------------
+| Proxy (Camera Streams, etc)
+|-----------------------
+*/
+
+Route::get('/proxy/cameras/3d-printer', [ProxyController::class, 'cameraStream'])->name('proxy.camera');
 
 /*
 |-----------------------
@@ -223,6 +232,8 @@ Route::post('/asset-management/assets/mark', [AssetController::class, 'markAsset
 Route::post('/asset-management/kits/mark', [AssetController::class, 'markKit']);
 Route::get('/asset-management/kits/load', [AssetController::class, 'loadKit']);
 Route::post('/asset-management/kits/assign', [AssetController::class, 'assignKit']);
+Route::post('/asset-management/assets/batch-import/preview', [AssetController::class, 'batchImportPreview']);
+Route::post('/asset-management/assets/batch-import', [AssetController::class, 'batchImport']);
 Route::post('/asset-management/kits/unassign', [AssetController::class, 'unassignKit']);
 Route::post('/asset-management/kits/item/remove', [AssetController::class, 'removeKitItem']);
 Route::post('/asset-management/kits/item/add', [AssetController::class, 'addKitItem']);
