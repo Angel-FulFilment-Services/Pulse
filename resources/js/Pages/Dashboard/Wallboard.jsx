@@ -70,17 +70,18 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
     const PositionIcon = positionIcons[pip.position] || ChevronDoubleUpIcon;
     const positionIcon = positionIconClasses[pip.position] || positionIconClasses['bottom-right'];
     const opacity = pip.opacity || 'opacity-75';
-    const scale = pip.scale || 1;
     
     // Size configurations
     const sizeConfigs = {
         small: {
             width: pip.sizes.small.width || 'w-96',
             height: pip.sizes.small.height || 'h-56',
+            scale: pip.sizes.small.scale || 0.5,
         },
         medium: {
             width: pip.sizes.medium.width || 'w-[50vw]',
             height: pip.sizes.medium.height || 'h-[50vh]',
+            scale: pip.sizes.medium.scale || 1,
         },
         fullscreen: {
             width: pip.sizes.fullscreen.width || 'w-screen',
@@ -129,9 +130,9 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
             
             <div className={`${opacity} overflow-hidden`} style={{ width: '100%', height: '100%' }}>
                 <div style={{ 
-                    width: `${100 / scale}%`, 
-                    height: `${100 / scale}%`, 
-                    transform: `scale(${scale})`, 
+                    width: `${100 / sizeConfigs[size].scale}%`, 
+                    height: `${100 / sizeConfigs[size].scale}%`, 
+                    transform: `scale(${sizeConfigs[size].scale})`, 
                     transformOrigin: 'top left' 
                 }}>
                     <IFrame source={pip?.source} title={pip?.title} refreshKey={refreshKey} />

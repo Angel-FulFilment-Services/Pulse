@@ -121,15 +121,17 @@ export const wallboards = {
             source: '/proxy/cameras/3d-printer', // Proxied through Laravel to convert HTTP to HTTPS
             title: 'Camera Feed',
             position: 'bottom-right',
-            opacity: 'opacity-75',
+            opacity: 'opacity-85',
             sizes: {
                 small: {
                     width: 'w-[20rem]',
                     height: 'h-[15rem]',
+                    scale: 0.5,
                 },
                 medium: {
                     width: 'w-[40rem]',
                     height: 'h-[30rem]',
+                    scale: 1,
                 },
                 fullscreen: {
                     width: 'w-screen',
