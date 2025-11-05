@@ -15,8 +15,8 @@ class AdministrationController extends Controller
 {
     // Block logged out users from using dashboard
     public function __construct(){
-        $this->middleware(['auth', 'twofactor'])->except('totalCPASignUps');
-        $this->middleware(['has.permission:pulse_view_administration'])->except('totalCPASignUps');
+        $this->middleware(['auth', 'twofactor']);
+        $this->middleware(['has.permission:pulse_view_administration']);
         $this->middleware(['log.access']);
     }
 

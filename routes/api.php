@@ -67,7 +67,12 @@ Route::get('/system/clients', [SystemController::class, 'clients'])
 ->middleware('auth:api');
 
 
-Route::get('/system/total-cpa-sign-ups', [AdministrationController::class, 'totalCPASignUps']);
+Route::get('/system/total-cpa-sign-ups', [AdministrationController::class, 'totalCPASignUps'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:250,1')
+->withoutMiddleware('auth')
+->withoutMiddleware('twofactor')
+->withoutMiddleware('has.permission:pulse_view_administration');
 
 /*
 |-----------------------
