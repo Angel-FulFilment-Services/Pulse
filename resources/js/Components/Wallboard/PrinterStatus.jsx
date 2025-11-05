@@ -1,42 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function PrinterStatus() {
     const [printerData, setPrinterData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [cameraError, setCameraError] = useState(false);
+    const [cameraKey, setCameraKey] = useState(0);
+    
+    const eventSourceRef = useRef(null);
+    const reconnectTimeoutRef = useRef(null);
+    const cameraRetryTimeoutRef = useRef(null);
+    const isMountedRef = useRef(true);
 
+    // EventSource connection with auto-reconnect
     useEffect(() => {
-        // Use EventSource for Server-Sent Events (doesn't block browser connections)
-        const eventSource = new EventSource('/proxy/3d-printer/status-stream');
+        isMountedRef.current = true;
 
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                
-                if (data.error) {
-                    setError(data.error);
-                } else {
-                    setPrinterData(data);
-                    setError(null);
+        const connectEventSource = () => {
+            if (!isMountedRef.current) return;
+
+            console.log('Connecting to printer status stream...');
+            const eventSource = new EventSource('/proxy/3d-printer/status-stream');
+            eventSourceRef.current = eventSource;
+
+            eventSource.onopen = () => {
+                console.log('Printer status stream connected');
+                setError(null);
+            };
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.error) {
+                        setError(data.error);
+                    } else {
+                        setPrinterData(data);
+                        setError(null);
+                    }
+                    setLoading(false);
+                } catch (err) {
+                    console.error('Failed to parse printer status:', err);
+                    setError('Failed to parse printer status');
+                    setLoading(false);
                 }
+            };
+
+            eventSource.onerror = (err) => {
+                console.error('EventSource error:', err);
+                setError('Connection to printer lost');
                 setLoading(false);
-            } catch (err) {
-                setError('Failed to parse printer status');
-                setLoading(false);
-            }
+                
+                // Close the failed connection
+                eventSource.close();
+                
+                // Attempt to reconnect after 5 seconds
+                if (isMountedRef.current) {
+                    console.log('Attempting to reconnect in 5 seconds...');
+                    reconnectTimeoutRef.current = setTimeout(() => {
+                        connectEventSource();
+                    }, 5000);
+                }
+            };
         };
 
-        eventSource.onerror = (err) => {
-            console.error('EventSource error:', err);
-            setError('Connection to printer lost');
-            setLoading(false);
-        };
+        connectEventSource();
 
         // Cleanup on unmount
         return () => {
-            eventSource.close();
+            isMountedRef.current = false;
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (cameraRetryTimeoutRef.current) {
+                clearTimeout(cameraRetryTimeoutRef.current);
+            }
         };
     }, []);
+
+    // Handle camera stream errors with retry logic
+    const handleCameraError = () => {
+        console.error('Camera stream error - attempting to reload...');
+        setCameraError(true);
+        
+        // Retry after 3 seconds by forcing a reload with a new key
+        if (isMountedRef.current) {
+            cameraRetryTimeoutRef.current = setTimeout(() => {
+                console.log('Retrying camera connection...');
+                setCameraKey(prev => prev + 1);
+                setCameraError(false);
+            }, 3000);
+        }
+    };
+
+    const handleCameraLoad = () => {
+        console.log('Camera stream started');
+        setCameraError(false);
+    };
 
     if (loading) {
         return (
@@ -52,9 +115,32 @@ export default function PrinterStatus() {
     if (error) {
         return (
             <div className="relative w-full h-full">
+                {/* Keep showing camera even if printer status is lost */}
+                <img 
+                    key={cameraKey}
+                    src={`/proxy/3d-printer/camera?t=${cameraKey}`}
+                    className="w-full h-full object-cover border-0"
+                    alt="3D Printer Camera"
+                    onLoad={handleCameraLoad}
+                    onError={handleCameraError}
+                />
+                
+                {/* Camera error indicator */}
+                {cameraError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                            <p className="text-white text-sm">Reconnecting camera...</p>
+                        </div>
+                    </div>
+                )}
+                
                 {/* Error overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 border-t-2 border-red-800 p-4">
-                    <p className="text-white text-center text-sm">{error}</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <p className="text-white text-center text-sm">{error} - Reconnecting...</p>
+                    </div>
                 </div>
             </div>
         );
@@ -69,12 +155,23 @@ export default function PrinterStatus() {
         <div className="relative w-full h-full flex justify-center items-center">
             {/* Camera feed in background - Using img tag for MJPEG stream */}
             <img 
-                src="/proxy/3d-printer/camera"
+                key={cameraKey}
+                src={`/proxy/3d-printer/camera?t=${cameraKey}`}
                 className="w-full h-full object-cover border-0"
                 alt="3D Printer Camera"
-                onLoad={() => console.log('Camera stream started')}
-                onError={(e) => console.error('Camera stream error:', e)}
+                onLoad={handleCameraLoad}
+                onError={handleCameraError}
             />
+            
+            {/* Camera error indicator */}
+            {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                        <p className="text-white text-sm">Reconnecting camera...</p>
+                    </div>
+                </div>
+            )}
             
             {/* Status overlay at bottom */}
             <div className="absolute bottom-0 left-0 right-0 bg-white backdrop-blur-sm text-gray-900 p-4 space-y-4">
