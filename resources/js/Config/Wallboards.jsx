@@ -41,6 +41,8 @@
  *              Use 0.3 for zoomed out view, 0.7 for closer view
  */
 
+import { scale } from "framer-motion";
+
 export const wallboards = {
     // Default wallboard configuration
     "management-&-access-control": {
@@ -118,19 +120,20 @@ export const wallboards = {
             }
         ],
         pip: {
-            source: '/proxy/cameras/3d-printer', // Proxied through Laravel to convert HTTP to HTTPS
+            source: '/proxy/3d-printer/camera', // Proxied through Laravel to convert HTTP to HTTPS
             title: 'Camera Feed',
+            component: '3d-Printer',
             position: 'bottom-right',
             opacity: 'opacity-85',
             sizes: {
                 small: {
                     width: 'w-[20rem]',
-                    height: 'h-[15rem]',
+                    height: 'h-[18.5rem]',
                     scale: 0.5,
                 },
                 medium: {
                     width: 'w-[40rem]',
-                    height: 'h-[30rem]',
+                    height: 'h-[37rem]',
                     scale: 1,
                 },
                 fullscreen: {

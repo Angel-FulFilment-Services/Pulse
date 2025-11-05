@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getWallboardList, getWallboard } from '../../Config/Wallboards';
 import { PauseIcon, PlayIcon, XMarkIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ArrowsPointingOutIcon, ArrowUpLeftIcon, ArrowUpIcon, ArrowUpRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowDownLeftIcon, ArrowDownIcon, ArrowDownRightIcon } from '@heroicons/react/24/solid';
 import { hasPermission } from '../../Utils/Permissions.jsx';
+import PrinterStatus from '../../Components/Wallboard/PrinterStatus';
 
 /**
  * IFrame Component - Reusable iframe wrapper
@@ -86,6 +87,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         fullscreen: {
             width: pip.sizes.fullscreen.width || 'w-screen',
             height: pip.sizes.fullscreen.height || 'h-screen',
+            scale: pip.sizes.fullscreen.scale || 1.6,
         },
     };
     
@@ -135,7 +137,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
                     transform: `scale(${sizeConfigs[size].scale})`, 
                     transformOrigin: 'top left' 
                 }}>
-                    <IFrame source={pip?.source} title={pip?.title} refreshKey={refreshKey} />
+                    <PrinterStatus />
                 </div>
             </div>
         </div>

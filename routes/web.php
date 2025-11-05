@@ -84,7 +84,9 @@ Route::post('/verify', [TwoFactorController::class, 'verify']);
 |-----------------------
 */
 
-Route::get('/proxy/cameras/3d-printer', [ProxyController::class, 'cameraStream'])->name('proxy.camera');
+Route::get('/proxy/3d-printer/camera', [ProxyController::class, 'cameraStream'])->name('proxy.camera');
+Route::get('/proxy/3d-printer/status', [ProxyController::class, 'printerStatus'])->name('proxy.printer.status');
+Route::get('/proxy/3d-printer/status-stream', [ProxyController::class, 'printerStatusStream'])->name('proxy.printer.status.stream');
 
 /*
 |-----------------------
