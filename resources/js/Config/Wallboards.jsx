@@ -19,6 +19,11 @@
  * - Add slideInterval: number (in seconds) on individual sources to override global default
  * - Global default is 10 seconds if not specified
  * 
+ * Refresh Options:
+ * - All wallboards refresh at midnight automatically (start of day)
+ * - Add refreshInterval: number (in seconds) for periodic refresh
+ *   Example: refreshInterval: 300 = refresh every 5 minutes
+ * 
  * Permissions:
  * - Add permission: 'permission_name' to restrict access to a wallboard
  * - If no permission is specified, wallboard is accessible to all users
@@ -42,6 +47,7 @@ export const wallboards = {
         name: 'Management & Access Control',
         layout: 'split-vertical-65-35',
         layout_name: '65/35 Vertical Split',
+        refreshInterval: 3600, // Refresh every 1 hour
         sources: [
             {
                 source: 'https://wings.angelfs.co.uk/dashboard/group/management',
@@ -61,6 +67,7 @@ export const wallboards = {
         name: 'Call Centre Wallboard',
         layout: 'split-vertical-50-50',
         layout_name: '50/50 Vertical Split',
+        refreshInterval: 3600, // Refresh every 1 hour
         sources: [
             {
                 source: 'https://wings.angelfs.co.uk/dashboard/group/call-centre',
@@ -76,10 +83,11 @@ export const wallboards = {
     },
 
     // Example: Slideshow with 15 second intervals
-    "dashboard-slideshow": {
+    "it-dashboard": {
         name: 'IT Dashboard Slideshow',
         layout: 'slideshow',
         layout_name: 'Slideshow',
+        refreshInterval: 3600, // Refresh every 1 hour
         permission: 'pulse_view_administration', // Restrict to users with this permission
         slideInterval: 10, // Global default time in seconds for each slide
         sources: [
@@ -114,9 +122,20 @@ export const wallboards = {
             title: 'Camera Feed',
             position: 'bottom-right',
             opacity: 'opacity-75',
-            width: 'w-[20rem]',
-            height: 'h-[15rem]',
-            scale: 0.5
+            sizes: {
+                small: {
+                    width: 'w-[20rem]',
+                    height: 'h-[15rem]',
+                },
+                medium: {
+                    width: 'w-[40rem]',
+                    height: 'h-[30rem]',
+                },
+                fullscreen: {
+                    width: 'w-screen',
+                    height: 'h-screen',
+                }
+            }
         }
     },
 };

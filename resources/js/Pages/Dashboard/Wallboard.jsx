@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getWallboardList, getWallboard } from '../../Config/Wallboards';
-import { PauseIcon, PlayIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { PauseIcon, PlayIcon, XMarkIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ArrowsPointingOutIcon, ArrowUpLeftIcon, ArrowUpIcon, ArrowUpRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowDownLeftIcon, ArrowDownIcon, ArrowDownRightIcon } from '@heroicons/react/24/solid';
 import { hasPermission } from '../../Utils/Permissions.jsx';
 
 /**
@@ -20,11 +20,14 @@ const IFrame = ({ source, title, refreshKey }) => {
 /**
  * Picture-in-Picture Overlay Component
  * Displays a semi-transparent overlay on top of any layout
+ * Supports 4 size states: hidden, small, medium, fullscreen
  */
 const PictureInPictureOverlay = ({ pip, refreshKey }) => {
+    const [size, setSize] = useState('small'); // 'hidden', 'small', 'medium', 'fullscreen'
+    
     if (!pip || !pip.source) return null;
     
-    // Position mapping
+    // Position mapping for small/medium sizes
     const positionClasses = {
         'top-left': 'top-4 left-4',
         'top-center': 'top-4 left-1/2 -translate-x-1/2',
@@ -37,17 +40,93 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         'bottom-right': 'bottom-4 right-4',
     };
     
+    // Icon mapping based on position (arrow pointing to where the pip is)
+    const positionIcons = {
+        'top-left': ArrowDownRightIcon,
+        'top-center': ArrowDownIcon,
+        'top-right': ArrowDownLeftIcon,
+        'center-left': ArrowRightIcon,
+        'center': ChevronDoubleDownIcon,
+        'center-right': ArrowLeftIcon,
+        'bottom-left': ArrowUpRightIcon,
+        'bottom-center': ArrowUpIcon,
+        'bottom-right': ArrowUpLeftIcon,
+    };
+
+    // Position mapping for small/medium sizes
+    const positionIconClasses = {
+        'top-left': 'top-4 left-4',
+        'top-center': 'top-4 left-1/2 -translate-x-1/2',
+        'top-right': 'top-4 right-4',
+        'center-left': 'top-1/2 left-4 -translate-y-1/2',
+        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        'center-right': 'top-1/2 right-4 -translate-y-1/2',
+        'bottom-left': 'top-2 right-2',
+        'bottom-center': 'top-2 left-1/2 -translate-x-1/2',
+        'bottom-right': 'top-2 left-2',
+    };
+    
     const position = positionClasses[pip.position] || positionClasses['bottom-right'];
-    const width = pip.width || 'w-96';
-    const height = pip.height || 'h-56';
+    const PositionIcon = positionIcons[pip.position] || ChevronDoubleUpIcon;
+    const positionIcon = positionIconClasses[pip.position] || positionIconClasses['bottom-right'];
     const opacity = pip.opacity || 'opacity-75';
     const scale = pip.scale || 1;
     
+    // Size configurations
+    const sizeConfigs = {
+        small: {
+            width: pip.sizes.small.width || 'w-96',
+            height: pip.sizes.small.height || 'h-56',
+        },
+        medium: {
+            width: pip.sizes.medium.width || 'w-[50vw]',
+            height: pip.sizes.medium.height || 'h-[50vh]',
+        },
+        fullscreen: {
+            width: pip.sizes.fullscreen.width || 'w-screen',
+            height: pip.sizes.fullscreen.height || 'h-screen',
+        },
+    };
+    
+    const cycleSize = () => {
+        const cycle = { hidden: 'small', small: 'medium', medium: 'fullscreen', fullscreen: 'hidden' };
+        setSize(cycle[size]);
+    };
+    
+    // Hidden state - show only a button
+    if (size === 'hidden') {
+        return (
+            <button
+                onClick={cycleSize}
+                className={`group fixed ${position} z-30 bg-gray-900/75 hover:bg-gray-900/90 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 shadow-2xl transition-all duration-200`}
+                title="Show Picture-in-Picture"
+            >
+                <PositionIcon className="h-4 w-4" />
+            </button>
+        );
+    }
+    
+    // Fullscreen overrides position
+    const sizeClass = size === 'fullscreen' 
+        ? 'top-0 left-0 w-screen h-screen' 
+        : `${position} ${sizeConfigs[size].width} ${sizeConfigs[size].height}`;
+    
     return (
         <div 
-            className={`fixed ${position} ${width} ${height} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm`}
+            className={`fixed ${sizeClass} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm group transition-all duration-300`}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
         >
+            {/* Expand/Collapse Button */}
+            <button
+                onClick={cycleSize}
+                className={`absolute ${positionIcon} z-40 bg-gray-900/75 hover:bg-gray-900/90 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg`}
+                title={size === 'small' ? 'Expand to Medium' : size === 'medium' ? 'Expand to Fullscreen' : 'Hide'}
+            >   
+                { size === 'fullscreen' ? (<XMarkIcon className="h-4 w-4" />) : (
+                    <ArrowsPointingOutIcon className="h-4 w-4" />
+                )}
+            </button>
+            
             <div className={`${opacity} overflow-hidden`} style={{ width: '100%', height: '100%' }}>
                 <div style={{ 
                     width: `${100 / scale}%`, 
@@ -391,6 +470,19 @@ const Wallboard = () => {
         
         return () => clearTimeout(timeoutId);
     }, []);
+    
+    // Setup periodic refresh if configured
+    useEffect(() => {
+        if (!config?.refreshInterval) return; // Skip if no refresh interval configured
+        
+        const intervalMs = config.refreshInterval * 1000; // Convert seconds to milliseconds
+        
+        const intervalId = setInterval(() => {
+            setRefreshKey(Date.now()); // Trigger iframe refresh
+        }, intervalMs);
+        
+        return () => clearInterval(intervalId);
+    }, [config?.refreshInterval]);
     
     const handleWallboardSelect = (wallboardId) => {
         const wallboardConfig = getWallboard(wallboardId);
