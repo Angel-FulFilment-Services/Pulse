@@ -24,21 +24,45 @@ const IFrame = ({ source, title, refreshKey }) => {
  * Supports 4 size states: hidden, small, medium, fullscreen
  */
 const PictureInPictureOverlay = ({ pip, refreshKey }) => {
+    // Load saved position from localStorage first, before setting initial state
+    const getSavedPosition = () => {
+        const saved = localStorage.getItem('pip-custom-position');
+        return saved || null;
+    };
+    
     const [size, setSize] = useState('small'); // 'hidden', 'small', 'medium', 'fullscreen'
+    const [customPosition, setCustomPosition] = useState(getSavedPosition()); // Initialize with saved position if available
+    const [isDragging, setIsDragging] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false); // Track inertia animation
+    const [dragPosition, setDragPosition] = useState(null); // Temporary position while dragging
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [velocity, setVelocity] = useState({ x: 0, y: 0 });
+    const [lastDragTime, setLastDragTime] = useState(Date.now());
+    const [lastDragPosition, setLastDragPosition] = useState(null);
+    const containerRef = React.useRef(null);
+    const animationFrameRef = React.useRef(null);
+    
+    // Save position to localStorage when it changes
+    useEffect(() => {
+        if (customPosition) {
+            localStorage.setItem('pip-custom-position', customPosition);
+        }
+    }, [customPosition]);
     
     if (!pip || !pip.source) return null;
     
     // Position mapping for small/medium sizes
+    // Using only left/top to avoid transform conflicts with right/bottom
     const positionClasses = {
         'top-left': 'top-4 left-4',
         'top-center': 'top-4 left-1/2 -translate-x-1/2',
-        'top-right': 'top-4 right-4',
+        'top-right': 'top-4 left-[calc(100%-1rem)] -translate-x-full',
         'center-left': 'top-1/2 left-4 -translate-y-1/2',
         'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-        'center-right': 'top-1/2 right-4 -translate-y-1/2',
-        'bottom-left': 'bottom-4 left-4',
-        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
-        'bottom-right': 'bottom-4 right-4',
+        'center-right': 'top-1/2 left-[calc(100%-1rem)] -translate-x-full -translate-y-1/2',
+        'bottom-left': 'top-[calc(100%-1rem)] left-4 -translate-y-full',
+        'bottom-center': 'top-[calc(100%-1rem)] left-1/2 -translate-x-1/2 -translate-y-full',
+        'bottom-right': 'top-[calc(100%-1rem)] left-[calc(100%-1rem)] -translate-x-full -translate-y-full',
     };
     
     // Icon mapping based on position (arrow pointing to where the pip is)
@@ -47,7 +71,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         'top-center': ArrowDownIcon,
         'top-right': ArrowDownLeftIcon,
         'center-left': ArrowRightIcon,
-        'center': ChevronDoubleDownIcon,
+        'center': ArrowsPointingOutIcon,
         'center-right': ArrowLeftIcon,
         'bottom-left': ArrowUpRightIcon,
         'bottom-center': ArrowUpIcon,
@@ -56,20 +80,18 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
 
     // Position mapping for small/medium sizes
     const positionIconClasses = {
-        'top-left': 'top-4 left-4',
-        'top-center': 'top-4 left-1/2 -translate-x-1/2',
-        'top-right': 'top-4 right-4',
-        'center-left': 'top-1/2 left-4 -translate-y-1/2',
+        'top-left': 'bottom-4 right-4',
+        'top-center': 'bottom-4 left-1/2 -translate-x-1/2',
+        'top-right': 'bottom-4 left-4',
+        'center-left': 'top-1/2 right-4 -translate-y-1/2',
         'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-        'center-right': 'top-1/2 right-4 -translate-y-1/2',
+        'center-right': 'top-1/2 left-4 -translate-y-1/2',
         'bottom-left': 'top-2 right-2',
         'bottom-center': 'top-2 left-1/2 -translate-x-1/2',
         'bottom-right': 'top-2 left-2',
     };
     
     const position = positionClasses[pip.position] || positionClasses['bottom-right'];
-    const PositionIcon = positionIcons[pip.position] || ChevronDoubleUpIcon;
-    const positionIcon = positionIconClasses[pip.position] || positionIconClasses['bottom-right'];
     const opacity = pip.opacity || 'opacity-75';
     
     // Size configurations
@@ -96,51 +118,305 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         setSize(cycle[size]);
     };
     
-    // Hidden state - show only a button
-    if (size === 'hidden') {
-        return (
-            <button
-                onClick={cycleSize}
-                className={`group fixed ${position} z-30 bg-gray-900/75 hover:bg-gray-900/90 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 shadow-2xl transition-all duration-200`}
-                title="Show Picture-in-Picture"
-            >
-                <PositionIcon className="h-4 w-4" />
-            </button>
-        );
+    // Reset to default position
+    const resetPosition = () => {
+        setCustomPosition(null);
+        localStorage.removeItem('pip-custom-position');
+    };
+    
+    // Calculate which preset position is closest to a given x,y coordinate
+    const findClosestPosition = (x, y) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return pip.position;
+        
+        const centerX = x + rect.width / 2;
+        const centerY = y + rect.height / 2;
+        
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Define the center points for each position
+        const positions = {
+            'top-left': { x: rect.width / 2 + 16, y: rect.height / 2 + 16 },
+            'top-center': { x: viewportWidth / 2, y: rect.height / 2 + 16 },
+            'top-right': { x: viewportWidth - rect.width / 2 - 16, y: rect.height / 2 + 16 },
+            'center-left': { x: rect.width / 2 + 16, y: viewportHeight / 2 },
+            'center': { x: viewportWidth / 2, y: viewportHeight / 2 },
+            'center-right': { x: viewportWidth - rect.width / 2 - 16, y: viewportHeight / 2 },
+            'bottom-left': { x: rect.width / 2 + 16, y: viewportHeight - rect.height / 2 - 16 },
+            'bottom-center': { x: viewportWidth / 2, y: viewportHeight - rect.height / 2 - 16 },
+            'bottom-right': { x: viewportWidth - rect.width / 2 - 16, y: viewportHeight - rect.height / 2 - 16 },
+        };
+        
+        // Find closest position using distance formula
+        let closestPosition = pip.position;
+        let minDistance = Infinity;
+        
+        Object.entries(positions).forEach(([posName, pos]) => {
+            const distance = Math.sqrt(
+                Math.pow(centerX - pos.x, 2) + Math.pow(centerY - pos.y, 2)
+            );
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPosition = posName;
+            }
+        });
+        
+        return closestPosition;
+    };
+    
+    // Handle drag start
+    const handleMouseDown = (e) => {
+        if (size === 'fullscreen' || size === 'hidden') return;
+        
+        // Only drag if clicking on the container itself or specific drag areas, not buttons
+        if (e.target.tagName === 'BUTTON') return;
+        
+        setIsDragging(true);
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        });
+        
+        e.preventDefault();
+    };
+    
+    // Handle dragging
+    useEffect(() => {
+        if (!isDragging) return;
+        
+        const handleMouseMove = (e) => {
+            const newX = e.clientX - dragOffset.x;
+            const newY = e.clientY - dragOffset.y;
+            
+            // Constrain to viewport
+            const maxX = window.innerWidth - (containerRef.current?.offsetWidth || 0);
+            const maxY = window.innerHeight - (containerRef.current?.offsetHeight || 0);
+            
+            const constrainedX = Math.max(0, Math.min(newX, maxX));
+            const constrainedY = Math.max(0, Math.min(newY, maxY));
+            
+            // Calculate velocity based on position change and time
+            const now = Date.now();
+            const timeDelta = now - lastDragTime;
+            
+            if (lastDragPosition && timeDelta > 0) {
+                const vx = (constrainedX - lastDragPosition.x) / timeDelta;
+                const vy = (constrainedY - lastDragPosition.y) / timeDelta;
+                setVelocity({ x: vx, y: vy });
+            }
+            
+            setLastDragTime(now);
+            setLastDragPosition({ x: constrainedX, y: constrainedY });
+            setDragPosition({ x: constrainedX, y: constrainedY });
+        };
+        
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            
+            // Apply momentum if velocity is significant
+            if (dragPosition) {
+                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+                const velocityThreshold = 0.3; // Reduced threshold (was 0.5) - easier to trigger momentum
+                
+                if (speed > velocityThreshold) {
+                    // Apply inertia - continue motion with decay
+                    setIsAnimating(true); // Mark as animating so position stays as inline style
+                    applyInertia(dragPosition.x, dragPosition.y, velocity.x, velocity.y);
+                } else {
+                    // Snap immediately if not moving fast
+                    const closestPos = findClosestPosition(dragPosition.x, dragPosition.y);
+                    setCustomPosition(closestPos);
+                    setDragPosition(null);
+                }
+            }
+            
+            // Reset velocity tracking
+            setVelocity({ x: 0, y: 0 });
+            setLastDragPosition(null);
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragOffset, dragPosition, velocity, lastDragTime, lastDragPosition]);
+    
+    // Apply inertia/momentum after release
+    const applyInertia = (startX, startY, vx, vy) => {
+        const friction = 0.65; // Decay factor per frame
+        const minVelocity = 0.5; // Stop when velocity is very low
+        let currentX = startX;
+        let currentY = startY;
+        let currentVx = vx * 50; // Much more subtle momentum
+        let currentVy = vy * 50;
+        
+        const animate = () => {
+            // Apply friction
+            currentVx *= friction;
+            currentVy *= friction;
+            
+            // Update position
+            currentX += currentVx;
+            currentY += currentVy;
+            
+            // Constrain to viewport
+            const maxX = window.innerWidth - (containerRef.current?.offsetWidth || 400);
+            const maxY = window.innerHeight - (containerRef.current?.offsetHeight || 300);
+            currentX = Math.max(0, Math.min(currentX, maxX));
+            currentY = Math.max(0, Math.min(currentY, maxY));
+            
+            setDragPosition({ x: currentX, y: currentY });
+            
+            // Continue animation if velocity is significant
+            if (Math.abs(currentVx) > minVelocity || Math.abs(currentVy) > minVelocity) {
+                requestAnimationFrame(animate);
+            } else {
+                // Animation complete - snap to closest position
+                setIsAnimating(false);
+                const closestPos = findClosestPosition(currentX, currentY);
+                setCustomPosition(closestPos);
+                setDragPosition(null);
+            }
+        };
+        
+        requestAnimationFrame(animate);
+    };
+    
+    // Cleanup animation frame on unmount
+    useEffect(() => {
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, []);
+    
+    // Fullscreen positioning based on PiP position - expands from the corner/edge where PiP is located
+    // For center positions, we need to maintain the transforms to avoid jumping
+    // Using only left/top to avoid transform conflicts
+    const fullscreenPositionClasses = {
+        'top-left': 'top-0 left-0',
+        'top-center': 'top-0 left-1/2 -translate-x-1/2',
+        'top-right': 'top-0 left-full -translate-x-full',
+        'center-left': 'top-1/2 left-0 -translate-y-1/2',
+        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        'center-right': 'top-1/2 left-full -translate-x-full -translate-y-1/2',
+        'bottom-left': 'top-full left-0 -translate-y-full',
+        'bottom-center': 'top-full left-1/2 -translate-x-1/2 -translate-y-full',
+        'bottom-right': 'top-full left-full -translate-x-full -translate-y-full',
+    };
+    
+    // Get the appropriate fullscreen position based on pip position
+    const fullscreenPosition = fullscreenPositionClasses[pip.position] || fullscreenPositionClasses['bottom-right'];
+    
+    // Determine the current position to use (custom or default)
+    const currentPosition = customPosition || pip.position;
+    const currentPositionClass = positionClasses[currentPosition] || positionClasses['bottom-right'];
+    const currentPositionIcon = positionIconClasses[currentPosition] || positionIconClasses['bottom-right'];
+    const CurrentPositionIcon = positionIcons[currentPosition] || ChevronDoubleUpIcon;
+    
+    // Determine the size class
+    let sizeClass;
+    let positionStyle = {};
+    
+    if (size === 'fullscreen') {
+        const fullscreenPos = fullscreenPositionClasses[currentPosition] || fullscreenPositionClasses['bottom-right'];
+        sizeClass = `${fullscreenPos} w-screen h-screen`;
+    } else if ((isDragging || isAnimating) && dragPosition) {
+        // While dragging or animating, use inline styles for free positioning
+        sizeClass = `${sizeConfigs[size]?.width} ${sizeConfigs[size]?.height}`;
+        positionStyle = {
+            left: `${dragPosition.x}px`,
+            top: `${dragPosition.y}px`,
+        };
+    } else {
+        // Use preset position (either custom or default)
+        sizeClass = `${currentPositionClass} ${sizeConfigs[size]?.width} ${sizeConfigs[size]?.height}`;
     }
     
-    // Fullscreen overrides position
-    const sizeClass = size === 'fullscreen' 
-        ? 'top-0 left-0 w-screen h-screen' 
-        : `${position} ${sizeConfigs[size].width} ${sizeConfigs[size].height}`;
-    
     return (
-        <div 
-            className={`fixed ${sizeClass} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm group transition-all duration-300`}
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
-        >
-            {/* Expand/Collapse Button */}
-            <button
-                onClick={cycleSize}
-                className={`absolute ${positionIcon} z-40 bg-gray-900/75 hover:bg-gray-900/90 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg`}
-                title={size === 'small' ? 'Expand to Medium' : size === 'medium' ? 'Expand to Fullscreen' : 'Hide'}
-            >   
-                { size === 'fullscreen' ? (<XMarkIcon className="h-4 w-4" />) : (
-                    <ArrowsPointingOutIcon className="h-4 w-4" />
-                )}
-            </button>
+        <>
+            {/* Drag guide - show position guides when dragging */}
+            {/* {isDragging && (
+                <div className="fixed inset-0 z-20 pointer-events-none">
+                    <div className="absolute inset-4 grid grid-cols-3 grid-rows-3 gap-4">
+                        {[
+                            'top-left', 'top-center', 'top-right',
+                            'center-left', 'center', 'center-right',
+                            'bottom-left', 'bottom-center', 'bottom-right'
+                        ].map((pos) => (
+                            <div
+                                key={pos}
+                                className="border-2 border-dashed border-theme-500/25 rounded-lg bg-theme-200/5 flex items-center justify-center"
+                            >
+                                <span className="text-theme-500/60 text-xs font-medium uppercase">
+                                    {pos.replace('-', ' ')}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )} */}
             
-            <div className={`${opacity} overflow-hidden`} style={{ width: '100%', height: '100%' }}>
-                <div style={{ 
-                    width: `${100 / sizeConfigs[size].scale}%`, 
-                    height: `${100 / sizeConfigs[size].scale}%`, 
-                    transform: `scale(${sizeConfigs[size].scale})`, 
-                    transformOrigin: 'top left' 
-                }}>
-                    <PrinterStatus />
+            {/* Hidden state - show only a button */}
+            {size === 'hidden' && (
+                <button
+                    onClick={cycleSize}
+                    className={`group fixed ${currentPositionClass} z-30 bg-neutral-900/75 hover:bg-neutral-900/90 opacity-75 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 shadow-2xl transition-all duration-200`}
+                    title="Show Picture-in-Picture"
+                >
+                    <CurrentPositionIcon className="h-4 w-4" />
+                </button>
+            )}
+            
+            {/* PrinterStatus container - always mounted, just visually hidden when size is 'hidden' */}
+            <div 
+                ref={containerRef}
+                onMouseDown={handleMouseDown}
+                className={`fixed ${sizeClass} z-30 rounded-lg overflow-hidden shadow-2xl backdrop-blur-sm group ${
+                    size === 'hidden' ? 'opacity-0 pointer-events-none' : ''
+                } ${
+                    size === 'fullscreen' 
+                        ? 'cursor-default transition-all duration-300' 
+                        : isDragging 
+                            ? 'cursor-grabbing transition-none' 
+                            : 'cursor-grab transition-all duration-300'
+                }`}
+                style={{ 
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    ...positionStyle,
+                }}
+            >
+                {/* Expand/Collapse Button */}
+                <button
+                    onClick={cycleSize}
+                    className={`absolute ${currentPositionIcon} z-40 bg-neutral-900/75 hover:bg-neutral-900/90 dark:bg-dark-700/75 dark:hover:bg-dark-600/90 text-white rounded-full p-2 opacity-0 group-hover:opacity-75 transition-opacity duration-200 shadow-lg`}
+                    title={size === 'small' ? 'Expand to Medium' : size === 'medium' ? 'Expand to Fullscreen' : 'Hide'}
+                >   
+                    { size === 'fullscreen' ? (<XMarkIcon className="h-4 w-4" />) : (
+                        <ArrowsPointingOutIcon className="h-4 w-4" />
+                    )}
+                </button>
+                
+                <div className={`${opacity} overflow-hidden pointer-events-none`} style={{ width: '100%', height: '100%' }}>
+                    <div style={{ 
+                        width: `${100 / sizeConfigs[size]?.scale}%`, 
+                        height: `${100 / sizeConfigs[size]?.scale}%`, 
+                        transform: `scale(${sizeConfigs[size]?.scale})`, 
+                        transformOrigin: 'top left' 
+                    }}>
+                        <PrinterStatus />
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

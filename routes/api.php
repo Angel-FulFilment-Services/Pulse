@@ -6,6 +6,7 @@ use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
+use App\Http\Controllers\App\AdministrationController;
 
 use App\Helper\T2SMS;
 
@@ -64,6 +65,9 @@ Route::get('/system/clients', [SystemController::class, 'clients'])
 ->withoutMiddleware('throttle:api')
 ->middleware('throttle:250,1')
 ->middleware('auth:api');
+
+
+Route::get('/system/total-cpa-sign-ups', [AdministrationController::class, 'totalCPASignUps']);
 
 /*
 |-----------------------

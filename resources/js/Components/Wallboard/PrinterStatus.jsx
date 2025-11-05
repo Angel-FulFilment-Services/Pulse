@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Ring } from 'ldrs/react'
+import 'ldrs/react/Ring.css'
 
 export default function PrinterStatus() {
     const [printerData, setPrinterData] = useState(null);
@@ -66,9 +68,26 @@ export default function PrinterStatus() {
 
         connectEventSource();
 
+        // Handle page refresh/navigation - close connections immediately
+        const handleBeforeUnload = () => {
+            isMountedRef.current = false;
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (cameraRetryTimeoutRef.current) {
+                clearTimeout(cameraRetryTimeoutRef.current);
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
         // Cleanup on unmount
         return () => {
             isMountedRef.current = false;
+            window.removeEventListener('beforeunload', handleBeforeUnload);
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
             }
@@ -106,7 +125,7 @@ export default function PrinterStatus() {
             <div className="relative w-full h-full">
                 {/* Loading overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    <Ring size="48" color="white" />
                 </div>
             </div>
         );
@@ -129,7 +148,9 @@ export default function PrinterStatus() {
                 {cameraError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                            <div className="flex justify-center mb-3">
+                                <Ring size="48" color="white" />
+                            </div>
                             <p className="text-white text-sm">Reconnecting camera...</p>
                         </div>
                     </div>
@@ -138,7 +159,7 @@ export default function PrinterStatus() {
                 {/* Error overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 border-t-2 border-red-800 p-4">
                     <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <Ring size="16" color="white" stroke="2" />
                         <p className="text-white text-center text-sm">{error} - Reconnecting...</p>
                     </div>
                 </div>
@@ -148,7 +169,7 @@ export default function PrinterStatus() {
 
     if (!printerData) return null;
 
-    const { general, temperature, progress } = printerData;
+    const { general, temperature, progress, time } = printerData;
     const percentage = progress?.bytes?.percentage || 0;
 
     return (
@@ -167,7 +188,9 @@ export default function PrinterStatus() {
             {cameraError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                        <div className="flex justify-center mb-3">
+                            <Ring size="48" color="white" />
+                        </div>
                         <p className="text-white text-sm">Reconnecting camera...</p>
                     </div>
                 </div>

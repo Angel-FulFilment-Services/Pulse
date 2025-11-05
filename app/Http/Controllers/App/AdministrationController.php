@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 
 class AdministrationController extends Controller
@@ -59,5 +60,14 @@ class AdministrationController extends Controller
         }
 
         return response()->json(['configurations' => $configurations]);
+    }
+
+    public function totalCPASignUps(){
+
+        $data = DB::connection('wings_config')->table('dashboard_tiles')->find(11)->data;
+
+        if($data && isset(json_decode($data, true)['data']['total_sign_ups']) && is_array(json_decode($data, true)['data']['total_sign_ups'])){
+            return response()->json(['total_sign_ups' => array_sum(json_decode($data, true)['data']['total_sign_ups'])]);
+        }
     }
 }

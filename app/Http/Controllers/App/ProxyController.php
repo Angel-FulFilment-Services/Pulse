@@ -138,6 +138,10 @@ class ProxyController extends Controller
                     fwrite($socket, "~M27\r\n");
                     $progressResponse = $this->readSocketResponse($socket);
 
+                    // Get JSON-style response with time estimates (M408)
+                    fwrite($socket, "~M408\r\n");
+                    $m408Response = $this->readSocketResponse($socket);
+
                     fclose($socket);
 
                     // Parse responses into structured data
@@ -145,6 +149,7 @@ class ProxyController extends Controller
                         'general' => $this->parseGeneralStatus($generalResponse),
                         'temperature' => $this->parseTemperature($tempResponse),
                         'progress' => $this->parseProgress($progressResponse),
+                        'estimates' => $this->parseM408($m408Response),
                     ];
 
                     // Send as Server-Sent Event
@@ -207,6 +212,10 @@ class ProxyController extends Controller
             fwrite($socket, "~M27\r\n");
             $progressResponse = $this->readSocketResponse($socket);
 
+            // Get JSON-style response with time estimates (M408)
+            fwrite($socket, "~M408\r\n");
+            $m408Response = $this->readSocketResponse($socket);
+
             fclose($socket);
 
             // Parse responses into structured data
@@ -218,6 +227,7 @@ class ProxyController extends Controller
                     'general' => $generalResponse,
                     'temperature' => $tempResponse,
                     'progress' => $progressResponse,
+                    'estimates' => $this->parseM408($m408Response),
                 ]
             ];
 
@@ -345,6 +355,55 @@ class ProxyController extends Controller
                 'total' => (int)$matches[2],
                 'percentage' => $matches[2] > 0 ? round(($matches[1] / $matches[2]) * 100, 2) : 0,
             ];
+        }
+
+        return $data;
+    }
+
+    private function parseM408($response)
+    {
+        $data = [];
+        
+        // M408 returns JSON-style response with comprehensive printer info
+        // Example: {"status":"P","heaters":[25.0,210.0],"pos":[0,0,5],"extr":[0.0],"sfactor":100.00,"timesLeft":[3600,3800,3700],...}
+        
+        // Try to decode as JSON
+        $json = json_decode($response, true);
+        
+        if ($json && is_array($json)) {
+            // Extract timesLeft array (estimated remaining times in seconds from different calculation methods)
+            if (isset($json['timesLeft']) && is_array($json['timesLeft'])) {
+                $timesLeft = array_filter($json['timesLeft'], function($time) {
+                    return $time !== null && $time > 0;
+                });
+                
+                if (!empty($timesLeft)) {
+                    // Use the first valid time estimate
+                    $remainingSeconds = reset($timesLeft);
+                    $data['remaining_seconds'] = $remainingSeconds;
+                    $data['remaining_formatted'] = sprintf('%d:%02d:%02d', 
+                        floor($remainingSeconds / 3600), 
+                        floor(($remainingSeconds % 3600) / 60), 
+                        $remainingSeconds % 60
+                    );
+                    
+                    // Include all estimates if multiple methods available
+                    if (count($timesLeft) > 1) {
+                        $data['all_estimates'] = $timesLeft;
+                    }
+                }
+            }
+            
+            // Extract fraction_printed (more accurate than byte-based progress)
+            if (isset($json['fraction_printed'])) {
+                $data['fraction_printed'] = (float)$json['fraction_printed'];
+                $data['percent'] = round($json['fraction_printed'] * 100, 2);
+            }
+            
+            // Extract print status
+            if (isset($json['status'])) {
+                $data['status'] = $json['status']; // I=idle, P=printing, S=stopped, etc.
+            }
         }
 
         return $data;
