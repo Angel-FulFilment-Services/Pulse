@@ -412,7 +412,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
                         transform: `scale(${sizeConfigs[size]?.scale})`, 
                         transformOrigin: 'top left' 
                     }}>
-                        <PrinterStatus />
+                        <PrinterStatus setSize={setSize} />
                     </div>
                 </div>
             </div>

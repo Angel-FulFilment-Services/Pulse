@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Ring } from 'ldrs/react'
 import 'ldrs/react/Ring.css'
+import { RiHotelBedLine, RiTempColdLine, RiTempHotLine } from '@remixicon/react';
+import { DocumentCheckIcon, DocumentIcon, DocumentTextIcon, Square3Stack3DIcon } from '@heroicons/react/24/outline';
+import { DocumentIcon as DocumentFilledIcon } from '@heroicons/react/24/solid';
 
-export default function PrinterStatus() {
+export default function PrinterStatus({ setSize }) {
     const [printerData, setPrinterData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -13,6 +16,7 @@ export default function PrinterStatus() {
     const reconnectTimeoutRef = useRef(null);
     const cameraRetryTimeoutRef = useRef(null);
     const isMountedRef = useRef(true);
+    const previousStatusRef = useRef(null);
 
     // EventSource connection with auto-reconnect
     useEffect(() => {
@@ -100,6 +104,26 @@ export default function PrinterStatus() {
         };
     }, []);
 
+    // Monitor machine status changes and auto-adjust size
+    useEffect(() => {
+        if (!printerData?.general?.machine_status) return;
+
+        const currentStatus = printerData.general.machine_status.toUpperCase();
+        const previousStatus = previousStatusRef.current;
+
+        // When status changes TO "BUILDING" from any other status
+        if (currentStatus === 'BUILDING' && previousStatus !== 'BUILDING') {
+            setSize('medium');
+        }
+        // When status changes TO "READY" from any other status
+        else if (currentStatus === 'READY' && previousStatus !== 'READY') {
+            setSize('hidden');
+        }
+
+        // Update the previous status
+        previousStatusRef.current = currentStatus;
+    }, [printerData?.general?.machine_status, setSize]);
+
     // Handle camera stream errors with retry logic
     const handleCameraError = () => {
         console.error('Camera stream error - attempting to reload...');
@@ -172,6 +196,33 @@ export default function PrinterStatus() {
     const { general, temperature, progress, time } = printerData;
     const percentage = progress?.bytes?.percentage || 0;
 
+    // Get status color based on machine status
+    const getStatusColor = (status) => {
+        if (!status) return 'text-gray-900';
+        
+        const upperStatus = status.toUpperCase();
+        switch (upperStatus) {
+            case 'BUILDING':
+                return 'text-green-600 font-bold';
+            case 'READY':
+                return 'text-green-600 font-semibold';
+            case 'PAUSED':
+                return 'text-yellow-600 font-bold';
+            case 'HEATING':
+                return 'text-orange-600 font-semibold';
+            case 'MOVING':
+                return 'text-purple-600 font-semibold';
+            case 'CANCELLED':
+            case 'CANCELLING':
+                return 'text-red-600 font-semibold';
+            case 'OFFLINE':
+            case 'DISCONNECTED':
+                return 'text-gray-400 font-semibold';
+            default:
+                return 'text-gray-900 font-semibold';
+        }
+    };
+
     return (
         <div className="relative w-full h-full flex justify-center items-center">
             {/* Camera feed in background - Using img tag for MJPEG stream */}
@@ -203,14 +254,14 @@ export default function PrinterStatus() {
                     {/* Machine Status */}
                     <div className="space-y-1">
                         <p className="text-gray-500">Status</p>
-                        <p className="font-semibold">
+                        <p className={`${getStatusColor(general?.machine_status)}`}>
                             {general?.machine_status?.charAt(0).toUpperCase() + general?.machine_status?.slice(1).toLowerCase() || 'Unknown'}
                         </p>
                     </div>
 
                     {/* Layer Progress */}
                     <div className="space-y-1">
-                        <p className="text-gray-500">Layer</p>
+                        <p className="text-gray-500">Layer <Square3Stack3DIcon className="inline-block stroke-2 size-3.5 ml-1 -mt-0.5" /></p>
                         <p className="font-semibold">
                             {progress?.layers?.current || 0} / {progress?.layers?.total || 0}
                         </p>
@@ -218,7 +269,7 @@ export default function PrinterStatus() {
 
                     {/* Bed Temperature */}
                     <div className="space-y-1">
-                        <p className="text-gray-500">Bed</p>
+                        <p className="text-gray-500">Bed {temperature?.bed?.current?.toFixed(1) < 50 ? <RiTempColdLine className="inline-block size-3.5 ml-1 -mt-1 text-blue-400" /> : <RiTempHotLine className="inline-block size-3.5 ml-1 -mt-1 text-orange-600" />}</p>
                         <p className="font-semibold">
                             {temperature?.bed?.current?.toFixed(1) || 0}°C / {temperature?.bed?.target?.toFixed(1) || 0}°C
                         </p>
@@ -226,7 +277,7 @@ export default function PrinterStatus() {
 
                     {/* Extruder Temperature */}
                     <div className="space-y-1">
-                        <p className="text-gray-500">Extruder</p>
+                        <p className="text-gray-500">Extruder {temperature?.extruder_0?.current?.toFixed(1) < 100 ? <RiTempColdLine className="inline-block size-3.5 ml-1 -mt-1 text-blue-400" /> : <RiTempHotLine className="inline-block size-3.5 ml-1 -mt-1 text-orange-600" />}</p>
                         <p className="font-semibold">
                             {temperature?.extruder_0?.current?.toFixed(1) || 0}°C / {temperature?.extruder_0?.target?.toFixed(1) || 0}°C
                         </p>
@@ -234,7 +285,7 @@ export default function PrinterStatus() {
 
                     {/* Current File */}
                     <div className="space-y-1">
-                        <p className="text-gray-500">File</p>
+                        <p className="text-gray-500">File {!general?.current_file ? <DocumentIcon className="inline-block size-3.5 stroke-2 ml-1 -mt-1" /> : <DocumentTextIcon className="inline-block size-3.5 stroke-2 ml-1 -mt-1" />}</p>
                         <p className="font-semibold truncate" title={general?.current_file || 'No file'}>
                             {general?.current_file || 'No file'}
                         </p>
