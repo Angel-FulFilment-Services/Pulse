@@ -175,9 +175,24 @@ export default function ReportingTable({ parameters, structure, filters, data, t
     const { key, direction } = sortConfig;
 
     return [...filteredData].sort((a, b) => {
-      const valueA = a[key];
-      const valueB = b[key];
       const column = structure.find((col) => col.id === key);
+      
+      // Helper function to get the actual value for sorting
+      const getValue = (row) => {
+        // If column has a format function with requires, compute the value
+        if (column.format && column.requires) {
+          const params = resolveColumnParameters(column, parameters, dateRange);
+          return column.format(
+            ...column.requires.map(field => row[field]),
+            params
+          );
+        }
+        // Otherwise use the raw value
+        return row[key];
+      };
+
+      const valueA = getValue(a);
+      const valueB = getValue(b);
 
       if (column.dataType === 'integer' || column.dataType === 'float') {
         return direction === 'asc'
@@ -201,7 +216,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
 
       return 0; // Default case for unsupported data types
     });
-  }, [filteredData, sortConfig, structure]);
+  }, [filteredData, sortConfig, structure, parameters, dateRange]);
 
   const handleSort = (column) => {
     if (column.dataType === 'control' || (column?.sortable && !column.sortable)) {
