@@ -67,11 +67,13 @@ export default function PrinterStatus() {
 
     return (
         <div className="relative w-full h-full flex justify-center items-center">
-            {/* Camera feed in background */}
-            <iframe 
+            {/* Camera feed in background - Using img tag for MJPEG stream */}
+            <img 
                 src="/proxy/3d-printer/camera"
-                className="w-full h-full border-0"
-                title="3D Printer Camera"
+                className="w-full h-full object-cover border-0"
+                alt="3D Printer Camera"
+                onLoad={() => console.log('Camera stream started')}
+                onError={(e) => console.error('Camera stream error:', e)}
             />
             
             {/* Status overlay at bottom */}

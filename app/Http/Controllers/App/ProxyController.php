@@ -47,12 +47,25 @@ class ProxyController extends Controller
             // Return streaming response
             return response()->stream(
                 function () use ($stream) {
+                    // Send a small initial chunk to signal the iframe is "loaded"
+                    // This prevents the browser from showing infinite loading
+                    echo ' ';
+                    if (ob_get_level()) {
+                        ob_flush();
+                    }
+                    flush();
+                    
                     while (!$stream->eof()) {
                         echo $stream->read(8192); // Larger buffer for better performance
                         if (ob_get_level()) {
                             ob_flush();
                         }
                         flush();
+                        
+                        // Check if client disconnected
+                        if (connection_aborted()) {
+                            break;
+                        }
                     }
                 },
                 200,
@@ -62,6 +75,7 @@ class ProxyController extends Controller
                     'Pragma' => 'no-cache',
                     'Expires' => '0',
                     'X-Accel-Buffering' => 'no', // Disable nginx buffering
+                    'Connection' => 'keep-alive', // Keep connection alive
                 ]
             );
         } catch (RequestException $e) {
