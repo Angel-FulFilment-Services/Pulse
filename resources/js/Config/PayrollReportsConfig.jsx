@@ -778,7 +778,7 @@ const payrollReportsConfig = [
               allowTarget: true,
               target: 0,
               targetDirection: 'asc',
-              prefix: "",
+              prefix: "£",
               suffix: "",
               cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
               headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
