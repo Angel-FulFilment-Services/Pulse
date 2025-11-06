@@ -67,7 +67,7 @@ class AdministrationController extends Controller
         $data = DB::connection('wings_config')->table('dashboard_tiles')->find(11)->data;
 
         if($data && isset(json_decode($data, true)['data']['total_sign_ups']) && is_array(json_decode($data, true)['data']['total_sign_ups'])){
-            return response()->json(['total_sign_ups' => array_sum(json_decode($data, true)['data']['total_sign_ups'])]);
+            return response()->json(['endValue' => array_sum(json_decode($data, true)['data']['total_sign_ups'])]);
         }
     }
 }
