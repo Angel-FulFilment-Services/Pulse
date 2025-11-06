@@ -1253,7 +1253,7 @@ class AssetController extends Controller
                     'pat_vi_flex' => $row[9] ? true : false,
                     'pat_vi_body' => $row[9] ? true : false,
                     'pat_vi_environment' => $row[9] ? true : false,
-                    'pat_vi_continued_use' => $row[9] ?? true : false,
+                    'pat_vi_continued_use' => $row[9] ? true : false,
                     'pat_ins_resis' => $row[10] ?? '',
                     'pat_earth_cont' => $row[11] ?? '',
                     'pat_leakage' => $row[12] ?? '',
