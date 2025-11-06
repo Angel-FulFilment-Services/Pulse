@@ -39,4 +39,14 @@ class Item extends Model
         // 'created_at' => 'date',
         // 'updated_at' => 'date',
     ];
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class, 'asset_id');
+    }
+
+    public function kit()
+    {
+        return $this->belongsTo(Kit::class, 'kit_id');
+    }
 }

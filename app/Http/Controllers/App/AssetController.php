@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Notification;
 use Storage;
 use Log;
 use DB;
+use Carbon\Carbon;
 
 class AssetController extends Controller
 {
@@ -1135,5 +1136,502 @@ class AssetController extends Controller
             ->get();
 
         return response()->json($users, 200);
+    }
+
+    public function batchImportPreview(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:10240', // 10MB max
+        ]);
+
+        try {
+            $file = $request->file('csv_file');
+            $csvData = array_map('str_getcsv', file($file->getPathname()));
+
+            $preview = [
+                'assets_to_create' => [],
+                'assets_to_update' => [],
+                'assets_to_retire' => [],
+                'kit_changes' => [],
+                'pat_tests_to_create' => [],
+                'errors' => []
+            ];
+
+            foreach ($csvData as $index => $row) {
+                $rowNumber = $index + 1;
+                
+                $data = [
+                    'afs_id' => $row[0] ?? '',
+                    'alias' => $row[1] ?? '',
+                    'type' => $row[2] ?? '',
+                    'make' => $row[3] ?? '',
+                    'model' => $row[4] ?? '',
+                    'status' => 'Active',
+                    'acq_date' => $row[5] ?? '',
+                    'supplier' => $row[6] ?? '',
+                    'kit_alias' => $row[7] ?? '',
+                    'pat_class' => $row[8] ?? '',
+                    'pat_vi_socket' => $row[9] ? true : false,
+                    'pat_vi_plug' => $row[9] ? true : false,
+                    'pat_vi_switch' => $row[9] ? true : false,
+                    'pat_vi_flex' => $row[9] ? true : false,
+                    'pat_vi_body' => $row[9] ? true : false,
+                    'pat_vi_environment' => $row[9] ? true : false,
+                    'pat_vi_continued_use' => $row[9] ? true : false,
+                    'pat_ins_resis' => $row[10] ?? '',
+                    'pat_earth_cont' => $row[11] ?? '',
+                    'pat_leakage' => $row[12] ?? '',
+                    'pat_continuity' => $row[13] ?? '',
+                    'pat_result' => $row[14] ?? '',
+                ];
+
+                try {
+                    // Process asset preview
+                    $this->previewAssetChanges($data, $rowNumber, $preview);
+
+                    // Process PAT test preview
+                    $this->previewPATTestChanges($data, $rowNumber, $preview);
+
+                    // Process kit assignment preview
+                    $this->previewKitChanges($data, $rowNumber, $preview);
+
+                } catch (\Exception $e) {
+                    Log::error("Error processing row {$rowNumber} in batch import preview: " . $e->getMessage());
+                    $preview['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
+                }
+            }
+
+            return response()->json([
+                'message' => 'Batch import preview generated',
+                'preview' => $preview
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Asset batch import preview failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Preview generation failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function batchImport(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:10240', // 10MB max
+        ]);
+
+        try {
+            $file = $request->file('csv_file');
+            $csvData = array_map('str_getcsv', file($file->getPathname()));
+
+            $results = [
+                'created' => 0,
+                'updated' => 0,
+                'retired' => [],
+                'errors' => [],
+                'kits_created' => []
+            ];
+
+            DB::beginTransaction();
+            
+            foreach ($csvData as $index => $row) {
+                $rowNumber = $index + 1; // +1 because array is 0-indexed
+                
+                // Assuming the row data is in the expected order: afs_id, alias, type, make, model, status, acq_date, supplier, pat_*, kit_alias
+                $data = [
+                    'afs_id' => $row[0] ?? '',
+                    'alias' => $row[1] ?? '',
+                    'type' => $row[2] ?? '',
+                    'make' => $row[3] ?? '',
+                    'model' => $row[4] ?? '',
+                    'status' => 'Active',
+                    'acq_date' => $row[5] ? Carbon::createFromFormat('d/m/Y', $row[5])->format('Y-m-d') : null,
+                    'supplier' => $row[6] ?? '',
+                    'kit_alias' => $row[7] ?? '',
+                    'pat_class' => $row[8] ?? '',
+                    'pat_vi_socket' => $row[9] ? true : false,
+                    'pat_vi_plug' => $row[9] ? true : false,
+                    'pat_vi_switch' => $row[9] ? true : false,
+                    'pat_vi_flex' => $row[9] ? true : false,
+                    'pat_vi_body' => $row[9] ? true : false,
+                    'pat_vi_environment' => $row[9] ? true : false,
+                    'pat_vi_continued_use' => $row[9] ?? true : false,
+                    'pat_ins_resis' => $row[10] ?? '',
+                    'pat_earth_cont' => $row[11] ?? '',
+                    'pat_leakage' => $row[12] ?? '',
+                    'pat_continuity' => $row[13] ?? '',
+                    'pat_result' => $row[14] ?? '',
+                ];
+
+                try {
+                    // Check for existing asset with same alias and retire it if found
+                    $existingAssetByAlias = null;
+                    if (!empty($data['alias'])) {
+                        $existingAssetByAlias = Asset::where('alias', trim($data['alias']))
+                                                    ->where('status', '!=', 'Retired')
+                                                    ->first();
+                        
+                        if ($existingAssetByAlias) {
+                            // Retire the old asset
+                            $existingAssetByAlias->update(['status' => 'Retired']);
+                            
+                            // Remove from any kits
+                            $this->removeAssetFromAllKits($existingAssetByAlias);
+                            
+                            $results['retired'][] = [
+                                'id' => $existingAssetByAlias->id,
+                                'alias' => $existingAssetByAlias->alias,
+                                'afs_id' => $existingAssetByAlias->afs_id
+                            ];
+                        }
+                    }
+
+                    // Process asset data
+                    $assetData = [
+                        'afs_id' => !empty($data['afs_id']) ? trim($data['afs_id']) : null,
+                        'alias' => !empty($data['alias']) ? trim($data['alias']) : null,
+                        'type' => trim($data['type']),
+                        'make' => !empty($data['make']) ? trim($data['make']) : null,
+                        'model' => !empty($data['model']) ? trim($data['model']) : null,
+                        'status' => !empty($data['status']) ? trim($data['status']) : 'Active',
+                        'acq_date' => !empty($data['acq_date']) ? trim($data['acq_date']) : null,
+                        'supplier' => !empty($data['supplier']) ? trim($data['supplier']) : null,
+                    ];
+
+                    // Check if asset exists (by afs_id if provided)
+                    $existingAsset = null;
+                    if ($assetData['afs_id']) {
+                        $existingAsset = Asset::where('afs_id', $assetData['afs_id'])->first();
+                    }
+
+                    if ($existingAsset) {
+                        // Update existing asset
+                        $existingAsset->update($assetData);
+                        $asset = $existingAsset;
+                        $results['updated']++;
+                    } else {
+                        // Create new asset
+                        $asset = Asset::create($assetData);
+                        $results['created']++;
+                    }
+
+                    // Process PAT test data if provided
+                    $this->processPATTestData($asset, $data, $rowNumber, $results);
+
+                    // Process kit assignment if provided
+                    $this->processKitAssignment($asset, $data, $results);
+
+                } catch (\Exception $e) {
+                    $results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
+                    continue;
+                }
+            }
+
+            DB::commit();
+
+            Auditing::log('Asset Management', auth()->user()->id, 'Batch Import', 
+                "Imported assets - Created: {$results['created']}, Updated: {$results['updated']}, Errors: " . count($results['errors']));
+
+            Log::debug('Asset batch import completed: ' . json_encode($results));
+
+            return response()->json([
+                'message' => 'Batch import completed',
+                'results' => $results
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Asset batch import failed: ' . $e->getMessage());
+            return response()->json(['message' => 'Batch import failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function processPATTestData($asset, $data, $rowNumber, &$results)
+    {
+        // Check if any PAT test data is provided
+        $patFields = ['pat_class', 'pat_vi_socket', 'pat_vi_plug', 'pat_vi_switch', 'pat_vi_flex', 
+                     'pat_vi_body', 'pat_vi_environment', 'pat_vi_continued_use', 'pat_ins_resis', 
+                     'pat_earth_cont', 'pat_leakage', 'pat_continuity', 'pat_result'];
+        
+        $hasPATData = false;
+        foreach ($patFields as $field) {
+            if (!empty($data[$field])) {
+                $hasPATData = true;
+                break;
+            }
+        }
+
+        if (!$hasPATData) {
+            return; // No PAT data to process
+        }
+
+        try {
+            $patData = [
+                'asset_id' => $asset->id,
+                'datetime' => now(),
+                'expires' => now()->addYear(),
+                'user_id' => auth()->user()->id,
+                'hr_id' => auth()->user()->employee->hr_id ?? null,
+                'class' => !empty($data['pat_class']) ? trim($data['pat_class']) : null,
+                'vi_socket' => $this->parseBooleanValue($data['pat_vi_socket']),
+                'vi_plug' => $this->parseBooleanValue($data['pat_vi_plug']),
+                'vi_switch' => $this->parseBooleanValue($data['pat_vi_switch']),
+                'vi_flex' => $this->parseBooleanValue($data['pat_vi_flex']),
+                'vi_body' => $this->parseBooleanValue($data['pat_vi_body']),
+                'vi_environment' => $this->parseBooleanValue($data['pat_vi_environment']),
+                'vi_continued_use' => $this->parseBooleanValue($data['pat_vi_continued_use']),
+                'ins_resis' => !empty($data['pat_ins_resis']) ? floatval($data['pat_ins_resis']) : null,
+                'earth_cont' => !empty($data['pat_earth_cont']) ? floatval($data['pat_earth_cont']) : null,
+                'leakage' => !empty($data['pat_leakage']) ? floatval($data['pat_leakage']) : null,
+                'continuity' => !empty($data['pat_continuity']) ? floatval($data['pat_continuity']) : null,
+                'result' => !empty($data['pat_result']) ? trim($data['pat_result']) : 'Pass',
+            ];
+
+            PAT::create($patData);
+
+        } catch (\Exception $e) {
+            $results['errors'][] = "Row {$rowNumber}: PAT test creation failed - " . $e->getMessage();
+        }
+    }
+
+    private function processKitAssignment($asset, $data, &$results)
+    {
+        if (empty($data['kit_alias'])) {
+            return; // No kit assignment requested
+        }
+
+        $kitAlias = trim($data['kit_alias']);
+
+        try {
+            // Check if kit exists
+            $kit = Kit::where('alias', $kitAlias)->first();
+
+            if (!$kit) {
+                // Create new kit
+                $kit = Kit::create([
+                    'alias' => $kitAlias,
+                    'active' => true
+                ]);
+                $results['kits_created'][] = $kitAlias;
+            }
+
+            // Check if asset is already in a different kit and remove it
+            $currentKitItem = Item::where('asset_id', $asset->id)->first();
+            if ($currentKitItem && $currentKitItem->kit_id !== $kit->id) {
+                // Remove from current kit
+                $this->removeAssetFromKit($asset->id, $currentKitItem->kit_id);
+            }
+
+            // Check if asset is already in this kit
+            $existingItem = Item::where('kit_id', $kit->id)
+                               ->where('asset_id', $asset->id)
+                               ->first();
+
+            if (!$existingItem) {
+                // Add asset to kit
+                Item::create([
+                    'kit_id' => $kit->id,
+                    'asset_id' => $asset->id,
+                ]);
+
+                // Log the kit assignment
+                DB::table('assets.kit_log')->insert([
+                    'kit_id' => $kit->id,
+                    'asset_id' => $asset->id,
+                    'type' => 'Added',
+                    'user_id' => auth()->user()->id,
+                    'hr_id' => auth()->user()->employee->hr_id ?? null,
+                    'created_at' => now(),
+                ]);
+            }
+
+            // Add generic items to kit if applicable.
+            $this->addGenericItemsToKit($asset, $kit, $results);
+
+        } catch (\Exception $e) {
+            $results['errors'][] = "Kit assignment failed for asset {$asset->id}: " . $e->getMessage();
+        }
+    }
+
+    private function addGenericItemsToKit($asset, $kit, &$results)
+    {
+        // Define generic items to add (by asset ID)
+        $generic_items = [1, 2, 3, 4, 1124];
+
+        foreach ($generic_items as $item) {
+            Item::create([
+                'kit_id' => $kit->id,
+                'asset_id' => $item,
+            ]);
+
+            DB::table('assets.kit_log')->insert([
+                'kit_id' => $kit->id,
+                'asset_id' => $item,
+                'type' => 'Added',
+                'user_id' => auth()->user()->id,
+                'hr_id' => auth()->user()->employee->hr_id,
+                'created_at' => now(),
+            ]);
+        }
+
+        $results['generic_items_added'][] = [
+            'kit_alias' => $kit->alias,
+            'asset_alias' => $asset->alias,
+            'items_added' => $generic_items
+        ];
+    }
+
+    private function parseBooleanValue($value)
+    {
+        if (empty($value)) {
+            return false;
+        }
+        
+        $value = strtolower(trim($value));
+        return in_array($value, ['true', '1', 'yes', 'pass', 'passed']);
+    }
+
+    private function removeAssetFromAllKits($asset)
+    {
+        $kitItems = Item::where('asset_id', $asset->id)->get();
+        
+        foreach ($kitItems as $item) {
+            $this->removeAssetFromKit($asset->id, $item->kit_id);
+        }
+    }
+
+    private function removeAssetFromKit($assetId, $kitId)
+    {
+        // Remove from kit
+        Item::where('asset_id', $assetId)
+             ->where('kit_id', $kitId)
+             ->delete();
+
+        // Log the removal
+        DB::table('assets.kit_log')->insert([
+            'kit_id' => $kitId,
+            'asset_id' => $assetId,
+            'type' => 'Removed',
+            'user_id' => auth()->user()->id,
+            'hr_id' => auth()->user()->employee->hr_id ?? null,
+            'created_at' => now(),
+        ]);
+    }
+
+    private function previewAssetChanges($data, $rowNumber, &$preview)
+    {
+        $assetData = [
+            'afs_id' => !empty($data['afs_id']) ? trim($data['afs_id']) : null,
+            'alias' => !empty($data['alias']) ? trim($data['alias']) : null,
+            'type' => trim($data['type']),
+            'make' => !empty($data['make']) ? trim($data['make']) : null,
+            'model' => !empty($data['model']) ? trim($data['model']) : null,
+            'status' => !empty($data['status']) ? trim($data['status']) : 'Active',
+            'acq_date' => !empty($data['acq_date']) ? trim($data['acq_date']) : null,
+            'supplier' => !empty($data['supplier']) ? trim($data['supplier']) : null,
+        ];
+
+        // Check for existing asset with same alias
+        if (!empty($assetData['alias'])) {
+            $existingAssetByAlias = Asset::where('alias', $assetData['alias'])
+                                        ->where('status', '!=', 'Retired')
+                                        ->first();
+            
+            if ($existingAssetByAlias) {
+                $kits = Item::where('asset_id', $existingAssetByAlias->id)
+                           ->with('kit')
+                           ->get()
+                           ->pluck('kit.alias')
+                           ->toArray();
+
+                $preview['assets_to_retire'][] = [
+                    'row' => $rowNumber,
+                    'id' => $existingAssetByAlias->id,
+                    'alias' => $existingAssetByAlias->alias,
+                    'afs_id' => $existingAssetByAlias->afs_id,
+                    'type' => $existingAssetByAlias->type,
+                    'current_kits' => $kits
+                ];
+            }
+        }
+
+        // Check if asset exists (by afs_id)
+        $existingAsset = null;
+        if ($assetData['afs_id']) {
+            $existingAsset = Asset::where('afs_id', $assetData['afs_id'])->first();
+        }
+
+        if ($existingAsset && !isset($existingAssetByAlias)) {
+            $preview['assets_to_update'][] = [
+                'row' => $rowNumber,
+                'id' => $existingAsset->id,
+                'current_data' => $existingAsset->toArray(),
+                'new_data' => $assetData
+            ];
+        } else {
+            $preview['assets_to_create'][] = [
+                'row' => $rowNumber,
+                'data' => $assetData
+            ];
+        }
+    }
+
+    private function previewPATTestChanges($data, $rowNumber, &$preview)
+    {
+        $patFields = ['pat_class', 'pat_vi_socket', 'pat_vi_plug', 'pat_vi_switch', 'pat_vi_flex', 
+                     'pat_vi_body', 'pat_vi_environment', 'pat_vi_continued_use', 'pat_ins_resis', 
+                     'pat_earth_cont', 'pat_leakage', 'pat_continuity', 'pat_result'];
+        
+        $hasPATData = false;
+        foreach ($patFields as $field) {
+            if (!empty($data[$field])) {
+                $hasPATData = true;
+                break;
+            }
+        }
+
+        if ($hasPATData) {
+            $preview['pat_tests_to_create'][] = [
+                'row' => $rowNumber,
+                'asset_alias' => $data['alias'],
+                'pat_data' => array_filter([
+                    'class' => $data['pat_class'],
+                    'result' => $data['pat_result'] ?: 'pass',
+                ])
+            ];
+        }
+    }
+
+    private function previewKitChanges($data, $rowNumber, &$preview)
+    {
+        if (empty($data['kit_alias'])) {
+            return;
+        }
+
+        $kitAlias = trim($data['kit_alias']);
+        $assetAlias = trim($data['alias']);
+
+        // Check if kit exists
+        $kit = Kit::where('alias', $kitAlias)->first();
+        $kitExists = $kit ? true : false;
+
+        // Check current kit assignment for this asset alias
+        $currentKitAssignment = null;
+        if (!empty($assetAlias)) {
+            $asset = Asset::where('alias', $assetAlias)->first();
+            if ($asset) {
+                $currentItem = Item::where('asset_id', $asset->id)->with('kit')->first();
+                if ($currentItem) {
+                    $currentKitAssignment = $currentItem->kit->alias;
+                }
+            }
+        }
+
+        $preview['kit_changes'][] = [
+            'row' => $rowNumber,
+            'asset_alias' => $assetAlias,
+            'target_kit' => $kitAlias,
+            'kit_exists' => $kitExists,
+            'current_kit' => $currentKitAssignment,
+            'action' => $currentKitAssignment && $currentKitAssignment !== $kitAlias ? 'reassign' : 'assign'
+        ];
     }
 }

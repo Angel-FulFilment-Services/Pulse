@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
+import { PhotoIcon, CameraIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { MagnifyingGlassIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import useFetchAssets from '../../Fetches/Assets/useFetchAssets';
 import SearchControl from '../../Controls/SearchControl';
+import Modal from '../../Modals/Modal';
+import AssetImportPreview from '../Imports/AssetImportPreview';
+import { handleAssetImportPreview, executeAssetImport } from '../Imports/AssetImportHandlers';
 
 // Simple spinner component
 function Spinner() {
@@ -32,8 +35,13 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
   const [cameraError, setCameraError] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [processedData, setProcessedData] = useState(null);
+  const [isExecutingImport, setIsExecutingImport] = useState(false);
   const videoRef = useRef(null);
   const codeReader = useRef(null);
+  const fileInputRef = useRef(null);
   const [availableAssets, setAvailableAssets] = useState([]);
 
   const { assets } = useFetchAssets();
@@ -97,6 +105,54 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
     return () => stopCamera();
   }, [startCamera, stopCamera]);
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      await handleAssetImportPreview(
+        file,
+        (preview, processed) => {
+          setPreviewData(preview);
+          setProcessedData(processed);
+          setShowImportModal(true);
+        }
+      );
+    } catch (error) {
+      console.error('Import preview failed:', error);
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!processedData) return;
+
+    setIsExecutingImport(true);
+    try {
+      await executeAssetImport(processedData);
+      setShowImportModal(false);
+      setPreviewData(null);
+      setProcessedData(null);
+    } catch (error) {
+      console.error('Import execution failed:', error);
+    } finally {
+      setIsExecutingImport(false);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setShowImportModal(false);
+    setPreviewData(null);
+    setProcessedData(null);
+    setIsExecutingImport(false);
+  };
+
   return (
     <div className={`flex flex-col items-center gap-4 h-full justify-center w-full ${!cameraError && 'items-center'}`}>
       <div className="mb-4 text-center w-full">
@@ -154,15 +210,46 @@ export default function Scanner({ handleScan, handleClose, goTo }) {
             handleScan(null, null, item);
           }}
         />  
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 ">
           <button
-            className={`px-4 py-2 rounded-md text-white flex items-center justify-center w-32 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
+            className={`px-4 py-2 rounded-md text-white flex items-center justify-center shrink-0 h-10 disabled:cursor-not-allowed bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-500`}
             onClick={() => goTo({ type: 'create', assetId: null })}
           >
             Create Asset
           </button>
+          <button
+            className={`px-2 py-2 rounded-md text-gray-700 dark:text-dark-300 bg-gray-100 shrink-0 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 flex items-center justify-center gap-x-2 h-10 w-10 disabled:cursor-not-allowed border border-gray-300 dark:border-dark-600`}
+            onClick={handleImportClick}
+            title="Import Assets from CSV"
+          >
+            <ArrowUpTrayIcon className="h-4 w-4" />
+          </button>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.txt"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
+
+      {/* Import Preview Modal */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={handleCancelImport}
+        size="3xl"
+        fullHeight={true}
+        closeOnClickOutside={!isExecutingImport}
+        showCloseButton={false}
+      >
+        <AssetImportPreview
+          previewData={previewData}
+          onConfirm={handleConfirmImport}
+          onCancel={handleCancelImport}
+          isExecuting={isExecutingImport}
+        />
+      </Modal>
     </div>
   );
 }
