@@ -648,9 +648,9 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                         position: 'absolute',
                         width: '100%',
                         height: '100%',
-                        background: 'linear-gradient(135deg, #FA7614 0%, #ff8c1a 50%, #FA7614 100%)',
+                        background: 'radial-gradient(ellipse 60% 55% at 40% 35%, #ffb347 0%, #FA7614 30%, #e56b0f 60%, #c8550c 85%, #8b3f08 100%)',
                         borderRadius: '45% / 50%',
-                        boxShadow: 'inset -3px -3px 6px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.4)',
+                        boxShadow: 'inset -4px -4px 8px rgba(0,0,0,0.5), inset 3px 3px 6px rgba(255,179,71,0.4), 0 4px 8px rgba(0,0,0,0.4)',
                         zIndex: 1,
                     }}>
                         {/* Vertical ridges */}
@@ -684,8 +684,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     {/* Triangle eyes */}
                     <div style={{
                         position: 'absolute',
-                        top: '9px',
-                        left: '10px',
+                        top: '7px',
+                        left: '9px',
                         width: '0px',
                         height: '0px',
                         borderLeft: '3.5px solid transparent',
@@ -696,8 +696,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     }} />
                     <div style={{
                         position: 'absolute',
-                        top: '9px',
-                        right: '10px',
+                        top: '7px',
+                        right: '9px',
                         width: '0px',
                         height: '0px',
                         borderLeft: '3.5px solid transparent',
@@ -709,15 +709,15 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     {/* Triangle nose */}
                     <div style={{
                         position: 'absolute',
-                        top: '16px',
+                        top: '14px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: '0px',
                         height: '0px',
-                        borderLeft: '3px solid transparent',
-                        borderRight: '3px solid transparent',
-                        borderTop: `5px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
-                        filter: 'blur(0.5px) drop-shadow(0 1px 2px rgba(0,0,0,0.6)) drop-shadow(inset 0 1px 1px rgba(0,0,0,0.4))',
+                        borderLeft: '2px solid transparent',
+                        borderRight: '2px solid transparent',
+                        borderTop: `4px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
+                        filter: '',
                         zIndex: 2,
                     }} />
                     {/* Wide curved smile */}
@@ -730,63 +730,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                         height: '7px',
                         borderBottom: `3px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         borderRadius: '0 0 100% 100%',
-                        filter: 'blur(0.5px) drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
+                        filter: '',
                         zIndex: 2,
-                    }} />
-                    
-                    {/* Shadow edges around cutouts for depth */}
-                    {/* Left eye shadow - outer darker ring */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '6px',
-                        left: '6px',
-                        width: '0px',
-                        height: '0px',
-                        borderLeft: '6.5px solid transparent',
-                        borderRight: '6.5px solid transparent',
-                        borderBottom: '11px solid rgba(0,0,0,0.7)',
-                        filter: 'blur(2px)',
-                        zIndex: 1.5,
-                    }} />
-                    {/* Right eye shadow - outer darker ring */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        width: '0px',
-                        height: '0px',
-                        borderLeft: '6.5px solid transparent',
-                        borderRight: '6.5px solid transparent',
-                        borderBottom: '11px solid rgba(0,0,0,0.7)',
-                        filter: 'blur(2px)',
-                        zIndex: 1.5,
-                    }} />
-                    {/* Nose shadow */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '15px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '0px',
-                        height: '0px',
-                        borderLeft: '3.5px solid transparent',
-                        borderRight: '3.5px solid transparent',
-                        borderTop: '6px solid rgba(0,0,0,0.3)',
-                        filter: 'blur(1px)',
-                        zIndex: 1.5,
-                    }} />
-                    {/* Smile shadow */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '6px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '26px',
-                        height: '8px',
-                        borderBottom: '4px solid rgba(0,0,0,0.3)',
-                        borderRadius: '0 0 100% 100%',
-                        filter: 'blur(1.5px)',
-                        zIndex: 1.5,
                     }} />
                     
                     {/* Teeth - glow color to blend with smile */}
@@ -794,21 +739,19 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                         position: 'absolute',
                         bottom: '7px',
                         left: '11px',
-                        width: '2.5px',
-                        height: '4px',
+                        width: '2px',
+                        height: '5px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
-                        filter: 'blur(0.5px)',
                         zIndex: 2,
                     }} />
                     <div style={{
                         position: 'absolute',
-                        bottom: '7px',
+                        bottom: '6px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: '2.5px',
-                        height: '4px',
+                        height: '5px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
-                        filter: 'blur(0.5px)',
                         zIndex: 2,
                     }} />
                     <div style={{
@@ -816,9 +759,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                         bottom: '7px',
                         right: '11px',
                         width: '2.5px',
-                        height: '4px',
+                        height: '5px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
-                        filter: 'blur(0.5px)',
                         zIndex: 2,
                     }} />
                 </div>

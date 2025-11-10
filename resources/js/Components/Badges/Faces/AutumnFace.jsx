@@ -43,7 +43,10 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
     const [leaves, setLeaves] = useState([]);
     const [groundLeaves, setGroundLeaves] = useState([]);
     const [birds, setBirds] = useState([]);
-    const [treeShaken, setTreeShaken] = useState({ tree1: false, tree2: false, tree3: false, tree4: false });
+    const [treeShaken, setTreeShaken] = useState({ tree1: false, tree2: false, tree3: false, tree4: false, tree5: false });
+    const [lastHoveredTree, setLastHoveredTree] = useState(null);
+    const lastShakeTime = useRef({});
+    const wasHovering = useRef(false);
     const leaveIdRef = useRef(0);
     const birdIdRef = useRef(0);
     const lastMousePos = useRef({ x: 0.5, y: 0.5 });
@@ -155,11 +158,13 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
             prevMouseX.current = lastMousePos.current.x; // Store previous X
             lastMousePos.current.x = x;
             checkPathInteraction(x, lastMousePos.current.y);
+            checkTreeHover(x, lastMousePos.current.y);
         });
         
         const unsubscribeY = mouseY.on('change', (y) => {
             lastMousePos.current.y = y;
             checkPathInteraction(lastMousePos.current.x, y);
+            checkTreeHover(lastMousePos.current.x, y);
         });
         
         return () => {
@@ -168,10 +173,64 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
         };
     }, [mouseX, mouseY, groundLeaves]);
     
+    const checkTreeHover = (x, y) => {
+        const currentlyHovering = isHovering.get();
+        
+        if (!currentlyHovering) {
+            setLastHoveredTree(null);
+            // Reset all tree shake states when not hovering badge
+            setTreeShaken({ tree1: false, tree2: false, tree3: false, tree4: false, tree5: false });
+            wasHovering.current = false;
+            return;
+        }
+        
+        // If we just started hovering OR if position is at extremes (likely a reset), skip detection
+        // This prevents triggering when mouse leaves and position snaps to 1,1
+        if (!wasHovering.current || x > 0.95 || x < 0.05 || y > 0.95 || y < 0.05) {
+            wasHovering.current = true;
+            return;
+        }
+        
+        // Convert normalized coordinates to pixels (80x80 badge)
+        const pixelX = x * 80;
+        const pixelY = y * 80;
+        
+        // Check if mouse is over any tree
+        let hoveredTree = null;
+        for (const tree of trees) {
+            const treeLeft = tree.x - 12.5 * tree.size;
+            const treeTop = tree.y - 40 * tree.size;
+            const treeWidth = 25 * tree.size;
+            const treeHeight = 40 * tree.size;
+            
+            if (pixelX >= treeLeft && pixelX <= treeLeft + treeWidth &&
+                pixelY >= treeTop && pixelY <= treeTop + treeHeight) {
+                hoveredTree = tree.id;
+                break;
+            }
+        }
+        
+        // If we're hovering a new tree, shake it
+        if (hoveredTree && hoveredTree !== lastHoveredTree && !treeShaken[hoveredTree]) {
+            console.log('Hovering tree:', hoveredTree);
+            shakeTree(hoveredTree);
+        }
+        
+        // If we left a tree, reset its shake state after a delay
+        if (lastHoveredTree && lastHoveredTree !== hoveredTree) {
+            setTimeout(() => {
+                setTreeShaken(prev => ({ ...prev, [lastHoveredTree]: false }));
+            }, 1000);
+        }
+        
+        setLastHoveredTree(hoveredTree);
+    };
+    
     const checkPathInteraction = (x, y) => {
         // Path is in bottom 35% of badge (y > 0.65) and must be hovering
         // Also check that we're actually in the path area (not leaving the badge)
-        if (y > 0.75 && y < 1 && x >= 0 && x <= 1 && isHovering.get()) {
+        // Ignore extreme positions which indicate mouse is leaving
+        if (y > 0.75 && y < 0.95 && x >= 0.05 && x <= 0.95 && isHovering.get()) {
             kickUpLeaves(x * 80);
         }
     };
@@ -220,16 +279,32 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
     
     const shakeTree = (side) => {
         console.log('shakeTree called with:', side);
+        
+        // Random cooldown between 3-10 seconds
+        const cooldownTime = 3000 + Math.random() * 7000; // 3000-10000ms
+        const now = Date.now();
+        if (lastShakeTime.current[side] && now - lastShakeTime.current[side] < cooldownTime) {
+            console.log('Tree on cooldown, skipping');
+            return;
+        }
+        
         console.log('treeShaken state:', treeShaken);
         if (treeShaken[side]) {
             console.log('Tree already shaken, returning');
             return;
         }
         
+        lastShakeTime.current[side] = now;
         setTreeShaken(prev => ({ ...prev, [side]: true }));
         
-        // Release birds
-        const birdCount = 2 + Math.floor(Math.random() * 2);
+        // 20% chance of no birds
+        if (Math.random() < 0.2) {
+            console.log('No birds this time (20% chance)');
+            return;
+        }
+        
+        // Release birds (reduced count)
+        const birdCount = Math.random() < 0.60 ? 1 : 2; // 60% chance of 1 bird, 40% chance of 2 birds
         const newBirds = [];
         
         const tree = trees.find(t => t.id === side);
@@ -240,25 +315,34 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
             newBirds.push({
                 id: birdIdRef.current++,
                 x: tree.x,
-                y: tree.y - 5 + Math.random() * 5,
+                y: tree.y - 30, // Start higher up
                 angle: -90 + (Math.random() - 0.5) * 60, // Fly upward with variation
                 speed: 1.5 + Math.random() * 1,
+                opacity: 1, // Start fully visible
+                wingPhase: Math.random() * Math.PI * 2, // Random wing start position
             });
         }
         
-        console.log('Releasing birds:', newBirds);
         setBirds(prev => [...prev, ...newBirds]);
+        // Reset after leaving tree area (handled by checkTreeHover)
     };
     
     // Animate birds
     useEffect(() => {
         const interval = setInterval(() => {
             setBirds(prev => 
-                prev.map(bird => ({
-                    ...bird,
-                    x: bird.x + Math.cos(bird.angle * Math.PI / 180) * bird.speed,
-                    y: bird.y + Math.sin(bird.angle * Math.PI / 180) * bird.speed,
-                })).filter(bird => bird.x > -10 && bird.x < 90 && bird.y > -10)
+                prev.map(bird => {
+                    // Fade out as bird flies away
+                    const newOpacity = bird.opacity - 0.02;
+                    
+                    return {
+                        ...bird,
+                        x: bird.x + Math.cos(bird.angle * Math.PI / 180) * bird.speed,
+                        y: bird.y + Math.sin(bird.angle * Math.PI / 180) * bird.speed,
+                        opacity: newOpacity,
+                        wingPhase: bird.wingPhase + 0.6, // Faster wing flapping (increased from 0.3)
+                    };
+                }).filter(bird => bird.x > -10 && bird.x < 90 && bird.y > -10 && bird.opacity > 0)
             );
         }, 50);
         
@@ -1024,10 +1108,9 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
                             width: `${25 * tree.size}px`,
                             height: `${40 * tree.size}px`,
                             cursor: 'pointer',
-                            pointerEvents: 'auto', // Always allow pointer events
+                            pointerEvents: 'auto',
                             zIndex: 2,
                             transformOrigin: 'bottom center',
-                            border: '2px solid red', // DEBUG: Visual indicator
                         }}
                         animate={treeShaken[tree.id] ? {
                             rotateZ: [0, -5, 5, -3, 3, 0],
@@ -1042,13 +1125,17 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
                             repeat: Infinity,
                             ease: 'easeInOut',
                         }}
-                        onMouseEnter={() => {
-                            console.log(`Tree ${tree.id} hovered`);
+                        onMouseOver={(e) => {
+                            e.stopPropagation();
+                            console.log(`Tree ${tree.id} mouse over`);
                             if (!treeShaken[tree.id]) {
+                                console.log(`Shaking tree ${tree.id}`);
                                 shakeTree(tree.id);
                             }
                         }}
-                        onMouseLeave={() => {
+                        onMouseOut={(e) => {
+                            e.stopPropagation();
+                            console.log(`Tree ${tree.id} mouse out`);
                             // Reset shake state when mouse leaves so it can be triggered again
                             setTimeout(() => {
                                 setTreeShaken(prev => ({ ...prev, [tree.id]: false }));
@@ -1478,29 +1565,48 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
             ))}
             
             {/* Birds */}
-            {birds.map(bird => (
-                <div
-                    key={bird.id}
-                    style={{
-                        position: 'absolute',
-                        left: `${bird.x}px`,
-                        top: `${bird.y}px`,
-                        pointerEvents: 'none',
-                        zIndex: 4,
-                    }}
-                >
-                    {/* Simple V-shape bird */}
-                    <svg width="8" height="6" viewBox="0 0 8 6">
-                        <path
-                            d="M 0 3 L 3 0 L 4 1 M 8 3 L 5 0 L 4 1"
-                            stroke="#2C1810"
-                            strokeWidth="1"
-                            fill="none"
-                            strokeLinecap="round"
-                        />
-                    </svg>
-                </div>
-            ))}
+            {birds.map(bird => {
+                // Calculate wing angle based on phase for flapping animation
+                const wingAngle = Math.sin(bird.wingPhase) * 15; // Flap between -15 and +15 degrees
+                
+                return (
+                    <div
+                        key={bird.id}
+                        style={{
+                            position: 'absolute',
+                            left: `${bird.x}px`,
+                            top: `${bird.y}px`,
+                            pointerEvents: 'none',
+                            zIndex: 4,
+                            opacity: bird.opacity,
+                        }}
+                    >
+                        {/* Flapping bird with animated wings */}
+                        <svg width="10" height="8" viewBox="0 0 10 8">
+                            {/* Left wing */}
+                            <path
+                                d="M 5 4 L 1 2"
+                                stroke="#2C1810"
+                                strokeWidth="1.5"
+                                fill="none"
+                                strokeLinecap="round"
+                                transform={`rotate(${-wingAngle} 5 4)`}
+                            />
+                            {/* Right wing */}
+                            <path
+                                d="M 5 4 L 9 2"
+                                stroke="#2C1810"
+                                strokeWidth="1.5"
+                                fill="none"
+                                strokeLinecap="round"
+                                transform={`rotate(${wingAngle} 5 4)`}
+                            />
+                            {/* Body */}
+                            <circle cx="5" cy="4" r="1" fill="#2C1810" />
+                        </svg>
+                    </div>
+                );
+            })}
         </>
     );
 };
