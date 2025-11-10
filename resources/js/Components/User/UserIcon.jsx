@@ -8,10 +8,11 @@ const Icon = ({ size = 'large', profilePhoto }) => {
     'medium': 'h-10 w-10',
     'large': 'h-12 w-12',
     'extra-large': 'h-14 w-14',
+    "parent": 'h-full w-full'
   };
 
   return (
-    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${sizeClasses[size]}`}>
+    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center rounded-full ${sizeClasses[size]}`}>
       {profilePhoto ? (
         <img
           src={`https://pulse.cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
