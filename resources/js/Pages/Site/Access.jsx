@@ -6,11 +6,13 @@ import SignInTypeSelector from '../../Components/Site/SignInTypeSelector';
 import DeliveryTypeSelector from '../../Components/Site/DeliveryTypeSelector';
 import SignInEmployeeForm from '../../Components/Site/SignInEmployeeForm';
 import SignInVisitorForm from '../../Components/Site/SignInVisitorForm';
+import SignInInterviewForm from '../../Components/Site/SignInInterviewForm';
 import SignInContractorForm from '../../Components/Site/SignInContractorForm';
 import UpdateProfilePhoto from '../../Components/Site/UpdateProfilePhoto';
 import TermsAndConditions from '../../Components/Site/TermsAndConditions';
 import SignOutList from '../../Components/Site/SignOutList';
 import WelcomeMessage from '../../Components/Site/WelcomeMessage';
+import InterviewMessage from '../../Components/Site/InterviewMessage';
 import GoodbyeMessage from '../../Components/Site/GoodbyeMessage';
 import ThankYouMessage from '../../Components/Site/ThankYouMessage';
 import { XMarkIcon } from '@heroicons/react/24/outline';
@@ -144,6 +146,10 @@ export default function Access({ location }) {
       setSignOutType(null); // Reset signOutType when returning to splash
       setFormData(null); // Reset formData when returning to splash
     }
+
+    if( step === 'signin-interview' || step === 'signin-interview-home') {
+      setSignInType('visitor'); // Set signInType to visitor for interview sign in
+    }
   }, [step])
 
   // Initialize camera when component mounts
@@ -236,7 +242,13 @@ export default function Access({ location }) {
     }
   };
 
-  const handleSignInComplete = () => setStep('welcome');
+  const handleSignInComplete = () => { 
+    if(signInType === 'visitor' && (formData.visitor_visiting === 'Interview' || formData.visitor_visiting === 'interview')) {
+      setStep('welcome-interview');
+    } else {
+      setStep('welcome'); 
+    }
+  };
   const handleSignOutComplete = () => setStep('goodbye');
 
   // Render logic
@@ -268,6 +280,8 @@ export default function Access({ location }) {
   if (step === 'signin-employee') return <SignInEmployeeForm onComplete={setFormData} setStep={setStep} location={location} />;
   if (step === 'signin-visitor') return <SignInVisitorForm onComplete={setFormData} setStep={setStep} location={location} />;
   if (step === 'signin-contractor') return <SignInContractorForm onComplete={setFormData} setStep={setStep} location={location} />;
+  if (step === 'signin-interview') return <SignInInterviewForm onComplete={setFormData} setStep={setStep} location={location} from="mode" />;
+  if (step === 'signin-interview-home') return <SignInInterviewForm onComplete={setFormData} setStep={setStep} location={location} from="splash" />;
   if (step === 'update-profile-photo') {
     return (
       <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
@@ -278,6 +292,7 @@ export default function Access({ location }) {
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} signOutType={signOutType} />;
   if (step === 'terms-and-conditions') return <TermsAndConditions onComplete={signIn} setStep={setStep} />;
   if (step === 'welcome') return <WelcomeMessage setStep={setStep} />;
+  if (step === 'welcome-interview') return <InterviewMessage setStep={setStep} />;
   if (step === 'goodbye') return <GoodbyeMessage setStep={setStep} />;
   if (step === 'thank-you-signature') return <ThankYouMessage setStep={setStep} category="signature" />;
   if (step === 'thank-you-left-at-door') return <ThankYouMessage setStep={setStep} category="left-at-door" />;

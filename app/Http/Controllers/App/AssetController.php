@@ -1457,6 +1457,16 @@ class AssetController extends Controller
         $generic_items = [1, 2, 3, 4, 1124];
 
         foreach ($generic_items as $item) {
+
+            // Check if item is already in kit.
+            $existingItem = Item::where('kit_id', $kit->id)
+            ->where('asset_id', $item)
+            ->first();
+
+            // Skip if already exists.
+            if($existingItem)
+                continue;
+                
             Item::create([
                 'kit_id' => $kit->id,
                 'asset_id' => $item,

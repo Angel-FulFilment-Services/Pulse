@@ -1,4 +1,4 @@
-import { ChevronRightIcon, ChevronLeftIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, ChevronLeftIcon, CubeIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { RiDoorOpenLine, RiDoorClosedLine } from '@remixicon/react';
 import React from 'react';
 import axios from 'axios';
@@ -38,6 +38,17 @@ export default function ModeSelector({ setStep, location }) {
         </div>
         <p className="mb-2">
           Delivery
+        </p>
+      </button>
+      <button
+        className="px-8 w-full h-full py-4 bg-white dark:bg-dark-800 dark:text-dark-100 text-gray-900 rounded-[3rem] text-6xl shadow-[0_0_35px_0_rgba(0,0,0,0.1)] hover:bg-gray-50 focus:outline-none flex items-center justify-start"
+        onClick={() => setStep('signin-interview')}
+      >
+        <div className="flex flex-row items-center justify-center w-2/6">
+          <UsersIcon className="h-20 w-20 text-gray-900 dark:text-dark-200 inline-block stroke-[2] flex-shrink-0" />
+        </div>
+        <p className="mb-2">
+          Interview
         </p>
       </button>
     </div>

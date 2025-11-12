@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export default function WelcomeMessage({ setStep }) {
+export default function InterviewMessage({ setStep, category }) {
   const timeoutRef = useRef(null); // Ref to store the timeout ID
 
   useEffect(() => {
@@ -44,12 +44,12 @@ export default function WelcomeMessage({ setStep }) {
             className="h-52"
           />
         </div>
-        <div className="flex flex-col items-start justify-start -mt-8">
+        <div className="flex flex-col items-start justify-center -mt-8">
           <h1 className="text-9xl font-semibold text-white dark:text-dark-100 mb-6">
-            Welcome,
+            Thank You,
           </h1>
           <h1 className="text-7xl font-semibold text-white dark:text-dark-100 mb-6">
-            Thank you for signing in.
+            Please take a seat, someone will be with you shortly.
           </h1>
         </div>
       </div>

@@ -39,9 +39,9 @@ export default function ThankYouMessage({ setStep, category }) {
       <div className="h-full w-full flex flex-col items-center justify-start px-10 z-50"> 
         <div className="flex h-2/5 items-start justify-start">
           <img
-            src="/images/angel-logo.png"
+            src="/images/angel-logo-tag-line.png"
             alt="Logo"
-            className="w-72"
+            className="h-52"
           />
         </div>
         <div className="flex flex-col items-start justify-center -mt-8">

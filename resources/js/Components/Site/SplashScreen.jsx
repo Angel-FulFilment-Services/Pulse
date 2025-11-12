@@ -30,19 +30,30 @@ export default function SplashScreen({ onContinue, setStep }) {
               />
             </h1>
             <h1 className="text-5xl font-semibold text-white dark:text-dark-100 mb-6 -mt-6 max-w-[54rem]">
-              If you’re visiting us today, please sign in here so we know you’ve arrived, then take a seat.
+              Please Sign In Here
             </h1>
             <h1 className="text-4xl font-semibold text-white dark:text-dark-100 mb-6 ml-1">
-              We’ll be with you shortly.
+              For Angel employees and visitors only.
             </h1>
           </div>
         </div>
-        <div
-          className="px-6 py-6 text-center bg-[rgba(0,141,169,1)] text-white rounded-3xl text-3xl font-medium shadow-lg focus:outline-none z-50 ring-1 ring-black ring-opacity-5"
-        >
-          <p className="opacity-100">
-            Tap the screen to continue
-          </p>
+        <div className="flex flex-row items-center justify-center gap-x-6 z-50">
+          <div
+            className="px-6 py-6 text-center bg-[rgba(0,141,169,1)] text-white rounded-3xl text-3xl font-medium shadow-lg focus:outline-none z-50 ring-1 ring-black ring-opacity-5"
+            onClick={(event) => { setStep('signin-interview-home'); event.stopPropagation(); }}
+          >
+            I'm here for an interview
+          </div>
+          <div>
+            <p className="text-3xl font-semibold text-white dark:text-dark-100">or</p>
+          </div>
+          <div
+            className="px-6 py-6 text-center bg-[rgba(0,141,169,1)] text-white rounded-3xl text-3xl font-medium shadow-lg focus:outline-none z-50 ring-1 ring-black ring-opacity-5"
+          >
+            <p className="opacity-100">
+              Tap the screen to continue
+            </p>
+          </div>
         </div>
         {/* <div
           className="px-6 py-6 text-center bg-white text-black rounded-3xl text-3xl shadow-[0_0_35px_0_rgba(0,0,0,0.1)] font-medium hover:bg-gray-50 focus:outline-none z-50 ring-1 ring-black ring-opacity-5"
