@@ -9,6 +9,7 @@ const BadgeWidget = ({ employee }) => {
         ...Array.from({ length: 9 }, (_, index) => ({
             id: index + 1,
             name: `Badge ${index + 1}`,
+            icon: 'UserGroupIcon',
             tier: ['bronze', 'silver', 'gold', 'platinum', 'emerald', 'ruby', 'sapphire', 'diamond', 'alexandrite'][index % 9],
             awarded_at: new Date(Date.now() - index * 86400000).toISOString(), // Last 9 days
             isNew: index === 0, // Mark first and third badges as new
@@ -18,6 +19,7 @@ const BadgeWidget = ({ employee }) => {
             id: 10,
             name: 'Basic Badge',
             tier: 'basic',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 10 * 86400000).toISOString(),
             isNew: false,
         },
@@ -26,6 +28,7 @@ const BadgeWidget = ({ employee }) => {
             id: 11,
             name: 'Winter Wonderland',
             tier: 'christmas_snow',
+            icon: 'AcademicCapIcon',
             awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
             isNew: false,
         },
@@ -34,6 +37,7 @@ const BadgeWidget = ({ employee }) => {
             id: 12,
             name: 'Holiday Lights',
             tier: 'christmas_lights',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
             isNew: false,
         },
@@ -42,6 +46,7 @@ const BadgeWidget = ({ employee }) => {
             id: 13,
             name: 'New Year Celebration',
             tier: 'new_years',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
             isNew: false,
         },
@@ -49,6 +54,7 @@ const BadgeWidget = ({ employee }) => {
             id: 14,
             name: "Jack O Lantern",
             tier: 'jack_o_lantern',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 3 * 86400000).toISOString(),
             isNew: false,
         },
@@ -57,6 +63,7 @@ const BadgeWidget = ({ employee }) => {
             id: 15,
             name: 'Haunted Spirit',
             tier: 'spooky_ghost',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
             isNew: false,
         },
@@ -65,7 +72,36 @@ const BadgeWidget = ({ employee }) => {
             id: 16,
             name: 'Autumn Harvest',
             tier: 'autumn',
+            icon: 'TrophyIcon',
             awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+            isNew: false,
+        },
+        // Test badge with icon only
+        {
+            id: 18,
+            name: 'Achievement',
+            tier: 'gold',
+            icon: 'TrophyIcon',
+            awarded_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+            isNew: false,
+        },
+        // Test badge with image only
+        {
+            id: 19,
+            name: 'Photo Badge',
+            tier: 'silver',
+            image: '/images/angel-logo.png',
+            awarded_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+            isNew: false,
+        },
+        // Test badge with both icon and image
+        {
+            id: 20,
+            name: 'Combined',
+            tier: 'platinum',
+            icon: 'StarIcon',
+            image: '/images/angel-logo.png',
+            awarded_at: new Date(Date.now() - 5 * 86400000).toISOString(),
             isNew: false,
         }
     ];
@@ -98,7 +134,25 @@ const BadgeWidget = ({ employee }) => {
                                     `,
                                     zIndex: 0,
                                 }}
-                            />
+                            >
+                                {/* Circular hole for broach pin */}
+                                <div
+                                    className="absolute"
+                                    style={{
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '38px',
+                                        height: '38px',
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #d0d0d0, #c0c0c0)',
+                                        boxShadow: `
+                                            inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+                                            inset -1px -1px 3px rgba(255, 255, 255, 0.3)
+                                        `,
+                                    }}
+                                />
+                            </div>
                             <Badge 
                                 badge={badge} 
                                 index={index}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue } from 'framer-motion';
 
-const ChristmasLightsFace = ({ mouseX, mouseY, isHovering }) => {
+const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     const [lights, setLights] = useState([]);
     const [hoveredLight, setHoveredLight] = useState(null);
     
@@ -296,6 +296,11 @@ const ChristmasLightsFace = ({ mouseX, mouseY, isHovering }) => {
                         }}
                     />
                 </div>
+            </div>
+
+            {/* Embossed icon/image - behind presents and lights */}
+            <div>
+                {embossingContent}
             </div>
         </>
     );

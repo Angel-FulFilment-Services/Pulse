@@ -1,9 +1,12 @@
 import React from 'react';
 import { motion, useTransform } from 'framer-motion';
 
-const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors }) => {
+const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors, embossingContent }) => {
     return (
         <>
+            {/* Embossed icon/image behind the color spectrum */}
+            {embossingContent}
+            
             {/* Color spectrum following mouse */}
             <motion.div
                 className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden"
@@ -22,6 +25,7 @@ const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors })
                         )`
                     ),
                     mixBlendMode: 'screen',
+                    zIndex: 30,
                 }}
                 transition={{
                     type: 'spring',
@@ -41,6 +45,7 @@ const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors })
                         transparent 100%
                     )`,
                     backgroundSize: '200% 200%',
+                    zIndex: 35,
                 }}
                 animate={{
                     backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],

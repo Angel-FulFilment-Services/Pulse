@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useTransform, useSpring } from 'framer-motion';
 
-const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
+const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent }) => {
     const [isHovered, setIsHovered] = React.useState(false);
     
     // Fog flows with mouse position and tilt
@@ -246,11 +246,17 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                 />
             </div>
             
+            {/* Embossed icon/image - behind ghost but in front of tombstones/fog */}
+            <div style={{ zIndex: 28 }}>
+                {embossingContent}
+            </div>
+            
             {/* Fog layers - visible floating mist */}
             <div
                 className="absolute bottom-0 left-0 right-0 pointer-events-none"
                 style={{
                     height: '40px',
+                    zIndex: 27,
                 }}
             >
                 <motion.div
@@ -327,6 +333,7 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     y: ghostChaseY,
                     skewX: ghostSkewX,
                     skewY: ghostSkewY,
+                    zIndex: 30,
                 }}
             >
                 <div style={{ transform: 'translate(-50%, -50%)' }}>

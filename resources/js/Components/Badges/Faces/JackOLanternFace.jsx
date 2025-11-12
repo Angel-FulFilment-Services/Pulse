@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useTransform } from 'framer-motion';
 
-const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
+const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent }) => {
     // Flickering light effect
     const [flickerOffset, setFlickerOffset] = useState(0);
     
@@ -56,6 +56,11 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     zIndex: 100,
                 }}
             />
+            
+            {/* Embossed icon/image - behind lantern and glow but in front of background */}
+            <div style={{ zIndex: 8 }}>
+                {embossingContent}
+            </div>
             
             {/* Stars in background */}
             <div
@@ -607,25 +612,25 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     alignItems: 'flex-end',
                     justifyContent: 'flex-start',
                     padding: '0 0 1px 12px',
-                    zIndex: 10,
+                    zIndex: 30,
                 }}
             >
                 {/* Single pumpkin with layered glow effect */}
                 <div
                     style={{
-                        width: '38px',
-                        height: '30px',
+                        width: '30px',
+                        height: '24px',
                         position: 'relative',
                     }}
                 >
                     {/* Stem */}
                     <div style={{
                         position: 'absolute',
-                        top: '-5px',
+                        top: '-4px',
                         left: '52%',
                         transform: 'translateX(-50%) skew(-15deg)',
-                        width: '6px',
-                        height: '8px',
+                        width: '5px',
+                        height: '6.5px',
                         background: 'linear-gradient(135deg, #5a4a2a 0%, #4a3a1a 50%, #3a2a1a 100%)',
                         borderRadius: '3px 3px 0 0',
                         boxShadow: 'inset -1px -1px 2px rgba(0,0,0,0.4)',
@@ -650,7 +655,7 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                         height: '100%',
                         background: 'radial-gradient(ellipse 60% 55% at 40% 35%, #ffb347 0%, #FA7614 30%, #e56b0f 60%, #c8550c 85%, #8b3f08 100%)',
                         borderRadius: '45% / 50%',
-                        boxShadow: 'inset -4px -4px 8px rgba(0,0,0,0.5), inset 3px 3px 6px rgba(255,179,71,0.4), 0 4px 8px rgba(0,0,0,0.4)',
+                        boxShadow: 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2.5px 2.5px 5px rgba(255,179,71,0.4), 0 3px 6px rgba(0,0,0,0.4)',
                         zIndex: 1,
                     }}>
                         {/* Vertical ridges */}
@@ -684,51 +689,51 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     {/* Triangle eyes */}
                     <div style={{
                         position: 'absolute',
-                        top: '7px',
-                        left: '9px',
+                        top: '5.5px',
+                        left: '7px',
                         width: '0px',
                         height: '0px',
-                        borderLeft: '3.5px solid transparent',
-                        borderRight: '3.5px solid transparent',
-                        borderBottom: `6px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
+                        borderLeft: '2.8px solid transparent',
+                        borderRight: '2.8px solid transparent',
+                        borderBottom: `5px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         filter: 'blur(0.5px) drop-shadow(0 2px 2px rgba(0,0,0,0.6)) drop-shadow(inset 0-1px 1px rgba(0,0,0,0.4))',
                         zIndex: 2,
                     }} />
                     <div style={{
                         position: 'absolute',
-                        top: '7px',
-                        right: '9px',
+                        top: '5.5px',
+                        right: '7px',
                         width: '0px',
                         height: '0px',
-                        borderLeft: '3.5px solid transparent',
-                        borderRight: '3.5px solid transparent',
-                        borderBottom: `6px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
+                        borderLeft: '2.8px solid transparent',
+                        borderRight: '2.8px solid transparent',
+                        borderBottom: `5px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         filter: 'blur(0.5px) drop-shadow(0 1px 2px rgba(0,0,0,0.6)) drop-shadow(inset 0 -1px 1px rgba(0,0,0,0.4))',
                         zIndex: 2,
                     }} />
                     {/* Triangle nose */}
                     <div style={{
                         position: 'absolute',
-                        top: '14px',
+                        top: '11px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: '0px',
                         height: '0px',
-                        borderLeft: '2px solid transparent',
-                        borderRight: '2px solid transparent',
-                        borderTop: `4px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
+                        borderLeft: '1.6px solid transparent',
+                        borderRight: '1.6px solid transparent',
+                        borderTop: `3.2px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         filter: '',
                         zIndex: 2,
                     }} />
                     {/* Wide curved smile */}
                     <div style={{
                         position: 'absolute',
-                        bottom: '7px',
+                        bottom: '5.65px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '24px',
-                        height: '7px',
-                        borderBottom: `3px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
+                        width: '19px',
+                        height: '5.5px',
+                        borderBottom: `2.5px solid rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         borderRadius: '0 0 100% 100%',
                         filter: '',
                         zIndex: 2,
@@ -737,29 +742,29 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY }) => {
                     {/* Teeth - glow color to blend with smile */}
                     <div style={{
                         position: 'absolute',
-                        bottom: '7px',
-                        left: '11px',
-                        width: '2px',
-                        height: '5px',
+                        bottom: '5.5px',
+                        left: '9px',
+                        width: '1.6px',
+                        height: '4px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         zIndex: 2,
                     }} />
                     <div style={{
                         position: 'absolute',
-                        bottom: '6px',
+                        bottom: '5px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '2.5px',
-                        height: '5px',
+                        width: '2px',
+                        height: '4px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         zIndex: 2,
                     }} />
                     <div style={{
                         position: 'absolute',
-                        bottom: '7px',
-                        right: '11px',
-                        width: '2.5px',
-                        height: '5px',
+                        bottom: '5.5px',
+                        right: '9px',
+                        width: '2px',
+                        height: '4px',
                         background: `rgba(245,177,9,${0.95 + flickerOffset * 0.3})`,
                         zIndex: 2,
                     }} />

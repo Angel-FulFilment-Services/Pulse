@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 
-const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
+const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     const [snowflakes, setSnowflakes] = useState([]);
     
     // Track cursor position even when not moving
@@ -108,6 +108,9 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
                     isHovering={isHovering}
                 />
             ))}
+
+            {/* Embossed icon/image - behind snowflakes but in front of background */}
+            {embossingContent}
             
             {/* Snowy ground with rolling hills */}
             <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
@@ -145,6 +148,7 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
                         background: '#FFFFFF',
                         borderRadius: '50% 50% 0 0',
                         opacity: 0.85,
+                        
                     }}
                 />
                 {/* Snow sparkles */}
@@ -164,7 +168,7 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
             {/* Christmas trees at bottom */}
             <div className="absolute bottom-0 left-0 right-0 flex justify-around items-end px-2 pointer-events-none">
                 {/* Left tree */}
-                <div className="relative" style={{ width: '18px', height: '22px', bottom: '11px' }}>
+                <div className="relative" style={{ width: '18px', height: '22px', bottom: '11px', zIndex: 45 }}>
                     {/* Tree top */}
                     <div
                         style={{
@@ -222,7 +226,7 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
                 </div>
                 
                 {/* Middle tree (taller) */}
-                <div className="relative" style={{ width: '22px', height: '26px', bottom: '4px' }}>
+                <div className="relative" style={{ width: '22px', height: '26px', bottom: '4px', zIndex: 45 }}>
                     {/* Tree top */}
                     <div
                         style={{
@@ -280,7 +284,7 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering }) => {
                 </div>
                 
                 {/* Right tree */}
-                <div className="relative" style={{ width: '18px', height: '22px', bottom: '13px' }}>
+                <div className="relative" style={{ width: '18px', height: '22px', bottom: '13px', zIndex: 45 }}>
                     {/* Tree top */}
                     <div
                         style={{

@@ -239,7 +239,7 @@ function BurstPattern({ firework }) {
     return <>{particles}</>;
 }
 
-export default function NewYearsFace({ mouseX, mouseY, isHovering }) {
+export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingContent }) {
     const [badgeIsHovered, setBadgeIsHovered] = useState(false);
     const [fireworks, setFireworks] = useState([]);
     const [nextId, setNextId] = useState(0);
@@ -399,7 +399,7 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering }) {
             position: 'relative',
             background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #2a2a4a 100%)',
             overflow: 'hidden',
-        }}>
+        }}>            
             {/* Background stars */}
             {stars.map((star) => (
                 <motion.div
@@ -430,7 +430,7 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering }) {
             
             {/* Fireworks */}
             {fireworks.map((firework) => (
-                <div key={firework.id}>
+                <div key={firework.id} style={{ position: 'relative', zIndex: 35 }}>
                     {/* Rising trail with golden sparks */}
                     <motion.div
                         initial={{
@@ -530,6 +530,11 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering }) {
 
                 </div>
             ))}
+
+            {/* Embossed icon/image - behind fireworks */}
+            <div style={{  }}>
+                {embossingContent}
+            </div>
 
             {/* Ground glow effect */}
             <div style={{

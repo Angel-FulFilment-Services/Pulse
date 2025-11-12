@@ -34,12 +34,12 @@ const GroundLeaf = memo(({ leaf }) => (
             transform: `rotate(${leaf.rotation}deg)`,
             opacity: leaf.opacity,
             pointerEvents: 'none',
-            zIndex: 2,
+            zIndex: 35,
         }}
     />
 ));
 
-const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
+const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     const [leaves, setLeaves] = useState([]);
     const [groundLeaves, setGroundLeaves] = useState([]);
     const [birds, setBirds] = useState([]);
@@ -1563,6 +1563,11 @@ const AutumnFace = ({ mouseX, mouseY, isHovering }) => {
             {groundLeaves.map(leaf => (
                 <GroundLeaf key={`ground-${leaf.id}`} leaf={leaf} />
             ))}
+
+            {/* Embossed icon/image - behind leaves but in front of background */}
+            <div>
+                {embossingContent}
+            </div>
             
             {/* Birds */}
             {birds.map(bird => {

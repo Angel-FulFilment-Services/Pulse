@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useAnimation } from 'framer-motion';
+import * as HeroIcons from '@heroicons/react/24/solid';
 import AlexandriteFace from './Faces/AlexandriteFace.jsx';
 import ChristmasSnowFace from './Faces/ChristmasSnowFace.jsx';
 import ChristmasLightsFace from './Faces/ChristmasLightsFace.jsx';
@@ -7,6 +8,29 @@ import NewYearsFace from './Faces/NewYearsFace.jsx';
 import JackOLanternFace from './Faces/JackOLanternFace.jsx';
 import SpookyGhostFace from './Faces/SpookyGhostFace.jsx';
 import AutumnFace from './Faces/AutumnFace.jsx';
+
+// Utility to darken a hex color
+function darkenColor(hex, percent) {
+    let num = parseInt(hex.replace('#', ''), 16);
+    let r = (num >> 16) * (1 - percent);
+    let g = ((num >> 8) & 0x00FF) * (1 - percent);
+    let b = (num & 0x0000FF) * (1 - percent);
+    r = Math.round(r);
+    g = Math.round(g);
+    b = Math.round(b);
+    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+}
+
+function lightenColor(hex, percent) {
+    let num = parseInt(hex.replace('#', ''), 16);
+    let r = (num >> 16) + (255 - (num >> 16)) * percent;
+    let g = ((num >> 8) & 0x00FF) + (255 - ((num >> 8) & 0x00FF)) * percent;
+    let b = (num & 0x0000FF) + (255 - (num & 0x0000FF)) * percent;
+    r = Math.round(r);
+    g = Math.round(g);
+    b = Math.round(b);
+    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+}
 
 const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     const badgeRef = useRef(null);
@@ -92,22 +116,22 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     
     // Badge tier colors
     const tierColors = {
-        bronze: { primary: '#CD7F32', secondary: '#B8860B', accent: '#8B4513' },
-        silver: { primary: '#C0C0C0', secondary: '#A9A9A9', accent: '#D3D3D3' },
-        gold: { primary: '#FFD700', secondary: '#FFA500', accent: '#DAA520' },
-        platinum: { primary: '#E5E4E2', secondary: '#C0C0C0', accent: '#A8A8A8' },
-        emerald: { primary: '#50C878', secondary: '#2E8B57', accent: '#00A86B' },
-        ruby: { primary: '#E0115F', secondary: '#9B111E', accent: '#CC0044' },
-        sapphire: { primary: '#0F52BA', secondary: '#0A3D8F', accent: '#4169E1' },
-        diamond: { primary: '#B9F2FF', secondary: '#87CEEB', accent: '#ADD8E6' },
-        alexandrite: { primary: '#4B0082', secondary: '#8B00FF', accent: '#9400D3' },
-        basic: { primary: '#A8A8A8', secondary: '#909090', accent: '#C0C0C0' },
-        christmas_snow: { primary: '#E8F5F7', secondary: '#B8D9E8', accent: '#A0C8D8' },
-        christmas_lights: { primary: '#1a2332', secondary: '#2d3e50', accent: '#34495e' },
-        new_years: { primary: '#FFD700', secondary: '#FFA500', accent: '#FF6B6B' },
-        jack_o_lantern: { primary: '#ff8c1a', secondary: '#ff6b00', accent: '#cc5500' },
-        spooky_ghost: { primary: '#E8E8F0', secondary: '#C0C0D8', accent: '#A0A0C0' },
-        autumn: { primary: '#D2691E', secondary: '#CD853F', accent: '#DAA520' },
+        bronze: { primary: '#CD7F32', secondary: '#B8860B', accent: '#8B4513', emboss: '#CD7F32' },
+        silver: { primary: '#C0C0C0', secondary: '#A9A9A9', accent: '#D3D3D3', emboss: '#C0C0C0' },
+        gold: { primary: '#FFD700', secondary: '#FFA500', accent: '#DAA520', emboss: '#FFD700' },
+        platinum: { primary: '#E5E4E2', secondary: '#C0C0C0', accent: '#A8A8A8', emboss: '#E5E4E2' },
+        emerald: { primary: '#50C878', secondary: '#2E8B57', accent: '#00A86B', emboss: '#50C878' },
+        ruby: { primary: '#E0115F', secondary: '#9B111E', accent: '#CC0044', emboss: '#E0115F' },
+        sapphire: { primary: '#0F52BA', secondary: '#0A3D8F', accent: '#4169E1', emboss: '#0F52BA' },
+        diamond: { primary: '#B9F2FF', secondary: '#87CEEB', accent: '#ADD8E6', emboss: '#B9F2FF' },
+        alexandrite: { primary: '#4B0082', secondary: '#8B00FF', accent: '#9400D3', emboss: '#9400D3' },
+        basic: { primary: '#A8A8A8', secondary: '#909090', accent: '#C0C0C0', emboss: '#A8A8A8' },
+        christmas_snow: { primary: '#E8F5F7', secondary: '#B8D9E8', accent: '#A0C8D8', emboss: '#F0FDFF' },
+        christmas_lights: { primary: '#1a2332', secondary: '#2d3e50', accent: '#34495e', emboss: '#202466' },
+        new_years: { primary: '#FFD700', secondary: '#FFA500', accent: '#FF6B6B', emboss: '#0F0F24' },
+        jack_o_lantern: { primary: '#ff8c1a', secondary: '#ff6b00', accent: '#cc5500', emboss: '#FF7F27' },
+        spooky_ghost: { primary: '#8383FF', secondary: '#C0C0D8', accent: '#A0A0C0', emboss: '#8383FF' },
+        autumn: { primary: '#D2691E', secondary: '#CD853F', accent: '#DAA520', emboss: '#D2691E' },
     };
     
     const colors = tierColors[badge.tier] || tierColors.silver;
@@ -295,7 +319,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     }, [isFlipping, badge.tier, colors.accent, colors.primary]);
     
     // Render custom face based on tier
-    const renderCustomFace = () => {
+    const renderCustomFace = (embossingContent) => {
         if (isAlexandrite) {
             return (
                 <AlexandriteFace 
@@ -306,6 +330,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     colors={colors}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -318,6 +343,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -330,6 +356,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -342,6 +369,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -354,6 +382,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -366,6 +395,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
@@ -378,11 +408,168 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     isHovering={isHovering}
                     rotateX={rotateX}
                     rotateY={rotateY}
+                    embossingContent={embossingContent}
                 />
             );
         }
         
         return null;
+    };
+    
+    // Render embossed image/icon
+    const renderEmbossing = () => {
+        const hasImage = badge.image;
+        const hasIcon = badge.icon;
+        
+        if (!hasImage && !hasIcon) return null;
+        
+        // Get the HeroIcon component if icon is specified
+        const IconComponent = hasIcon ? HeroIcons[badge.icon] : null;
+        
+        // Use badge emboss color if provided, otherwise use tier emboss color
+        const embossColor = badge.embossColor || colors.emboss;
+        
+        return (
+            <div 
+                className="absolute inset-0 flex items-center justify-center pointer-events-none" 
+                style={{ zIndex: 25 }}
+            >
+                <div className="relative" style={{ width: '60%', height: '60%' }}>
+                    {/* Image embossing */}
+                    {hasImage && (
+                        <div className="absolute inset-0">
+                            {/* Dark shadow layer */}
+                            <motion.div
+                                className="absolute inset-0"
+                                style={{
+                                    x: useTransform(rotateY, [-20, 20], [-1.5, 1.5]),
+                                    y: useTransform(rotateX, [-20, 20], [1.5, -1.5]),
+                                }}
+                            >
+                                <img
+                                    src={badge.image}
+                                    alt=""
+                                    className="w-full h-full object-contain"
+                                    style={{
+                                        filter: 'grayscale(100%) contrast(150%) brightness(0.3) blur(1.5px)',
+                                        opacity: 0.3,
+                                    }}
+                                />
+                            </motion.div>
+                            
+                            {/* Main image layer */}
+                            <div className="absolute inset-0">
+                                <img
+                                    src={badge.image}
+                                    alt=""
+                                    className="w-full h-full object-contain"
+                                    style={{
+                                        filter: `grayscale(100%) contrast(130%) brightness(0)`,
+                                        opacity: 0,
+                                    }}
+                                />
+                                <div 
+                                    className="absolute inset-0"
+                                    style={{
+                                        backgroundColor: lightenColor(colors.emboss, 0.5),
+                                        WebkitMaskImage: `url(${badge.image})`,
+                                        WebkitMaskSize: 'contain',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        WebkitMaskPosition: 'center',
+                                        maskImage: `url(${badge.image})`,
+                                        maskSize: 'contain',
+                                        maskRepeat: 'no-repeat',
+                                        maskPosition: 'center',
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Light highlight layer */}
+                            <motion.div
+                                className="absolute inset-0"
+                                style={{
+                                    x: useTransform(rotateY, [-20, 20], [0.8, -0.8]),
+                                    y: useTransform(rotateX, [-20, 20], [-0.8, 0.8]),
+                                }}
+                            >
+                                <img
+                                    src={badge.image}
+                                    alt=""
+                                    className="w-full h-full object-contain"
+                                    style={{
+                                        filter: 'grayscale(100%) contrast(110%) brightness(1.8) blur(0.8px)',
+                                        opacity: 0.25,
+                                    }}
+                                />
+                            </motion.div>
+                        </div>
+                    )}
+                    
+                    {/* Icon embossing - positioned in bottom right if image exists */}
+                    {hasIcon && IconComponent && (
+                        <div
+                            className="absolute"
+                            style={{
+                                ...(hasImage
+                                    ? { bottom: 0, right: 0, width: '35%', height: '35%' }
+                                    : { inset: 0 }
+                                ),
+                            }}
+                        >
+                            {/* Dark shadow layer */}
+                            <motion.div
+                                className="absolute inset-0"
+                                style={{
+                                    x: useTransform(rotateY, [-20, 20], [-1.5, 1.5]),
+                                    y: useTransform(rotateX, [-20, 20], [1.5, -1.5]),
+                                }}
+                            >
+                                <IconComponent
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        color: 'rgba(0,0,0,0.9)',
+                                        filter: 'blur(1.5px)',
+                                        opacity: 0.3,
+                                    }}
+                                />
+                            </motion.div>
+                            
+                            {/* Main icon layer */}
+                            <div className="absolute inset-0" style={{ isolation: 'isolate' }}>
+                                <IconComponent
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        color: lightenColor(colors.emboss, 0.25),
+                                        opacity: 0.85,
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Light highlight layer */}
+                            <motion.div
+                                className="absolute inset-0"
+                                style={{
+                                    x: useTransform(rotateY, [-20, 20], [0.8, -0.8]),
+                                    y: useTransform(rotateX, [-20, 20], [-0.8, 0.8]),
+                                }}
+                            >
+                                <IconComponent
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        color: 'rgba(255,255,255,1)',
+                                        filter: 'blur(0.8px)',
+                                        opacity: 0.3,
+                                    }}
+                                />
+                            </motion.div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     };
     
     return (
@@ -688,7 +875,10 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                         )}
                         
                         {/* CUSTOM FACE LAYER */}
-                        {renderCustomFace()}
+                        {renderCustomFace(renderEmbossing())}
+                        
+                        {/* EMBOSSED IMAGE/ICON LAYER - Only render if no custom face */}
+                        {!hasCustomFace && renderEmbossing()}
                     </motion.div>
 
                     {/* BACK SIDE - Pin broach */}
