@@ -61,13 +61,4 @@ class AdministrationController extends Controller
 
         return response()->json(['configurations' => $configurations]);
     }
-
-    public function totalCPASignUps(){
-
-        $data = DB::connection('wings_config')->table('dashboard_tiles')->find(11)->data;
-
-        if($data && isset(json_decode($data, true)['data']['total_sign_ups']) && is_array(json_decode($data, true)['data']['total_sign_ups'])){
-            return response()->json(['endValue' => array_sum(json_decode($data, true)['data']['total_sign_ups'])]);
-        }
-    }
 }

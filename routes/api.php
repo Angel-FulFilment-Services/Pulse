@@ -6,7 +6,7 @@ use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
-use App\Http\Controllers\App\AdministrationController;
+use App\Http\Controllers\App\ReportingController;
 
 use App\Helper\T2SMS;
 
@@ -67,12 +67,12 @@ Route::get('/system/clients', [SystemController::class, 'clients'])
 ->middleware('auth:api');
 
 
-Route::get('/reporting/total-cpa-sign-ups', [AdministrationController::class, 'totalCPASignUps'])
+Route::get('/reporting/wallboard-statistics', [ReportingController::class, 'totalCPASignUps'])
 ->withoutMiddleware('throttle:api')
 ->middleware('throttle:250,1')
 ->withoutMiddleware('auth')
 ->withoutMiddleware('twofactor')
-->withoutMiddleware('has.permission:pulse_view_administration');
+->withoutMiddleware('has.permission:pulse_view_reporting');
 
 /*
 |-----------------------

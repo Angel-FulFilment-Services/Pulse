@@ -731,6 +731,10 @@ class AssetController extends Controller
             ->groupBy('kit_id')
             ->first();
 
+        if(!$kit) {
+            return response()->json(['message' => 'No assigned kit found for this employee.'], 404);
+        }
+
         $items = DB::table('assets.kits')
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')

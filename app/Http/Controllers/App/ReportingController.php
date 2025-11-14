@@ -917,4 +917,39 @@ class ReportingController extends Controller
 
         return response()->json($targets);
     }
+
+    public function totalCPASignUps(){
+
+        $cpa_data = DB::connection('wings_config')->table('dashboard_tiles')->find(11)->data;
+
+        $call_data = DB::connection('wings_config')->table('dashboard_tiles')->find(37)->data;
+
+        if($cpa_data === null && $call_data === null){
+            return response()->json([
+                'cpa_sign_ups' => 0,
+                'inbound_calls' => 0,
+                'outbound_calls' => 0,
+            ]);
+        }
+
+        $cpa_data = json_decode($cpa_data, true);
+        $call_data = json_decode($call_data, true);
+
+        if(!isset($cpa_data['data']['total_sign_ups']) || !is_array($cpa_data['data']['total_sign_ups'])){
+            $cpa_data['data']['total_sign_ups'] = [0];
+        }
+
+        if(!isset($call_data['data']['tot_in_channels'])){
+            $call_data['data']['tot_in_channels'] = 0;
+        }
+        if(!isset($call_data['data']['tot_out_channels'])){
+            $call_data['data']['tot_out_channels'] = 0;
+        }
+
+        return response()->json([
+            'cpa_sign_ups' => array_sum($cpa_data['data']['total_sign_ups']),
+            'inbound_calls' => $call_data['data']['tot_in_channels'],
+            'outbound_calls' => $call_data['data']['tot_out_channels'],
+        ]);
+    }
 }
