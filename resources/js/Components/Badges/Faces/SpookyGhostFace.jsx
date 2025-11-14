@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useTransform, useSpring } from 'framer-motion';
 
-const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent }) => {
+const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
     const [isHovered, setIsHovered] = React.useState(false);
     
     // Fog flows with mouse position and tilt
@@ -26,8 +26,8 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
     
     // Update spring targets when mouse moves and is hovered
     React.useEffect(() => {
-        if (!isHovered) {
-            // When not hovered, don't listen to mouse
+        if (!isHovered || isUnearned) {
+            // When not hovered or unearned, don't listen to mouse
             return;
         }
         
@@ -41,7 +41,7 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
             unsubscribeTargetX();
             unsubscribeTargetY();
         };
-    }, [isHovered, ghostTargetX, ghostTargetY, ghostChaseX, ghostChaseY]);
+    }, [isHovered, isUnearned, ghostTargetX, ghostTargetY, ghostChaseX, ghostChaseY]);
     
     // Listen to hover state
     React.useEffect(() => {
@@ -51,13 +51,13 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
         return unsubscribe;
     }, [isHovering]);
     
-    // Reset position when not hovered
+    // Reset position when not hovered or unearned
     React.useEffect(() => {
-        if (!isHovered) {
+        if (!isHovered || isUnearned) {
             ghostChaseX.set(15);
             ghostChaseY.set(10);
         }
-    }, [isHovered, ghostChaseX, ghostChaseY]);
+    }, [isHovered, isUnearned, ghostChaseX, ghostChaseY]);
     
     return (
         <>
@@ -81,14 +81,16 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
                     borderRadius: '50%',
                     boxShadow: '15px 3px 2px #FFFFFF, 35px 8px 1.5px #FFFFFF, 50px 6px 2px #FFFFFF, 20px 15px 1.5px #FFFFFF, 45px 18px 2px #FFFFFF, 10px 22px 1.5px #FFFFFF, 60px 12px 2px #FFFFFF, 5px 30px 1.5px #FFFFFF, 55px 25px 2px #FFFFFF, 25px 5px 1.5px #FFFFFF, 40px 28px 2px #FFFFFF, 65px 20px 1.5px #FFFFFF, 12px 35px 2px #FFFFFF, 48px 32px 1.5px #FFFFFF, 30px 10px 2px #FFFFFF',
                 }}
-                animate={{
+                animate={!isUnearned ? {
                     opacity: [0.8, 0.3, 0.8],
+                } : {
+                    opacity: 0.8,
                 }}
-                transition={{
+                transition={!isUnearned ? {
                     duration: 3,
                     repeat: Infinity,
                     ease: "easeInOut",
-                }}
+                } : {}}
             />
             
             {/* Moon - static */}
@@ -252,74 +254,76 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
             </div>
             
             {/* Fog layers - visible floating mist */}
-            <div
-                className="absolute bottom-0 left-0 right-0 pointer-events-none"
-                style={{
-                    height: '40px',
-                    zIndex: 27,
-                }}
-            >
-                <motion.div
+            {!isUnearned && (
+                <div
+                    className="absolute bottom-0 left-0 right-0 pointer-events-none"
                     style={{
-                        position: 'absolute',
-                        bottom: '15px',
-                        left: '5px',
-                        width: '40px',
-                        height: '20px',
-                        backgroundColor: 'rgba(255,255,255,0.5)',
-                        filter: 'blur(10px)',
-                        borderRadius: '50%',
+                        height: '40px',
+                        zIndex: 27,
                     }}
-                    animate={{
-                        x: [-5, 5, -5],
-                    }}
-                    transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                    }}
-                />
-                <motion.div
-                    style={{
-                        position: 'absolute',
-                        bottom: '20px',
-                        right: '10px',
-                        width: '35px',
-                        height: '18px',
-                        backgroundColor: 'rgba(255,255,255,0.4)',
-                        filter: 'blur(8px)',
-                        borderRadius: '50%',
-                    }}
-                    animate={{
-                        x: [3, -3, 3],
-                    }}
-                    transition={{
-                        duration: 10,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                    }}
-                />
-                <motion.div
-                    style={{
-                        position: 'absolute',
-                        bottom: '10px',
-                        left: '25px',
-                        width: '30px',
-                        height: '15px',
-                        backgroundColor: 'rgba(255,255,255,0.35)',
-                        filter: 'blur(12px)',
-                        borderRadius: '50%',
-                    }}
-                    animate={{
-                        x: [-3, 4, -3],
-                    }}
-                    transition={{
-                        duration: 9,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                    }}
-                />
-            </div>
+                >
+                    <motion.div
+                        style={{
+                            position: 'absolute',
+                            bottom: '15px',
+                            left: '5px',
+                            width: '40px',
+                            height: '20px',
+                            backgroundColor: 'rgba(255,255,255,0.5)',
+                            filter: 'blur(10px)',
+                            borderRadius: '50%',
+                        }}
+                        animate={{
+                            x: [-5, 5, -5],
+                        }}
+                        transition={{
+                            duration: 8,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                        }}
+                    />
+                    <motion.div
+                        style={{
+                            position: 'absolute',
+                            bottom: '20px',
+                            right: '10px',
+                            width: '35px',
+                            height: '18px',
+                            backgroundColor: 'rgba(255,255,255,0.4)',
+                            filter: 'blur(8px)',
+                            borderRadius: '50%',
+                        }}
+                        animate={{
+                            x: [3, -3, 3],
+                        }}
+                        transition={{
+                            duration: 10,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                        }}
+                    />
+                    <motion.div
+                        style={{
+                            position: 'absolute',
+                            bottom: '10px',
+                            left: '25px',
+                            width: '30px',
+                            height: '15px',
+                            backgroundColor: 'rgba(255,255,255,0.35)',
+                            filter: 'blur(12px)',
+                            borderRadius: '50%',
+                        }}
+                        animate={{
+                            x: [-3, 4, -3],
+                        }}
+                        transition={{
+                            duration: 9,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                        }}
+                    />
+                </div>
+            )}
             
             {/* Single ghost - floats at bottom right, chases mouse when hovered */}
             <motion.div
@@ -331,8 +335,8 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
                     height: '29px',
                     x: ghostChaseX,
                     y: ghostChaseY,
-                    skewX: ghostSkewX,
-                    skewY: ghostSkewY,
+                    skewX: isUnearned ? 0 : ghostSkewX,
+                    skewY: isUnearned ? 0 : ghostSkewY,
                     zIndex: 30,
                 }}
             >
@@ -347,15 +351,15 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
                     style={{
                         filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.5))',
                     }}
-                    animate={{
+                    animate={!isUnearned ? {
                         y: [0, -3, 0],
                         x: [0, 2, 0],
-                    }}
-                    transition={{
+                    } : {}}
+                    transition={!isUnearned ? {
                         duration: 2.5,
                         repeat: Infinity,
                         ease: "easeInOut",
-                    }}
+                    } : {}}
                 >
                     <g transform="translate(0 0)">
                         {/* Ghost body - semi-transparent */}

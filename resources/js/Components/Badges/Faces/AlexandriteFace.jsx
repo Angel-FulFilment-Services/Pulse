@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, useTransform } from 'framer-motion';
 
-const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors, embossingContent }) => {
+const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors, embossingContent, isUnearned }) => {
     return (
         <>
             {/* Embossed icon/image behind the color spectrum */}
@@ -35,27 +35,29 @@ const AlexandriteFace = ({ mouseX, mouseY, isFlipping, glareIntensity, colors, e
             />
             
             {/* Sweeping shimmer */}
-            <motion.div
-                className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden"
-                style={{
-                    background: `linear-gradient(
-                        135deg,
-                        transparent 0%,
-                        rgba(255, 255, 255, 0.3) 50%,
-                        transparent 100%
-                    )`,
-                    backgroundSize: '200% 200%',
-                    zIndex: 35,
-                }}
-                animate={{
-                    backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
-                }}
-                transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: 'linear',
-                }}
-            />
+            {!isUnearned && (
+                <motion.div
+                    className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden"
+                    style={{
+                        background: `linear-gradient(
+                            135deg,
+                            transparent 0%,
+                            rgba(255, 255, 255, 0.3) 50%,
+                            transparent 100%
+                        )`,
+                        backgroundSize: '200% 200%',
+                        zIndex: 35,
+                    }}
+                    animate={{
+                        backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
+                    }}
+                    transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'linear',
+                    }}
+                />
+            )}
         </>
     );
 };

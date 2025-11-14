@@ -39,7 +39,7 @@ const GroundLeaf = memo(({ leaf }) => (
     />
 ));
 
-const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
+const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
     const [leaves, setLeaves] = useState([]);
     const [groundLeaves, setGroundLeaves] = useState([]);
     const [birds, setBirds] = useState([]);
@@ -63,6 +63,8 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     
     // Generate falling leaves periodically from trees
     useEffect(() => {
+        if (isUnearned) return;
+        
         const interval = setInterval(() => {
             setLeaves(prev => {
                 // Limit number of falling leaves to prevent performance issues
@@ -88,10 +90,12 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
         }, 400);
         
         return () => clearInterval(interval);
-    }, []);
+    }, [isUnearned]);
     
     // Update falling leaves
     useEffect(() => {
+        if (isUnearned) return;
+        
         const interval = setInterval(() => {
             setLeaves(prev => {
                 const updated = prev.map(leaf => {
@@ -130,10 +134,12 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
         }, 20); // Faster update for smoother animation
         
         return () => clearInterval(interval);
-    }, []);
+    }, [isUnearned]);
     
     // Fade out and remove old ground leaves
     useEffect(() => {
+        if (isUnearned) return;
+        
         const interval = setInterval(() => {
             setGroundLeaves(prev => {
                 const updated = prev.map(leaf => ({
@@ -150,7 +156,7 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
         }, 100);
         
         return () => clearInterval(interval);
-    }, []);
+    }, [isUnearned]);
     
     // Track mouse position for path interaction
     useEffect(() => {
@@ -174,6 +180,8 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     }, [mouseX, mouseY, groundLeaves]);
     
     const checkTreeHover = (x, y) => {
+        if (isUnearned) return; // Don't check tree hover for unearned badges
+        
         const currentlyHovering = isHovering.get();
         
         if (!currentlyHovering) {
@@ -278,10 +286,10 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     };
     
     const shakeTree = (side) => {
-        console.log('shakeTree called with:', side);
+        if (isUnearned) return; // Don't shake trees or spawn birds for unearned badges
         
-        // Random cooldown between 3-10 seconds
-        const cooldownTime = 3000 + Math.random() * 7000; // 3000-10000ms
+        // Random cooldown between 5-12 seconds
+        const cooldownTime = 5000 + Math.random() * 7000; // 5000-12000ms
         const now = Date.now();
         if (lastShakeTime.current[side] && now - lastShakeTime.current[side] < cooldownTime) {
             console.log('Tree on cooldown, skipping');
@@ -290,25 +298,22 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
         
         console.log('treeShaken state:', treeShaken);
         if (treeShaken[side]) {
-            console.log('Tree already shaken, returning');
             return;
         }
         
         lastShakeTime.current[side] = now;
         setTreeShaken(prev => ({ ...prev, [side]: true }));
         
-        // 20% chance of no birds
-        if (Math.random() < 0.2) {
-            console.log('No birds this time (20% chance)');
+        // 40% chance of no birds
+        if (Math.random() < 0.55) {
             return;
         }
         
         // Release birds (reduced count)
-        const birdCount = Math.random() < 0.60 ? 1 : 2; // 60% chance of 1 bird, 40% chance of 2 birds
+        const birdCount = Math.random() < 0.80 ? 1 : 2; // 80% chance of 1 bird, 20% chance of 2 birds
         const newBirds = [];
         
         const tree = trees.find(t => t.id === side);
-        console.log('Found tree:', tree);
         if (!tree) return;
         
         for (let i = 0; i < birdCount; i++) {
@@ -329,6 +334,8 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
     
     // Animate birds
     useEffect(() => {
+        if (isUnearned) return;
+        
         const interval = setInterval(() => {
             setBirds(prev => 
                 prev.map(bird => {
@@ -347,7 +354,7 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
         }, 50);
         
         return () => clearInterval(interval);
-    }, []);
+    }, [isUnearned]);
     
     return (
         <>

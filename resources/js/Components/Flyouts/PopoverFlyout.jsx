@@ -56,7 +56,16 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
     }
   }, [isOpen, update]);
 
+  // Close popover when it becomes disabled
+  useEffect(() => {
+    if (!enabled && isOpen) {
+      setIsOpen(false);
+    }
+  }, [enabled, isOpen]);
+
   const handleMouseEnter = () => {
+    if (!enabled) return; // Don't open if disabled
+    
     if (referenceElement.current && popperElement.current) {
       // Precompute the position before opening
       const { x, y, middlewareData, placement } = computePosition(referenceElement.current, popperElement.current, {

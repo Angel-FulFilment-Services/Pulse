@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 
-const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
+const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
     const [snowflakes, setSnowflakes] = useState([]);
     
     // Track cursor position even when not moving
@@ -34,17 +34,19 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent }) => 
     
     // Generate snowflakes
     useEffect(() => {
-        const flakes = Array.from({ length: 25 }, (_, i) => ({
-            id: i,
-            startX: Math.random() * 80,
-            startY: -20 - Math.random() * 30, // Start higher up (was -10 to -30, now -20 to -50)
-            size: 3 + Math.random() * 2, // Increased min from 2 to 3, max from 5 to 5
-            duration: 3 + Math.random() * 2,
-            delay: Math.random() * 3,
-            drift: (Math.random() - 0.5) * 20,
-        }));
-        setSnowflakes(flakes);
-    }, []);
+        if (!isUnearned) {
+            const flakes = Array.from({ length: 25 }, (_, i) => ({
+                id: i,
+                startX: Math.random() * 80,
+                startY: -20 - Math.random() * 30, // Start higher up (was -10 to -30, now -20 to -50)
+                size: 3 + Math.random() * 2, // Increased min from 2 to 3, max from 5 to 5
+                duration: 3 + Math.random() * 2,
+                delay: Math.random() * 3,
+                drift: (Math.random() - 0.5) * 20,
+            }));
+            setSnowflakes(flakes);
+        }
+    }, [isUnearned]);
     
     return (
         <>

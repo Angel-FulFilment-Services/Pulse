@@ -239,7 +239,7 @@ function BurstPattern({ firework }) {
     return <>{particles}</>;
 }
 
-export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingContent }) {
+export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) {
     const [badgeIsHovered, setBadgeIsHovered] = useState(false);
     const [fireworks, setFireworks] = useState([]);
     const [nextId, setNextId] = useState(0);
@@ -318,6 +318,8 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
 
     // Launch fireworks - always active, not just on hover
     useEffect(() => {
+        if (isUnearned) return;
+        
         let currentId = nextId;
         let isMounted = true;
 
@@ -390,7 +392,7 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [isUnearned]);
 
     return (
         <div style={{
@@ -407,15 +409,17 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
                     initial={{
                         opacity: 0.3,
                     }}
-                    animate={{
+                    animate={!isUnearned ? {
                         opacity: [0.3, 0.6, 0.3],
+                    } : {
+                        opacity: 0.3,
                     }}
-                    transition={{
+                    transition={!isUnearned ? {
                         duration: star.duration,
                         repeat: Infinity,
                         delay: star.delay,
                         ease: "easeInOut",
-                    }}
+                    } : {}}
                     style={{
                         position: 'absolute',
                         left: `${star.left}%`,

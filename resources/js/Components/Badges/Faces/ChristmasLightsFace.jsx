@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue } from 'framer-motion';
 
-const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent }) => {
+const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
     const [lights, setLights] = useState([]);
     const [hoveredLight, setHoveredLight] = useState(null);
     
@@ -84,6 +84,7 @@ const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent }) =
                         isHovered={hoveredLight === light.id}
                         onHover={() => setHoveredLight(light.id)}
                         onLeave={() => setHoveredLight(null)}
+                        isUnearned={isUnearned}
                     />
                 ))}
             </div>
@@ -306,7 +307,7 @@ const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent }) =
     );
 };
 
-const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave }) => {
+const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned }) => {
     const [badgeIsHovered, setBadgeIsHovered] = useState(false);
     
     useEffect(() => {
@@ -327,13 +328,13 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave }) => {
                 left: `${light.x}px`,
                 top: `${light.y}px`,
                 transform: 'translateX(-50%)',
-                pointerEvents: badgeIsHovered ? 'auto' : 'none',
-                cursor: badgeIsHovered ? 'pointer' : 'default',
+                pointerEvents: (badgeIsHovered && !isUnearned) ? 'auto' : 'none',
+                cursor: (badgeIsHovered && !isUnearned) ? 'pointer' : 'default',
                 padding: '4px',
                 zIndex: 50, // Above glare/shine layers
             }}
-            onMouseEnter={onHover}
-            onMouseLeave={onLeave}
+            onMouseEnter={isUnearned ? undefined : onHover}
+            onMouseLeave={isUnearned ? undefined : onLeave}
         >
             {/* Wire connector */}
             <div
@@ -369,21 +370,21 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave }) => {
                     position: 'relative',
                 }}
                 initial={{
-                    opacity: badgeIsHovered ? (isHovered ? 1 : 0.3) : 0.3,
-                    boxShadow: badgeIsHovered 
+                    opacity: (badgeIsHovered || isUnearned) ? (isHovered ? 1 : 0.3) : 0.3,
+                    boxShadow: (badgeIsHovered || isUnearned) 
                         ? (isHovered 
                             ? `0 0 10px ${light.color}, 0 0 16px ${light.color}, 0 0 20px ${light.color}`
                             : `0 0 2px ${light.color}`)
                         : `0 0 2px ${light.color}`,
                 }}
-                animate={badgeIsHovered ? {
-                    // When badge IS hovered: static state based on individual bulb hover
+                animate={(badgeIsHovered || isUnearned) ? {
+                    // When badge IS hovered OR isUnearned: static state based on individual bulb hover
                     opacity: isHovered ? 1 : 0.3,
                     boxShadow: isHovered 
                         ? `0 0 10px ${light.color}, 0 0 16px ${light.color}, 0 0 20px ${light.color}`
                         : `0 0 2px ${light.color}`,
                 } : {
-                    // When badge is NOT hovered: strobe all lights
+                    // When badge is NOT hovered and earned: strobe all lights
                     opacity: [0.3, 1, 0.3],
                     boxShadow: [
                         `0 0 2px ${light.color}`,
@@ -391,7 +392,7 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave }) => {
                         `0 0 2px ${light.color}`,
                     ],
                 }}
-                transition={badgeIsHovered ? {
+                transition={(badgeIsHovered || isUnearned) ? {
                     duration: 0.15,
                     ease: "easeOut",
                 } : {

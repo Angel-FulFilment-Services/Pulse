@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useTransform } from 'framer-motion';
 
-const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent }) => {
+const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
     // Flickering light effect
     const [flickerOffset, setFlickerOffset] = useState(0);
     
     useEffect(() => {
+        if (isUnearned) return;
+        
         const flickerInterval = setInterval(() => {
             setFlickerOffset(Math.random() * 0.8 - 0.4); // Range from -0.4 to 0.4
         }, 100);
         
         return () => clearInterval(flickerInterval);
-    }, []);
+    }, [isUnearned]);
     
     // Mouse deformation effect - convert mouseX/mouseY (0-1) to web coordinates
     const mouseXPos = useTransform(mouseX, [0, 1], [0, 80]); // Map to SVG viewBox
@@ -88,15 +90,15 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                     filter: `drop-shadow(0 0 2px rgba(245,177,9,${pumpkinLightIntensity * 0.3}))`,
                     zIndex: 2,
                 }}
-                animate={{
+                animate={!isUnearned ? {
                     skewX: [-3, 3, -3],
                     skewY: [-2, 2, -2],
-                }}
-                transition={{
+                } : {}}
+                transition={!isUnearned ? {
                     duration: 4,
                     repeat: Infinity,
                     ease: "easeInOut",
-                }}
+                } : {}}
             >
                 {/* Center point */}
                 <circle cx="40" cy="40" r="2" fill="#666" />
@@ -112,8 +114,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                     const dy = currentMousePos.y - baseY2;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    // Pull effect - stronger when mouse is closer
-                    const pullStrength = Math.max(0, 15 - distance) / 15; // 0 to 1
+                    // Pull effect - stronger when mouse is closer (disabled when unearned)
+                    const pullStrength = isUnearned ? 0 : Math.max(0, 15 - distance) / 15; // 0 to 1
                     const pullX = dx * pullStrength * 0.5;
                     const pullY = dy * pullStrength * 0.5;
                     
@@ -145,20 +147,22 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                         let x2 = 40 + Math.cos(rad2) * radius;
                         let y2 = 40 + Math.sin(rad2) * radius;
                         
-                        // Apply mouse deformation to endpoints
-                        const dx1 = currentMousePos.x - x1;
-                        const dy1 = currentMousePos.y - y1;
-                        const dist1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-                        const pull1 = Math.max(0, 15 - dist1) / 15;
-                        x1 += dx1 * pull1 * 0.4;
-                        y1 += dy1 * pull1 * 0.4;
-                        
-                        const dx2 = currentMousePos.x - x2;
-                        const dy2 = currentMousePos.y - y2;
-                        const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-                        const pull2 = Math.max(0, 15 - dist2) / 15;
-                        x2 += dx2 * pull2 * 0.4;
-                        y2 += dy2 * pull2 * 0.4;
+                        // Apply mouse deformation to endpoints (disabled when unearned)
+                        if (!isUnearned) {
+                            const dx1 = currentMousePos.x - x1;
+                            const dy1 = currentMousePos.y - y1;
+                            const dist1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+                            const pull1 = Math.max(0, 15 - dist1) / 15;
+                            x1 += dx1 * pull1 * 0.4;
+                            y1 += dy1 * pull1 * 0.4;
+                            
+                            const dx2 = currentMousePos.x - x2;
+                            const dy2 = currentMousePos.y - y2;
+                            const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                            const pull2 = Math.max(0, 15 - dist2) / 15;
+                            x2 += dx2 * pull2 * 0.4;
+                            y2 += dy2 * pull2 * 0.4;
+                        }
                         
                         // Control point - curved inward toward center
                         const midAngle = (angle1 + angle2) / 2;
@@ -167,13 +171,15 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                         let cx = 40 + Math.cos(midRad) * controlRadius;
                         let cy = 40 + Math.sin(midRad) * controlRadius;
                         
-                        // Apply mouse deformation to control point
-                        const dxc = currentMousePos.x - cx;
-                        const dyc = currentMousePos.y - cy;
-                        const distc = Math.sqrt(dxc * dxc + dyc * dyc);
-                        const pullc = Math.max(0, 15 - distc) / 15;
-                        cx += dxc * pullc * 0.4;
-                        cy += dyc * pullc * 0.4;
+                        // Apply mouse deformation to control point (disabled when unearned)
+                        if (!isUnearned) {
+                            const dxc = currentMousePos.x - cx;
+                            const dyc = currentMousePos.y - cy;
+                            const distc = Math.sqrt(dxc * dxc + dyc * dyc);
+                            const pullc = Math.max(0, 15 - distc) / 15;
+                            cx += dxc * pullc * 0.4;
+                            cy += dyc * pullc * 0.4;
+                        }
                         
                         segments.push(
                             <path
@@ -347,15 +353,15 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                             transform: `rotate(${leaf.rotate})`,
                             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
                         }}
-                        animate={{
+                        animate={!isUnearned ? {
                             rotate: [leaf.rotate, `calc(${leaf.rotate} + 5deg)`, leaf.rotate],
-                        }}
-                        transition={{
+                        } : {}}
+                        transition={!isUnearned ? {
                             duration: 3,
                             repeat: Infinity,
                             ease: "easeInOut",
                             delay: leaf.delay,
-                        }}
+                        } : {}}
                     />
                 ))}
             </div>
@@ -454,15 +460,15 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
                             transform: `rotate(${leaf.rotate})`,
                             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
                         }}
-                        animate={{
+                        animate={!isUnearned ? {
                             rotate: [leaf.rotate, `calc(${leaf.rotate} + 5deg)`, leaf.rotate],
-                        }}
-                        transition={{
+                        } : {}}
+                        transition={!isUnearned ? {
                             duration: 3,
                             repeat: Infinity,
                             ease: "easeInOut",
                             delay: leaf.delay,
-                        }}
+                        } : {}}
                     />
                 ))}
             </div>

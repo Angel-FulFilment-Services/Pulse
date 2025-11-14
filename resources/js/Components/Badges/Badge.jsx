@@ -8,6 +8,9 @@ import NewYearsFace from './Faces/NewYearsFace.jsx';
 import JackOLanternFace from './Faces/JackOLanternFace.jsx';
 import SpookyGhostFace from './Faces/SpookyGhostFace.jsx';
 import AutumnFace from './Faces/AutumnFace.jsx';
+import PopoverFlyout from '../Flyouts/PopoverFlyout.jsx';
+import BadgeFlyout from './BadgeFlyout.jsx';
+import BadgeDetailsPanel from './BadgeDetailsPanel.jsx';
 
 // Utility to darken a hex color
 function darkenColor(hex, percent) {
@@ -126,6 +129,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
         diamond: { primary: '#B9F2FF', secondary: '#87CEEB', accent: '#ADD8E6', emboss: '#B9F2FF' },
         alexandrite: { primary: '#4B0082', secondary: '#8B00FF', accent: '#9400D3', emboss: '#9400D3' },
         basic: { primary: '#A8A8A8', secondary: '#909090', accent: '#C0C0C0', emboss: '#A8A8A8' },
+        locked: { primary: '#555555', secondary: '#444444', accent: '#666666', emboss: '#E5E4E2' },
         christmas_snow: { primary: '#E8F5F7', secondary: '#B8D9E8', accent: '#A0C8D8', emboss: '#F0FDFF' },
         christmas_lights: { primary: '#1a2332', secondary: '#2d3e50', accent: '#34495e', emboss: '#202466' },
         new_years: { primary: '#FFD700', secondary: '#FFA500', accent: '#FF6B6B', emboss: '#0F0F24' },
@@ -134,7 +138,13 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
         autumn: { primary: '#D2691E', secondary: '#CD853F', accent: '#DAA520', emboss: '#D2691E' },
     };
     
-    const colors = tierColors[badge.tier] || tierColors.silver;
+    // Check if badge is locked (requires prerequisite badge)
+    const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
+    
+    // Check if badge is unearned (unlocked but criteria not met)
+    const isUnearned = !isLocked && !badge.is_earned;
+    
+    const colors = isLocked ? tierColors.locked : (tierColors[badge.tier] || tierColors.silver);
     const isAlexandrite = badge.tier === 'alexandrite';
     const isChristmasSnow = badge.tier === 'christmas_snow';
     const isChristmasLights = badge.tier === 'christmas_lights';
@@ -142,12 +152,12 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     const isJackOLantern = badge.tier === 'jack_o_lantern';
     const isSpookyGhost = badge.tier === 'spooky_ghost';
     const isAutumn = badge.tier === 'autumn';
-    const hasCustomFace = isAlexandrite || isChristmasSnow || isChristmasLights || isNewYears || isJackOLantern || isSpookyGhost || isAutumn;
+    const hasCustomFace = !isLocked && (isAlexandrite || isChristmasSnow || isChristmasLights || isNewYears || isJackOLantern || isSpookyGhost || isAutumn);
     
     // Determine glare intensity based on badge tier (darker badges get reduced glare)
-    const darkBadges = ['sapphire', 'alexandrite', 'emerald', 'basic'];
+    const darkBadges = ['sapphire', 'alexandrite', 'emerald', 'basic', 'locked'];
     const subtleBadges = ['christmas_lights', 'new_years', 'spooky_ghost', 'jack_o_lantern', 'autumn'];
-    const glareIntensity = darkBadges.includes(badge.tier) ? 0.75 : subtleBadges.includes(badge.tier) ? 0.25 : 1;
+    const glareIntensity = isLocked ? 0.25 : (darkBadges.includes(badge.tier) ? 0.75 : subtleBadges.includes(badge.tier) ? 0.25 : 1);
         
     // Device orientation (gyro) tracking
     useEffect(() => {
@@ -331,6 +341,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -344,6 +355,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -357,6 +369,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -370,6 +383,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -383,6 +397,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -396,6 +411,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -409,6 +425,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     rotateX={rotateX}
                     rotateY={rotateY}
                     embossingContent={embossingContent}
+                    isUnearned={isUnearned}
                 />
             );
         }
@@ -418,6 +435,65 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     
     // Render embossed image/icon
     const renderEmbossing = () => {
+        // If badge is locked, show lock icon instead
+        if (isLocked) {
+            return (
+                <div 
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none" 
+                    style={{ zIndex: 25 }}
+                >
+                    <div className="relative" style={{ width: '60%', height: '60%' }}>
+                        {/* Dark shadow layer */}
+                        <motion.div
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{
+                                x: useTransform(rotateY, [-20, 20], [-2, 2]),
+                                y: useTransform(rotateX, [-20, 20], [2, -2]),
+                            }}
+                        >
+                            <HeroIcons.LockClosedIcon
+                                className="w-full h-full"
+                                style={{
+                                    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+                                    color: darkenColor(colors.emboss, 0.3),
+                                    opacity: 0.4,
+                                }}
+                            />
+                        </motion.div>
+                        
+                        {/* Main lock icon */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <HeroIcons.LockClosedIcon
+                                className="w-full h-full"
+                                style={{
+                                    color: colors.emboss,
+                                    opacity: 0.6,
+                                }}
+                            />
+                        </div>
+                        
+                        {/* Light highlight layer */}
+                        <motion.div
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{
+                                x: useTransform(rotateY, [-20, 20], [1, -1]),
+                                y: useTransform(rotateX, [-20, 20], [-1, 1]),
+                            }}
+                        >
+                            <HeroIcons.LockClosedIcon
+                                className="w-full h-full"
+                                style={{
+                                    filter: 'blur(1px)',
+                                    color: lightenColor(colors.emboss, 0.4),
+                                    opacity: 0.3,
+                                }}
+                            />
+                        </motion.div>
+                    </div>
+                </div>
+            );
+        }
+        
         const hasImage = badge.image;
         const hasIcon = badge.icon;
         
@@ -574,23 +650,35 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     
     return (
         <>
-            <motion.div
-                ref={containerRef}
-                className="relative w-20 h-20"
-                style={{
-                    zIndex: highZIndex ? 9999 : 1,
-                }}
-                animate={{
-                    x: enlargeTransform.x,
-                    y: enlargeTransform.y,
-                    scale: enlargeTransform.scale,
-                }}
-                transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                }}
+            <PopoverFlyout
+                placement="right"
+                content={
+                    <BadgeFlyout 
+                        badge={badge} 
+                        progress={badge.progress}
+                        tierInfo={badge.tier_info}
+                    />
+                }
+                enabled={!isEnlarged && !isFlipping}
+                placementOffset={10}
             >
+                <motion.div
+                    ref={containerRef}
+                    className={`relative w-20 h-20 ${isLocked ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'}`}
+                    style={{
+                        zIndex: highZIndex ? 9999 : 1,
+                    }}
+                    animate={{
+                        x: enlargeTransform.x,
+                        y: enlargeTransform.y,
+                        scale: enlargeTransform.scale,
+                    }}
+                    transition={{
+                        type: 'spring',
+                        stiffness: 300,
+                        damping: 30,
+                    }}
+                >
                 {/* "NEW!" indicator floating in top right */}
                 {badge.isNew && !isFlipping && (
                     <motion.div
@@ -693,13 +781,26 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                         if (!isFlipping) {
                             e.stopPropagation();
                             e.preventDefault();
-                            setIsEnlarged(!isEnlarged);
+                            
+                            // If locked, do a wiggle animation instead of enlarging
+                            if (isLocked) {
+                                controls.start({
+                                    rotate: [0, -5, 5, -5, 5, 0],
+                                    transition: {
+                                        duration: 0.5,
+                                        times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                                        ease: 'easeInOut',
+                                    }
+                                });
+                            } else {
+                                setIsEnlarged(!isEnlarged);
+                            }
                         }
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
-                    whileHover={!isFlipping && !isEnlarged ? { scale: 1.05 } : undefined}
-                    whileTap={!isFlipping ? { scale: 0.95 } : undefined}
+                    whileHover={!isFlipping && !isEnlarged && !isLocked ? { scale: 1.05 } : undefined}
+                    whileTap={!isFlipping && !isLocked ? { scale: 0.95 } : undefined}
                 >
                     {/* FRONT SIDE */}
                     <motion.div
@@ -712,11 +813,12 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                                 ? `linear-gradient(135deg, ${colors.primary}, ${colors.secondary}, ${colors.accent}, ${colors.primary})`
                                 : `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
                             backgroundSize: isAlexandrite ? '200% 200%' : '100% 100%',
+                            filter: isUnearned ? 'grayscale(100%)' : undefined,
                         }}
-                        animate={isAlexandrite ? {
+                        animate={isAlexandrite && !isUnearned ? {
                             backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                         } : {}}
-                        transition={isAlexandrite ? {
+                        transition={isAlexandrite && !isUnearned ? {
                             duration: 3,
                             repeat: Infinity,
                             ease: 'linear',
@@ -875,7 +977,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                         )}
                         
                         {/* CUSTOM FACE LAYER */}
-                        {renderCustomFace(renderEmbossing())}
+                        {hasCustomFace && renderCustomFace(renderEmbossing())}
                         
                         {/* EMBOSSED IMAGE/ICON LAYER - Only render if no custom face */}
                         {!hasCustomFace && renderEmbossing()}
@@ -1116,10 +1218,11 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     </motion.div>
                 </motion.div>
             </motion.div>
+            </PopoverFlyout>
             
             {/* Backdrop when enlarged - rendered early for blur compilation */}
             <div
-                className="fixed inset-0 mt-[3.91rem] rounded-2xl rounded-t-none"
+                className="fixed inset-0 mt-[3.91rem] rounded-2xl rounded-t-none overflow-hidden"
                 style={{ 
                     zIndex: isEnlarged ? 9998 : -1,
                     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -1130,7 +1233,17 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     transition: 'opacity 0.2s ease-out',
                 }}
                 onClick={() => setIsEnlarged(false)}
-            />
+            >
+                {/* Enlarged badge details panel */}
+                {isEnlarged && (
+                    <BadgeDetailsPanel 
+                        badge={badge}
+                        progress={badge.progress}
+                        tierInfo={badge.tier_info}
+                        colors={colors}
+                    />
+                )}
+            </div>
             
             {/* Badge name when enlarged */}
             {isEnlarged && (
@@ -1173,9 +1286,15 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                     <div
                         className="text-center px-6 py-3 rounded-xl"
                         style={{
-                            background: `linear-gradient(135deg, ${colors.primary}40, ${colors.secondary}50)`,
-                            border: `2px solid ${colors.accent}40`,
-                            boxShadow: `
+                            background: isUnearned 
+                                ? 'linear-gradient(135deg, rgba(128, 128, 128, 0.25), rgba(96, 96, 96, 0.3))'
+                                : `linear-gradient(135deg, ${colors.primary}40, ${colors.secondary}50)`,
+                            border: isUnearned
+                                ? '2px solid rgba(128, 128, 128, 0.25)'
+                                : `2px solid ${colors.accent}40`,
+                            boxShadow: isUnearned
+                                ? '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(128, 128, 128, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                                : `
                                 0 8px 32px rgba(0, 0, 0, 0.3),
                                 0 0 0 1px ${colors.primary}20,
                                 inset 0 1px 0 rgba(255, 255, 255, 0.1)
@@ -1183,18 +1302,23 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                         }}
                     >
                         <p className="text-2xl font-bold text-white mb-1" style={{
-                            textShadow: `0 2px 8px rgba(0, 0, 0, 0.5), 0 0 20px ${colors.primary}60`,
+                            textShadow: isUnearned
+                                ? '0 2px 8px rgba(0, 0, 0, 0.5)'
+                                : `0 2px 8px rgba(0, 0, 0, 0.5), 0 0 20px ${colors.primary}60`,
                         }}>
                             {badge.name.charAt(0).toUpperCase() + badge.name.slice(1).replace('_', ' ')}
                         </p>
                         <p className="text-sm text-gray-300" style={{
                             textShadow: '0 1px 4px rgba(0, 0, 0, 0.5)',
                         }}>
-                            Awarded {new Date(badge.awarded_at).toLocaleDateString('en-GB', { 
-                                day: 'numeric', 
-                                month: 'long',
-                                year: 'numeric'
-                            })}
+                            {isUnearned 
+                                ? `${Math.round((badge.progress?.percentage || 0))}% Complete`
+                                : `Awarded ${new Date(badge.awarded_at).toLocaleDateString('en-GB', { 
+                                    day: 'numeric', 
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}`
+                            }
                         </p>
                     </div>
                 </motion.div>
