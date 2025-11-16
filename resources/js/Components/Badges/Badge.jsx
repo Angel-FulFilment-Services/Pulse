@@ -35,7 +35,7 @@ function lightenColor(hex, percent) {
     return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
 }
 
-const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
+const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded }) => {
     const badgeRef = useRef(null);
     const containerRef = useRef(null);
     const controls = useAnimation();
@@ -52,8 +52,10 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
             setHighZIndex(true); // Set high z-index immediately when enlarging
             const rect = containerRef.current.getBoundingClientRect();
             
-            // Find the badge widget container (parent with class containing 'badge')
-            let widgetContainer = containerRef.current.closest('.grid') || containerRef.current.closest('[class*="badge"]');
+            // Find the widget container - look for the WidgetItem content div or react-grid-item
+            let widgetContainer = containerRef.current.closest('.react-grid-item') || 
+                                 containerRef.current.closest('.widget-container') ||
+                                 containerRef.current.closest('[class*="p-6"]');
             
             // If we can't find a specific container, use the viewport
             if (!widgetContainer) {
@@ -92,6 +94,14 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
         }
     }, [isEnlarged]);
     
+
+    useEffect(() => {
+        // Unlarge badge when collapsing details panel
+        if (isEnlarged && !isExpanded) {
+            setIsEnlarged(false);   
+        }
+    }, [isExpanded]);
+
     // Motion values for mouse/gyro position (0-1 range)
     // Start at bottom-right (1, 1) for alexandrite spectrum
     const mouseX = useMotionValue(1);
@@ -436,7 +446,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
     // Render embossed image/icon
     const renderEmbossing = () => {
         // If badge is locked, show lock icon instead
-        if (isLocked) {
+        if (isLocked || isUnearned) {
             return (
                 <div 
                     className="absolute inset-0 flex items-center justify-center pointer-events-none" 
@@ -466,7 +476,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                             <HeroIcons.LockClosedIcon
                                 className="w-full h-full"
                                 style={{
-                                    color: colors.emboss,
+                                    color: lightenColor(colors.emboss, 0.2),
                                     opacity: 0.6,
                                 }}
                             />
@@ -664,7 +674,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
             >
                 <motion.div
                     ref={containerRef}
-                    className={`relative w-20 h-20 ${isLocked ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'}`}
+                    className={`relative w-20 h-20 ${isLocked ? 'opacity-85' : 'opacity-100'} transition-opacity duration-300`}
                     style={{
                         zIndex: highZIndex ? 9999 : 1,
                     }}
@@ -762,7 +772,7 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                 
                 <motion.div
                     ref={badgeRef}
-                    className="relative w-20 h-20 rounded-3xl cursor-pointer"
+                    className={`relative w-20 h-20 rounded-3xl ${!isExpanded ? 'cursor-default' : isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     animate={controls}
                     style={{
                         perspective: 1000,
@@ -793,14 +803,17 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
                                     }
                                 });
                             } else {
-                                setIsEnlarged(!isEnlarged);
+                                // Only allow enlargement if in expanded mode
+                                if (isExpanded) {
+                                    setIsEnlarged(!isEnlarged);
+                                }
                             }
                         }
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
                     whileHover={!isFlipping && !isEnlarged && !isLocked ? { scale: 1.05 } : undefined}
-                    whileTap={!isFlipping && !isLocked ? { scale: 0.95 } : undefined}
+                    whileTap={!isFlipping && !isLocked && isExpanded ? { scale: 0.95 } : undefined}
                 >
                     {/* FRONT SIDE */}
                     <motion.div
@@ -1222,10 +1235,9 @@ const Badge = ({ badge, index, shouldFlip = false, onBadgeClick }) => {
             
             {/* Backdrop when enlarged - rendered early for blur compilation */}
             <div
-                className="fixed inset-0 mt-[3.91rem] rounded-2xl rounded-t-none overflow-hidden"
+                className="fixed inset-0 mt-[3.91rem] rounded-2xl rounded-t-none overflow-hidden bg-black/60 dark:bg-dark-900/60"
                 style={{ 
                     zIndex: isEnlarged ? 9998 : -1,
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                     opacity: isEnlarged ? 1 : 0,

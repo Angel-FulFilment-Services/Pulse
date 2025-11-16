@@ -48,13 +48,32 @@ const Dashboard = ({ token }) => {
             id: 'badges',
             title: 'Recent Badges',
             content: <BadgeWidget employee={employee} />,
-            headerAction: <TrophyIcon className="h-5 w-5 text-gray-400" />,
-            x: 0, y: 1, w: 12, h: 14,
-            minW: 4, minH: 5
+            headerAction: <TrophyIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
+            x: 0, y: 4, w: 4, h: 9,
+            minW: 4, minH: 9,
+            minExpandedH: 12
+        },
+        {
+            id: 'schedule',
+            title: 'Today\'s Schedule',
+            content: <ScheduleCard employee={employee} />,
+            headerAction: <CalendarDaysIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
+            x: 4, y: 4, w: 4, h: 9,
+            minW: 4, minH: 9,
+            minExpandedH: 12
+        },
+        {
+            id: 'schedule_2',
+            title: 'Today\'s Schedule',
+            content: <ScheduleCard employee={employee} />,
+            headerAction: <CalendarDaysIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
+            x: 9, y: 4, w: 4, h: 9,
+            minW: 4, minH: 9,
+            minExpandedH: 12
         },
     ];
 
-    const { widgets, handleLayoutChange } = useWidgetLayout(
+    const { widgets, layouts, handleLayoutChange, expandedWidget, handleExpandWidget, handleLockWidget } = useWidgetLayout(
         initialWidgets, 
         'dashboard-layout-v1'
     );
@@ -65,7 +84,11 @@ const Dashboard = ({ token }) => {
                 {/* Draggable Grid */}
                 <DraggableGrid
                     widgets={widgets}
+                    savedLayouts={layouts}
                     onLayoutChange={handleLayoutChange}
+                    expandedWidget={expandedWidget}
+                    onExpandWidget={handleExpandWidget}
+                    onLockWidget={handleLockWidget}
                     className="dashboard-grid"
                 />
             </div>

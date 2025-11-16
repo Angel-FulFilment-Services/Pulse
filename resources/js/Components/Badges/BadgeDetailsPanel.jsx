@@ -51,7 +51,7 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
             transition={{
                 type: 'spring',
                 stiffness: 300,
-                damping: 30,
+                damping: 40,
             }}
         >
             <div className="p-6">

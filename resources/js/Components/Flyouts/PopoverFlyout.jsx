@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useFloating, offset, arrow, autoUpdate, computePosition, flip, shift } from '@floating-ui/react-dom';
 import './PopoverFlyoutStyles.css';
 
@@ -121,8 +122,8 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
       {/* Trigger Element */}
       {children}
 
-      {/* Popover Content */}
-      {isOpen && (
+      {/* Popover Content - Render in portal to escape z-index stacking context */}
+      {isOpen && createPortal(
         <div
           ref={popperElement}
           style={{
@@ -135,7 +136,8 @@ export default function PopoverFlyout({ placement = 'top', width = 'auto', class
         >
           {content}
           <div ref={arrowElement} className="arrow bg-white dark:bg-dark-900" />
-        </div>
+        </div>,
+        document.body
       )}
     </Element>
   );

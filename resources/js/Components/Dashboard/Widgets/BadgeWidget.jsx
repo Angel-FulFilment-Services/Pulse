@@ -1,246 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Badge from '../../Badges/Badge.jsx';
+import useFetchBadges from '../../Fetches/Dashboard/useFetchBadges.jsx';
+import SearchControl from '../../Controls/SearchControl.jsx';
 
-const BadgeWidget = ({ employee }) => {
+const BadgeWidget = ({ employee, isExpanded, onToggleExpand }) => {
     const [triggerFlip, setTriggerFlip] = useState(null);
+    const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
+    const [filter, setFilter] = useState('all'); // all, obtained, in-progress, locked
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+    const BADGES_PER_PAGE = 30;
+    
+    // Fetch badges from API
+    const { badges, statistics, isLoading, isLoaded, markBadgeAsViewed } = useFetchBadges();
 
-    // Placeholder data - will be replaced with real data from API
-    const badges = [
-        ...Array.from({ length: 9 }, (_, index) => ({
-            id: index + 1,
-            name: `Badge ${index + 1}`,
-            description: `This is a description for Badge ${index + 1}. Complete specific tasks to earn this achievement.`,
-            icon: 'LightBulbIcon',
-            tier: ['bronze', 'silver', 'gold', 'platinum', 'emerald', 'ruby', 'sapphire', 'diamond', 'alexandrite'][index % 9],
-            category: 'performance',
-            threshold: (index + 1) * 10,
-            points: (index + 1) * 100,
-            awarded_at: new Date(Date.now() - index * 86400000).toISOString(),
-            isNew: index === 0,
-            is_earned: true,
-            repeatable: index === 2,
-            max_awards: index === 4 ? 100 : null,
-            awards_count: index === 4 ? 47 : null,
-            tier_info: {
-                name: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Ruby', 'Sapphire', 'Diamond', 'Alexandrite'][index % 9],
-                color: ['#CD7F32', '#C0C0C0', '#FFD700', '#E5E4E2', '#50C878', '#E0115F', '#0F52BA', '#B9F2FF', '#9C27B0'][index % 9]
-            }
-        })),
-        // Non-tiered badge for testing
-        {
-            id: 10,
-            name: 'Basic Badge',
-            description: 'A basic achievement for getting started.',
-            tier: 'basic',
-            icon: 'TrophyIcon',
-            category: 'general',
-            threshold: 1,
-            points: 10,
-            awarded_at: new Date(Date.now() - 10 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Basic',
-                color: '#94a3b8'
-            }
-        },
-        // Christmas Snow badge for testing
-        {
-            id: 11,
-            name: 'Winter Wonderland',
-            description: 'Celebrate the winter season with festive achievements.',
-            tier: 'christmas_snow',
-            icon: 'AcademicCapIcon',
-            category: 'seasonal',
-            threshold: 25,
-            points: 500,
-            awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            available_from: '2024-12-01',
-            available_until: '2024-12-31',
-            tier_info: {
-                name: 'Seasonal',
-                color: '#60a5fa'
-            }
-        },
-        // Christmas Lights badge for testing
-        {
-            id: 12,
-            name: 'Holiday Lights',
-            description: 'Light up the holidays with exceptional performance.',
-            tier: 'christmas_lights',
-            icon: 'TrophyIcon',
-            category: 'seasonal',
-            threshold: 50,
-            points: 750,
-            awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            expires_at: new Date(Date.now() + 15 * 86400000).toISOString(),
-            tier_info: {
-                name: 'Holiday',
-                color: '#f59e0b'
-            }
-        },
-        // New Years badge for testing
-        {
-            id: 13,
-            name: 'New Year Celebration',
-            description: 'Ring in the new year with outstanding achievements.',
-            tier: 'new_years',
-            icon: 'TrophyIcon',
-            category: 'seasonal',
-            threshold: 100,
-            points: 1000,
-            awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'New Year',
-                color: '#8b5cf6'
-            }
-        },
-        {
-            id: 14,
-            name: "Jack O Lantern",
-            description: 'Spooky achievements for the Halloween season.',
-            tier: 'jack_o_lantern',
-            icon: 'TrophyIcon',
-            category: 'seasonal',
-            threshold: 31,
-            points: 666,
-            awarded_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Halloween',
-                color: '#fb923c'
-            },
-            prerequisite_badge: {
-                id: 10,
-                name: 'Basic Badge'
-            }
-        },
-        // Spooky Ghost badge for testing
-        {
-            id: 15,
-            name: 'Haunted Spirit',
-            description: 'A ghostly achievement for brave souls.',
-            tier: 'spooky_ghost',
-            icon: 'TrophyIcon',
-            category: 'seasonal',
-            threshold: 13,
-            points: 313,
-            awarded_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Spooky',
-                color: '#a78bfa'
-            }
-        },
-        // Autumn badge for testing
-        {
-            id: 16,
-            name: 'Autumn Harvest',
-            description: 'Gather achievements like autumn leaves.',
-            tier: 'autumn',
-            icon: 'TrophyIcon',
-            category: 'seasonal',
-            threshold: 75,
-            points: 850,
-            awarded_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Autumn',
-                color: '#f97316'
-            }
-        },
-        // Test badge with icon only
-        {
-            id: 18,
-            name: 'Achievement',
-            description: 'Complete various tasks to unlock this achievement.',
-            tier: 'gold',
-            icon: 'TrophyIcon',
-            category: 'performance',
-            threshold: 50,
-            points: 300,
-            awarded_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Gold',
-                color: '#FFD700'
-            }
-        },
-        // Test badge with image only
-        {
-            id: 19,
-            name: 'Photo Badge',
-            description: 'A special badge with custom imagery.',
-            tier: 'silver',
-            image: '/images/angel-logo.png',
-            category: 'special',
-            threshold: 25,
-            points: 200,
-            awarded_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-            isNew: false,
-            is_earned: true,
-            tier_info: {
-                name: 'Silver',
-                color: '#C0C0C0'
-            }
-        },
-        // Locked badge example (requires prerequisite)
-        {
-            id: 21,
-            name: 'Elite Performance',
-            description: 'Unlock this badge by first earning the Achievement badge.',
-            tier: 'diamond',
-            icon: 'TrophyIcon',
-            category: 'performance',
-            threshold: 100,
-            points: 1000,
-            isNew: false,
-            is_earned: false,
-            tier_info: {
-                name: 'Diamond',
-                color: '#B9F2FF'
-            },
-            prerequisite_badge: {
-                id: 18,
-                name: 'Achievement',
-                is_earned: false // Not earned yet, so badge 21 will be locked
-            },
-        },
-        // Unearned badge example (unlocked but criteria not met)
-        {
-            id: 22,
-            name: 'Winter Champion',
-            description: 'Master the winter season challenges.',
-            tier: 'christmas_lights',
-            icon: 'LockClosedIcon',
-            category: 'seasonal',
-            threshold: 50,
-            points: 750,
-            isNew: false,
-            is_earned: false, // Not earned yet
-            tier_info: {
-                name: 'Seasonal',
-                color: '#60a5fa'
-            },
-            progress: {
-                current_count: 23,
-                percentage: 46 // 23/50 = 46%
-            }
+    // Listen for dark mode changes
+    useEffect(() => {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    setIsDarkMode(document.documentElement.classList.contains('dark'));
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        return () => observer.disconnect();
+    }, []);
+    
+    // Mark new badges as viewed when they appear
+    useEffect(() => {
+        if (badges && markBadgeAsViewed) {
+            badges.forEach(badge => {
+                if (badge.isNew) {
+                    setTriggerFlip(badge.id);
+                    setTimeout(() => setTriggerFlip(null), 2000); // Reset after animation
+                    markBadgeAsViewed(badge.id);
+                }
+            });
         }
-    ];
+    }, [badges, markBadgeAsViewed]);
 
     // Sort badges by: 1) Earned (latest first), 2) Unearned (closest to completion), 3) Locked
-    const sortedBadges = [...badges].sort((a, b) => {
+    const sortedBadges = [...(badges || [])].sort((a, b) => {
         const aIsLocked = a.prerequisite_badge && !a.prerequisite_badge.is_earned;
         const bIsLocked = b.prerequisite_badge && !b.prerequisite_badge.is_earned;
         
@@ -267,50 +73,178 @@ const BadgeWidget = ({ employee }) => {
         return 0;
     });
 
-    const handleBadgeClick = (badgeId) => {
-        setTriggerFlip(badgeId);
+    const handleBadgeClick = (badge) => {
+        // Trigger the flip animation
+        setTriggerFlip(badge.id);
         setTimeout(() => setTriggerFlip(null), 2000); // Reset after animation
     };
+    
+    // Filter badges based on selected filter and search query
+    const filteredBadges = sortedBadges.filter(badge => {
+        // Apply category filter
+        let matchesFilter = false;
+        if (filter === 'all') matchesFilter = true;
+        else if (filter === 'obtained') matchesFilter = badge.is_earned === true;
+        else if (filter === 'in-progress') {
+            const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
+            matchesFilter = badge.is_earned === false && !isLocked;
+        }
+        else if (filter === 'locked') {
+            const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
+            matchesFilter = isLocked;
+        }
+        
+        // Apply search filter
+        if (searchQuery.trim() !== '') {
+            const query = searchQuery.toLowerCase();
+            const matchesSearch = 
+                badge.name.toLowerCase().includes(query) ||
+                (badge.description && badge.description.toLowerCase().includes(query)) ||
+                (badge.category && badge.category.toLowerCase().includes(query));
+            return matchesFilter && matchesSearch;
+        }
+        
+        return matchesFilter;
+    });
+    
+    // Reset to page 1 when filter or search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filter, searchQuery]);
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredBadges.length / BADGES_PER_PAGE);
+    const startIndex = (currentPage - 1) * BADGES_PER_PAGE;
+    const endIndex = startIndex + BADGES_PER_PAGE;
+    const paginatedBadges = isExpanded 
+        ? filteredBadges.slice(startIndex, endIndex)
+        : filteredBadges.slice(0, 9); // Show only 9 in collapsed view
+    
+    // Calculate empty slots to fill the page
+    const emptySlots = isExpanded ? BADGES_PER_PAGE - paginatedBadges.length : 0;
+    
+    const handlePreviousPage = () => {
+        setCurrentPage(prev => Math.max(1, prev - 1));
+    };
+    
+    const handleNextPage = () => {
+        setCurrentPage(prev => Math.min(totalPages, prev + 1));
+    };
 
+    // Always render all badges, but control visibility with CSS
     return (
-        <div>
-            <div className="grid grid-cols-5 gap-4">
-                {sortedBadges.map((badge, index) => (
-                    <div key={badge.id} className="flex flex-col items-center space-y-2">
+        <div className="h-full flex flex-col">
+            {/* Loading state */}
+            {isLoading && !isLoaded && (
+                <div className="flex items-center justify-center h-full">
+                    <div className="text-gray-500 dark:text-dark-400">Loading badges...</div>
+                </div>
+            )}
+            
+            {/* Badges content */}
+            {isLoaded && (
+                <>
+                    {/* Filter buttons and search - only show when expanded */}
+                    {isExpanded && (
+                        <div className="flex justify-between items-center gap-4 flex-shrink-0 border-b pb-4 border-gray-200 dark:border-dark-700">
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setFilter('all')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        filter === 'all'
+                                            ? 'bg-theme-500 text-white shadow-md'
+                                    : 'bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700'
+                                    }`}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    onClick={() => setFilter('obtained')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        filter === 'obtained'
+                                            ? 'bg-theme-500 text-white shadow-md'
+                                            : 'bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700'
+                                    }`}
+                                >
+                                    Acquired
+                                </button>
+                                <button
+                                    onClick={() => setFilter('in-progress')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        filter === 'in-progress'
+                                        ? 'bg-theme-500 text-white shadow-md'
+                                        : 'bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700'
+                                }`}
+                                >
+                                In Progress
+                                </button>
+                                <button
+                                    onClick={() => setFilter('locked')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        filter === 'locked'
+                                            ? 'bg-theme-500 text-white shadow-md'
+                                            : 'bg-gray-100 dark:bg-dark-800 text-gray-700 dark:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700'
+                                    }`}
+                                >
+                                    Locked
+                                </button>
+                            </div>
+                            
+                            {/* Search box on the right */}
+                            <div className="w-64">
+                                <input
+                                    type="text"
+                                    placeholder="Search badges..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg text-sm border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-100 placeholder-gray-400 dark:placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+            <div className={`grid ${isExpanded ? 'grid-cols-5 pt-6' : 'grid-cols-3'} gap-4 transition-all duration-300 ease-in-out flex-1 overflow-y-visible`}>
+                {paginatedBadges.map((badge, index) => (
+                    <div 
+                        key={badge.id} 
+                        className="flex flex-col items-center space-y-2 transition-all duration-300 ease-in-out"
+                    >
                         <div className="relative w-20 h-20">
                             {/* Inset seat/cavity for badge - stays in place */}
                             <div
-                                className="absolute rounded-3xl"
+                                className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-white/5"
                                 style={{
                                     top: 0,
                                     left: 0,
                                     width: '80px',
                                     height: '80px',
-                                    background: 'linear-gradient(135deg, #f5f5f5, #e8e8e8)',
-                                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                                    boxShadow: `
-                                        inset 1.5px 1.5px 4px rgba(0, 0, 0, 0.15),
-                                        inset -1.5px -1.5px 4px rgba(255, 255, 255, 0.6),
-                                        inset 3px 3px 7px rgba(0, 0, 0, 0.1)
-                                    `,
+                                    boxShadow: isDarkMode 
+                                        ? `
+                                            inset 1.5px 1.5px 4px rgba(0, 0, 0, 0.5),
+                                            inset -1.5px -1.5px 4px rgba(255, 255, 255, 0.05),
+                                            inset 3px 3px 7px rgba(0, 0, 0, 0.4)
+                                        `
+                                        : `
+                                            inset 1.5px 1.5px 4px rgba(0, 0, 0, 0.15),
+                                            inset -1.5px -1.5px 4px rgba(255, 255, 255, 0.6),
+                                            inset 3px 3px 7px rgba(0, 0, 0, 0.1)
+                                        `,
                                     zIndex: 0,
                                 }}
                             >
                                 {/* Circular hole for broach pin */}
                                 <div
-                                    className="absolute"
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38px] h-[38px] rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-dark-600 dark:to-dark-700"
                                     style={{
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        width: '38px',
-                                        height: '38px',
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, #d0d0d0, #c0c0c0)',
-                                        boxShadow: `
-                                            inset 2px 2px 4px rgba(0, 0, 0, 0.3),
-                                            inset -1px -1px 3px rgba(255, 255, 255, 0.3)
-                                        `,
+                                        boxShadow: isDarkMode
+                                            ? `
+                                                inset 2px 2px 4px rgba(0, 0, 0, 0.6),
+                                                inset -1px -1px 3px rgba(255, 255, 255, 0.05)
+                                            `
+                                            : `
+                                                inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+                                                inset -1px -1px 3px rgba(255, 255, 255, 0.3)
+                                            `,
                                     }}
                                 />
                             </div>
@@ -318,13 +252,15 @@ const BadgeWidget = ({ employee }) => {
                                 badge={badge} 
                                 index={index}
                                 shouldFlip={triggerFlip === badge.id}
-                                onBadgeClick={() => handleBadgeClick(badge.id)}
+                                onBadgeClick={() => handleBadgeClick(badge)}
+                                onToggleExpand={onToggleExpand}
+                                isExpanded={isExpanded}
                             />
                         </div>
                         
                         {/* Badge info */}
                         <div className="text-center">
-                            <p className="text-xs font-medium text-gray-700 dark:text-dark-200 truncate max-w-[80px]">
+                            <p className="text-xs font-medium text-gray-700 dark:text-dark-200 truncate max-w-sm">
                                 {badge.name.charAt(0).toUpperCase() + badge.name.slice(1).replace('_', ' ')}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-dark-400">
@@ -336,7 +272,96 @@ const BadgeWidget = ({ employee }) => {
                         </div>
                     </div>
                 ))}
+                
+                {/* Empty cavities to fill the page */}
+                {Array.from({ length: emptySlots }).map((_, index) => (
+                    <div 
+                        key={`empty-${index}`}
+                        className="flex flex-col items-center space-y-2"
+                    >
+                        <div className="relative w-20 h-20">
+                            {/* Empty inset seat/cavity */}
+                            <div
+                                className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-white/5"
+                                style={{
+                                    top: 0,
+                                    left: 0,
+                                    width: '80px',
+                                    height: '80px',
+                                    boxShadow: isDarkMode 
+                                        ? `
+                                            inset 1.5px 1.5px 4px rgba(0, 0, 0, 0.5),
+                                            inset -1.5px -1.5px 4px rgba(255, 255, 255, 0.05),
+                                            inset 3px 3px 7px rgba(0, 0, 0, 0.4)
+                                        `
+                                        : `
+                                            inset 1.5px 1.5px 4px rgba(0, 0, 0, 0.15),
+                                            inset -1.5px -1.5px 4px rgba(255, 255, 255, 0.6),
+                                            inset 3px 3px 7px rgba(0, 0, 0, 0.1)
+                                        `,
+                                    zIndex: 0,
+                                }}
+                            >
+                                {/* Circular hole for broach pin */}
+                                <div
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38px] h-[38px] rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-dark-600 dark:to-dark-700"
+                                    style={{
+                                        boxShadow: isDarkMode
+                                            ? `
+                                                inset 2px 2px 4px rgba(0, 0, 0, 0.6),
+                                                inset -1px -1px 3px rgba(255, 255, 255, 0.05)
+                                            `
+                                            : `
+                                                inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+                                                inset -1px -1px 3px rgba(255, 255, 255, 0.3)
+                                            `,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <div className="h-8">
+                            <p className="text-xs font-medium text-gray-400 dark:text-dark-500 italic">
+                                Empty Slot
+                            </p>
+                        </div>
+                    </div>
+                ))}
             </div>
+            
+            {/* Pagination controls - only show when expanded and there are multiple pages */}
+                {isExpanded && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0">
+                        <button
+                            onClick={handlePreviousPage}
+                            disabled={currentPage === 1 || totalPages === 0}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                currentPage === 1 || totalPages === 0
+                                    ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 dark:text-dark-500 cursor-not-allowed'
+                                    : 'bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-dark-200 hover:bg-gray-300 dark:hover:bg-dark-600'
+                            }`}
+                        >
+                            ← Previous
+                        </button>
+                        
+                        <span className="text-sm text-gray-600 dark:text-dark-200">
+                            Page {currentPage} of {totalPages || 1}
+                        </span>
+                        
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                currentPage === totalPages || totalPages === 0
+                                    ? 'bg-gray-100 dark:bg-dark-800 text-gray-400 dark:text-dark-500 cursor-not-allowed'
+                                    : 'bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-dark-200 hover:bg-gray-300 dark:hover:bg-dark-600'
+                            }`}
+                        >
+                            Next →
+                        </button>
+                    </div>
+                )}
+                </>
+            )}
         </div>
     );
 };

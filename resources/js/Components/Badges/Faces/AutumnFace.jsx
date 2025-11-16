@@ -220,7 +220,6 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }
         
         // If we're hovering a new tree, shake it
         if (hoveredTree && hoveredTree !== lastHoveredTree && !treeShaken[hoveredTree]) {
-            console.log('Hovering tree:', hoveredTree);
             shakeTree(hoveredTree);
         }
         
@@ -292,11 +291,9 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }
         const cooldownTime = 5000 + Math.random() * 7000; // 5000-12000ms
         const now = Date.now();
         if (lastShakeTime.current[side] && now - lastShakeTime.current[side] < cooldownTime) {
-            console.log('Tree on cooldown, skipping');
             return;
         }
         
-        console.log('treeShaken state:', treeShaken);
         if (treeShaken[side]) {
             return;
         }
@@ -1134,15 +1131,12 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }
                         }}
                         onMouseOver={(e) => {
                             e.stopPropagation();
-                            console.log(`Tree ${tree.id} mouse over`);
                             if (!treeShaken[tree.id]) {
-                                console.log(`Shaking tree ${tree.id}`);
                                 shakeTree(tree.id);
                             }
                         }}
                         onMouseOut={(e) => {
                             e.stopPropagation();
-                            console.log(`Tree ${tree.id} mouse out`);
                             // Reset shake state when mouse leaves so it can be triggered again
                             setTimeout(() => {
                                 setTreeShaken(prev => ({ ...prev, [tree.id]: false }));

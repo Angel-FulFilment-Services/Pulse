@@ -21,6 +21,7 @@ use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\AdministrationController;
 use App\Http\Controllers\App\ProxyController;
+use App\Http\Controllers\App\BadgesController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -98,6 +99,16 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('/wallboard', [DashboardController::class, 'wallboard'])->name('wallboard');
+
+/*
+|-----------------------
+| Badges
+|-----------------------
+*/
+
+Route::get('/badges', [BadgesController::class, 'index'])->name('badges');
+Route::get('/badges/statistics', [BadgesController::class, 'statistics'])->name('badges.statistics');
+Route::post('/badges/{badgeId}/mark-viewed', [BadgesController::class, 'markAsViewed'])->name('badges.markViewed');
 
 /*
 |-----------------------
