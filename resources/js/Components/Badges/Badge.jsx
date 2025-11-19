@@ -35,7 +35,7 @@ function lightenColor(hex, percent) {
     return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
 }
 
-const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded }) => {
+const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, isNew }) => {
     const badgeRef = useRef(null);
     const containerRef = useRef(null);
     const controls = useAnimation();
@@ -690,7 +690,7 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded })
                     }}
                 >
                 {/* "NEW!" indicator floating in top right */}
-                {badge.isNew && !isFlipping && (
+                {isNew && !isFlipping && (
                     <motion.div
                         className="absolute pointer-events-none bg-theme-500 font-bold text-white shadow-theme-500/50"
                         style={{
@@ -1252,7 +1252,7 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded })
                         badge={badge}
                         progress={badge.progress}
                         tierInfo={badge.tier_info}
-                        colors={colors}
+                        colors={tierColors[badge.tier]}
                     />
                 )}
             </div>

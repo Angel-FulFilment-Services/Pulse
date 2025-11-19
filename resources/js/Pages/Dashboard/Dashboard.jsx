@@ -46,7 +46,7 @@ const Dashboard = ({ token }) => {
         },
         {
             id: 'badges',
-            title: 'Recent Badges',
+            title: 'My Badges',
             content: <BadgeWidget employee={employee} />,
             headerAction: <TrophyIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
             x: 0, y: 4, w: 4, h: 9,

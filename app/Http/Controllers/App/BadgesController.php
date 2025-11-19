@@ -19,93 +19,115 @@ class BadgesController extends Controller
     {
         $userId = Auth::id();
 
-        // Get all active badges with their tier information
+        // Eager load all related data in bulk to avoid N+1 queries
         $badges = Badge::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('tier')
+            ->get();
+
+        // Bulk fetch all user badges for this user
+        $userBadges = UserBadge::where('user_id', $userId)
+            ->whereIn('badge_id', $badges->pluck('id'))
+            ->active()
             ->get()
-            ->map(function ($badge) use ($userId) {
-                // Get user's earned badge if exists
-                $userBadge = UserBadge::where('user_id', $userId)
-                    ->where('badge_id', $badge->id)
-                    ->active()
-                    ->first();
+            ->keyBy('badge_id');
 
-                // Get user's progress if not earned
-                $progress = null;
-                if (!$userBadge) {
-                    $badgeProgress = UserBadgeProgress::where('user_id', $userId)
-                        ->where('badge_id', $badge->id)
-                        ->first();
+        // Bulk fetch all user badge progress for this user
+        $userProgress = UserBadgeProgress::where('user_id', $userId)
+            ->whereIn('badge_id', $badges->pluck('id'))
+            ->get()
+            ->keyBy('badge_id');
 
-                    if ($badgeProgress) {
-                        $progress = [
-                            'current_count' => $badgeProgress->current_count,
-                            'threshold' => $badge->threshold,
-                            'percentage' => (float) $badgeProgress->percentage,
-                            'started_at' => $badgeProgress->started_at,
-                            'last_checked_at' => $badgeProgress->last_checked_at,
-                            'milestone_hit' => $badgeProgress->milestone_hit,
-                        ];
-                    }
+        // Get all prerequisite badge IDs
+        $prereqBadgeIds = $badges->whereNotNull('prerequisite_badge_id')->pluck('prerequisite_badge_id')->unique();
+        
+        // Bulk fetch prerequisite badges
+        $prereqBadges = Badge::whereIn('id', $prereqBadgeIds)->get()->keyBy('id');
+        
+        // Bulk fetch prerequisite earned status
+        $prereqEarned = UserBadge::where('user_id', $userId)
+            ->whereIn('badge_id', $prereqBadgeIds)
+            ->active()
+            ->pluck('badge_id')
+            ->flip();
+
+        // Bulk count awards for repeatable badges
+        $repeatableBadgeIds = $badges->where('repeatable', true)->pluck('id');
+        $awardsCounts = UserBadge::where('user_id', $userId)
+            ->whereIn('badge_id', $repeatableBadgeIds)
+            ->active()
+            ->select('badge_id', DB::raw('count(*) as count'))
+            ->groupBy('badge_id')
+            ->pluck('count', 'badge_id');
+
+        // Map badges with all pre-fetched data
+        $result = $badges->map(function ($badge) use ($userId, $userBadges, $userProgress, $prereqBadges, $prereqEarned, $awardsCounts) {
+            // Get user's earned badge if exists
+            $userBadge = $userBadges->get($badge->id);
+
+            // Get user's progress if not earned
+            $progress = null;
+            if (!$userBadge) {
+                $badgeProgress = $userProgress->get($badge->id);
+                if ($badgeProgress) {
+                    $progress = [
+                        'current_count' => $badgeProgress->current_count,
+                        'threshold' => $badge->threshold,
+                        'percentage' => (float) $badgeProgress->percentage,
+                        'started_at' => $badgeProgress->started_at,
+                        'last_checked_at' => $badgeProgress->last_checked_at,
+                        'milestone_hit' => $badgeProgress->milestone_hit,
+                    ];
                 }
+            }
 
-                // Get prerequisite badge info if exists
-                $prerequisiteBadge = null;
-                if ($badge->prerequisite_badge_id) {
-                    $prereq = Badge::find($badge->prerequisite_badge_id);
-                    if ($prereq) {
-                        // Check if user has earned the prerequisite
-                        $prereqEarned = UserBadge::where('user_id', $userId)
-                            ->where('badge_id', $prereq->id)
-                            ->active()
-                            ->exists();
-
-                        $prerequisiteBadge = [
-                            'id' => $prereq->id,
-                            'name' => $prereq->name,
-                            'is_earned' => $prereqEarned,
-                        ];
-                    }
+            // Get prerequisite badge info if exists
+            $prerequisiteBadge = null;
+            if ($badge->prerequisite_badge_id) {
+                $prereq = $prereqBadges->get($badge->prerequisite_badge_id);
+                if ($prereq) {
+                    $prerequisiteBadge = [
+                        'id' => $prereq->id,
+                        'name' => $prereq->name,
+                        'is_earned' => $prereqEarned->has($prereq->id),
+                    ];
                 }
+            }
 
-                // Build tier info
-                $tierInfo = [
-                    'name' => ucfirst($badge->tier),
-                    'color' => $badge->color,
-                ];
+            // Build tier info
+            $tierInfo = [
+                'name' => ucfirst($badge->tier),
+                'color' => $badge->color,
+            ];
 
-                return [
-                    'id' => $badge->id,
-                    'name' => $badge->name,
-                    'description' => $badge->description,
-                    'icon' => $badge->icon ?? 'TrophyIcon',
-                    'image_url' => $badge->image_url,
-                    'category' => $badge->category,
-                    'tier' => $badge->tier,
-                    'threshold' => $badge->threshold,
-                    'points' => $badge->points,
-                    'is_secret' => $badge->is_secret,
-                    'repeatable' => $badge->repeatable,
-                    'max_awards' => $badge->max_awards,
-                    'is_earned' => $userBadge !== null,
-                    'awarded_at' => $userBadge?->awarded_at,
-                    'viewed_at' => $userBadge?->viewed_at,
-                    'isNew' => $userBadge && $userBadge->viewed_at === null,
-                    'progress_value' => $userBadge?->progress_value,
-                    'rank' => $userBadge?->rank,
-                    'awards_count' => $badge->repeatable ? UserBadge::where('user_id', $userId)
-                        ->where('badge_id', $badge->id)
-                        ->active()
-                        ->count() : null,
-                    'progress' => $progress,
-                    'prerequisite_badge' => $prerequisiteBadge,
-                    'tier_info' => $tierInfo,
-                ];
-            });
+            return [
+                'id' => $badge->id,
+                'name' => $badge->name,
+                'description' => $badge->description,
+                'icon' => $badge->icon ?? 'TrophyIcon',
+                'image_url' => $badge->image_url,
+                'category' => $badge->category,
+                'tier' => $badge->tier,
+                'threshold' => $badge->threshold,
+                'points' => $badge->points,
+                'is_secret' => $badge->is_secret,
+                'repeatable' => $badge->repeatable,
+                'max_awards' => $badge->max_awards,
+                'is_earned' => $userBadge !== null,
+                'awarded_at' => $userBadge?->awarded_at,
+                'viewed_at' => $userBadge?->viewed_at,
+                'isNew' => $userBadge && $userBadge->viewed_at === null,
+                'progress_value' => $userBadge?->progress_value,
+                'rank' => $userBadge?->rank,
+                'awards_count' => $badge->repeatable ? ($awardsCounts->get($badge->id) ?? 0) : null,
+                'progress' => $progress,
+                'prerequisite_badge' => $prerequisiteBadge,
+                'tier_info' => $tierInfo,
+            ];
+        });
 
-        return response()->json($badges);
+        return response()->json($result);
     }
 
     /**

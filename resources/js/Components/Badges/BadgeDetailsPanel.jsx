@@ -41,7 +41,7 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
 
     return (
         <motion.div
-            className="fixed right-0 top-0 h-full bg-white dark:bg-dark-900 shadow-2xl overflow-y-auto max-w-md w-full"
+            className="fixed right-0 top-0 h-full bg-white dark:bg-dark-900 shadow-2xl overflow-y-auto max-w-md w-full hidden 2xl:block"
             style={{
                 zIndex: 10001,
             }}
@@ -58,7 +58,7 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                 {/* Header with tier accent */}
                 <div 
                     className="mb-6 pb-4 border-b-2"
-                    style={{ borderColor: tierInfo?.color || '#3b82f6' }}
+                    style={{ borderColor: colors?.primary || '#3b82f6' }}
                 >
                     <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -70,9 +70,9 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                                     <span 
                                         className="text-sm font-semibold px-3 py-1 rounded-full"
                                         style={{ 
-                                            backgroundColor: `${tierInfo.color}20`,
-                                            color: tierInfo.color,
-                                            border: `2px solid ${tierInfo.color}60`
+                                            backgroundColor: `${colors.primary}20`,
+                                            color: colors.primary,
+                                            border: `2px solid ${colors.primary}60`
                                         }}
                                     >
                                         {tierInfo.name}
@@ -80,7 +80,7 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                                     {badge.points > 0 && (
                                         <span className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-dark-300">
                                             <HeroIconsSolid.StarIcon className="w-4 h-4 text-yellow-500" />
-                                            {badge.points} pts
+                                            {badge.points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} pts
                                         </span>
                                     )}
                                 </div>
@@ -123,46 +123,48 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                         Requirements
                     </h3>
                     <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600 dark:text-dark-300">
-                                {badge.category && badge.category.charAt(0).toUpperCase() + badge.category.slice(1)} count
-                            </span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-dark-100">
-                                {badge.threshold}
-                            </span>
-                        </div>
-                        
                         {/* Progress Bar (for non-earned badges) */}
                         {progress && !badge.is_earned && (
-                            <div className="mt-3">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs font-medium text-gray-700 dark:text-dark-200">
-                                        Your Progress
+                            <>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm text-gray-600 dark:text-dark-300">
+                                        {badge.category && badge.category.charAt(0).toUpperCase() + badge.category.slice(1)}
                                     </span>
-                                    <span className="text-xs text-gray-500 dark:text-dark-400">
-                                        {progress.current_count}/{badge.threshold}
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-dark-100">
+                                        {badge.threshold.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} 
                                     </span>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-3 overflow-hidden">
-                                    <motion.div 
-                                        className="h-full rounded-full"
-                                        style={{ 
-                                            backgroundColor: tierInfo?.color || '#3b82f6'
-                                        }}
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progressPercentage}%` }}
-                                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                                    />
+                                
+                                <div className="mt-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-medium text-gray-700 dark:text-dark-200">
+                                            Your Progress
+                                        </span>
+                                        <span className="text-xs text-gray-500 dark:text-dark-400">
+                                            {progress.current_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}/{badge.threshold.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-3 overflow-hidden">
+                                        <motion.div 
+                                            className="h-full rounded-full"
+                                            style={{ 
+                                                backgroundColor: tierInfo?.color || '#3b82f6'
+                                            }}
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progressPercentage}%` }}
+                                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
+                                        {Math.round(progressPercentage)}% Complete
+                                    </p>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
-                                    {Math.round(progressPercentage)}% Complete
-                                </p>
-                            </div>
+                            </>
                         )}
                         
                         {/* Completion Badge (for earned badges) */}
                         {badge.is_earned && (
-                            <div className="mt-3 flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                 <HeroIconsSolid.CheckCircleIcon className="w-5 h-5" />
                                 <span className="text-sm font-medium">Completed</span>
                             </div>
@@ -280,9 +282,15 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                                 <p className="text-sm text-gray-600 dark:text-dark-300 mt-1">
                                     {badge.prerequisite_badge.name}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
-                                    You must earn this badge first
-                                </p>
+                                { badge.prerequisite_badge.is_earned ? (
+                                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                        You have earned this badge
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
+                                        You must earn this badge first
+                                    </p>
+                                ) }
                             </div>
                         </div>
                     </div>

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('name'); // "Bronze", "Silver", "Gold", "Platinum"
             $table->string('slug')->unique(); // "bronze", "silver", "gold", "platinum"
             $table->integer('min_points')->default(0); // Points needed to reach this tier
-            $table->string('color')->nullable(); // Hex color for tier
             $table->string('image_url')->nullable(); // Image for tier
             $table->integer('sort_order')->default(0);
             $table->timestamps();

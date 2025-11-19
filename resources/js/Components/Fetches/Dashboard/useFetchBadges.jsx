@@ -10,7 +10,6 @@ const useFetchBadges = () => {
 
   const fetchBadges = async (controller) => {
     let loadingTimeout;
-    setIsLoaded(false);
 
     try {
       loadingTimeout = setTimeout(() => {

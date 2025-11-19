@@ -36,20 +36,14 @@ const DraggableGrid = ({
     const scrollExpandedIntoView = (element) => {
         if (!element) return;
         
-        console.log('Scrolling element into view');
-        
         // Get element position
         const rect = element.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
-        console.log('Rect:', rect, 'ScrollTop:', scrollTop);
-        
         // Check if widget is fully visible
         const viewportHeight = window.innerHeight;
         const isFullyVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
-        
-        console.log('Is fully visible:', isFullyVisible);
-        
+                
         if (!isFullyVisible) {
             // Scroll to show the top of the widget with some padding
             const elementTop = rect.top + scrollTop;
@@ -279,10 +273,13 @@ const DraggableGrid = ({
                                     isExpanded={isExpanded}
                                     onLock={() => onLockWidget?.(key)}
                                     isLocked={isLocked}
+                                    canRefresh={widget.canRefresh}
+                                    onRefresh={() => onRefreshWidget?.(key)}
                                 >
                                     {React.cloneElement(widget.content, { 
                                         isExpanded,
-                                        onToggleExpand: () => onExpandWidget?.(isExpanded ? null : key)
+                                        onToggleExpand: () => onExpandWidget?.(isExpanded ? null : key),
+                                        onRefresh: () => onRefreshWidget?.(key)
                                     })}
                                 </WidgetItem>
                             )}

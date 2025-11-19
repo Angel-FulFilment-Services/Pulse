@@ -20,8 +20,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('image_url')->nullable(); // Full image path/URL for badge
             $table->string('category'); // 'signs', 'dialings', 'quality', etc.
-            $table->string('tier')->default('bronze'); // bronze, silver, gold, platinum
-            $table->string('color')->nullable(); // Hex color for theming
+            $table->string('tier'); // bronze, silver, gold, platinum
             $table->json('criteria_query'); // Store query logic as JSON
             $table->integer('threshold'); // The count needed to earn badge
             $table->integer('points')->default(0); // Points value of badge

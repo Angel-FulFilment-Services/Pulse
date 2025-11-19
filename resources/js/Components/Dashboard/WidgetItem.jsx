@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowsPointingOutIcon, ArrowsPointingInIcon, LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/outline';
-import { LockClosedIcon as LockClosedIconSolid } from '@heroicons/react/24/solid';
+import { ArrowPathIcon, LockClosedIcon as LockClosedIconSolid } from '@heroicons/react/24/solid';
 
 const WidgetItem = ({ 
     title, 
@@ -10,6 +10,8 @@ const WidgetItem = ({
     onExpand,
     isExpanded = false,
     canExpand = true,
+    canRefresh = false,
+    onRefresh,
     onLock,
     isLocked = false,
     ...props 
@@ -23,7 +25,7 @@ const WidgetItem = ({
             {/* Header */}
             <div className={`px-6 py-4 rounded-t-2xl border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-800 flex-shrink-0 drag-handle ${isLocked ? 'cursor-not-allowed' : 'cursor-move'}`}>
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-100 flex-1">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-dark-100 flex-1">
                         {title}
                     </h3>
                     <div className="flex items-center flex-shrink-0 divide-x divide-gray-200 dark:divide-dark-700">
@@ -66,6 +68,23 @@ const WidgetItem = ({
                                     ) : (
                                         <ArrowsPointingOutIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />
                                     )}
+                                </button>
+                        </div>
+                        )}
+                        {canRefresh && (
+                            <div className="px-1">
+                                <button
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRefresh();
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
+                                    aria-label="Refresh widget"
+                                    title="Refresh"
+                                >
+                                    <ArrowPathIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />
                                 </button>
                         </div>
                         )}

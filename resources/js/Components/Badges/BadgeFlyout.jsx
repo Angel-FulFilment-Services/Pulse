@@ -5,6 +5,29 @@ const BadgeFlyout = ({ badge, progress, tierInfo }) => {
     // Check if badge is locked
     const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
     
+    const tierColors = {
+        bronze: { primary: '#CD7F32', secondary: '#B8860B', accent: '#8B4513', emboss: '#CD7F32' },
+        silver: { primary: '#C0C0C0', secondary: '#A9A9A9', accent: '#D3D3D3', emboss: '#C0C0C0' },
+        gold: { primary: '#FFD700', secondary: '#FFA500', accent: '#DAA520', emboss: '#FFD700' },
+        platinum: { primary: '#E5E4E2', secondary: '#C0C0C0', accent: '#A8A8A8', emboss: '#E5E4E2' },
+        emerald: { primary: '#50C878', secondary: '#2E8B57', accent: '#00A86B', emboss: '#50C878' },
+        ruby: { primary: '#E0115F', secondary: '#9B111E', accent: '#CC0044', emboss: '#E0115F' },
+        sapphire: { primary: '#0F52BA', secondary: '#0A3D8F', accent: '#4169E1', emboss: '#0F52BA' },
+        diamond: { primary: '#B9F2FF', secondary: '#87CEEB', accent: '#ADD8E6', emboss: '#B9F2FF' },
+        alexandrite: { primary: '#4B0082', secondary: '#8B00FF', accent: '#9400D3', emboss: '#9400D3' },
+        basic: { primary: '#A8A8A8', secondary: '#909090', accent: '#C0C0C0', emboss: '#A8A8A8' },
+        locked: { primary: '#555555', secondary: '#444444', accent: '#666666', emboss: '#E5E4E2' },
+        christmas_snow: { primary: '#E8F5F7', secondary: '#B8D9E8', accent: '#A0C8D8', emboss: '#F0FDFF' },
+        christmas_lights: { primary: '#1a2332', secondary: '#2d3e50', accent: '#34495e', emboss: '#202466' },
+        new_years: { primary: '#FFD700', secondary: '#FFA500', accent: '#FF6B6B', emboss: '#0F0F24' },
+        jack_o_lantern: { primary: '#ff8c1a', secondary: '#ff6b00', accent: '#cc5500', emboss: '#FF7F27' },
+        spooky_ghost: { primary: '#8383FF', secondary: '#C0C0D8', accent: '#A0A0C0', emboss: '#8383FF' },
+        autumn: { primary: '#D2691E', secondary: '#CD853F', accent: '#DAA520', emboss: '#D2691E' },
+    };
+
+    const colors = tierInfo ? tierColors[badge.tier] : tierColors['basic'];
+
+
     // Calculate days until expiration
     const getDaysUntilExpiration = () => {
         if (!badge.expires_at) return null;
@@ -89,16 +112,16 @@ const BadgeFlyout = ({ badge, progress, tierInfo }) => {
                         <span 
                             className="text-xs font-medium px-1.5 py-0.5 rounded"
                             style={{ 
-                                backgroundColor: `${tierInfo.color}20`,
-                                color: tierInfo.color,
-                                border: `1px solid ${tierInfo.color}40`
+                                backgroundColor: `${colors.primary}20`,
+                                color: colors.primary,
+                                border: `1px solid ${colors.primary}40`
                             }}
                         >
                             {tierInfo.name}
                         </span>
                         {badge.points > 0 && (
                             <span className="text-xs text-gray-500 dark:text-dark-400">
-                                {badge.points} pts
+                                {badge.points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} pts
                             </span>
                         )}
                     </div>
@@ -120,7 +143,7 @@ const BadgeFlyout = ({ badge, progress, tierInfo }) => {
                             Progress
                         </span>
                         <span className="text-xs text-gray-500 dark:text-dark-400">
-                            {progress.current_count}/{badge.threshold}
+                            {progress.current_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}/{badge.threshold.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                         </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-2 overflow-hidden">
@@ -136,9 +159,9 @@ const BadgeFlyout = ({ badge, progress, tierInfo }) => {
             )}
 
             {/* Requirement */}
-            {badge.threshold && (
+            {badge.threshold && !badge.is_earned && (
                 <div className="text-xs text-gray-600 dark:text-dark-300 mb-2">
-                    <span className="font-medium">Required:</span> {badge.threshold} {badge.category}
+                    <span className="font-medium">Required:</span> {badge.threshold.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} {badge.category}
                 </div>
             )}
 
