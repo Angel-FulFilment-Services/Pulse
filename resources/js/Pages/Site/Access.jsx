@@ -170,6 +170,12 @@ export default function Access({ location }) {
         
         if (response.data.active) {
           const eventId = response.data.event_id;
+          const triggeredBy = response.data.triggered_by;
+          
+          // Ignore if triggered by Access Control System (this screen)
+          if (triggeredBy === 'Access Control System') {
+            return;
+          }
           
           // Only show if we haven't displayed this event yet
           if (!displayedFireEvents.current.has(eventId)) {

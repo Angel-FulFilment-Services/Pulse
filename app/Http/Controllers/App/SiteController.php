@@ -508,21 +508,11 @@ class SiteController extends Controller
         return response()->json(['status' => 'offers_cleared']);
     }
 
-    public function rollCall(Request $request)
+    /**
+     * Get current onsite personnel for roll call
+     */
+    private function getOnsitePersonnel()
     {
-        // Verify the signed URL is valid
-        if (!$request->hasValidSignature()) {
-            abort(403, 'This roll call link has expired or is invalid.');
-        }
-
-        // Fetch access data for roll call
-        $deliveries = DB::connection('wings_config')
-            ->table('site_access_log')
-            ->where('type', 'delivery')
-            ->where('created_at', '>=', date('Y-m-d'))
-            ->orderBy('created_at', 'desc')
-            ->get();
-
         $visitors = DB::connection('wings_config')
             ->table('site_access_log as sal1')
             ->join(
@@ -542,7 +532,8 @@ class SiteController extends Controller
                 }
             )
             ->whereIn('sal1.category', ['visitor', 'contractor'])
-            ->where('sal1.location', 'Lostwithiel') // Filter to Lostwithiel only
+            ->where('sal1.location', 'Lostwithiel')
+            ->whereNull('sal1.signed_out') // Only currently signed in
             ->select('sal1.*')
             ->orderByDesc('sal1.created_at')
             ->get();
@@ -567,7 +558,8 @@ class SiteController extends Controller
             )
             ->leftJoin('wings_data.hr_details', 'sal1.user_id', '=', 'hr_details.user_id')
             ->leftJoin('users', 'sal1.user_id', '=', 'users.id')
-            ->where('sal1.location', 'Lostwithiel') // Filter to Lostwithiel only
+            ->where('sal1.location', 'Lostwithiel')
+            ->whereNull('sal1.signed_out') // Only currently signed in
             ->select(
                 'sal1.id',
                 'sal1.user_id',
@@ -584,9 +576,24 @@ class SiteController extends Controller
             ->orderByDesc('sal1.created_at')
             ->get();
 
+        return [
+            'visitors' => $visitors,
+            'employees' => $employees,
+        ];
+    }
+
+    public function rollCall(Request $request)
+    {
+        // Verify the signed URL is valid
+        if (!$request->hasValidSignature()) {
+            abort(403, 'This roll call link has expired or is invalid.');
+        }
+
+        $personnel = $this->getOnsitePersonnel();
+
         return Inertia::render('Site/RollCall', [
-            'initialVisitors' => $visitors,
-            'initialEmployees' => $employees,
+            'initialVisitors' => $personnel['visitors'],
+            'initialEmployees' => $personnel['employees'],
         ]);
     }
 
@@ -638,13 +645,48 @@ class SiteController extends Controller
             now()->addHours(1)
         );
 
+        // Get current onsite personnel
+        $personnel = $this->getOnsitePersonnel();
+        $onsiteList = [
+            'employees' => $personnel['employees']->map(function($emp) {
+                return [
+                    'name' => $emp->fullname,
+                    'job_title' => $emp->job_title,
+                ];
+            })->values()->toArray(),
+            'visitors' => $personnel['visitors']->map(function($vis) {
+                return [
+                    'name' => $vis->visitor_name,
+                    'company' => $vis->visitor_company,
+                ];
+            })->values()->toArray(),
+        ];
+
         // Send SMS to all users
         foreach ($users as $user) {
             if ($user->employee->contact_mobile_phone) {
+                $totalOnsite = count($onsiteList['employees']) + count($onsiteList['visitors']);
                 $smsMessage = "FIRE EMERGENCY\n\n" .
                               "A fire emergency has been reported.\n" .
-                              "Please confirm everyone's safety immediately:\n\n" .
-                              $rollCallUrl;
+                              "{$totalOnsite} people currently onsite:\n\n";
+                
+                // Add employees
+                if (!empty($onsiteList['employees'])) {
+                    $smsMessage .= "EMPLOYEES:\n";
+                    foreach ($onsiteList['employees'] as $emp) {
+                        $smsMessage .= "- {$emp['name']}\n";
+                    }
+                }
+                
+                // Add visitors
+                if (!empty($onsiteList['visitors'])) {
+                    $smsMessage .= "\nVISITORS:\n";
+                    foreach ($onsiteList['visitors'] as $vis) {
+                        $smsMessage .= "- {$vis['name']}\n";
+                    }
+                }
+                
+                $smsMessage .= "\nRoll Call:\n{$rollCallUrl}";
 
                 T2SMS::sendSms('Angel', $user->employee->contact_mobile_phone, $smsMessage);
             }
@@ -656,6 +698,7 @@ class SiteController extends Controller
             'triggered_at' => now()->format('d/m/Y H:i:s'),
             'roll_call_url' => $rollCallUrl,
             'photo_path' => $photoPath,
+            'onsite_personnel' => $onsiteList,
         ];
 
         // Filter users to only those with valid email addresses
@@ -727,6 +770,7 @@ class SiteController extends Controller
                 'active' => true,
                 'event_id' => $activeEvent->id,
                 'triggered_at' => $activeEvent->created_at,
+                'triggered_by' => json_decode($activeEvent->notes)->triggered_by ?? 'Unknown',
             ]);
         }
 
