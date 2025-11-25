@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
 
-class EquipmentReturnNotification extends Notification
+class EquipmentReturnNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
