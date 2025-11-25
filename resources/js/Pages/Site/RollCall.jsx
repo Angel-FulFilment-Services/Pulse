@@ -142,30 +142,6 @@ export default function FireRollCall({ initialVisitors = [], initialEmployees = 
                                                         <div className="min-w-0 flex-col flex justify-center">
                                                             <p className="text-sm font-semibold text-gray-900 flex flex-row items-center">
                                                                 {employee.fullname}
-                                                                {employee.location && (
-                                                                    <>
-                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-500 dark:bg-dark-500 rounded-full mx-2"></div>
-                                                                        {employee.location === 'Lostwithiel' ? (
-                                                                            <HomeIcon className="w-3.5 h-3.5 text-theme-300 inline-block mr-1" aria-hidden="true" />    
-                                                                        ) : (
-                                                                            <WarehouseIcon className="w-3.5 h-3.5 text-gray-400 inline-block mr-1" aria-hidden="true" />
-                                                                        )}
-                                                                        <span className="text-gray-700">
-                                                                            {employee.location}
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-1 text-xs text-gray-500 flex flex-row gap-x-2 items-center">
-                                                                {employee.job_title &&
-                                                                    <span>Job Title: <span className="font-semibold text-gray-600">{employee.job_title}</span></span>
-                                                                }
-                                                                {employee.shift_start &&
-                                                                    <>
-                                                                        <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div>
-                                                                        <span>Due: <span className="font-semibold text-gray-600">{employee.shift_start}</span></span>
-                                                                    </>
-                                                                }
                                                             </p>
                                                         </div>
                                                     </div>
