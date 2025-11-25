@@ -10,6 +10,7 @@ import { router, Link } from '@inertiajs/react'
 import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
 import { hasPermission } from '../../Utils/Permissions.jsx';
+import FireEmergencyButton from '../Emergency/FireEmergencyButton.jsx';
 
 import {
   Bars3Icon,
@@ -29,7 +30,7 @@ import {
 export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const { auth, employee } = usePage().props;
+  const { auth, employee, isOnSite } = usePage().props;
 
   const teams = [
     { name: 'All Staff', href: '#', initial: 'A', current: false },
@@ -177,6 +178,11 @@ export default function NavBar({ page }) {
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
+                  {isOnSite && hasPermission('pulse_fire_warden') &&  (
+                    <div className="px-2 flex items-center justify-start border-b border-gray-200 dark:border-dark-700 pb-2">
+                      <FireEmergencyButton className="w-full"/>
+                    </div>
+                  )}
                   <Menu as="div" className="relative">
                     <div>
                       <MenuButton className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50 dark:text-dark-50 dark:hover:bg-dark-800 w-full focus:outline-none">

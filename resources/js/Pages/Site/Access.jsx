@@ -31,6 +31,11 @@ export default function Access({ location }) {
   const [cameraStream, setCameraStream] = useState(null);
   const [streamingActive, setStreamingActive] = useState(false);
 
+  // Fire event tracking
+  const [showFireScreen, setShowFireScreen] = useState(false);
+  const displayedFireEvents = useRef(new Set()); // Track which event IDs we've already shown
+  const fireCheckInterval = useRef(null);
+
   // Initialize camera and streaming
   const initializeCamera = useCallback(async () => {
     try {
@@ -157,6 +162,41 @@ export default function Access({ location }) {
     initializeCamera();
   }, [initializeCamera]);
 
+  // Poll for active fire events every minute
+  useEffect(() => {
+    const checkForFireEvent = async () => {
+      try {
+        const response = await axios.get('/api/fire-emergency/check-active');
+        
+        if (response.data.active) {
+          const eventId = response.data.event_id;
+          
+          // Only show if we haven't displayed this event yet
+          if (!displayedFireEvents.current.has(eventId)) {
+            displayedFireEvents.current.add(eventId);
+            setStep('splash');
+            setShowFireScreen(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for fire events:', error);
+      }
+    };
+
+    // Check immediately on mount
+    checkForFireEvent();
+
+    // Then check every minute
+    fireCheckInterval.current = setInterval(checkForFireEvent, 30000); // 30000ms = 30 seconds
+
+    // Cleanup on unmount
+    return () => {
+      if (fireCheckInterval.current) {
+        clearInterval(fireCheckInterval.current);
+      }
+    };
+  }, []);
+
   // Example handlers
   const handleSplashContinue = () => setStep('mode');
   const handleSignInType = (type) => {
@@ -252,7 +292,7 @@ export default function Access({ location }) {
   const handleSignOutComplete = () => setStep('goodbye');
 
   // Render logic
-  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} />;
+  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} cameraStream={cameraStream} showFireScreen={showFireScreen} setShowFireScreen={setShowFireScreen} />;
   if (step === 'mode') return  (
       <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
         <div className="flex items-center justify-between w-full h-10">

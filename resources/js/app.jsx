@@ -132,7 +132,7 @@ createInertiaApp({
                 }}
                 className="theme-olive"
               >
-                {!name.startsWith('Site/Widget') && (
+                {!name.startsWith('Site/Widget') && !name.startsWith('Site/RollCall') && (
                   <>
                     <ToastContainer />
                     <Background />

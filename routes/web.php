@@ -263,3 +263,14 @@ Route::get('/employees', [SiteController::class, 'employees'])->name('employees'
 
 // Camera streaming routes
 Route::get('/camera/viewer', [SiteController::class, 'cameraViewer'])->name('camera.viewer');
+
+/*
+|-----------------------
+| Fire Emergency / Roll Call
+|-----------------------
+*/
+
+// Fire roll call page (accessed via signed URL from email/SMS)
+Route::get('/fire-emergency/roll-call', [SiteController::class, 'rollCall'])
+    ->name('fire.roll-call')
+    ->middleware(['signed']);

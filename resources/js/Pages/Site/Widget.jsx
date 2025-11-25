@@ -57,7 +57,7 @@ export default function DeliveryAndVisitorWidget() {
                 if(notify) {
                     notificationSound.play(); // Play notification sound for new delivery
                 }
-
+                
                 setDeliveries(newDeliveries); // Update the deliveries state
                 setVisitors(newVisitors); // Update the visitors state
                 setEmployees(newEmployees); // Update the employees state (if needed)
@@ -399,14 +399,19 @@ export default function DeliveryAndVisitorWidget() {
         }
 
         // Load current users and visitors into a array with a presence status of true or false.
-        const currentUsers = employees.filter(employee => !employee.signed_out).map(employee => ({
-            id: employee.id,
-            present: false,
-        }));
-        const currentVisitors = visitors.filter(visitor => !visitor.signed_out).map(visitor => ({
-            id: visitor.id,
-            present: false,
-        }));
+        // Filter to only Lostwithiel location
+        const currentUsers = employees
+            .filter(employee => !employee.signed_out && employee.location === 'Lostwithiel')
+            .map(employee => ({
+                id: employee.id,
+                present: false,
+            }));
+        const currentVisitors = visitors
+            .filter(visitor => !visitor.signed_out && visitor.location === 'Lostwithiel')
+            .map(visitor => ({
+                id: visitor.id,
+                present: false,
+            }));
 
         // Combine both arrays
         const rollCallData = [...currentUsers, ...currentVisitors];
@@ -537,6 +542,7 @@ export default function DeliveryAndVisitorWidget() {
                                                                     id={`roll-call-${employee.id}`}
                                                                     label=""
                                                                     disabled={employee.signed_out}
+                                                                    size="large"
                                                                 />
                                                             )}
                                                         </div>
@@ -683,6 +689,7 @@ export default function DeliveryAndVisitorWidget() {
                                                                 id={`roll-call-${visitor.id}`}
                                                                 label=""
                                                                 disabled={visitor.signed_out}
+                                                                size="large"
                                                             />
                                                         )}
                                                     </div>

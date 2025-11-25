@@ -7,6 +7,7 @@ export default function CheckboxInput(props) {
     onChange,
     error,
     clearErrors,
+    size = 'medium',
     disabled = false,
   } = props;
 
@@ -14,6 +15,13 @@ export default function CheckboxInput(props) {
     onChange(!checked); // Toggle the checked state
     if (clearErrors) clearErrors(); // Clear errors if provided
   };
+
+
+  const sizes = {
+    small: 'h-3 w-3',
+    medium: 'h-4 w-4',
+    large: 'h-5 w-5',
+  }
 
   return (
     <div>
@@ -41,9 +49,9 @@ export default function CheckboxInput(props) {
           checked={checked}
           onChange={handleCheckboxChange}
           disabled={disabled}
-          className={`h-4 w-4 text-theme-600 dark:text-theme-700 border-gray-300 dark:border-dark-600 rounded focus:ring-theme-600 dark:focus:ring-theme-700 accent-theme-400 ${
+          className={`text-theme-600 dark:text-theme-700 border-gray-300 dark:border-dark-600 rounded focus:ring-theme-600 dark:focus:ring-theme-700 accent-theme-400 ${
             disabled ? "opacity-75 cursor-not-allowed" : ""
-          }`}
+          } ${sizes[size]}`}
         />
         <label
           htmlFor={id}

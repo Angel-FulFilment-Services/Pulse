@@ -122,3 +122,17 @@ Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers']
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
 ->middleware('throttle:100,1');
+
+/*
+|-----------------------
+| Fire Emergency / Roll Call
+|-----------------------
+*/
+
+// Trigger fire emergency alert (accessible from both authenticated and access control)
+Route::post('/fire-emergency/trigger', [SiteController::class, 'triggerFireEmergency'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:10,1'); // Limited to 10 requests per minute to prevent spam
+
+// Check for active fire events (accessible from access control screens)
+Route::get('/fire-emergency/check-active', [SiteController::class, 'checkActiveFireEvent']);
