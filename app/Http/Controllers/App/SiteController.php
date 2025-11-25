@@ -658,7 +658,14 @@ class SiteController extends Controller
             'photo_path' => $photoPath,
         ];
 
-        Notification::send($users, new FireRollCallNotification($emailData));
+        // Filter users to only those with valid email addresses
+        $usersWithEmail = $users->filter(function($user) {
+            return !empty($user->email);
+        });
+
+        if ($usersWithEmail->isNotEmpty()) {
+            Notification::send($usersWithEmail, new FireRollCallNotification($emailData));
+        }
 
         // Create audit log
         $auditNotes = json_encode([
