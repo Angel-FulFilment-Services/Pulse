@@ -11,12 +11,20 @@ export default function TermsAndConditions({ onComplete, location, setStep }) {
 
   const docs = [
     {
+      title: 'Fire Evacuation Plan',
+      url: '/documents/fire_evacuation_plan.pdf',
+    },
+    {
       title: 'Fire Evacuation Route (Ground Floor)',
       url: '/documents/fire_evacuation_route_ground_floor.pdf',
     },
     {
       title: 'Fire Evacuation Route (First Floor)',
       url: '/documents/fire_evacuation_route_first_floor.pdf',
+    },
+    {
+      title: 'Fire Evacuation Route (Bunker)',
+      url: '/documents/fire_evacuation_route_bunker.pdf', 
     },
     {
       title: 'Liability Insurance',

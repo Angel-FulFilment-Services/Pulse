@@ -615,19 +615,29 @@ class SiteController extends Controller
         }
 
         // Get all users with pulse_fire_warden permission that are currently onsite
+        // OR users with pulse_fire_warden_senior permission (regardless of onsite status)
         $users = User::where('users.active', 1)
             ->where('users.client_ref', 'ANGL')
-            ->whereHas('assignedPermissionsUser', function($query) {
-                $query->where('right', 'pulse_fire_warden');
-            })
-            ->whereExists(function($query) {
-                $query->select(DB::raw(1))
-                    ->from('wings_config.site_access_log as sal')
-                    ->whereColumn('sal.user_id', 'users.id')
-                    ->whereDate('sal.created_at', '>=', DB::raw('CURDATE()'))
-                    ->whereNull('sal.signed_out')
-                    ->where('sal.type', 'access')
-                    ->where('sal.category', 'employee');
+            ->where(function($query) {
+                // Senior fire wardens - always notified regardless of onsite status
+                $query->whereHas('assignedPermissionsUser', function($q) {
+                    $q->where('right', 'pulse_fire_warden_senior');
+                })
+                // OR regular fire wardens who are currently onsite
+                ->orWhere(function($q) {
+                    $q->whereHas('assignedPermissionsUser', function($subq) {
+                        $subq->where('right', 'pulse_fire_warden');
+                    })
+                    ->whereExists(function($subq) {
+                        $subq->select(DB::raw(1))
+                            ->from('wings_config.site_access_log as sal')
+                            ->whereColumn('sal.user_id', 'users.id')
+                            ->whereDate('sal.created_at', '>=', DB::raw('CURDATE()'))
+                            ->whereNull('sal.signed_out')
+                            ->where('sal.type', 'access')
+                            ->where('sal.category', 'employee');
+                    });
+                });
             })
             ->with('employee')
             ->get();

@@ -69,7 +69,7 @@ export default function Header({
         <div className="border-b border-gray-200 bg-white/40 dark:border-dark-700 dark:bg-dark-900/40 px-6 pt-4">
           <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-dark-100">Administration</h3>
           <h1 className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
-            Manage system settings, employees, and site configurations
+            Manage system settings and site configuration
           </h1>
           <div className="mt-4">
             <div className="block">
