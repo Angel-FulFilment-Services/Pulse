@@ -21,6 +21,7 @@ use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\AdministrationController;
 use App\Http\Controllers\App\ProxyController;
+use App\Http\Controllers\App\EmployeeController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -87,6 +88,7 @@ Route::post('/verify', [TwoFactorController::class, 'verify']);
 Route::get('/proxy/3d-printer/camera', [ProxyController::class, 'cameraStream'])->name('proxy.camera');
 Route::get('/proxy/3d-printer/status', [ProxyController::class, 'printerStatus'])->name('proxy.printer.status');
 Route::get('/proxy/3d-printer/status-stream', [ProxyController::class, 'printerStatusStream'])->name('proxy.printer.status.stream');
+Route::get('/proxy/bigin/pipeline-status', [ProxyController::class, 'biginPipelineStatus'])->name('proxy.bigin.pipeline.status')->withoutMiddleware('auth','twofactor', 'has.permission:pulse_view_administration');
 
 /*
 |-----------------------
@@ -185,9 +187,19 @@ Route::post('/payroll/imports/gross-pay', [PayrollController::class, 'importGros
 Route::get('/payroll/imports/log', [PayrollController::class, 'importLog']);
 Route::post('/payroll/exports/toggle-hold', [PayrollController::class, 'toggleHold'])->withoutMiddleware('log.access');
 
+
 /*
 |-----------------------
-| Employee
+| Employees
+|-----------------------
+*/
+
+Route::get('/employees', [EmployeeController::class, 'index'])->name('employees');
+Route::get('/employees/{page}', [EmployeeController::class, 'index'])->name('employees');
+
+/*
+|-----------------------
+| My Profile / HR
 |-----------------------
 */
 
