@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useAnimation } from 'framer-motion';
 import * as HeroIcons from '@heroicons/react/24/solid';
 import AlexandriteFace from './Faces/AlexandriteFace.jsx';
@@ -35,7 +35,7 @@ function lightenColor(hex, percent) {
     return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
 }
 
-const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, isNew }) => {
+const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, isNew }) => {
     const badgeRef = useRef(null);
     const containerRef = useRef(null);
     const controls = useAnimation();
@@ -127,8 +127,8 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, i
     const rightEdgeTransform = useTransform(rotateY, [-40, 0, 40], ['rotateY(0deg)', 'rotateY(0deg)', 'rotateY(90deg) translateX(2px)']);
     const rightEdgeOpacity = useTransform(rotateY, [0, 10, 40], [0, 0.5, 1]);
     
-    // Badge tier colors
-    const tierColors = {
+    // Badge tier colors - memoized to avoid recreation
+    const tierColors = useMemo(() => ({
         bronze: { primary: '#CD7F32', secondary: '#B8860B', accent: '#8B4513', emboss: '#CD7F32' },
         silver: { primary: '#C0C0C0', secondary: '#A9A9A9', accent: '#D3D3D3', emboss: '#C0C0C0' },
         gold: { primary: '#FFD700', secondary: '#FFA500', accent: '#DAA520', emboss: '#FFD700' },
@@ -146,76 +146,33 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, i
         jack_o_lantern: { primary: '#ff8c1a', secondary: '#ff6b00', accent: '#cc5500', emboss: '#FF7F27' },
         spooky_ghost: { primary: '#8383FF', secondary: '#C0C0D8', accent: '#A0A0C0', emboss: '#8383FF' },
         autumn: { primary: '#D2691E', secondary: '#CD853F', accent: '#DAA520', emboss: '#D2691E' },
-    };
+    }), []);
     
-    // Check if badge is locked (requires prerequisite badge)
-    const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
-    
-    // Check if badge is unearned (unlocked but criteria not met)
-    const isUnearned = !isLocked && !badge.is_earned;
-    
-    const colors = isLocked ? tierColors.locked : (tierColors[badge.tier] || tierColors.silver);
-    const isAlexandrite = badge.tier === 'alexandrite';
-    const isChristmasSnow = badge.tier === 'christmas_snow';
-    const isChristmasLights = badge.tier === 'christmas_lights';
-    const isNewYears = badge.tier === 'new_years';
-    const isJackOLantern = badge.tier === 'jack_o_lantern';
-    const isSpookyGhost = badge.tier === 'spooky_ghost';
-    const isAutumn = badge.tier === 'autumn';
-    const hasCustomFace = !isLocked && (isAlexandrite || isChristmasSnow || isChristmasLights || isNewYears || isJackOLantern || isSpookyGhost || isAutumn);
-    
-    // Determine glare intensity based on badge tier (darker badges get reduced glare)
-    const darkBadges = ['sapphire', 'alexandrite', 'emerald', 'basic', 'locked'];
-    const subtleBadges = ['christmas_lights', 'new_years', 'spooky_ghost', 'jack_o_lantern', 'autumn'];
-    const glareIntensity = isLocked ? 0.25 : (darkBadges.includes(badge.tier) ? 0.75 : subtleBadges.includes(badge.tier) ? 0.25 : 1);
+    // Memoize expensive badge state calculations
+    const badgeState = useMemo(() => {
+        const isLocked = badge.prerequisite_badge && !badge.prerequisite_badge.is_earned;
+        const isUnearned = !isLocked && !badge.is_earned;
+        const colors = isLocked ? tierColors.locked : (tierColors[badge.tier] || tierColors.silver);
+        const isAlexandrite = badge.tier === 'alexandrite';
+        const isChristmasSnow = badge.tier === 'christmas_snow';
+        const isChristmasLights = badge.tier === 'christmas_lights';
+        const isNewYears = badge.tier === 'new_years';
+        const isJackOLantern = badge.tier === 'jack_o_lantern';
+        const isSpookyGhost = badge.tier === 'spooky_ghost';
+        const isAutumn = badge.tier === 'autumn';
+        const hasCustomFace = !isLocked && (isAlexandrite || isChristmasSnow || isChristmasLights || isNewYears || isJackOLantern || isSpookyGhost || isAutumn);
         
-    // Device orientation (gyro) tracking
-    useEffect(() => {
-        let permissionGranted = false;
+        const darkBadges = ['sapphire', 'alexandrite', 'emerald', 'basic', 'locked'];
+        const subtleBadges = ['christmas_lights', 'new_years', 'spooky_ghost', 'jack_o_lantern', 'autumn'];
+        const glareIntensity = isLocked ? 0.25 : (darkBadges.includes(badge.tier) ? 0.75 : subtleBadges.includes(badge.tier) ? 0.25 : 1);
         
-        const handleOrientation = (event) => {
-            if (event.beta !== null && event.gamma !== null) {
-                // Normalize values to 0-1 range
-                const normalizedBeta = (event.beta + 90) / 180;
-                const normalizedGamma = (event.gamma + 90) / 180;
-                
-                mouseX.set(Math.max(0, Math.min(1, normalizedGamma)));
-                mouseY.set(Math.max(0, Math.min(1, normalizedBeta)));
-                
-                rotateY.set((normalizedGamma - 0.5) * 30);
-                rotateX.set((normalizedBeta - 0.5) * -30);
-            }
-        };
-        
-        // Check if we need to request permission (iOS 13+)
-        if (typeof DeviceMotionEvent !== 'undefined' && 
-            typeof DeviceMotionEvent.requestPermission === 'function') {
-            const requestPermission = () => {
-                DeviceMotionEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            permissionGranted = true;
-                            window.addEventListener('deviceorientation', handleOrientation, true);
-                        }
-                    })
-                    .catch(console.error);
-            };
-            
-            document.addEventListener('click', requestPermission, { once: true });
-        } else if (typeof DeviceOrientationEvent !== 'undefined') {
-            permissionGranted = true;
-            window.addEventListener('deviceorientation', handleOrientation, true);
-        }
-        
-        return () => {
-            if (permissionGranted) {
-                window.removeEventListener('deviceorientation', handleOrientation, true);
-            }
-        };
-    }, [mouseX, mouseY, rotateX, rotateY]);
+        return { isLocked, isUnearned, colors, isAlexandrite, isChristmasSnow, isChristmasLights, isNewYears, isJackOLantern, isSpookyGhost, isAutumn, hasCustomFace, glareIntensity };
+    }, [badge.prerequisite_badge, badge.is_earned, badge.tier, tierColors]);
     
-    // Mouse move effect for desktop
-    const handleMouseMove = (e) => {
+    const { isLocked, isUnearned, colors, isAlexandrite, isChristmasSnow, isChristmasLights, isNewYears, isJackOLantern, isSpookyGhost, isAutumn, hasCustomFace, glareIntensity } = badgeState;
+    
+    // Mouse move effect for desktop - wrapped in useCallback to prevent recreation
+    const handleMouseMove = useCallback((e) => {
         if (!badgeRef.current || isFlipping) return;
         
         const rect = badgeRef.current.getBoundingClientRect();
@@ -234,9 +191,9 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, i
 
         rotateY.set(rotationY);
         rotateX.set(rotationX);
-    };
+    }, [isFlipping, mouseX, mouseY, isHovering, rotateY, rotateX]);
     
-    const handleMouseLeave = () => {
+    const handleMouseLeave = useCallback(() => {
         if (isFlipping) return;
         
         mouseX.set(1);
@@ -245,7 +202,7 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, i
         setIsHoveringBadge(false);
         rotateX.set(0);
         rotateY.set(0);
-    };
+    }, [isFlipping, mouseX, mouseY, isHovering, rotateX, rotateY]);
 
     // Flip animation trigger
     useEffect(() => {
@@ -1337,6 +1294,8 @@ const Badge = ({ badge, index, shouldFlip = false, onToggleExpand, isExpanded, i
             )}
         </>
     );
-};
+});
+
+Badge.displayName = 'Badge';
 
 export default Badge;

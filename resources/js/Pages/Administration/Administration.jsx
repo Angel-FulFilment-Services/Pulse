@@ -14,7 +14,8 @@ const Reporting = () => {
     const currentPath = window.location.pathname;
 
     const tabs = [
-        { id: 'free_gifts', label: 'Free Gifts', path: '/administration/free-gifts', current: true },
+        { id: 'free-gifts', label: 'Free Gifts', path: '/administration/free-gifts', current: true },
+        { id: 'badge-awards', label: 'Badge Awards', path: '/administration/badge-awards', current: false },
     ];
 
     const activeTab = tabs.find((tab) => currentPath.includes(tab.id))?.id || tabs[0].id;
