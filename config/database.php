@@ -263,6 +263,26 @@ return [
             ]) : [],
         ],
 
+        'ai' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL_TWELFTH'),
+            'host' => env('DB_HOST_TWELFTH', 'afs-db02.angelfs.co.uk'),
+            'port' => env('DB_PORT_TWELFTH', '3306'),
+            'database' => env('DB_DATABASE_TWELFTH', 'pulse'),
+            'username' => env('DB_USERNAME_TWELFTH', 'afs_wings'),
+            'password' => env('DB_PASSWORD_TWELFTH', 'Re54X901XAnQwRuB'),
+            'unix_socket' => env('DB_SOCKET_TWELFTH', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => FALSE,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),

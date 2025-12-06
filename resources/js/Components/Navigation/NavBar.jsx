@@ -25,6 +25,7 @@ import {
   BanknotesIcon,
   XMarkIcon,
   Cog6ToothIcon,
+  DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 
 export default function NavBar({ page }) {
@@ -45,6 +46,7 @@ export default function NavBar({ page }) {
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
+    { name: 'AI Analytics', href: '/ai-analytics', icon: DocumentDuplicateIcon, current: currentPath.startsWith('/ai-analytics'), right: 'pulse_view_ai_analytics' },
 ], [currentPath]);
 
   useEffect(() => {
