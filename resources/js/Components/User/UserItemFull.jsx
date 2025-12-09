@@ -47,6 +47,16 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
           <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900 dark:text-dark-50"} text-nowrap leading-6 w-max`}>{agent?.agent || userState?.name}</div>
+          {shift?.shiftcat && (
+            <div
+              className={classNames(
+                'text-gray-600 bg-gray-50 ring-gray-500/10 dark:text-gray-900 dark:bg-gray-100/85 dark:ring-gray-800/10',
+                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset text-nowrap',
+              )}
+            >
+              {shift.shiftcat}
+            </div>
+          )}
           {shift && timesheets && (
             <div
               className={classNames(

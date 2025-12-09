@@ -68,6 +68,39 @@ export default function ListView({ setView, viewType }) {
           { value: 'Surplus', label: 'Surplus', checked: false },
         ].sort((a, b) => a.label.localeCompare(b.label)),
       },
+      {
+        id: 'shiftcat',
+        name: 'Shift Category',
+        expression: (shift, userStates) => (filterValue) => {
+          return shift.shiftcat === filterValue;
+        },
+        options: (() => {
+          const seen = new Set();
+
+          if(!shifts || shifts.length === 0) {
+            return [
+              {
+                value: 'All',
+                label: 'All',
+                checked: false,
+              }
+            ];
+          }
+
+          return shifts
+            .filter(item => {
+              if (!item.shiftcat || seen.has(item.shiftcat)) return false;
+              seen.add(item.shiftcat);
+              return true;
+            })
+            .map(item => ({
+              value: item.shiftcat,
+              label: item.shiftcat,
+              checked: false,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+        })(),
+      }
     ];
   });
   
@@ -75,6 +108,38 @@ export default function ListView({ setView, viewType }) {
   const groupedShifts = useMemo(() => {
     return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters, search);
   }, [shifts, timesheets, filters, search]);
+  
+  // Recalculate shift categories when shifts change
+  useEffect(() => {
+    if (shifts && shifts.length > 0) {
+      setFilters(prevFilters => {
+        return prevFilters.map(filter => {
+          if (filter.id === 'shiftcat') {
+            const seen = new Set();
+            const existingChecked = new Set(
+              filter.options.filter(opt => opt.checked).map(opt => opt.value)
+            );
+            
+            const newOptions = shifts
+              .filter(item => {
+                if (!item.shiftcat || seen.has(item.shiftcat)) return false;
+                seen.add(item.shiftcat);
+                return true;
+              })
+              .map(item => ({
+                value: item.shiftcat,
+                label: item.shiftcat,
+                checked: existingChecked.has(item.shiftcat),
+              }))
+              .sort((a, b) => a.label.localeCompare(b.label));
+            
+            return { ...filter, options: newOptions };
+          }
+          return filter;
+        });
+      });
+    }
+  }, [shifts]);
   
   useEffect(() => {
     if (shifts.length) {
