@@ -6,6 +6,9 @@ import { ActiveStateProvider } from './Components/Context/ActiveStateContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Initialize Laravel Echo for WebSocket
+import './echo-reverb';
+
 import NavBar from './Components/Navigation/NavBar.jsx';
 import Background from './Components/Branding/Background.jsx';
 import Hero from './Components/Branding/Hero.jsx';

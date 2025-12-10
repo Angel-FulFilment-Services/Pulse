@@ -21,6 +21,8 @@ import {
   FolderIcon,
   AcademicCapIcon,
   HomeIcon,
+  ChatBubbleOvalLeftIcon,
+  UsersIcon,
   UserIcon,
   UserGroupIcon,
   CubeIcon,
@@ -49,6 +51,7 @@ export default function NavBar({ page }) {
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_administration', notificationQty: 2 },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
 ], [currentPath]);
 

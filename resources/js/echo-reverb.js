@@ -1,4 +1,7 @@
 import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
 
 window.Echo = new Echo({
     broadcaster: 'reverb',
@@ -9,4 +12,49 @@ window.Echo = new Echo({
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME || 'http') === 'https',
     enabledTransports: ['ws', 'wss'],
     disableStats: true,
+    authEndpoint: '/broadcasting/auth',
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+            'Accept': 'application/json',
+        }
+    },
+    authorizer: (channel, options) => {
+        return {
+            authorize: (socketId, callback) => {
+                console.log('Authorizing channel:', channel.name, 'socket:', socketId);
+                fetch('/broadcasting/auth', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                    },
+                    body: JSON.stringify({
+                        socket_id: socketId,
+                        channel_name: channel.name
+                    })
+                })
+                .then(response => {
+                    console.log('Auth response:', response.status);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('Auth failed:', response.status, text);
+                            throw new Error(`HTTP ${response.status}: ${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Auth successful:', data);
+                    callback(null, data);
+                })
+                .catch(error => {
+                    console.error('Auth error:', error);
+                    callback(error, null);
+                });
+            }
+        };
+    }
 });

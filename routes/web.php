@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
+use App\Http\Controllers\App\Chat\ChatController;
 use App\Http\Controllers\App\AdministrationController;
 use App\Http\Controllers\App\ProxyController;
 use App\Http\Controllers\App\EmployeeController;
@@ -96,6 +98,9 @@ Route::get('/proxy/bigin/pipeline-status', [ProxyController::class, 'biginPipeli
 |-----------------------
 */
 
+// Broadcasting authentication (needs to be accessible without twofactor)
+Broadcast::routes(['middleware' => ['web', 'auth']]);
+
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
@@ -169,6 +174,15 @@ Route::get('/knowledge-base/audio/{filename}', [KnowledgeBaseController::class, 
 // Public routes (no auth required)
 Route::get('/public/knowledge-base/article/{id}', [KnowledgeBaseController::class, 'publicArticle'])->name('knowledge_base.article.public');
 
+
+/*
+|-----------------------
+| Chat
+|-----------------------
+*/
+Route::get('/chat', function () {
+    return inertia('Chat');
+})->name('chat');
 
 /*
 |-----------------------

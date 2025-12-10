@@ -3,6 +3,7 @@ import UserItem from './UserItem';
 import { getStatus } from '../../Utils/Rota'; // Import the external getStatus function
 import { useUserStates } from '../Context/ActiveStateContext';
 import { format } from 'date-fns';
+import { random } from 'lodash';
 
 const sizeClasses = { 
   'extra-small': 'h-6 w-6',
@@ -25,6 +26,8 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
   const { userStates } = useUserStates();
   const userState = agent?.hr_id ? userStates[agent.hr_id] : null;
   const jobTitle = userState ? userState.job_title : null;
+
+  const randomValue = random(1, 3);
 
   if (isLoading) {
     // Render skeleton loader when loading
@@ -57,6 +60,14 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
               {status}
             </div>
           )}
+            <div
+              className={classNames(
+                'text-theme-600 bg-theme-50 ring-theme-500/10 dark:text-theme-900 dark:bg-theme-100/85 dark:ring-theme-800/10',
+                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset text-nowrap',
+              )}
+            >
+              { randomValue === 1 ? 'CPA' : randomValue === 2 ? 'Non CPA Outbound' : 'Inbound' }
+            </div>
         </div>
         <div className={`${subHeadingClass ? subHeadingClass : "text-xs text-gray-500 dark:text-dark-400"} ${shift ? "pt-0.5" : null} flex items-center gap-x-2 leading-5`}> {jobTitle} {shift ? <div className="w-1 h-1 shrink-0 mt-0.5 bg-gray-400 dark:bg-dark-500 rounded-full"></div> : null} {shift ? <span>{format(due, 'h:mm a').toLowerCase()} - {format(end, 'h:mm a').toLowerCase()} </span> : null}</div>
         {/* <div className="mt-0 text-xs leading-5 text-gray-500"> {jobTitle} <span>- Due: 09:00am </span></div> */}

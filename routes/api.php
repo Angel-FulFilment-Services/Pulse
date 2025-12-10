@@ -4,6 +4,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\AssetController;
+use App\Http\Controllers\App\Chat\TeamController;
+use App\Http\Controllers\App\Chat\MessageController;
+use App\Http\Controllers\App\Chat\MessageReadController;
+use App\Http\Controllers\App\Chat\UserStatusController;
+use App\Http\Controllers\App\Chat\ChatFavoriteController;
+use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
@@ -25,7 +31,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/call/convert', [CallRecordingController::class, 'convertCall'])->name('api.call.convert');
+Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
 
 Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access')
 ->middleware('auth')
@@ -122,6 +128,65 @@ Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers']
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
 ->middleware('throttle:100,1');
+
+/*
+|-----------------------
+| Chat API Routes
+|-----------------------
+*/
+
+Route::prefix('chat')->group(function () {
+    // User Status
+    Route::get('user-status', [UserStatusController::class, 'index']);
+    Route::post('user-status', [UserStatusController::class, 'update']);
+    
+    // Messages
+    Route::get('messages', [MessageController::class, 'index']);
+    Route::post('messages', [MessageController::class, 'store']);
+    Route::put('messages/{id}', [MessageController::class, 'update']);
+    Route::delete('messages/{id}', [MessageController::class, 'destroy']);
+    Route::get('messages/search', [MessageController::class, 'search']);
+    Route::get('messages/pinned', [MessageController::class, 'pinned']);
+    Route::post('messages/{messageId}/pin', [MessageController::class, 'pin']);
+    Route::delete('messages/{messageId}/pin', [MessageController::class, 'unpin']);
+    Route::get('contacts', [MessageController::class, 'contacts']);
+    Route::get('check-conversation', [MessageController::class, 'checkConversation']);
+    Route::post('messages/{recipientId}/typing', [MessageController::class, 'typing']);
+    Route::post('messages/{messageId}/reactions', [MessageController::class, 'addReaction']);
+    Route::delete('messages/{messageId}/reactions', [MessageController::class, 'removeReaction']);
+    
+    // Message Read Status
+    Route::post('messages/read', [MessageReadController::class, 'store']);
+    
+    // Teams
+    Route::get('teams', [TeamController::class, 'index']);
+    Route::post('teams', [TeamController::class, 'store']);
+    Route::get('teams/search', [TeamController::class, 'search']);
+    Route::get('teams/{teamId}', [TeamController::class, 'show']);
+    Route::put('teams/{teamId}', [TeamController::class, 'update']);
+    Route::delete('teams/{teamId}', [TeamController::class, 'destroy']);
+    Route::post('teams/{teamId}/members', [TeamController::class, 'addMember']);
+    Route::delete('teams/{teamId}/members/{userId}', [TeamController::class, 'removeMember']);
+    Route::post('teams/{teamId}/mark-read', [TeamController::class, 'markRead']);
+    Route::post('teams/{teamId}/typing', [TeamController::class, 'typing']);
+    Route::get('users/all', [TeamController::class, 'allUsers']);
+    Route::get('users', [TeamController::class, 'users']);
+    
+    // Favorites
+    Route::get('favorites', [ChatFavoriteController::class, 'index']);
+    Route::post('favorites', [ChatFavoriteController::class, 'store']);
+    Route::delete('favorites/{id}', [ChatFavoriteController::class, 'destroy']);
+    Route::post('favorites/reorder', [ChatFavoriteController::class, 'reorder']);
+    
+    // Preferences
+    Route::get('preferences', [ChatPreferencesController::class, 'get']);
+    Route::post('preferences', [ChatPreferencesController::class, 'update']);
+    Route::get('preferences/chat', [ChatPreferencesController::class, 'getChatPreferences']);
+    Route::post('preferences/toggle-mark-unread', [ChatPreferencesController::class, 'toggleMarkUnread']);
+    Route::post('preferences/hide-chat', [ChatPreferencesController::class, 'hideChat']);
+});
+
+
 
 /*
 |-----------------------

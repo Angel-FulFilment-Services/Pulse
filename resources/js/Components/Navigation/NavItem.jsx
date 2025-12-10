@@ -25,6 +25,12 @@ export default function NavButton ({ item }){
           aria-hidden="false"
         />
         {item.name}
+         {/* Notification Qty */}
+         {item.notificationQty > 0 && (
+          <div className="bg-theme-500 text-white text-xs font-bold rounded-full flex-shrink-0 items-center justify-center p-1 px-2 ml-2">
+              {item.notificationQty > 99 ? '99+' : item.notificationQty}
+          </div>
+         )}
       </Link>
     </li>
     )
