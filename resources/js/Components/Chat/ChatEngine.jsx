@@ -823,6 +823,12 @@ export default function ChatEngine({
   const sendMessageToRecipient = async (message, recipient, recipientType, replyToMessageId = null) => {
     if (!message.trim() || !recipient) return false
     
+    // If we're in an existing chat (selectedChat is set and matches recipient), use the optimistic queue
+    if (selectedChat && selectedChat.id === recipient.id && chatType === recipientType) {
+      return queueMessage(message, replyToMessageId)
+    }
+    
+    // Otherwise, we're sending from compose mode - send directly to API
     // Filter restricted words from message
     const { filteredText, blocked, blockedWords } = filterRestrictedWords(message.trim())
     
