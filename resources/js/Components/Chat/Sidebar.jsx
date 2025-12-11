@@ -562,13 +562,13 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             {contact.name}
           </p>
           <p className="text-xs text-gray-500 truncate">
-            {typingUsers.some(u => u.user_id === contact.id) ? (
-              <span className="text-theme-600 font-medium">
-                typing
-                <span className="typing-dots">
-                  <span className="dot">.</span>
-                  <span className="dot">.</span>
-                  <span className="dot">.</span>
+            {(typingUsers[`dm-${contact.id}`] || []).some(u => u.user_id === contact.id) ? (
+              <span className="flex gap-x-1.5">
+                Typing
+                <span className="flex space-x-1 mt-2.5">
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </span>
               </span>
             ) : (

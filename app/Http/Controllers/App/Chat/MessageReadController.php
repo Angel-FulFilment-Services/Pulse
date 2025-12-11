@@ -34,4 +34,42 @@ class MessageReadController extends Controller
         broadcast(new MessageReadEvent($read))->toOthers();
         return response()->json($read);
     }
+
+    public function storeBatch(Request $request)
+    {
+        $data = $request->validate([
+            'message_ids' => 'required|array',
+            'message_ids.*' => 'integer',
+        ]);
+        
+        $reads = [];
+        
+        // Process in reverse order (latest to oldest) so the "seen" marker doesn't jump around
+        foreach (array_reverse($data['message_ids']) as $messageId) {
+            // Check if message exists
+            $message = \App\Models\Chat\Message::find($messageId);
+            if (!$message) {
+                continue; // Skip invalid messages
+            }
+            
+            $read = MessageRead::firstOrCreate([
+                'message_id' => $messageId,
+                'user_id' => $request->user()->id,
+            ], [
+                'read_at' => now(),
+            ]);
+            
+            // Load the message and user relationships
+            $read->load(['message', 'user']);
+            
+            $reads[] = $read;
+        }
+        
+        // Broadcast all reads at once
+        if (!empty($reads)) {
+            broadcast(new MessageReadEvent($reads))->toOthers();
+        }
+        
+        return response()->json(['reads' => $reads]);
+    }
 }

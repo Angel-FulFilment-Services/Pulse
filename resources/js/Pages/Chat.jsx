@@ -8,7 +8,7 @@ export default function Chat() {
   const [chatType, setChatType] = useState(null) // 'team' or 'dm'
   const [notification, setNotification] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
-  const [typingUsers, setTypingUsers] = useState([]) // Track who is typing globally
+  const [typingUsers, setTypingUsers] = useState({}) // Track who is typing per channel: { channelKey: [users] }
   const [contacts, setContacts] = useState([]) // All user contacts for channel subscriptions
   const [teams, setTeams] = useState([]) // All teams for channel subscriptions
   const [unreadChats, setUnreadChats] = useState(new Set()) // Track which chats have unread messages
@@ -51,13 +51,15 @@ export default function Chat() {
     // Subscribe to all DM channels
     contacts.forEach(contact => {
       const channelName = `chat.dm.${Math.min(currentUser.id, contact.id)}.${Math.max(currentUser.id, contact.id)}`
+      const channelKey = `dm-${contact.id}`
       const channel = window.Echo.join(channelName)
       
       channel.listenForWhisper('typing', (e) => {
         if (e.user_id !== currentUser.id) {
           setTypingUsers(prev => {
-            const filtered = prev.filter(u => u.user_id !== e.user_id)
-            return [...filtered, { user_id: e.user_id, user_name: e.user_name, timestamp: Date.now() }]
+            const channelUsers = prev[channelKey] || []
+            const filtered = channelUsers.filter(u => u.user_id !== e.user_id)
+            return { ...prev, [channelKey]: [...filtered, { user_id: e.user_id, user_name: e.user_name, timestamp: Date.now() }] }
           })
         }
       })
@@ -77,13 +79,15 @@ export default function Chat() {
     // Subscribe to all team channels
     teams.forEach(team => {
       const channelName = `chat.team.${team.id}`
+      const channelKey = `team-${team.id}`
       const channel = window.Echo.join(channelName)
       
       channel.listenForWhisper('typing', (e) => {
         if (e.user_id !== currentUser.id) {
           setTypingUsers(prev => {
-            const filtered = prev.filter(u => u.user_id !== e.user_id)
-            return [...filtered, { user_id: e.user_id, user_name: e.user_name, timestamp: Date.now() }]
+            const channelUsers = prev[channelKey] || []
+            const filtered = channelUsers.filter(u => u.user_id !== e.user_id)
+            return { ...prev, [channelKey]: [...filtered, { user_id: e.user_id, user_name: e.user_name, timestamp: Date.now() }] }
           })
         }
       })
@@ -110,10 +114,19 @@ export default function Chat() {
 
   // Remove typing indicators after timeout
   useEffect(() => {
-    if (!typingUsers.length) return
+    if (!Object.keys(typingUsers).length) return
 
     const interval = setInterval(() => {
-      setTypingUsers(users => users.filter(u => Date.now() - u.timestamp < 3000))
+      setTypingUsers(channels => {
+        const updated = {}
+        Object.entries(channels).forEach(([key, users]) => {
+          const filtered = users.filter(u => Date.now() - u.timestamp < 3000)
+          if (filtered.length > 0) {
+            updated[key] = filtered
+          }
+        })
+        return updated
+      })
     }, 1000)
 
     return () => clearInterval(interval)
@@ -124,18 +137,40 @@ export default function Chat() {
     setSelectedChat(chat)
     setChatType(type)
     
-    // Clear unread indicator for this chat
-    const chatKey = type === 'team' ? `team-${chat.id}` : `dm-${chat.id}`
+    // Clear unread indicator for this chat (only if chat exists, not for compose mode)
+    if (chat && type !== 'compose') {
+      const chatKey = type === 'team' ? `team-${chat.id}` : `dm-${chat.id}`
+      setUnreadChats(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(chatKey)
+        return newSet
+      })
+    }
+  }
+
+  // Clear typing indicator for a specific user (from all channels)
+  const clearTypingUser = (userId) => {
+    setTypingUsers(prev => {
+      const updated = {}
+      Object.entries(prev).forEach(([key, users]) => {
+        const filtered = users.filter(u => u.user_id !== userId)
+        if (filtered.length > 0) {
+          updated[key] = filtered
+        }
+      })
+      return updated
+    })
+  }
+
+  // Clear unread status for current chat
+  const clearUnreadForCurrentChat = () => {
+    if (!selectedChat) return
+    const chatKey = chatType === 'team' ? `team-${selectedChat.id}` : `dm-${selectedChat.id}`
     setUnreadChats(prev => {
       const newSet = new Set(prev)
       newSet.delete(chatKey)
       return newSet
     })
-  }
-
-  // Clear typing indicator for a specific user
-  const clearTypingUser = (userId) => {
-    setTypingUsers(prev => prev.filter(u => u.user_id !== userId))
   }
 
   // Listen for notifications
@@ -166,14 +201,20 @@ export default function Chat() {
         chatType={chatType}
       />
       
-      {/* Main Chat Area */}
-      <ChatEngine 
+      {/* Chat Area */}
+      <ChatEngine
         selectedChat={selectedChat}
         chatType={chatType}
         currentUser={currentUser}
         onChatSelect={handleChatSelect}
-        typingUsers={typingUsers}
+        typingUsers={(() => {
+          const channelKey = chatType === 'team' ? `team-${selectedChat?.id}` : `dm-${selectedChat?.id}`
+          const users = selectedChat ? (typingUsers[channelKey] || []) : []
+          console.log('Passing typing users to ChatEngine:', { channelKey, users, allTypingUsers: typingUsers })
+          return users
+        })()}
         onClearTypingUser={clearTypingUser}
+        onClearUnread={clearUnreadForCurrentChat}
       />
       
       {/* Notifications */}

@@ -14,26 +14,34 @@ class MessageRead implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $messageRead;
+    public $messageReads;
 
-    public function __construct(MessageReadModel $messageRead)
+    public function __construct($messageReads)
     {
-        $this->messageRead = $messageRead;
+        // Accept either single MessageRead or array of MessageReads
+        $this->messageReads = is_array($messageReads) ? $messageReads : [$messageReads];
     }
 
     public function broadcastOn()
     {
-        // Notify the sender and the reader
-        return [
-            new PrivateChannel('chat.user.' . $this->messageRead->user_id),
-            new PrivateChannel('chat.user.' . $this->messageRead->message->sender_id),
-        ];
+        // Collect unique user IDs to notify
+        $userIds = [];
+        foreach ($this->messageReads as $read) {
+            $userIds[] = $read->user_id;
+            $userIds[] = $read->message->sender_id;
+        }
+        $userIds = array_unique($userIds);
+        
+        // Create private channels for all affected users
+        return array_map(function($userId) {
+            return new PrivateChannel('chat.user.' . $userId);
+        }, $userIds);
     }
 
     public function broadcastWith()
     {
         return [
-            'message_read' => $this->messageRead->toArray(),
+            'message_reads' => array_map(fn($read) => $read->toArray(), $this->messageReads),
         ];
     }
 

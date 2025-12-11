@@ -12,6 +12,16 @@ export function useRealtimeChat({
   onClearTypingUser
 }) {
   const echoRef = useRef(null)
+  const onMessageReceivedRef = useRef(onMessageReceived)
+  const onMessageReadRef = useRef(onMessageRead)
+  const onClearTypingUserRef = useRef(onClearTypingUser)
+
+  // Keep refs up to date
+  useEffect(() => {
+    onMessageReceivedRef.current = onMessageReceived
+    onMessageReadRef.current = onMessageRead
+    onClearTypingUserRef.current = onClearTypingUser
+  }, [onMessageReceived, onMessageRead, onClearTypingUser])
 
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') return
@@ -42,14 +52,25 @@ export function useRealtimeChat({
         console.log('.MessageSent event received!', e)
         
         // Clear typing indicator for this user immediately
-        if (onClearTypingUser && (e.message.user_id || e.message.sender_id)) {
+        if (onClearTypingUserRef.current && (e.message.user_id || e.message.sender_id)) {
           const userId = e.message.user_id || e.message.sender_id
-          onClearTypingUser(userId)
+          onClearTypingUserRef.current(userId)
         }
         
         // Notify parent component
-        if (onMessageReceived) {
-          onMessageReceived(e.message)
+        if (onMessageReceivedRef.current) {
+          onMessageReceivedRef.current(e.message)
+        }
+      })
+      
+      // Listen for typing indicators
+      channel.listenForWhisper('typing', (e) => {
+        console.log('Typing event received:', e)
+        // Don't show typing indicator for current user
+        if (e.user_id !== currentUser?.id) {
+          // Handle typing indicator in parent component
+          // This would need to be passed as a callback
+          console.log(`${e.user_name} is typing...`)
         }
       })
       
@@ -74,8 +95,15 @@ export function useRealtimeChat({
       
       userChannel.listen('.MessageRead', (e) => {
         console.log('MessageRead event received on user channel:', e)
-        if (e.message_read && onMessageRead) {
-          onMessageRead(e.message_read)
+        // Handle both single read and batch reads
+        if (e.message_reads && onMessageReadRef.current) {
+          // Batch reads
+          e.message_reads.forEach(read => {
+            onMessageReadRef.current(read)
+          })
+        } else if (e.message_read && onMessageReadRef.current) {
+          // Legacy single read (for backwards compatibility)
+          onMessageReadRef.current(e.message_read)
         }
       })
     }
@@ -88,7 +116,7 @@ export function useRealtimeChat({
         window.Echo.leave(`chat.user.${currentUser.id}`)
       }
     }
-  }, [selectedChat, chatType, currentUser, onMessageReceived, onMessageRead, onClearTypingUser])
+  }, [selectedChat, chatType, currentUser])
 
   // Send typing indicator
   const sendTypingIndicator = () => {

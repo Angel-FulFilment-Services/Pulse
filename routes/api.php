@@ -157,6 +157,7 @@ Route::prefix('chat')->group(function () {
     
     // Message Read Status
     Route::post('messages/read', [MessageReadController::class, 'store']);
+    Route::post('messages/read-batch', [MessageReadController::class, 'storeBatch']);
     
     // Teams
     Route::get('teams', [TeamController::class, 'index']);

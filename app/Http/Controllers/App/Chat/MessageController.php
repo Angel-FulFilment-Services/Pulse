@@ -76,6 +76,9 @@ class MessageController extends Controller
     }
     public function index(Request $request)
     {
+        $perPage = $request->input('per_page', 50);
+        $beforeId = $request->input('before_id'); // Load messages before this ID
+        
         $query = Message::query();
         if ($request->has('team_id')) {
             $query->where('team_id', $request->input('team_id'));
@@ -88,8 +91,34 @@ class MessageController extends Controller
                   ->where('recipient_id', auth()->user()->id);
             });
         }
-        $messages = $query->with(['attachments', 'reads.user', 'reactions', 'user', 'replyToMessage.user'])->orderBy('sent_at', 'asc')->get();
-        return response()->json($messages);
+        
+        // If before_id is provided, load messages before that ID
+        if ($beforeId) {
+            $query->where('id', '<', $beforeId);
+        }
+        
+        // Clone query to check for more messages
+        $checkQuery = clone $query;
+        
+        $messages = $query->with(['attachments', 'reads.user', 'reactions', 'user', 'replyToMessage.user'])
+            ->orderBy('sent_at', 'desc')
+            ->limit($perPage)
+            ->get()
+            ->reverse()
+            ->values();
+        
+        // Check if there are more messages beyond what we just fetched
+        $hasMore = false;
+        if ($messages->count() > 0) {
+            $oldestFetchedId = $messages->first()->id;
+            $hasMore = $checkQuery->where('id', '<', $oldestFetchedId)->exists();
+        }
+        
+        return response()->json([
+            'messages' => $messages,
+            'has_more' => $hasMore,
+            'per_page' => $perPage
+        ]);
     }
 
     public function store(Request $request)
@@ -180,7 +209,10 @@ class MessageController extends Controller
                     $q->where('sender_id', $userId)->orWhere('recipient_id', $userId);
                 })
                 ->whereNotNull('recipient_id');
-        })->get();
+        })->with('employee:user_id,profile_photo')->get();
+        
+        \Log::debug('Fetched contacts for user', ['contacts_count' => $contacts->toArray()]);
+
         return response()->json($contacts);
     }
     

@@ -1,7 +1,9 @@
 import React, { useRef } from 'react'
-import { UserIcon, PaperClipIcon, PaperAirplaneIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
+import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import ReplyBubble from './ReplyBubble'
 import MessageReactions from './MessageReactions'
+import UserIcon from '../UserIcon'
 
 export default function MessageList({ 
   messages, 
@@ -12,7 +14,8 @@ export default function MessageList({
   messagesEndRef,
   onReplyClick,
   messageRefsRef,
-  onAddReaction
+  onAddReaction,
+  onRetryMessage
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -89,13 +92,7 @@ export default function MessageList({
               <div className={`flex ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[70%]`}>
                 {/* Avatar - only show for other users */}
                 {!isMyGroup && (
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                    {group[0].user?.avatar ? (
-                      <img src={group[0].user.avatar} alt="" className="w-8 h-8 rounded-full" />
-                    ) : (
-                      <UserIcon className="w-4 h-4 text-gray-600" />
-                    )}
-                  </div>
+                  <UserIcon contact={group[0].user} size="medium" />
                 )}
                 
                 <div className="flex-1">
@@ -113,6 +110,8 @@ export default function MessageList({
                   
                   {/* Messages in the group */}
                   {group.map((message, messageIndex) => {
+                    const isLastInGroup = messageIndex === group.length - 1
+                    
                     // Find the last read message across ALL groups
                     let isLastReadMessage = false
                     let isLastUnreadMessage = false
@@ -155,7 +154,7 @@ export default function MessageList({
                     return (
                       <div 
                         key={message.id} 
-                        className={`mb-1 ${isMyGroup ? 'flex flex-row-reverse items-center gap-2' : 'flex items-center gap-2'}`}
+                        className={`mb-1 ${isMyGroup ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}
                       >
                         {/* Container for bubble, reactions, and reply button */}
                         <div className={`group/message peer relative flex items-center gap-2 ${isMyGroup ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -165,40 +164,51 @@ export default function MessageList({
                               messageRefs.current[message.id] = el
                               bubbleRefs.current[message.id] = el
                             }}
-                            className={`px-4 py-2 rounded-2xl transition-all max-w-[66%] ${
-                            isMyGroup
-                              ? 'bg-theme-500 text-white'
-                              : 'bg-gray-200 text-gray-900'
-                          }`}
-                            onMouseEnter={() => {
-                              // Immediately clear any other hovered message
-                              setHoveredMessageId(message.id)
-                            }}
+                            className={`relative px-4 py-2 transition-all ${
+                              isMyGroup
+                                ? 'bg-theme-500 text-white'
+                                : 'bg-gray-200 text-gray-900'
+                            } ${
+                              isLastInGroup 
+                                ? 'rounded-[18px]' 
+                                : 'rounded-[18px]'
+                            } ${
+                              isLastInGroup && isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:right-[-8px] before:h-5 before:w-5 before:bg-theme-500 before:rounded-bl-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:right-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-bl-[10px]' : ''
+                            } ${
+                              isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-br-[10px]' : ''
+                            }`}
+                            onMouseEnter={() => setHoveredMessageId(message.id)}
                             onMouseLeave={() => setHoveredMessageId(null)}
                           >
-                            {/* Show replied message context if this is a reply */}
-                            {message.reply_to_message && (
-                              <ReplyBubble 
-                                repliedMessage={message.reply_to_message} 
-                                isMyMessage={isMyGroup}
-                                onClickReply={scrollToMessage}
-                              />
-                            )}
+                            {/* Gradient overlay for depth */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.01] pointer-events-none rounded-[18px]" />
                             
-                            <p>{message.body}</p>
-                            {message.attachments?.length > 0 && (
-                              <div className="mt-2 space-y-1">
-                                {message.attachments.map((attachment) => (
-                                  <div key={attachment.id} className="flex items-center p-2 bg-white bg-opacity-10 rounded border border-white border-opacity-20">
-                                    <PaperClipIcon className="w-4 h-4 mr-2" />
-                                    <span className="text-sm">{attachment.filename}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            {/* Content wrapper with relative positioning to appear above gradient */}
+                            <div className="relative z-10">
+                              {/* Show replied message context if this is a reply */}
+                              {message.reply_to_message && (
+                                <ReplyBubble 
+                                  repliedMessage={message.reply_to_message} 
+                                  isMyMessage={isMyGroup}
+                                  onClickReply={scrollToMessage}
+                                />
+                              )}
+                              
+                              <p>{message.body}</p>
+                              {message.attachments?.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {message.attachments.map((attachment) => (
+                                    <div key={attachment.id} className="flex items-center p-2 bg-white bg-opacity-10 rounded border border-white border-opacity-20">
+                                      <PaperClipIcon className="w-4 h-4 mr-2" />
+                                      <span className="text-sm">{attachment.filename}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
-                          {/* Reactions tooltip - shown on hover */}
+                          {/* Reactions tooltip */}
                           <MessageReactions 
                             message={message}
                             isMyMessage={isMyGroup}
@@ -207,50 +217,68 @@ export default function MessageList({
                             bubbleRef={bubbleRefs.current[message.id]}
                           />
                           
-                          <div className="flex flex-col items-center justify-center">
-                            {/* Reply button - shown on hover, centered vertically */}
-                            {onReplyClick && (
-                              <button
-                                onClick={() => onReplyClick(message)}
-                                className="opacity-100 group-hover/message:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
-                                title="Reply"
-                              >
-                                <ArrowUturnLeftIcon className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                          
-                          {/* Read receipt indicator - only on last read or last unread message */}
-                          {isMyGroup && (
-                            <div className="flex justify-end pb-1 group/receipt transition-all peer-hover:hidden self-end">
-                              {isLastReadMessage && readerNames.length > 0 ? (
-                                  chatType === 'dm' ? (
-                                    <span className="text-xs text-gray-500">Seen</span>
-                                  ) : (
-                                    <>
-                                      <span className="text-xs text-gray-500 max-w-[120px] truncate">
-                                        {readerNames.length <= 2 
-                                          ? `Seen by ${readerNames.join(', ')}`
-                                          : `Seen by ${readerNames.length} people`
-                                        }
-                                      </span>
-                                      {readerNames.length > 2 && (
-                                        <div className="absolute bottom-full right-0 mb-1 hidden group-hover/receipt:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
-                                          {readerNames.join(', ')}
-                                        </div>
-                                      )}
-                                    </>
-                                  )
-                                ) : isLastUnreadMessage ? (
-                                  isPending ? (
-                                    <PaperAirplaneIcon className="w-4 h-4 text-gray-400" title="Sending" />
-                                  ) : (
-                                    <PaperAirplaneIcon className="w-4 h-4 text-theme-600" title="Delivered" />
-                                  )
-                                ) : null}
-                            </div>
+                          {/* Reply/Retry button - aligned to bubble top */}
+                          {message.status === 'failed' ? (
+                            <button
+                              onClick={() => onRetryMessage?.(message.id)}
+                              className="mt-1 p-1 text-red-500 hover:text-red-700"
+                              title="Retry sending"
+                            >
+                              <ArrowPathIcon className="w-4 h-4" />
+                            </button>
+                          ) : onReplyClick && (
+                            <button
+                              onClick={() => onReplyClick(message)}
+                              className="opacity-0 group-hover/message:opacity-100 transition-opacity mt-1 p-1 text-gray-400 hover:text-gray-600"
+                              title="Reply"
+                            >
+                              <ArrowUturnLeftIcon className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
+                        
+                        {/* Read receipt - separate from bubble, at message level */}
+                        {isMyGroup && (isLastReadMessage || isLastUnreadMessage || message.status === 'pending' || message.status === 'failed') && (
+                          <div className="flex items-center text-xs py-1 pt-1.5">
+                            {isLastReadMessage && readerNames.length > 0 ? (
+                              chatType === 'dm' ? (
+                                <span className="text-gray-500">Seen</span>
+                              ) : (
+                                <div className="group/receipt relative text-gray-500">
+                                  <span className="max-w-[120px] truncate">
+                                    {readerNames.length <= 2 
+                                      ? `Seen by ${readerNames.join(', ')}`
+                                      : `Seen by ${readerNames.length} people`
+                                    }
+                                  </span>
+                                  {readerNames.length > 2 && (
+                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover/receipt:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                                      {readerNames.join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            ) : message.status === 'failed' ? (
+                              <div className="flex items-center gap-1 text-red-600">
+                                <span>Not Delivered</span>
+                              </div>
+                            ) : message.status === 'pending' || isPending ? (
+                              <div className="flex items-center justify-center gap-1 text-gray-500">
+                                <span>Sending</span>
+                                <span className="typing-dots gap-x-0.5 flex mt-1">
+                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
+                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
+                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
+                                </span>
+                              </div>
+                            ) : isLastUnreadMessage ? (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <span>Delivered</span>
+                                <PaperAirplaneIcon className="w-4 h-4 text-theme-600 rotate-180" title="Delivered" />
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
