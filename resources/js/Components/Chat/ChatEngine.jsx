@@ -33,6 +33,7 @@ export default function ChatEngine({
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
   const markedAsReadRef = useRef(new Set())
+  const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
   const replyPreviewRef = useRef(null)
   const messageListContainerRef = useRef(null)
@@ -218,6 +219,7 @@ export default function ChatEngine({
     if (!selectedChat || chatType === 'compose') {
       setMessages([])
       setHasMore(true)
+      loadedMessageIdsRef.current.clear() // Clear loaded IDs when changing chats
       return
     }
 
@@ -233,6 +235,8 @@ export default function ChatEngine({
 
     isInitialLoadRef.current = true
     setLoading(true)
+    loadedMessageIdsRef.current.clear() // Clear for new chat
+    
     let url = ''
     if (chatType === 'team') {
       url = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
@@ -248,6 +252,9 @@ export default function ChatEngine({
         
         setMessages(messageList)
         setHasMore(hasMoreMessages)
+        
+        // Track loaded message IDs
+        messageList.forEach(msg => loadedMessageIdsRef.current.add(msg.id))
         
         // Build read status map
         const reads = {}
@@ -313,8 +320,14 @@ export default function ChatEngine({
       const olderMessages = data.messages || []
       const hasMoreMessages = data.has_more !== undefined ? data.has_more : false
       
-      if (olderMessages.length > 0) {
-        setMessages(prev => [...olderMessages, ...prev])
+      // Filter out messages we've already loaded (prevent duplicates)
+      const newMessages = olderMessages.filter(msg => !loadedMessageIdsRef.current.has(msg.id))
+      
+      if (newMessages.length > 0) {
+        // Track newly loaded message IDs
+        newMessages.forEach(msg => loadedMessageIdsRef.current.add(msg.id))
+        
+        setMessages(prev => [...newMessages, ...prev])
         setHasMore(hasMoreMessages)
         
         // Restore scroll position after new messages are rendered
