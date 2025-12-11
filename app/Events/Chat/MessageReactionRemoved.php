@@ -6,10 +6,12 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Chat\Message;
 
-class MessageReactionRemoved implements ShouldBroadcast
+class MessageReactionRemoved implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -26,9 +28,20 @@ class MessageReactionRemoved implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        // You may want to fetch the message to determine the channel
-        // For simplicity, broadcast to a generic channel (frontend should filter)
-        return new PrivateChannel('message.' . $this->messageId);
+        // Broadcast to the message's team or DM channel
+        $message = Message::find($this->messageId);
+        if (!$message) {
+            return [];
+        }
+        
+        if ($message->team_id) {
+            return new PresenceChannel('chat.team.' . $message->team_id);
+        } elseif ($message->recipient_id) {
+            $ids = [$message->sender_id, $message->recipient_id];
+            sort($ids);
+            return new PresenceChannel('chat.dm.' . implode('.', $ids));
+        }
+        return [];
     }
 
     public function broadcastWith()
@@ -38,5 +51,10 @@ class MessageReactionRemoved implements ShouldBroadcast
             'user_id' => $this->userId,
             'emoji' => $this->emoji,
         ];
+    }
+
+    public function broadcastAs()
+    {
+        return 'MessageReactionRemoved';
     }
 }

@@ -5,10 +5,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class MessageReaction extends Model
 {
+    protected $connection = 'pulse';
+    
     protected $fillable = [
         'message_id',
         'user_id',
         'emoji',
+        'name',
     ];
 
     public function message()

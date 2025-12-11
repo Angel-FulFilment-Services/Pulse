@@ -1,46 +1,56 @@
 <?php
+
 namespace App\Events\Chat;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageDeleted implements ShouldBroadcastNow
+class MessageRestored implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $messageId;
+    public $message;
     public $chatType;
     public $chatId;
 
-    public function __construct($messageId, $chatType, $chatId)
+    /**
+     * Create a new event instance.
+     */
+    public function __construct($message, $chatType, $chatId)
     {
-        $this->messageId = $messageId;
+        $this->message = $message;
         $this->chatType = $chatType;
         $this->chatId = $chatId;
     }
 
-    public function broadcastOn()
+    /**
+     * Get the channels the event should broadcast on.
+     *
+     * @return array<int, \Illuminate\Broadcasting\Channel>
+     */
+    public function broadcastOn(): array
     {
         if ($this->chatType === 'team') {
-            return new PresenceChannel('chat.team.' . $this->chatId);
+            return [new PresenceChannel('chat.team.' . $this->chatId)];
         } else {
-            return new PresenceChannel('chat.dm.' . $this->chatId);
+            return [new PresenceChannel('chat.dm.' . $this->chatId)];
         }
     }
     
     public function broadcastAs()
     {
-        return 'MessageDeleted';
+        return 'MessageRestored';
     }
-
+    
     public function broadcastWith()
     {
         return [
-            'message_id' => $this->messageId,
+            'message' => $this->message,
         ];
     }
 }

@@ -23,7 +23,7 @@ import {
 } from '@heroicons/react/24/solid'
 import UserIcon from './UserIcon.jsx'
 
-export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set() }) {
+export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -113,7 +113,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         console.error('Error fetching contacts:', error)
         setContacts([])
       })
-  }, [currentUser])
+  }, [currentUser, refreshKey])
 
   // Fetch favorites
   useEffect(() => {

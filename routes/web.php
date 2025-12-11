@@ -23,7 +23,6 @@ use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\Chat\ChatController;
 use App\Http\Controllers\App\AdministrationController;
 use App\Http\Controllers\App\ProxyController;
-use App\Http\Controllers\App\EmployeeController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
@@ -200,16 +199,6 @@ Route::get('/payroll/export/payroll', [PayrollController::class, 'payrollExportS
 Route::post('/payroll/imports/gross-pay', [PayrollController::class, 'importGrossPay'])->withoutMiddleware('log.access');
 Route::get('/payroll/imports/log', [PayrollController::class, 'importLog']);
 Route::post('/payroll/exports/toggle-hold', [PayrollController::class, 'toggleHold'])->withoutMiddleware('log.access');
-
-
-/*
-|-----------------------
-| Employees
-|-----------------------
-*/
-
-Route::get('/employees', [EmployeeController::class, 'index'])->name('employees');
-Route::get('/employees/{page}', [EmployeeController::class, 'index'])->name('employees');
 
 /*
 |-----------------------

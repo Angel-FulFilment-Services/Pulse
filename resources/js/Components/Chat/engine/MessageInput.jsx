@@ -1,5 +1,6 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { PaperAirplaneIcon, FaceSmileIcon, PaperClipIcon } from '@heroicons/react/24/outline'
+import EmojiPicker from './EmojiPicker'
 
 export default function MessageInput({ 
   value, 
@@ -13,6 +14,8 @@ export default function MessageInput({
 }) {
   const typingTimeoutRef = useRef(null)
   const lastTypingTimeRef = useRef(0)
+  const emojiButtonRef = useRef(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -30,6 +33,11 @@ export default function MessageInput({
       onTyping?.()
       lastTypingTimeRef.current = now
     }
+  }
+
+  const handleEmojiSelect = (emoji) => {
+    onChange(value + emoji)
+    setShowEmojiPicker(false)
   }
 
   // Update placeholder based on reply context
@@ -62,8 +70,10 @@ export default function MessageInput({
           <PaperClipIcon className="w-5 h-5" />
         </button>
         <button
+          ref={emojiButtonRef}
           type="button"
-          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 relative"
         >
           <FaceSmileIcon className="w-5 h-5" />
         </button>
@@ -75,6 +85,22 @@ export default function MessageInput({
           <PaperAirplaneIcon className="w-5 h-5" />
         </button>
       </div>
+      
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={() => setShowEmojiPicker(false)}
+          />
+          {/* Picker */}
+          <EmojiPicker 
+            onSelectEmoji={handleEmojiSelect}
+            buttonRef={emojiButtonRef}
+          />
+        </>
+      )}
     </form>
   )
 }

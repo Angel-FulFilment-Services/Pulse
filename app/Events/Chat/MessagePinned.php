@@ -1,24 +1,28 @@
 <?php
+
 namespace App\Events\Chat;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Chat\Message;
 
-class MessageDeleted implements ShouldBroadcastNow
+class MessagePinned implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $messageId;
+    public $message;
     public $chatType;
     public $chatId;
 
-    public function __construct($messageId, $chatType, $chatId)
+    public function __construct(Message $message, $chatType, $chatId)
     {
-        $this->messageId = $messageId;
+        $this->message = $message;
         $this->chatType = $chatType;
         $this->chatId = $chatId;
     }
@@ -31,16 +35,16 @@ class MessageDeleted implements ShouldBroadcastNow
             return new PresenceChannel('chat.dm.' . $this->chatId);
         }
     }
-    
-    public function broadcastAs()
-    {
-        return 'MessageDeleted';
-    }
 
     public function broadcastWith()
     {
         return [
-            'message_id' => $this->messageId,
+            'message' => $this->message,
         ];
+    }
+
+    public function broadcastAs()
+    {
+        return 'MessagePinned';
     }
 }

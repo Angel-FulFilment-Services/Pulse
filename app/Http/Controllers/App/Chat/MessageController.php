@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Chat\Message;
 use App\Models\Chat\MessageReaction;
 use App\Models\Chat\MessageAttachment;
+use App\Models\Chat\Team;
+use App\Models\Chat\DmPinnedMessage;
 use App\Events\Chat\MessageSent;
 use App\Models\User\User;
 
@@ -39,40 +41,93 @@ class MessageController extends Controller
     // Pin a message
     public function pin(Request $request, $messageId)
     {
-        $message = Message::findOrFail($messageId);
-        $message->is_pinned = true;
-        $message->save();
-        return response()->json(['status' => 'pinned']);
+        $message = Message::with(['user', 'replyToMessage.user'])->findOrFail($messageId);
+        
+        if ($message->team_id) {
+            // Team chat - update pinned_message_id on team
+            $team = Team::findOrFail($message->team_id);
+            $team->pinned_message_id = $messageId;
+            $team->save();
+            
+            broadcast(new \App\Events\Chat\MessagePinned($message, 'team', $message->team_id))->toOthers();
+        } else {
+            // DM - use dm_pinned_messages table
+            $userId = auth()->user()->id;
+            $ids = [$userId, $message->recipient_id == $userId ? $message->sender_id : $message->recipient_id];
+            sort($ids);
+            
+            DmPinnedMessage::updateOrCreate(
+                ['user_id_1' => $ids[0], 'user_id_2' => $ids[1]],
+                ['pinned_message_id' => $messageId]
+            );
+            
+            broadcast(new \App\Events\Chat\MessagePinned($message, 'dm', implode('.', $ids)))->toOthers();
+        }
+        
+        return response()->json([
+            'status' => 'pinned',
+            'message' => $message
+        ]);
     }
 
     // Unpin a message
     public function unpin(Request $request, $messageId)
     {
         $message = Message::findOrFail($messageId);
-        $message->is_pinned = false;
-        $message->save();
+        
+        if ($message->team_id) {
+            // Team chat
+            $team = Team::findOrFail($message->team_id);
+            $team->pinned_message_id = null;
+            $team->save();
+            
+            broadcast(new \App\Events\Chat\MessageUnpinned($messageId, 'team', $message->team_id))->toOthers();
+        } else {
+            // DM
+            $userId = auth()->user()->id;
+            $ids = [$userId, $message->recipient_id == $userId ? $message->sender_id : $message->recipient_id];
+            sort($ids);
+            
+            DmPinnedMessage::where('user_id_1', $ids[0])
+                ->where('user_id_2', $ids[1])
+                ->update(['pinned_message_id' => null]);
+            
+            broadcast(new \App\Events\Chat\MessageUnpinned($messageId, 'dm', implode('.', $ids)))->toOthers();
+        }
+        
         return response()->json(['status' => 'unpinned']);
     }
 
-    // Get pinned messages for a team or direct chat
-    public function pinned(Request $request)
+    // Get pinned message for a team or direct chat
+    public function getPinned(Request $request)
     {
         $teamId = $request->input('team_id');
         $recipientId = $request->input('recipient_id');
-        $query = Message::query()->where('is_pinned', true);
+        
         if ($teamId) {
-            $query->where('team_id', $teamId);
+            $team = Team::find($teamId);
+            if ($team && $team->pinned_message_id) {
+                $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                    ->find($team->pinned_message_id);
+                return response()->json($message);
+            }
         } elseif ($recipientId) {
             $userId = auth()->user()->id;
-            $query->where(function($q) use ($userId, $recipientId) {
-                $q->where('sender_id', $userId)->where('recipient_id', $recipientId)
-                  ->orWhere(function($q2) use ($userId, $recipientId) {
-                      $q2->where('sender_id', $recipientId)->where('recipient_id', $userId);
-                  });
-            });
+            $ids = [$userId, $recipientId];
+            sort($ids);
+            
+            $dmPinned = DmPinnedMessage::where('user_id_1', $ids[0])
+                ->where('user_id_2', $ids[1])
+                ->first();
+                
+            if ($dmPinned && $dmPinned->pinned_message_id) {
+                $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                    ->find($dmPinned->pinned_message_id);
+                return response()->json($message);
+            }
         }
-        $messages = $query->orderBy('created_at', 'desc')->limit(20)->get();
-        return response()->json($messages);
+        
+        return response()->json(null);
     }
     public function index(Request $request)
     {
@@ -100,7 +155,7 @@ class MessageController extends Controller
         // Clone query to check for more messages
         $checkQuery = clone $query;
         
-        $messages = $query->with(['attachments', 'reads.user', 'reactions', 'user', 'replyToMessage.user'])
+        $messages = $query->with(['attachments', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user'])
             ->orderBy('sent_at', 'desc')
             ->limit($perPage)
             ->get()
@@ -196,7 +251,7 @@ class MessageController extends Controller
             // Log broadcast failure but don't stop message from being sent
             \Log::warning('Failed to broadcast message: ' . $e->getMessage());
         }
-        return response()->json($message->load(['attachments', 'reads', 'reactions', 'user', 'replyToMessage.user']), 201);
+        return response()->json($message->load(['attachments', 'reads', 'reactions.user', 'user', 'replyToMessage.user']), 201);
     }
     // List direct message contacts for the current user
     public function contacts(Request $request)
@@ -251,15 +306,39 @@ class MessageController extends Controller
     {
         $data = $request->validate([
             'emoji' => 'required|string|max:32',
+            'name' => 'nullable|string|max:100',
         ]);
         $userId = auth()->user()->id;
-        $reaction = MessageReaction::firstOrCreate([
-            'message_id' => $messageId,
-            'user_id' => $userId,
-            'emoji' => $data['emoji'],
-        ]);
-        broadcast(new \App\Events\Chat\MessageReactionAdded($reaction))->toOthers();
-        return response()->json(['status' => 'ok', 'reaction' => $reaction]);
+        
+        // Check if reaction already exists (use binary comparison for emoji)
+        $existingReaction = MessageReaction::where('message_id', $messageId)
+            ->where('user_id', $userId)
+            ->whereRaw('BINARY emoji = ?', [$data['emoji']])
+            ->first();
+        
+        if ($existingReaction) {
+            // Remove reaction if it exists (toggle off)
+            $existingReaction->delete();
+            broadcast(new \App\Events\Chat\MessageReactionRemoved($messageId, $userId, $data['emoji']))->toOthers();
+        } else {
+            // Add new reaction
+            $reaction = MessageReaction::create([
+                'message_id' => $messageId,
+                'user_id' => $userId,
+                'emoji' => $data['emoji'],
+                'name' => $data['name'] ?? null,
+            ]);
+            // Load user and message relationships for broadcasting
+            $reaction->load(['user', 'message']);
+            broadcast(new \App\Events\Chat\MessageReactionAdded($reaction))->toOthers();
+        }
+        
+        // Return all reactions for this message with user data
+        $reactions = MessageReaction::where('message_id', $messageId)
+            ->with('user')
+            ->get();
+        
+        return response()->json(['status' => 'ok', 'reactions' => $reactions]);
     }
 
     // Remove a reaction from a message
@@ -294,7 +373,7 @@ class MessageController extends Controller
         $message->is_edited = true;
         $message->save();
         broadcast(new \App\Events\Chat\MessageSent($message))->toOthers();
-        return response()->json($message->load(['attachments', 'reads', 'reactions', 'user']));
+        return response()->json($message->load(['attachments', 'reads', 'reactions.user', 'user']));
     }
 
     // Delete a message
@@ -304,8 +383,51 @@ class MessageController extends Controller
         if (auth()->user()->id !== $message->sender_id) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
-        $message->delete();
-        broadcast(new \App\Events\Chat\MessageDeleted($id))->toOthers();
+        
+        // Soft delete - set deleted_at timestamp
+        $message->deleted_at = now();
+        $message->save();
+        
+        // Determine chat type and ID for broadcasting
+        if ($message->team_id) {
+            broadcast(new \App\Events\Chat\MessageDeleted($id, 'team', $message->team_id));
+        } else {
+            $userId = auth()->user()->id;
+            $ids = [$userId, $message->recipient_id == $userId ? $message->sender_id : $message->recipient_id];
+            sort($ids);
+            broadcast(new \App\Events\Chat\MessageDeleted($id, 'dm', implode('.', $ids)));
+        }
+        
         return response()->json(['status' => 'deleted']);
+    }
+    
+    public function restore(Request $request, $id)
+    {
+        $message = Message::findOrFail($id);
+        if (auth()->user()->id !== $message->sender_id) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        
+        // Restore - clear deleted_at timestamp
+        $message->deleted_at = null;
+        $message->save();
+        
+        // Reload with relationships
+        $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])->find($id);
+        
+        // Determine chat type and ID for broadcasting
+        if ($message->team_id) {
+            broadcast(new \App\Events\Chat\MessageRestored($message, 'team', $message->team_id));
+        } else {
+            $userId = auth()->user()->id;
+            $ids = [$userId, $message->recipient_id == $userId ? $message->sender_id : $message->recipient_id];
+            sort($ids);
+            broadcast(new \App\Events\Chat\MessageRestored($message, 'dm', implode('.', $ids)));
+        }
+        
+        return response()->json([
+            'status' => 'restored',
+            'message' => $message
+        ]);
     }
 }

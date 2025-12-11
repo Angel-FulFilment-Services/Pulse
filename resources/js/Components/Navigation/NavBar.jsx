@@ -43,15 +43,13 @@ export default function NavBar({ page }) {
 
   const navigation = useMemo(() => [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: currentPath === '/', right: null },
-    { name: 'My Profile', href: '/profile/account', icon: UserIcon, current: currentPath.startsWith('/profile'), right: null },
     { name: 'Rota', href: '/rota', icon: CalendarIcon, current: currentPath.startsWith('/rota'), right: 'pulse_view_rota' },
-    { name: 'Employees', href: '/employees', icon: UserGroupIcon, current: currentPath.startsWith('/employees'), right: 'pulse_view_rota' },
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
-    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_administration', notificationQty: 2 },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat') },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
 ], [currentPath]);
 

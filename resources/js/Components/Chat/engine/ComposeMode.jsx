@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { 
   PaperAirplaneIcon,
-  FaceSmileIcon,
-  PaperClipIcon,
   UserIcon,
   UserGroupIcon,
   MagnifyingGlassIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
+import MessageInput from './MessageInput'
 
 export default function ComposeMode({ 
   currentUser, 
   onChatSelect,
-  onMessageSend
+  onMessageSend,
+  onRefreshContacts
 }) {
   const [recipientSearch, setRecipientSearch] = useState('')
   const [showRecipientDropdown, setShowRecipientDropdown] = useState(false)
@@ -37,33 +37,34 @@ export default function ComposeMode({
   }, [])
 
   // Handle recipient selection
-  const handleRecipientSelect = (recipient, type) => {
-    setComposeRecipient({ ...recipient, type })
-    setRecipientSearch(recipient.name)
+  const handleRecipientSelect = async (recipient, type) => {
     setShowRecipientDropdown(false)
     
     if (type === 'dm') {
       // Check if there's an existing conversation with this user
-      fetch(`/api/chat/check-conversation?user_id=${recipient.id}`, { 
-        credentials: 'same-origin',
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-        .then(res => {
-          if (!res.ok) return { exists: false }
-          return res.json()
-        })
-        .then(data => {
-          if (data.exists) {
-            // If conversation exists, open it directly
-            onChatSelect(recipient, 'dm')
+      try {
+        const res = await fetch(`/api/chat/check-conversation?user_id=${recipient.id}`, { 
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json'
           }
         })
-        .catch(error => {
-          console.error('Error checking existing conversation:', error)
-        })
+        
+        const data = res.ok ? await res.json() : { exists: false }
+        
+        if (data.exists) {
+          // If conversation exists, open it directly (don't set compose recipient)
+          onChatSelect(recipient, 'dm')
+          return
+        }
+      } catch (error) {
+        console.error('Error checking existing conversation:', error)
+      }
     }
+    
+    // No existing conversation or it's a team, set up compose mode
+    setComposeRecipient({ ...recipient, type })
+    setRecipientSearch(recipient.name)
   }
 
   // Filter recipients based on search
@@ -76,12 +77,18 @@ export default function ComposeMode({
   )
 
   // Handle sending message in compose mode
-  const handleComposeMessageSend = async () => {
+  const handleComposeMessageSend = async (e) => {
+    e?.preventDefault()
     if (!composeRecipient || !newMessage.trim()) return
     
     const success = await onMessageSend(newMessage, composeRecipient, composeRecipient.type)
     
     if (success) {
+      setNewMessage('')
+      // Refresh contacts list if this was a new DM conversation
+      if (composeRecipient.type === 'dm' && onRefreshContacts) {
+        onRefreshContacts()
+      }
       onChatSelect(composeRecipient, composeRecipient.type)
     }
   }
@@ -235,41 +242,13 @@ export default function ComposeMode({
         {/* Message Input - only show if recipient is selected */}
         {composeRecipient && (
           <div className="px-6 py-4 border-t border-gray-200 bg-white">
-            <div className="flex items-end space-x-2">
-              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                <PaperClipIcon className="w-5 h-5" />
-              </button>
-              <div className="flex-1 relative">
-                <textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleComposeMessageSend()
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
-                  rows="1"
-                  style={{ minHeight: '40px', maxHeight: '120px' }}
-                />
-              </div>
-              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                <FaceSmileIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleComposeMessageSend}
-                disabled={!newMessage.trim() || !composeRecipient}
-                className={`p-2 rounded-lg transition-colors ${
-                  newMessage.trim() && composeRecipient
-                    ? 'text-theme-600 hover:bg-theme-100'
-                    : 'text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-              </button>
-            </div>
+            <MessageInput
+              value={newMessage}
+              onChange={setNewMessage}
+              onSubmit={handleComposeMessageSend}
+              placeholder="Type a message..."
+              disabled={false}
+            />
           </div>
         )}
       </div>

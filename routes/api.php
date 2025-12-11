@@ -145,8 +145,9 @@ Route::prefix('chat')->group(function () {
     Route::post('messages', [MessageController::class, 'store']);
     Route::put('messages/{id}', [MessageController::class, 'update']);
     Route::delete('messages/{id}', [MessageController::class, 'destroy']);
+    Route::post('messages/{id}/restore', [MessageController::class, 'restore']);
     Route::get('messages/search', [MessageController::class, 'search']);
-    Route::get('messages/pinned', [MessageController::class, 'pinned']);
+    Route::get('messages/pinned', [MessageController::class, 'getPinned']);
     Route::post('messages/{messageId}/pin', [MessageController::class, 'pin']);
     Route::delete('messages/{messageId}/pin', [MessageController::class, 'unpin']);
     Route::get('contacts', [MessageController::class, 'contacts']);
@@ -185,6 +186,13 @@ Route::prefix('chat')->group(function () {
     Route::get('preferences/chat', [ChatPreferencesController::class, 'getChatPreferences']);
     Route::post('preferences/toggle-mark-unread', [ChatPreferencesController::class, 'toggleMarkUnread']);
     Route::post('preferences/hide-chat', [ChatPreferencesController::class, 'hideChat']);
+    
+    // Restricted Words
+    Route::get('restricted-words', function () {
+        return response()->json([
+            'words' => \App\Models\RestrictedWord::getActiveWords()
+        ]);
+    });
 });
 
 

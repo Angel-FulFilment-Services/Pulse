@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Team extends Model
 {
     protected $connection = 'pulse';
-    protected $fillable = ['name', 'description', 'owner_id'];
+    protected $fillable = ['name', 'description', 'owner_id', 'pinned_message_id'];
 
     // Cross-database relationships don't work well, so we'll use helper methods
     public function getOwner()
@@ -30,5 +30,10 @@ class Team extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+    
+    public function pinnedMessage(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'pinned_message_id');
     }
 }

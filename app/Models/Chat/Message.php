@@ -10,7 +10,7 @@ class Message extends Model
 {
     protected $connection = 'pulse';
     protected $fillable = [
-        'team_id', 'sender_id', 'recipient_id', 'body', 'mentions', 'type', 'is_edited', 'sent_at', 'reply_to_message_id'
+        'team_id', 'sender_id', 'recipient_id', 'body', 'mentions', 'type', 'is_edited', 'sent_at', 'reply_to_message_id', 'deleted_at'
     ];
 
     public function team(): BelongsTo

@@ -9,19 +9,37 @@ export function useRealtimeChat({
   currentUser,
   onMessageReceived,
   onMessageRead,
-  onClearTypingUser
+  onClearTypingUser,
+  onReactionAdded,
+  onReactionRemoved,
+  onMessagePinned,
+  onMessageUnpinned,
+  onMessageDeleted,
+  onMessageRestored
 }) {
   const echoRef = useRef(null)
   const onMessageReceivedRef = useRef(onMessageReceived)
   const onMessageReadRef = useRef(onMessageRead)
   const onClearTypingUserRef = useRef(onClearTypingUser)
+  const onReactionAddedRef = useRef(onReactionAdded)
+  const onReactionRemovedRef = useRef(onReactionRemoved)
+  const onMessagePinnedRef = useRef(onMessagePinned)
+  const onMessageUnpinnedRef = useRef(onMessageUnpinned)
+  const onMessageDeletedRef = useRef(onMessageDeleted)
+  const onMessageRestoredRef = useRef(onMessageRestored)
 
   // Keep refs up to date
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived
     onMessageReadRef.current = onMessageRead
     onClearTypingUserRef.current = onClearTypingUser
-  }, [onMessageReceived, onMessageRead, onClearTypingUser])
+    onReactionAddedRef.current = onReactionAdded
+    onReactionRemovedRef.current = onReactionRemoved
+    onMessagePinnedRef.current = onMessagePinned
+    onMessageUnpinnedRef.current = onMessageUnpinned
+    onMessageDeletedRef.current = onMessageDeleted
+    onMessageRestoredRef.current = onMessageRestored
+  }, [onMessageReceived, onMessageRead, onClearTypingUser, onReactionAdded, onReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored])
 
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') return
@@ -60,6 +78,54 @@ export function useRealtimeChat({
         // Notify parent component
         if (onMessageReceivedRef.current) {
           onMessageReceivedRef.current(e.message)
+        }
+      })
+      
+      // Listen for reaction added
+      channel.listen('.MessageReactionAdded', (e) => {
+        console.log('.MessageReactionAdded event received!', e)
+        if (onReactionAddedRef.current && e.reaction) {
+          onReactionAddedRef.current(e.reaction)
+        }
+      })
+      
+      // Listen for reaction removed
+      channel.listen('.MessageReactionRemoved', (e) => {
+        console.log('.MessageReactionRemoved event received!', e)
+        if (onReactionRemovedRef.current) {
+          onReactionRemovedRef.current(e.message_id, e.user_id, e.emoji)
+        }
+      })
+      
+      // Listen for message pinned
+      channel.listen('.MessagePinned', (e) => {
+        console.log('.MessagePinned event received!', e)
+        if (onMessagePinnedRef.current && e.message) {
+          onMessagePinnedRef.current(e.message)
+        }
+      })
+      
+      // Listen for message unpinned
+      channel.listen('.MessageUnpinned', (e) => {
+        console.log('.MessageUnpinned event received!', e)
+        if (onMessageUnpinnedRef.current && e.message_id) {
+          onMessageUnpinnedRef.current(e.message_id)
+        }
+      })
+      
+      // Listen for message deleted
+      channel.listen('.MessageDeleted', (e) => {
+        console.log('.MessageDeleted event received!', e)
+        if (onMessageDeletedRef.current && e.message_id) {
+          onMessageDeletedRef.current(e.message_id)
+        }
+      })
+      
+      // Listen for message restored
+      channel.listen('.MessageRestored', (e) => {
+        console.log('.MessageRestored event received!', e)
+        if (onMessageRestoredRef.current && e.message) {
+          onMessageRestoredRef.current(e.message)
         }
       })
       

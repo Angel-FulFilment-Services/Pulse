@@ -12,6 +12,7 @@ export default function Chat() {
   const [contacts, setContacts] = useState([]) // All user contacts for channel subscriptions
   const [teams, setTeams] = useState([]) // All teams for channel subscriptions
   const [unreadChats, setUnreadChats] = useState(new Set()) // Track which chats have unread messages
+  const [contactsRefreshKey, setContactsRefreshKey] = useState(0)
 
   // Fetch current user
   useEffect(() => {
@@ -148,6 +149,11 @@ export default function Chat() {
     }
   }
 
+  // Refresh contacts list (for when a new conversation is created)
+  const refreshContacts = () => {
+    setContactsRefreshKey(prev => prev + 1)
+  }
+
   // Clear typing indicator for a specific user (from all channels)
   const clearTypingUser = (userId) => {
     setTypingUsers(prev => {
@@ -199,6 +205,7 @@ export default function Chat() {
         onChatSelect={handleChatSelect}
         selectedChat={selectedChat}
         chatType={chatType}
+        refreshKey={contactsRefreshKey}
       />
       
       {/* Chat Area */}
@@ -207,6 +214,7 @@ export default function Chat() {
         chatType={chatType}
         currentUser={currentUser}
         onChatSelect={handleChatSelect}
+        onRefreshContacts={refreshContacts}
         typingUsers={(() => {
           const channelKey = chatType === 'team' ? `team-${selectedChat?.id}` : `dm-${selectedChat?.id}`
           const users = selectedChat ? (typingUsers[channelKey] || []) : []

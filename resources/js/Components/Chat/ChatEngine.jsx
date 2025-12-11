@@ -8,18 +8,21 @@ import ScrollToNewMessages from './engine/ScrollToNewMessages'
 import EmptyState from './engine/EmptyState'
 import ComposeMode from './engine/ComposeMode'
 import ReplyPreview from './engine/ReplyPreview'
+import PinnedMessageBanner from './engine/PinnedMessageBanner'
 import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
+import { useRestrictedWords } from './engine/useRestrictedWords'
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 10000 // 10 seconds
-const MAX_MESSAGES_PER_WINDOW = 5 // 5 messages per 10 seconds
+const MAX_MESSAGES_PER_WINDOW = 10 // 10 messages per 10 seconds
 
 export default function ChatEngine({ 
   selectedChat, 
   chatType, 
   currentUser, 
   onChatSelect, 
+  onRefreshContacts,
   typingUsers = [], 
   onClearTypingUser,
   onClearUnread
@@ -32,6 +35,7 @@ export default function ChatEngine({
   const [sending, setSending] = useState(false)
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
+  const [pinnedMessage, setPinnedMessage] = useState(null)
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
@@ -49,6 +53,9 @@ export default function ChatEngine({
   const messageSentTimestamps = useRef([])
   const [isRateLimited, setIsRateLimited] = useState(false)
   
+  // Track pending reactions to prevent double-clicks
+  const pendingReactionsRef = useRef(new Set())
+  
   // Track scroll positions for each chat (persists during session)
   const scrollPositionsRef = useRef({})
   const isInitialLoadRef = useRef(true)
@@ -64,6 +71,9 @@ export default function ChatEngine({
     getMergedMessages,
     processingRef,
   } = useOptimisticMessages(selectedChat, chatType, currentUser)
+
+  // Use restricted words hook
+  const { filterRestrictedWords } = useRestrictedWords()
 
   // Scroll to bottom when messages change
   const scrollToBottom = (instant = false) => {
@@ -396,6 +406,50 @@ export default function ChatEngine({
     }))
   }
 
+  // Handle reaction added from broadcast
+  const handleReactionAdded = (reaction) => {
+    // Ignore our own reactions (they're already handled optimistically)
+    if (reaction.user_id === currentUser.id) {
+      return
+    }
+    
+    setMessages(prev => prev.map(msg => {
+      // Convert both to numbers for comparison (message_id might be string from broadcast)
+      if (msg.id == reaction.message_id) {
+        const existingReactions = msg.reactions || []
+        // Check if this exact reaction already exists
+        const exists = existingReactions.some(
+          r => r.user_id === reaction.user_id && r.emoji === reaction.emoji
+        )
+        if (!exists) {
+          // Mark as new for animation purposes
+          const newReaction = { ...reaction, isNewReaction: true }
+          return { ...msg, reactions: [...existingReactions, newReaction] }
+        }
+      }
+      return msg
+    }))
+  }
+
+  // Handle reaction removed from broadcast
+  const handleReactionRemoved = (messageId, userId, emoji) => {
+    // Ignore our own reaction removals (they're already handled optimistically)
+    if (userId === currentUser.id) {
+      return
+    }
+    
+    setMessages(prev => prev.map(msg => {
+      // Convert both to numbers for comparison
+      if (msg.id == messageId) {
+        const updatedReactions = (msg.reactions || []).filter(
+          r => !(r.user_id === userId && r.emoji === emoji)
+        )
+        return { ...msg, reactions: updatedReactions }
+      }
+      return msg
+    }))
+  }
+
   // Set up real-time listeners
   const { sendTypingIndicator } = useRealtimeChat({
     selectedChat,
@@ -403,7 +457,35 @@ export default function ChatEngine({
     currentUser,
     onMessageReceived: handleMessageReceived,
     onMessageRead: handleMessageRead,
-    onClearTypingUser
+    onClearTypingUser,
+    onReactionAdded: handleReactionAdded,
+    onReactionRemoved: handleReactionRemoved,
+    onMessagePinned: (message) => {
+      console.log('Message pinned:', message)
+      setPinnedMessage(message)
+    },
+    onMessageUnpinned: (messageId) => {
+      console.log('Message unpinned:', messageId)
+      if (pinnedMessage?.id === messageId) {
+        setPinnedMessage(null)
+      }
+    },
+    onMessageDeleted: (messageId) => {
+      console.log('Message deleted:', messageId)
+      setMessages(prev => prev.map(msg => 
+        msg.id == messageId 
+          ? { ...msg, deleted_at: new Date().toISOString() }
+          : msg
+      ))
+    },
+    onMessageRestored: (message) => {
+      console.log('Message restored:', message)
+      setMessages(prev => prev.map(msg => 
+        msg.id == message.id 
+          ? { ...message, deleted_at: null }
+          : msg
+      ))
+    }
   })
 
   // Mark messages as read when viewing chat - only if visible in viewport
@@ -673,6 +755,24 @@ export default function ChatEngine({
   const queueMessage = (messageText, replyToMessageId = null) => {
     if (!messageText.trim() || !selectedChat || sending) return false
     
+    // Filter restricted words from message
+    const { filteredText, blocked, blockedWords } = filterRestrictedWords(messageText.trim())
+    
+    // If message is blocked (contains level 3 words), show error and don't send
+    if (blocked) {
+      toast.error(`Message blocked. Contains prohibited content: ${blockedWords.join(', ')}`, {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+      return false
+    }
+    
     // Check rate limiting
     if (!checkRateLimit()) {
       return false
@@ -687,9 +787,9 @@ export default function ChatEngine({
     const allMessages = getMergedMessages(messages)
     const replyToMessage = replyToMessageId ? allMessages.find(m => m.id === replyToMessageId) : null
     
-    // Add to optimistic queue
+    // Add to optimistic queue with filtered message
     const optimisticMsg = addOptimisticMessage({
-      body: messageText.trim(),
+      body: filteredText,
       reply_to_message_id: replyToMessageId,
       reply_to_message: replyToMessage ? {
         id: replyToMessage.id,
@@ -721,7 +821,77 @@ export default function ChatEngine({
 
   // Shared function for sending messages (legacy, now just queues)
   const sendMessageToRecipient = async (message, recipient, recipientType, replyToMessageId = null) => {
-    return queueMessage(message, replyToMessageId)
+    if (!message.trim() || !recipient) return false
+    
+    // Filter restricted words from message
+    const { filteredText, blocked, blockedWords } = filterRestrictedWords(message.trim())
+    
+    // If message is blocked, show error and don't send
+    if (blocked) {
+      toast.error(`Message blocked. Contains prohibited content: ${blockedWords.join(', ')}`, {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+      return false
+    }
+    
+    try {
+      // Prepare request data
+      const requestData = {
+        body: filteredText,
+        type: 'message'
+      }
+      
+      // Set team_id or recipient_id based on recipient type
+      if (recipientType === 'team') {
+        requestData.team_id = recipient.id
+      } else {
+        requestData.recipient_id = recipient.id
+      }
+      
+      // Include reply_to_message_id if replying
+      if (replyToMessageId) {
+        requestData.reply_to_message_id = replyToMessageId
+      }
+      
+      const response = await fetch('/api/chat/messages', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify(requestData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('Message sent successfully from compose:', data)
+      
+      return true
+    } catch (error) {
+      console.error('Error sending message from compose:', error)
+      toast.error('Failed to send message', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+      return false
+    }
   }
 
   // Send message in existing chat
@@ -748,17 +918,377 @@ export default function ChatEngine({
 
   // Handle adding reaction to a message
   const handleAddReaction = async (messageId, reaction) => {
+    // Create a unique key for this reaction action
+    const reactionKey = `${messageId}-${currentUser.id}-${reaction.emoji}`
+    
+    // Prevent duplicate requests
+    if (pendingReactionsRef.current.has(reactionKey)) {
+      return
+    }
+    
     try {
-      console.log('Adding reaction:', reaction.emoji, 'to message:', messageId)
-      // TODO: Implement backend API call to save reaction
-      // await axios.post(`/api/app/chat/messages/${messageId}/reactions`, {
-      //   emoji: reaction.emoji,
-      //   name: reaction.name
-      // })
+      // Mark as pending
+      pendingReactionsRef.current.add(reactionKey)
+      
+      // Optimistically update UI
+      setMessages(prev => prev.map(msg => {
+        if (msg.id == messageId) {
+          const existingReactions = msg.reactions || []
+          
+          // Check if user already reacted with this emoji
+          const userReactionIndex = existingReactions.findIndex(
+            r => r.user_id === currentUser.id && r.emoji === reaction.emoji
+          )
+          
+          let updatedReactions
+          if (userReactionIndex >= 0) {
+            // Remove reaction if already exists (toggle off)
+            updatedReactions = existingReactions.filter((_, i) => i !== userReactionIndex)
+          } else {
+            // Add new reaction
+            updatedReactions = [
+              ...existingReactions,
+              {
+                id: `temp-${Date.now()}`,
+                message_id: messageId,
+                user_id: currentUser.id,
+                user: currentUser,
+                emoji: reaction.emoji,
+                name: reaction.name,
+                created_at: new Date().toISOString(),
+                isNewReaction: true // Mark as new for animation
+              }
+            ]
+          }
+          
+          return { ...msg, reactions: updatedReactions }
+        }
+        return msg
+      }))
+      
+      // Send to backend
+      const response = await fetch(`/api/chat/messages/${messageId}/reactions`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify({
+          emoji: reaction.emoji,
+          name: reaction.name
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to add reaction')
+      }
+      
+      const data = await response.json()
+      
+      // Update with real data from server, preserving emoji order
+      setMessages(prev => prev.map(msg => {
+        if (msg.id == messageId) {
+          const oldReactions = msg.reactions || []
+          const newReactions = data.reactions || []
+          
+          // Create a map of existing emoji positions
+          const emojiPositions = new Map()
+          oldReactions.forEach((r, index) => {
+            if (!emojiPositions.has(r.emoji)) {
+              emojiPositions.set(r.emoji, index)
+            }
+          })
+          
+          // Sort new reactions by original position, new emojis go to the end
+          const sortedReactions = [...newReactions].sort((a, b) => {
+            const posA = emojiPositions.has(a.emoji) ? emojiPositions.get(a.emoji) : Infinity
+            const posB = emojiPositions.has(b.emoji) ? emojiPositions.get(b.emoji) : Infinity
+            return posA - posB
+          })
+          
+          return { ...msg, reactions: sortedReactions }
+        }
+        return msg
+      }))
+      
     } catch (error) {
       console.error('Error adding reaction:', error)
+      // Revert optimistic update on error by fetching fresh message state
+      try {
+        const freshResponse = await fetch(`/api/chat/messages?conversation_id=${selectedChat?.id}&type=${chatType}`)
+        if (freshResponse.ok) {
+          const freshData = await freshResponse.json()
+          setMessages(freshData.messages || [])
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh messages:', refreshError)
+      }
+    } finally {
+      // Remove from pending set
+      pendingReactionsRef.current.delete(reactionKey)
     }
   }
+
+  // Pin/Unpin message
+  const handlePinMessage = async (messageId) => {
+    if (!selectedChat) return
+    
+    try {
+      if (pinnedMessage?.id === messageId) {
+        // Unpin
+        const response = await fetch(`/api/chat/messages/${messageId}/pin`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+          }
+        })
+        
+        if (response.ok) {
+          setPinnedMessage(null)
+          toast.success('Message unpinned', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+          })
+        }
+      } else {
+        // Pin
+        const response = await fetch(`/api/chat/messages/${messageId}/pin`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setPinnedMessage(data.message)
+          toast.success('Message pinned', {
+            position: 'top-center',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+            theme: 'light',
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error pinning message:', error)
+      toast.error('Failed to pin message', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Scroll to pinned message
+  const handleClickPinned = (messageId) => {
+    const messageEl = messageRefsRef.current?.[messageId]
+    if (messageEl) {
+      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      messageEl.classList.add('ring-2', 'ring-theme-400')
+      setTimeout(() => {
+        messageEl.classList.remove('ring-2', 'ring-theme-400')
+      }, 2000)
+    } else {
+      // Message not loaded, need to fetch it
+      // For now, just scroll to top and load more
+      toast.info('Loading pinned message...', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+      if (messageListContainerRef.current) {
+        messageListContainerRef.current.scrollTop = 0
+      }
+    }
+  }
+
+  // Delete message
+  const handleDeleteMessage = async (messageId) => {
+    if (!selectedChat) return
+    
+    console.log('Deleting message:', messageId)
+    
+    try {
+      const response = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      })
+      
+      console.log('Delete response:', response.status, response.statusText)
+      
+      if (response.ok) {
+        // Update local state
+        setMessages(prev => prev.map(msg => 
+          msg.id == messageId 
+            ? { ...msg, deleted_at: new Date().toISOString() }
+            : msg
+        ))
+        toast.success('Message deleted', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Delete failed:', errorData)
+        toast.error(errorData.error || 'Failed to delete message', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      toast.error('Failed to delete message', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Restore deleted message
+  const handleRestoreMessage = async (messageId) => {
+    if (!selectedChat) return
+    
+    console.log('Restoring message:', messageId)
+    
+    try {
+      const response = await fetch(`/api/chat/messages/${messageId}/restore`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      })
+      
+      console.log('Restore response:', response.status, response.statusText)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Restore data:', data)
+        // Update local state
+        setMessages(prev => prev.map(msg => 
+          msg.id == messageId 
+            ? { ...msg, deleted_at: null }
+            : msg
+        ))
+        toast.success('Message restored', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Restore failed:', errorData)
+        toast.error(errorData.error || 'Failed to restore message', {
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error restoring message:', error)
+      toast.error('Failed to restore message', {
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Fetch pinned message
+  useEffect(() => {
+    // Clear pinned message immediately when chat changes
+    setPinnedMessage(null)
+    
+    if (!selectedChat || chatType === 'compose') {
+      return
+    }
+    
+    const fetchPinnedMessage = async () => {
+      try {
+        const params = new URLSearchParams()
+        if (chatType === 'team') {
+          params.append('team_id', selectedChat.id)
+        } else {
+          params.append('recipient_id', selectedChat.id)
+        }
+        
+        const response = await fetch(`/api/chat/messages/pinned?${params}`, {
+          credentials: 'same-origin'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setPinnedMessage(data || null)
+        } else {
+          setPinnedMessage(null)
+        }
+      } catch (error) {
+        console.error('Error fetching pinned message:', error)
+      }
+    }
+    
+    fetchPinnedMessage()
+  }, [selectedChat, chatType])
 
   // Compose mode
   if (chatType === 'compose') {
@@ -767,6 +1297,7 @@ export default function ChatEngine({
         currentUser={currentUser}
         onChatSelect={onChatSelect}
         onMessageSend={sendMessageToRecipient}
+        onRefreshContacts={onRefreshContacts}
       />
     )
   }
@@ -780,6 +1311,13 @@ export default function ChatEngine({
   return (
     <div className="flex-1 flex flex-col bg-white">
       <ChatHeader chat={selectedChat} chatType={chatType} />
+      
+      {/* Pinned Message Banner */}
+      <PinnedMessageBanner 
+        pinnedMessage={pinnedMessage}
+        onUnpin={handlePinMessage}
+        onClickPinned={handleClickPinned}
+      />
 
       {/* Messages */}
       <div ref={messageListContainerRef} className="flex-1 overflow-y-auto px-6 py-4 relative">
@@ -810,6 +1348,12 @@ export default function ChatEngine({
           onRetryMessage={handleRetryMessage}
           loadingMore={loadingMore}
           hasMore={hasMore}
+          messageListContainerRef={messageListContainerRef}
+          pendingReactionsRef={pendingReactionsRef}
+          onPinMessage={handlePinMessage}
+          pinnedMessageId={pinnedMessage?.id}
+          onDeleteMessage={handleDeleteMessage}
+          onRestoreMessage={handleRestoreMessage}
         />
         
         {/* Typing indicator */}

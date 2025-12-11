@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 
 // Microsoft Fluent UI Emoji CDN base URL
@@ -174,10 +175,17 @@ const ALL_REACTIONS = {
   ]
 }
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, isDeleted }) {
   const [showQuickReactions, setShowQuickReactions] = useState(false)
   const [showAllReactions, setShowAllReactions] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const closeTimeoutRef = useRef(null)
+  
+  // Helper to check if user has already reacted with this emoji
+  const hasUserReacted = (emoji) => {
+    if (!message.reactions || !currentUser) return false
+    return message.reactions.some(r => r.emoji === emoji && r.user_id === currentUser.id)
+  }
   const [isHoveringPopover, setIsHoveringPopover] = useState(false)
 
   // Floating UI for quick reactions
@@ -228,17 +236,92 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
       return () => scrollContainer.removeEventListener('scroll', handleScroll)
     }
   }, [bubbleRef, showQuickReactions, showAllReactions])
+  
+  // Failsafe: Close popover if mouse is outside both bubble and popover
+  useEffect(() => {
+    if (!showQuickReactions || showAllReactions) return
+    
+    const handleMouseMove = (e) => {
+      // Get the popover element
+      const popoverEl = refs.floating.current
+      const bubbleEl = bubbleRef
+      
+      if (!popoverEl || !bubbleEl) return
+      
+      // Check if mouse is over either element (with padding for the invisible bridge area)
+      const popoverRect = popoverEl.getBoundingClientRect()
+      const bubbleRect = bubbleEl.getBoundingClientRect()
+      
+      // Add 8px padding to account for the invisible bridge div (top or bottom based on placement)
+      const bridgePadding = finalPlacement === 'bottom' ? -8 : 8
+      const isOverPopover = (
+        e.clientX >= popoverRect.left &&
+        e.clientX <= popoverRect.right &&
+        e.clientY >= popoverRect.top + (finalPlacement === 'bottom' ? bridgePadding : 0) &&
+        e.clientY <= popoverRect.bottom + (finalPlacement === 'bottom' ? 0 : bridgePadding)
+      )
+      
+      const isOverBubble = (
+        e.clientX >= bubbleRect.left &&
+        e.clientX <= bubbleRect.right &&
+        e.clientY >= bubbleRect.top &&
+        e.clientY <= bubbleRect.bottom
+      )
+      
+      // If mouse is not over either, close the popover
+      if (!isOverPopover && !isOverBubble) {
+        setShowQuickReactions(false)
+        setIsHoveringPopover(false)
+      }
+    }
+    
+    // Add listener with slight delay to avoid immediate triggers
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousemove', handleMouseMove)
+    }, 50)
+    
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [showQuickReactions, showAllReactions, bubbleRef, refs])
 
   // Show quick reactions when message is hovered
   useEffect(() => {
+    // Don't show reactions for failed or pending messages
+    if (messageStatus === 'failed' || messageStatus === 'pending') {
+      setShowQuickReactions(false)
+      return
+    }
+    
     if (isMessageHovered && !showAllReactions) {
       setShowQuickReactions(true)
+      // Clear any pending close timeout
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
     } else if (isHoveringPopover && !showAllReactions) {
       setShowQuickReactions(true)
+      // Clear any pending close timeout
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
     } else if (!showAllReactions) {
-      setShowQuickReactions(false)
+      // Delay closing to prevent flickering
+      closeTimeoutRef.current = setTimeout(() => {
+        setShowQuickReactions(false)
+      }, 100)
     }
-  }, [isMessageHovered, isHoveringPopover, showAllReactions])
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+      }
+    }
+  }, [isMessageHovered, isHoveringPopover, showAllReactions, messageStatus])
 
   const handleReactionClick = (reaction) => {
     onAddReaction?.(message.id, reaction)
@@ -282,28 +365,65 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
           onMouseLeave={() => setIsHoveringPopover(false)}
         >
           {/* Invisible padding area to prevent flickering when moving mouse between bubble and popover */}
-          <div className="absolute inset-x-0 -bottom-1 h-2" />
+          <div className={`absolute inset-x-0 h-2 ${finalPlacement === 'bottom' ? '-top-1' : '-bottom-1'}`} />
           
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-1">
-              {QUICK_REACTIONS.map((reaction) => (
+          <div className="flex items-center gap-2">
+            {/* Reactions control */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-1">
+                {QUICK_REACTIONS.map((reaction) => (
+                  <button
+                    key={reaction.name}
+                    onClick={() => handleReactionClick(reaction)}
+                    className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl ${
+                      hasUserReacted(reaction.emoji) ? 'bg-gray-200' : ''
+                    }`}
+                    title={reaction.label}
+                  >
+                    {reaction.emoji}
+                  </button>
+                ))}
+                
+                <div>
+                  {/* Separator */}
+                  <div className="w-px h-6 bg-gray-200 mx-1" />
+                </div>
+
+                {/* More button */}
                 <button
-                  key={reaction.name}
-                  onClick={() => handleReactionClick(reaction)}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl"
-                  title={reaction.label}
+                  onClick={handleMoreClick}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+                  title="More reactions"
                 >
-                  {reaction.emoji}
+                  <PlusIcon className="w-5 h-5 text-gray-600" />
                 </button>
-              ))}
-              
-              {/* More button */}
+            </div>
+            
+            {/* Pin control */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-1">
               <button
-                onClick={handleMoreClick}
-                className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors border-l border-gray-200 ml-1 pl-2"
-                title="More reactions"
+                onClick={() => onPinMessage?.(message.id)}
+                className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors ${
+                  isPinned ? 'text-theme-600' : 'text-gray-600'
+                }`}
+                title={isPinned ? 'Unpin message' : 'Pin message'}
               >
-                <PlusIcon className="w-5 h-5 text-gray-600" />
+                <PinIcon className="w-5 h-5 text-gray-500" filled={isPinned} />
               </button>
+              
+              {/* Delete button - only show for own messages that aren't already deleted */}
+              {isMyMessage && !isDeleted && (
+                <>
+                  <div className="w-px h-6 bg-gray-200" />
+                  <button
+                    onClick={() => onDeleteMessage?.(message.id)}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-gray-600 hover:text-red-600"
+                    title="Delete message"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -363,7 +483,9 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
                           <button
                             key={reaction.name}
                             onClick={() => handleReactionClick(reaction)}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl"
+                            className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl ${
+                              hasUserReacted(reaction.emoji) ? 'bg-gray-200' : ''
+                            }`}
                             title={reaction.label}
                           >
                             {reaction.emoji}
