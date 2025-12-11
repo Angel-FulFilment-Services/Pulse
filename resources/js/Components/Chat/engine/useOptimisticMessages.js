@@ -77,7 +77,7 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
       user: currentUser,
       created_at: new Date().toISOString(),
       createdAt: Date.now(),
-      attachments: [],
+      attachments: messageData.attachments || [],
       reply_to_message_id: messageData.reply_to_message_id,
       reply_to_message: messageData.reply_to_message,
       status: 'pending', // pending, failed, sent

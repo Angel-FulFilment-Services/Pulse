@@ -36,6 +36,8 @@ export default function ChatEngine({
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
   const [pinnedMessage, setPinnedMessage] = useState(null)
+  const [pendingAttachments, setPendingAttachments] = useState([]) // Attachments waiting to be sent
+  const [uploadedAttachmentData, setUploadedAttachmentData] = useState([]) // Uploaded attachment metadata
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
@@ -637,6 +639,11 @@ export default function ChatEngine({
             requestData.reply_to_message_id = msg.reply_to_message_id
           }
           
+          // Include attachments if any
+          if (msg.attachments && msg.attachments.length > 0) {
+            requestData.attachments = msg.attachments
+          }
+          
           const response = await fetch('/api/chat/messages', {
             method: 'POST',
             credentials: 'same-origin',
@@ -750,6 +757,53 @@ export default function ChatEngine({
     
     return true
   }
+
+  // Handle attachments change from MessageInput
+  const handleAttachmentsChange = (attachments) => {
+    setPendingAttachments(attachments)
+  }
+
+  // Upload attachments before sending message
+  const uploadAttachments = async (attachments) => {
+    if (attachments.length === 0) return []
+
+    const formData = new FormData()
+    attachments.forEach(att => {
+      formData.append('files[]', att.file)
+    })
+
+    const uploadPromise = fetch('/api/chat/attachments/upload', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      },
+      body: formData
+    }).then(res => res.json())
+
+    // Show toast with upload progress
+    toast.promise(
+      uploadPromise,
+      {
+        pending: `Uploading ${attachments.length} file(s)...`,
+        success: 'Files uploaded successfully',
+        error: 'Failed to upload files'
+      },
+      {
+        position: 'top-center',
+        autoClose: 2000,
+      }
+    )
+
+    const result = await uploadPromise
+    
+    if (result.errors && Object.keys(result.errors).length > 0) {
+      console.error('Upload errors:', result.errors)
+    }
+
+    return result.attachments || []
+  }
+
 
   // Add message to optimistic queue
   const queueMessage = (messageText, replyToMessageId = null) => {
@@ -1391,6 +1445,7 @@ export default function ChatEngine({
           disabled={sending || isRateLimited}
           replyingTo={replyingTo}
           inputRef={messageInputRef}
+          onAttachmentsChange={handleAttachmentsChange}
         />
       </div>
     </div>

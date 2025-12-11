@@ -7,6 +7,7 @@ use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\Chat\TeamController;
 use App\Http\Controllers\App\Chat\MessageController;
 use App\Http\Controllers\App\Chat\MessageReadController;
+use App\Http\Controllers\App\Chat\AttachmentController;
 use App\Http\Controllers\App\Chat\UserStatusController;
 use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
@@ -159,6 +160,13 @@ Route::prefix('chat')->group(function () {
     // Message Read Status
     Route::post('messages/read', [MessageReadController::class, 'store']);
     Route::post('messages/read-batch', [MessageReadController::class, 'storeBatch']);
+    
+    // Attachments
+    Route::post('attachments/upload', [AttachmentController::class, 'upload']);
+    Route::post('attachments/attach', [AttachmentController::class, 'attachToMessage']);
+    Route::get('attachments/{id}/proxy', [AttachmentController::class, 'proxy'])->name('chat.attachments.proxy');
+    Route::get('attachments/{id}/download', [AttachmentController::class, 'download']);
+    Route::delete('attachments/{id}', [AttachmentController::class, 'delete']);
     
     // Teams
     Route::get('teams', [TeamController::class, 'index']);

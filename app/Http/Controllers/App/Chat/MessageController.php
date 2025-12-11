@@ -183,6 +183,7 @@ class MessageController extends Controller
             'recipient_id' => 'nullable|integer',
             'mentions' => 'nullable|array',
             'reply_to_message_id' => 'nullable|integer|exists:pulse.messages,id',
+            'attachments' => 'nullable|array', // Uploaded attachment metadata
         ];
 
         // Support both body and message fields
@@ -210,18 +211,24 @@ class MessageController extends Controller
             'sent_at' => now(),
             'reply_to_message_id' => $data['reply_to_message_id'] ?? null,
         ]);
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $path = $file->store('chat_attachments', 'r2');
-                MessageAttachment::create([
+        
+        // Attach uploaded attachments to the message
+        if (isset($data['attachments']) && is_array($data['attachments'])) {
+            foreach ($data['attachments'] as $attachmentData) {
+                \App\Models\Chat\MessageAttachment::create([
                     'message_id' => $message->id,
-                    'file_path' => $path,
-                    'file_type' => $file->getClientMimeType(),
-                    'file_name' => $file->getClientOriginalName(),
-                    'uploaded_by' => auth()->user()->id,
+                    'file_name' => $attachmentData['file_name'],
+                    'file_type' => $attachmentData['file_type'],
+                    'file_size' => $attachmentData['file_size'],
+                    'mime_type' => $attachmentData['mime_type'],
+                    'storage_path' => $attachmentData['storage_path'],
+                    'thumbnail_path' => $attachmentData['thumbnail_path'] ?? null,
+                    'is_image' => $attachmentData['is_image'] ?? false,
+                    'storage_driver' => $attachmentData['storage_driver'],
                 ]);
             }
         }
+        
         try {
             $ids = [$message->sender_id, $message->recipient_id];
             sort($ids);

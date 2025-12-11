@@ -1,10 +1,12 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import ReplyBubble from './ReplyBubble'
 import MessageReactions from './MessageReactions'
 import MessageReactionBubbles from './MessageReactionBubbles'
 import UserIcon from '../UserIcon'
+import AttachmentPreview from './AttachmentPreview'
+import ImageLightbox from './ImageLightbox'
 
 export default function MessageList({ 
   messages, 
@@ -26,6 +28,7 @@ export default function MessageList({
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
+  const [lightboxImage, setLightboxImage] = useState(null)
   const bubbleRefs = useRef({})
   
   // Connect local refs to parent component
@@ -248,14 +251,17 @@ export default function MessageList({
                                 </div>
                               ) : (
                                 <>
-                                  <p>{message.body}</p>
+                                  {message.body && <p>{message.body}</p>}
+                                  
+                                  {/* Attachments */}
                                   {message.attachments?.length > 0 && (
-                                    <div className="mt-2 space-y-1">
+                                    <div className="mt-2 space-y-2">
                                       {message.attachments.map((attachment) => (
-                                        <div key={attachment.id} className="flex items-center p-2 bg-white bg-opacity-10 rounded border border-white border-opacity-20">
-                                          <PaperClipIcon className="w-4 h-4 mr-2" />
-                                          <span className="text-sm">{attachment.filename}</span>
-                                        </div>
+                                        <AttachmentPreview
+                                          key={attachment.id}
+                                          attachment={attachment}
+                                          onImageClick={setLightboxImage}
+                                        />
                                       ))}
                                     </div>
                                   )}
@@ -389,6 +395,14 @@ export default function MessageList({
       })}
       
       <div ref={messagesEndRef} />
+      
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          attachment={lightboxImage}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </>
   )
 }
