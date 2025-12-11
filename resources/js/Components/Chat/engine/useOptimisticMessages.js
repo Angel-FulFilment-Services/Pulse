@@ -163,7 +163,13 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
       return msg.status === 'pending' || msg.status === 'failed'
     })
     
-    return [...serverMessages, ...pendingOptimistic]
+    // Merge and sort by created_at timestamp to maintain chronological order
+    const merged = [...serverMessages, ...pendingOptimistic]
+    return merged.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateA - dateB
+    })
   }
 
   return {
