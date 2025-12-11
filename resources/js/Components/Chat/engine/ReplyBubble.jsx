@@ -36,8 +36,8 @@ export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply 
       </div>
       <div className={`text-sm truncate ${
         isMyMessage ? 'text-white text-opacity-75' : 'text-gray-500'
-      }`}>
-        {repliedMessage.body}
+      } ${repliedMessage.deleted_at ? 'italic' : ''}`}>
+        {repliedMessage.deleted_at ? 'This message has been deleted' : repliedMessage.body}
       </div>
     </div>
   )
