@@ -420,7 +420,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110"
+        className="opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 mb-0.5"
       >
         {isFavorited ? (
           // Currently favorited - show outline on hover to indicate "unfavorite"
