@@ -12,10 +12,16 @@ export function useRealtimeChat({
   onClearTypingUser,
   onReactionAdded,
   onReactionRemoved,
+  onAttachmentReactionAdded,
+  onAttachmentReactionRemoved,
   onMessagePinned,
   onMessageUnpinned,
   onMessageDeleted,
-  onMessageRestored
+  onMessageRestored,
+  onAttachmentPinned,
+  onAttachmentUnpinned,
+  onAttachmentDeleted,
+  onAttachmentRestored
 }) {
   const echoRef = useRef(null)
   const onMessageReceivedRef = useRef(onMessageReceived)
@@ -23,10 +29,16 @@ export function useRealtimeChat({
   const onClearTypingUserRef = useRef(onClearTypingUser)
   const onReactionAddedRef = useRef(onReactionAdded)
   const onReactionRemovedRef = useRef(onReactionRemoved)
+  const onAttachmentReactionAddedRef = useRef(onAttachmentReactionAdded)
+  const onAttachmentReactionRemovedRef = useRef(onAttachmentReactionRemoved)
   const onMessagePinnedRef = useRef(onMessagePinned)
   const onMessageUnpinnedRef = useRef(onMessageUnpinned)
   const onMessageDeletedRef = useRef(onMessageDeleted)
   const onMessageRestoredRef = useRef(onMessageRestored)
+  const onAttachmentPinnedRef = useRef(onAttachmentPinned)
+  const onAttachmentUnpinnedRef = useRef(onAttachmentUnpinned)
+  const onAttachmentDeletedRef = useRef(onAttachmentDeleted)
+  const onAttachmentRestoredRef = useRef(onAttachmentRestored)
 
   // Keep refs up to date
   useEffect(() => {
@@ -35,11 +47,17 @@ export function useRealtimeChat({
     onClearTypingUserRef.current = onClearTypingUser
     onReactionAddedRef.current = onReactionAdded
     onReactionRemovedRef.current = onReactionRemoved
+    onAttachmentReactionAddedRef.current = onAttachmentReactionAdded
+    onAttachmentReactionRemovedRef.current = onAttachmentReactionRemoved
     onMessagePinnedRef.current = onMessagePinned
     onMessageUnpinnedRef.current = onMessageUnpinned
     onMessageDeletedRef.current = onMessageDeleted
     onMessageRestoredRef.current = onMessageRestored
-  }, [onMessageReceived, onMessageRead, onClearTypingUser, onReactionAdded, onReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored])
+    onAttachmentPinnedRef.current = onAttachmentPinned
+    onAttachmentUnpinnedRef.current = onAttachmentUnpinned
+    onAttachmentDeletedRef.current = onAttachmentDeleted
+    onAttachmentRestoredRef.current = onAttachmentRestored
+  }, [onMessageReceived, onMessageRead, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored])
 
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') return
@@ -97,6 +115,22 @@ export function useRealtimeChat({
         }
       })
       
+      // Listen for attachment reaction added
+      channel.listen('.AttachmentReactionAdded', (e) => {
+        console.log('.AttachmentReactionAdded event received!', e)
+        if (onAttachmentReactionAddedRef.current && e.reaction) {
+          onAttachmentReactionAddedRef.current(e.reaction)
+        }
+      })
+      
+      // Listen for attachment reaction removed
+      channel.listen('.AttachmentReactionRemoved', (e) => {
+        console.log('.AttachmentReactionRemoved event received!', e)
+        if (onAttachmentReactionRemovedRef.current) {
+          onAttachmentReactionRemovedRef.current(e.attachment_id, e.user_id, e.emoji)
+        }
+      })
+      
       // Listen for message pinned
       channel.listen('.MessagePinned', (e) => {
         console.log('.MessagePinned event received!', e)
@@ -126,6 +160,38 @@ export function useRealtimeChat({
         console.log('.MessageRestored event received!', e)
         if (onMessageRestoredRef.current && e.message) {
           onMessageRestoredRef.current(e.message)
+        }
+      })
+      
+      // Listen for attachment pinned
+      channel.listen('.AttachmentPinned', (e) => {
+        console.log('.AttachmentPinned event received!', e)
+        if (onAttachmentPinnedRef.current && e.attachment) {
+          onAttachmentPinnedRef.current(e.attachment)
+        }
+      })
+      
+      // Listen for attachment unpinned
+      channel.listen('.AttachmentUnpinned', (e) => {
+        console.log('.AttachmentUnpinned event received!', e)
+        if (onAttachmentUnpinnedRef.current && e.attachment_id) {
+          onAttachmentUnpinnedRef.current(e.attachment_id)
+        }
+      })
+      
+      // Listen for attachment deleted
+      channel.listen('.AttachmentDeleted', (e) => {
+        console.log('.AttachmentDeleted event received!', e)
+        if (onAttachmentDeletedRef.current && e.attachment_id) {
+          onAttachmentDeletedRef.current(e.attachment_id)
+        }
+      })
+      
+      // Listen for attachment restored
+      channel.listen('.AttachmentRestored', (e) => {
+        console.log('.AttachmentRestored event received!', e)
+        if (onAttachmentRestoredRef.current && e.attachment) {
+          onAttachmentRestoredRef.current(e.attachment)
         }
       })
       

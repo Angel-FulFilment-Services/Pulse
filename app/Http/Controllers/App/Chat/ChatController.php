@@ -15,6 +15,6 @@ class ChatController extends Controller
 
     public function index(Request $request)
     {
-        return Inertia::render('Chat/Chat');
+        return Inertia::render('Chat');
     }
 }

@@ -7,6 +7,7 @@ import MessageReactionBubbles from './MessageReactionBubbles'
 import UserIcon from '../UserIcon'
 import AttachmentPreview from './AttachmentPreview'
 import ImageLightbox from './ImageLightbox'
+import PDFLightbox from './PDFLightbox'
 
 export default function MessageList({ 
   messages, 
@@ -18,17 +19,23 @@ export default function MessageList({
   onReplyClick,
   messageRefsRef,
   onAddReaction,
+  onAddAttachmentReaction,
+  onPinAttachment,
+  onDeleteAttachment,
+  onRestoreAttachment,
   onRetryMessage,
   messageListContainerRef,
   pendingReactionsRef,
   onPinMessage,
   pinnedMessageId,
+  pinnedAttachmentId,
   onDeleteMessage,
   onRestoreMessage
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
   const [lightboxImage, setLightboxImage] = useState(null)
+  const [lightboxPdf, setLightboxPdf] = useState(null)
   const bubbleRefs = useRef({})
   
   // Connect local refs to parent component
@@ -62,8 +69,18 @@ export default function MessageList({
   }
 
   // Group messages by sender and time
-  const groupedMessages = messages.reduce((groups, message, index) => {
-    const prevMessage = messages[index - 1]
+  const groupedMessages = messages
+    // Filter out empty messages (no text, no attachments, not deleted)
+    .filter(message => {
+      const hasText = message.body && message.body.trim().length > 0
+      const hasAttachments = message.attachments && message.attachments.length > 0
+      const isDeleted = message.deleted_at
+      
+      // Keep message if it has text, attachments, or is deleted
+      return hasText || hasAttachments || isDeleted
+    })
+    .reduce((groups, message, index, filteredMessages) => {
+    const prevMessage = filteredMessages[index - 1]
     
     // Get sender IDs - messages use sender_id, not user_id
     const currentSenderId = message.sender_id || message.user_id || message.user?.id
@@ -95,9 +112,11 @@ export default function MessageList({
       {groupedMessages.map((group, groupIndex) => {
         const senderId = group[0].sender_id || group[0].user_id
         const isMyGroup = senderId === currentUser?.id
+        // Use first message ID as the key for stable group identity
+        const groupKey = `group-${group[0].id}`
         
         return (
-          <div key={groupIndex} className="mb-4">
+          <div key={groupKey} className="mb-4">
             <div className={`flex ${isMyGroup ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[70%]`}>
                 {/* Avatar - only show for other users */}
@@ -168,41 +187,103 @@ export default function MessageList({
                     
                     // Check if previous message has reactions (to add top padding to this message)
                     const prevMessage = group[messageIndex - 1]
-                    const prevHasReactions = prevMessage?.reactions && prevMessage.reactions.length > 0
+                    const prevHasMessageReactions = prevMessage?.reactions && prevMessage.reactions.length > 0
+                    const prevHasAttachmentReactions = prevMessage?.attachments?.some(att => att.reactions && att.reactions.length > 0)
+                    // Only add top padding if previous message has MESSAGE reactions (not attachment reactions, since those already have mb-7)
+                    const prevHasReactions = prevHasMessageReactions
                     
-                    // Check if this message has reactions
-                    const hasReactions = message.reactions && message.reactions.length > 0
+                    // Check if this message has reactions (message or attachments)
+                    const hasMessageReactions = message.reactions && message.reactions.length > 0
+                    const hasAttachmentReactions = message.attachments?.some(att => att.reactions && att.reactions.length > 0)
                     
                     return (
                       <div 
                         key={message.id} 
                         className={`mb-1 ${prevHasReactions ? 'mt-5' : ''} ${isMyGroup ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}
                       >
-                        {/* Container for bubble, reactions, and reply button */}
-                        <div className={`group/message peer relative flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'}`}>
-                          {/* Message bubble */}
+                        {/* Attachments above the bubble */}
+                        {!message.deleted_at && message.attachments?.length > 0 && (
                           <div 
                             ref={el => {
-                              messageRefs.current[message.id] = el
-                              bubbleRefs.current[message.id] = el
+                              // Set ref for attachment-only messages (no body text)
+                              if (!message.body) {
+                                messageRefs.current[message.id] = el
+                              }
                             }}
-                            className={`relative px-4 py-2 transition-all ${
-                              isMyGroup
-                                ? 'bg-theme-500 text-white'
-                                : 'bg-gray-200 text-gray-900'
-                            } ${
-                              isLastInGroup 
-                                ? 'rounded-[18px]' 
-                                : 'rounded-[18px]'
-                            } ${
-                              isLastInGroup && isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:right-[-8px] before:h-5 before:w-5 before:bg-theme-500 before:rounded-bl-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:right-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-bl-[10px]' : ''
-                            } ${
-                              isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-br-[10px]' : ''
-                            }`}
-                            style={{ wordBreak: 'break-all' }}
-                            onMouseEnter={() => setHoveredMessageId(message.id)}
-                            onMouseLeave={() => setHoveredMessageId(null)}
+                            className={`flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${hasAttachmentReactions ? 'mb-7' : 'mb-2'}`}
                           >
+                            <div>
+                              {message.attachments.map((attachment, index) => {
+                                // Check if previous attachment has reactions (for spacing between attachments)
+                                const prevAttachment = message.attachments[index - 1]
+                                const prevAttachmentHasReactions = prevAttachment?.reactions && prevAttachment.reactions.length > 0
+                                
+                                // Use a stable key that combines message ID and attachment ID
+                                const attachmentKey = attachment.id ? `msg-${message.id}-att-${attachment.id}` : `msg-${message.id}-att-${index}`
+                                
+                                return (
+                                  <div key={attachmentKey} className={prevAttachmentHasReactions ? 'mt-7' : ''}>
+                                    <AttachmentPreview
+                                      attachment={attachment}
+                                      onImageClick={setLightboxImage}
+                                      onPdfClick={setLightboxPdf}
+                                      // Always show reaction buttons on all attachments
+                                      showReactions={true}
+                                      isMyMessage={isMyGroup}
+                                      currentUserId={currentUser?.id}
+                                      onAddReaction={onAddAttachmentReaction}
+                                      onPinAttachment={onPinAttachment}
+                                      onDeleteAttachment={onDeleteAttachment}
+                                      onRestoreAttachment={onRestoreAttachment}
+                                      isPinned={pinnedAttachmentId === attachment.id}
+                                      isDeleted={attachment.deleted_at != null}
+                                      pendingReactionsRef={pendingReactionsRef}
+                                      boundaryRef={messageListContainerRef}
+                                      messageId={message.id}
+                                    />
+                                  </div>
+                                )
+                              })}
+                            </div>
+                            {/* Retry button for attachment-only failed messages */}
+                            {message.status === 'failed' && !message.body && (
+                              <button
+                                onClick={() => onRetryMessage?.(message.id)}
+                                className="p-1 text-red-500 hover:text-red-700 flex-shrink-0"
+                                title="Retry sending"
+                              >
+                                <ArrowPathIcon className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Container for bubble, reactions, and reply button - only show if there's text or it's deleted */}
+                        {(message.body || message.deleted_at) && (
+                          <div className={`group/message peer relative flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'}`}>
+                            {/* Message bubble */}
+                            <div 
+                              ref={el => {
+                                messageRefs.current[message.id] = el
+                                bubbleRefs.current[message.id] = el
+                              }}
+                              className={`relative px-4 py-2 transition-all ${
+                                isMyGroup
+                                  ? 'bg-theme-500 text-white'
+                                  : 'bg-gray-200 text-gray-900'
+                              } ${
+                                isLastInGroup 
+                                  ? 'rounded-[18px]' 
+                                  : 'rounded-[18px]'
+                              } ${
+                                isLastInGroup && isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:right-[-8px] before:h-5 before:w-5 before:bg-theme-500 before:rounded-bl-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:right-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-bl-[10px]' : ''
+                              } ${
+                                isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-br-[10px]' : ''
+                              }`}
+                              style={{ wordBreak: 'break-all' }}
+                              onMouseEnter={() => setHoveredMessageId(message.id)}
+                              onMouseLeave={() => setHoveredMessageId(null)}
+                            >
                             {/* Gradient overlay for depth */}
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.01] pointer-events-none rounded-[18px]" />
                             
@@ -252,19 +333,6 @@ export default function MessageList({
                               ) : (
                                 <>
                                   {message.body && <p>{message.body}</p>}
-                                  
-                                  {/* Attachments */}
-                                  {message.attachments?.length > 0 && (
-                                    <div className="mt-2 space-y-2">
-                                      {message.attachments.map((attachment) => (
-                                        <AttachmentPreview
-                                          key={attachment.id}
-                                          attachment={attachment}
-                                          onImageClick={setLightboxImage}
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
                                 </>
                               )}
                             </div>
@@ -308,10 +376,11 @@ export default function MessageList({
                             )
                           )}
                         </div>
+                        )}
                         
                         {/* Read receipt - separate from bubble, at message level */}
                         {isMyGroup && (isLastReadMessage || isLastUnreadMessage || message.status === 'pending' || message.status === 'failed') && (
-                          <div className={`flex items-center text-xs py-1 ${hasReactions && !message.deleted_at ? 'pt-8' : 'pt-1.5'}`}>
+                          <div className={`flex items-center text-xs py-1 ${hasMessageReactions && !message.deleted_at ? 'pt-8' : 'pt-1.5'}`}>
                             {isLastReadMessage && readerNames.length > 0 ? (
                               chatType === 'dm' ? (
                                 <span className="text-gray-500">Seen</span>
@@ -358,7 +427,9 @@ export default function MessageList({
                   {/* Timestamp for my messages at bottom */}
                   {isMyGroup && (() => {
                     const lastMsg = group[group.length - 1]
-                    const hasReactions = lastMsg.reactions?.length > 0
+                    const hasMessageReactions = lastMsg.reactions?.length > 0
+                    const hasAttachmentReactions = lastMsg.attachments?.some(att => att.reactions && att.reactions.length > 0)
+                    const hasReactions = hasMessageReactions || hasAttachmentReactions
                     
                     // Check if last message has a status showing (which would already provide padding for reactions)
                     const allMyMessages = groupedMessages
@@ -381,7 +452,7 @@ export default function MessageList({
                     
                     return (
                       <div className={`text-xs text-gray-500 text-right ${
-                        hasReactions && !lastMsgHasStatus && !lastMsg.deleted_at ? 'mt-7' : 'mt-1'
+                        (hasMessageReactions) && !lastMsgHasStatus && !lastMsg.deleted_at ? 'mt-7' : 'mt-1'
                       }`}>
                         {formatTime(lastMsg.created_at)}
                       </div>
@@ -401,6 +472,14 @@ export default function MessageList({
         <ImageLightbox
           attachment={lightboxImage}
           onClose={() => setLightboxImage(null)}
+        />
+      )}
+
+      {/* PDF Lightbox */}
+      {lightboxPdf && (
+        <PDFLightbox
+          attachment={lightboxPdf}
+          onClose={() => setLightboxPdf(null)}
         />
       )}
     </>

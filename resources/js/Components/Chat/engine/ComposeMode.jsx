@@ -18,8 +18,16 @@ export default function ComposeMode({
   const [showRecipientDropdown, setShowRecipientDropdown] = useState(false)
   const [composeRecipient, setComposeRecipient] = useState(null)
   const [newMessage, setNewMessage] = useState('')
+  const [composeAttachments, setComposeAttachments] = useState([])
+  const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false)
   const [allUsers, setAllUsers] = useState([])
   const [allTeams, setAllTeams] = useState([])
+
+  // Track when attachments change
+  const handleAttachmentsChange = (attachments) => {
+    console.log('ComposeMode received attachments:', { count: attachments.length, attachments })
+    setComposeAttachments(attachments)
+  }
 
   // Fetch users and teams
   useEffect(() => {
@@ -79,12 +87,17 @@ export default function ComposeMode({
   // Handle sending message in compose mode
   const handleComposeMessageSend = async (e) => {
     e?.preventDefault()
-    if (!composeRecipient || !newMessage.trim()) return
+    console.log('ComposeMode sending message:', { message: newMessage, attachmentsCount: composeAttachments.length })
+    if (!composeRecipient || (!newMessage.trim() && composeAttachments.length === 0)) return
     
-    const success = await onMessageSend(newMessage, composeRecipient, composeRecipient.type)
+    const success = await onMessageSend(newMessage, composeRecipient, composeRecipient.type, composeAttachments)
     
+    console.log('ComposeMode send result:', { success })
     if (success) {
+      console.log('Clearing compose state and toggling clearAttachmentsTrigger')
       setNewMessage('')
+      setComposeAttachments([])
+      setClearAttachmentsTrigger(prev => !prev) // Toggle to trigger MessageInput cleanup
       // Refresh contacts list if this was a new DM conversation
       if (composeRecipient.type === 'dm' && onRefreshContacts) {
         onRefreshContacts()
@@ -248,6 +261,8 @@ export default function ComposeMode({
               onSubmit={handleComposeMessageSend}
               placeholder="Type a message..."
               disabled={false}
+              onAttachmentsChange={handleAttachmentsChange}
+              clearAttachments={clearAttachmentsTrigger}
             />
           </div>
         )}

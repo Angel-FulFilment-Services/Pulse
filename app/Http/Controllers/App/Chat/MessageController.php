@@ -47,6 +47,7 @@ class MessageController extends Controller
             // Team chat - update pinned_message_id on team
             $team = Team::findOrFail($message->team_id);
             $team->pinned_message_id = $messageId;
+            $team->pinned_attachment_id = null;
             $team->save();
             
             broadcast(new \App\Events\Chat\MessagePinned($message, 'team', $message->team_id))->toOthers();
@@ -58,7 +59,7 @@ class MessageController extends Controller
             
             DmPinnedMessage::updateOrCreate(
                 ['user_id_1' => $ids[0], 'user_id_2' => $ids[1]],
-                ['pinned_message_id' => $messageId]
+                ['pinned_message_id' => $messageId, 'pinned_attachment_id' => null]
             );
             
             broadcast(new \App\Events\Chat\MessagePinned($message, 'dm', implode('.', $ids)))->toOthers();
@@ -79,6 +80,7 @@ class MessageController extends Controller
             // Team chat
             $team = Team::findOrFail($message->team_id);
             $team->pinned_message_id = null;
+            $team->pinned_attachment_id = null;
             $team->save();
             
             broadcast(new \App\Events\Chat\MessageUnpinned($messageId, 'team', $message->team_id))->toOthers();
@@ -90,7 +92,7 @@ class MessageController extends Controller
             
             DmPinnedMessage::where('user_id_1', $ids[0])
                 ->where('user_id_2', $ids[1])
-                ->update(['pinned_message_id' => null]);
+                ->update(['pinned_message_id' => null, 'pinned_attachment_id' => null]);
             
             broadcast(new \App\Events\Chat\MessageUnpinned($messageId, 'dm', implode('.', $ids)))->toOthers();
         }
@@ -104,30 +106,45 @@ class MessageController extends Controller
         $teamId = $request->input('team_id');
         $recipientId = $request->input('recipient_id');
         
+        $pinnedMessage = null;
+        $pinnedAttachment = null;
+        
         if ($teamId) {
             $team = Team::find($teamId);
-            if ($team && $team->pinned_message_id) {
-                $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
-                    ->find($team->pinned_message_id);
-                return response()->json($message);
+            if ($team) {
+                if ($team->pinned_message_id) {
+                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                        ->find($team->pinned_message_id);
+                }
+                if ($team->pinned_attachment_id) {
+                    $pinnedAttachment = MessageAttachment::with('message.user')
+                        ->find($team->pinned_attachment_id);
+                }
             }
         } elseif ($recipientId) {
             $userId = auth()->user()->id;
-            $ids = [$userId, $recipientId];
-            sort($ids);
+            $otherUserId = $recipientId;
             
-            $dmPinned = DmPinnedMessage::where('user_id_1', $ids[0])
-                ->where('user_id_2', $ids[1])
+            $dmPinned = DmPinnedMessage::where('user_id_1', min($userId, $otherUserId))
+                ->where('user_id_2', max($userId, $otherUserId))
                 ->first();
                 
-            if ($dmPinned && $dmPinned->pinned_message_id) {
-                $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
-                    ->find($dmPinned->pinned_message_id);
-                return response()->json($message);
+            if ($dmPinned) {
+                if ($dmPinned->pinned_message_id) {
+                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                        ->find($dmPinned->pinned_message_id);
+                }
+                if ($dmPinned->pinned_attachment_id) {
+                    $pinnedAttachment = MessageAttachment::with('message.user')
+                        ->find($dmPinned->pinned_attachment_id);
+                }
             }
         }
         
-        return response()->json(null);
+        return response()->json([
+            'message' => $pinnedMessage,
+            'attachment' => $pinnedAttachment
+        ]);
     }
     public function index(Request $request)
     {
@@ -155,7 +172,7 @@ class MessageController extends Controller
         // Clone query to check for more messages
         $checkQuery = clone $query;
         
-        $messages = $query->with(['attachments', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user'])
+        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user'])
             ->orderBy('sent_at', 'desc')
             ->limit($perPage)
             ->get()
@@ -178,12 +195,18 @@ class MessageController extends Controller
 
     public function store(Request $request)
     {
+        \Log::info('MessageController store called', [
+            'has_files' => $request->hasFile('attachments'),
+            'files_count' => $request->hasFile('attachments') ? count($request->file('attachments')) : 0,
+            'all_input' => $request->except(['attachments']),
+        ]);
+        
         $validationRules = [
             'team_id' => 'nullable|integer',
             'recipient_id' => 'nullable|integer',
             'mentions' => 'nullable|array',
             'reply_to_message_id' => 'nullable|integer|exists:pulse.messages,id',
-            'attachments' => 'nullable|array', // Uploaded attachment metadata
+            'attachments.*' => 'nullable|file|max:512000', // Max 500MB per file
         ];
 
         // Support both body and message fields
@@ -196,7 +219,44 @@ class MessageController extends Controller
         // Make type optional with default value
         $validationRules['type'] = 'sometimes|string';
 
-        $data = $request->validate($validationRules);
+        try {
+            $data = $request->validate($validationRules);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed', ['errors' => $e->errors()]);
+            throw $e;
+        }
+        
+        \Log::info('Validation passed', ['data_keys' => array_keys($data)]);
+        
+        // Handle file uploads if present
+        $uploadedAttachments = [];
+        if ($request->hasFile('attachments')) {
+            \Log::info('Processing file uploads', ['count' => count($request->file('attachments'))]);
+            foreach ($request->file('attachments') as $file) {
+                // Store the file
+                $path = $file->store('chat/attachments', 'public');
+                
+                // Create thumbnail for images
+                $thumbnailPath = null;
+                $isImage = str_starts_with($file->getMimeType(), 'image/');
+                
+                if ($isImage) {
+                    // You can add thumbnail generation logic here if needed
+                    $thumbnailPath = $path; // For now, use the same path
+                }
+                
+                $uploadedAttachments[] = [
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $this->determineFileType($file->getMimeType()),
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'storage_path' => $path,
+                    'thumbnail_path' => $thumbnailPath,
+                    'is_image' => $isImage,
+                    'storage_driver' => 'public',
+                ];
+            }
+        }
         
         // Determine message body from either 'body' or 'message' field
         $messageBody = $data['body'] ?? $data['message'] ?? null;
@@ -213,8 +273,8 @@ class MessageController extends Controller
         ]);
         
         // Attach uploaded attachments to the message
-        if (isset($data['attachments']) && is_array($data['attachments'])) {
-            foreach ($data['attachments'] as $attachmentData) {
+        if (!empty($uploadedAttachments)) {
+            foreach ($uploadedAttachments as $attachmentData) {
                 \App\Models\Chat\MessageAttachment::create([
                     'message_id' => $message->id,
                     'file_name' => $attachmentData['file_name'],
@@ -258,7 +318,7 @@ class MessageController extends Controller
             // Log broadcast failure but don't stop message from being sent
             \Log::warning('Failed to broadcast message: ' . $e->getMessage());
         }
-        return response()->json($message->load(['attachments', 'reads', 'reactions.user', 'user', 'replyToMessage.user']), 201);
+        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user']), 201);
     }
     // List direct message contacts for the current user
     public function contacts(Request $request)
@@ -380,7 +440,7 @@ class MessageController extends Controller
         $message->is_edited = true;
         $message->save();
         broadcast(new \App\Events\Chat\MessageSent($message))->toOthers();
-        return response()->json($message->load(['attachments', 'reads', 'reactions.user', 'user']));
+        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user']));
     }
 
     // Delete a message
@@ -394,6 +454,66 @@ class MessageController extends Controller
         // Soft delete - set deleted_at timestamp
         $message->deleted_at = now();
         $message->save();
+        
+        // Unpin if this message or any of its attachments are pinned
+        if ($message->team_id) {
+            $team = Team::findOrFail($message->team_id);
+            // Check if message is pinned OR any attachment is pinned
+            if ($team->pinned_message_id == $id || $team->pinned_attachment_id) {
+                // Check if the pinned attachment belongs to this message
+                $attachmentBelongsToMessage = $team->pinned_attachment_id && 
+                    MessageAttachment::where('id', $team->pinned_attachment_id)
+                        ->where('message_id', $id)
+                        ->exists();
+                
+                if ($team->pinned_message_id == $id || $attachmentBelongsToMessage) {
+                    $wasPinnedMessage = $team->pinned_message_id == $id;
+                    $wasPinnedAttachment = $attachmentBelongsToMessage;
+                    $team->pinned_message_id = null;
+                    $team->pinned_attachment_id = null;
+                    $team->save();
+                    
+                    // Broadcast unpin events
+                    if ($wasPinnedMessage) {
+                        broadcast(new \App\Events\Chat\MessageUnpinned($id, 'team', $message->team_id))->toOthers();
+                    }
+                    if ($wasPinnedAttachment) {
+                        broadcast(new \App\Events\Chat\AttachmentUnpinned($team->pinned_attachment_id, 'team', $message->team_id))->toOthers();
+                    }
+                }
+            }
+        } elseif ($message->recipient_id) {
+            $userId = auth()->user()->id;
+            $ids = [$userId, $message->recipient_id == $userId ? $message->sender_id : $message->recipient_id];
+            sort($ids);
+            
+            $dmPinned = DmPinnedMessage::where('user_id_1', $ids[0])
+                ->where('user_id_2', $ids[1])
+                ->first();
+                
+            if ($dmPinned && ($dmPinned->pinned_message_id == $id || $dmPinned->pinned_attachment_id)) {
+                // Check if the pinned attachment belongs to this message
+                $attachmentBelongsToMessage = $dmPinned->pinned_attachment_id && 
+                    MessageAttachment::where('id', $dmPinned->pinned_attachment_id)
+                        ->where('message_id', $id)
+                        ->exists();
+                
+                if ($dmPinned->pinned_message_id == $id || $attachmentBelongsToMessage) {
+                    $wasPinnedMessage = $dmPinned->pinned_message_id == $id;
+                    $wasPinnedAttachment = $attachmentBelongsToMessage;
+                    $pinnedAttachmentId = $dmPinned->pinned_attachment_id;
+                    $dmPinned->update(['pinned_message_id' => null, 'pinned_attachment_id' => null]);
+                    
+                    // Broadcast unpin events
+                    if ($wasPinnedMessage) {
+                        broadcast(new \App\Events\Chat\MessageUnpinned($id, 'dm', implode('.', $ids)))->toOthers();
+                    }
+                    if ($wasPinnedAttachment) {
+                        broadcast(new \App\Events\Chat\AttachmentUnpinned($pinnedAttachmentId, 'dm', implode('.', $ids)))->toOthers();
+                    }
+                }
+            }
+        }
         
         // Determine chat type and ID for broadcasting
         if ($message->team_id) {
@@ -419,8 +539,11 @@ class MessageController extends Controller
         $message->deleted_at = null;
         $message->save();
         
-        // Reload with relationships
-        $message = Message::with(['user', 'reactions.user', 'replyToMessage.user'])->find($id);
+        // Also restore all attachments for this message
+        MessageAttachment::where('message_id', $id)->update(['deleted_at' => null]);
+        
+        // Reload with relationships including attachments
+        $message = Message::with(['user', 'reactions.user', 'replyToMessage.user', 'attachments'])->find($id);
         
         // Determine chat type and ID for broadcasting
         if ($message->team_id) {
@@ -437,4 +560,240 @@ class MessageController extends Controller
             'message' => $message
         ]);
     }
+    
+    /**
+     * Determine file type from MIME type
+     */
+    private function determineFileType($mimeType)
+    {
+        if (str_starts_with($mimeType, 'image/')) {
+            return 'image';
+        } elseif ($mimeType === 'application/pdf') {
+            return 'pdf';
+        } elseif (str_starts_with($mimeType, 'video/')) {
+            return 'video';
+        } elseif (str_starts_with($mimeType, 'audio/')) {
+            return 'audio';
+        }
+        return 'file';
+    }
+
+    // Add a reaction to an attachment
+    public function addAttachmentReaction(Request $request, $attachmentId)
+    {
+        $data = $request->validate([
+            'emoji' => 'required|string|max:32',
+            'name' => 'nullable|string|max:100',
+        ]);
+        $userId = auth()->user()->id;
+        
+        // Check if attachment exists
+        $attachment = \App\Models\Chat\MessageAttachment::find($attachmentId);
+        if (!$attachment) {
+            return response()->json(['error' => 'Attachment not found'], 404);
+        }
+        
+        // Check if reaction already exists (use binary comparison for emoji)
+        $existingReaction = \App\Models\Chat\AttachmentReaction::where('attachment_id', $attachmentId)
+            ->where('user_id', $userId)
+            ->whereRaw('BINARY emoji = ?', [$data['emoji']])
+            ->first();
+        
+        if ($existingReaction) {
+            // Remove reaction if it exists (toggle off)
+            $existingReaction->delete();
+            broadcast(new \App\Events\Chat\AttachmentReactionRemoved($attachmentId, $userId, $data['emoji'], $attachment->message))->toOthers();
+        } else {
+            // Add new reaction
+            $reaction = \App\Models\Chat\AttachmentReaction::create([
+                'attachment_id' => $attachmentId,
+                'user_id' => $userId,
+                'emoji' => $data['emoji'],
+                'name' => $data['name'] ?? null,
+            ]);
+            // Load user and attachment relationships for broadcasting
+            $reaction->load(['user', 'attachment']);
+            broadcast(new \App\Events\Chat\AttachmentReactionAdded($reaction))->toOthers();
+        }
+        
+        // Return all reactions for this attachment with user data
+        $reactions = \App\Models\Chat\AttachmentReaction::where('attachment_id', $attachmentId)
+            ->with('user')
+            ->get();
+        
+        return response()->json(['status' => 'ok', 'reactions' => $reactions]);
+    }
+
+    // Remove a reaction from an attachment
+    public function removeAttachmentReaction(Request $request, $attachmentId)
+    {
+        $data = $request->validate([
+            'emoji' => 'required|string|max:32',
+        ]);
+        $userId = auth()->user()->id;
+        
+        // Check if attachment exists
+        $attachment = \App\Models\Chat\MessageAttachment::find($attachmentId);
+        if (!$attachment) {
+            return response()->json(['error' => 'Attachment not found'], 404);
+        }
+        
+        
+        $deleted = \App\Models\Chat\AttachmentReaction::where([
+            'attachment_id' => $attachmentId,
+            'user_id' => $userId,
+            'emoji' => $data['emoji'],
+        ])->delete();
+        
+        if ($deleted) {
+            broadcast(new \App\Events\Chat\AttachmentReactionRemoved($attachmentId, $userId, $data['emoji'], $attachment->message))->toOthers();
+        }
+        
+        return response()->json(['status' => 'ok']);
+    }
+
+    // Pin an attachment (which pins the entire message)
+    public function pinAttachment(Request $request, $attachmentId)
+    {
+        $attachment = MessageAttachment::with('message')->findOrFail($attachmentId);
+        $message = $attachment->message;
+        
+        // Authorization check - only allow in team/DM chats where user belongs
+        if ($message->team_id) {
+            $team = Team::findOrFail($message->team_id);
+            // Check if user is team member
+            if (!$team->members()->where('user_id', auth()->id())->exists()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            // Pin only this attachment
+            $team->pinned_attachment_id = $attachmentId;
+            $team->pinned_message_id = null;
+            $team->save();
+            
+            broadcast(new \App\Events\Chat\AttachmentPinned($attachment, 'team', $message->team_id))->toOthers();
+        } elseif ($message->recipient_id) {
+            // DM chat - update or create DmPinnedMessage
+            $userId = auth()->id();
+            $otherUserId = $message->sender_id === $userId ? $message->recipient_id : $message->sender_id;
+            
+            // Pin only this attachment
+            DmPinnedMessage::updateOrCreate(
+                [
+                    'user_id_1' => min($userId, $otherUserId),
+                    'user_id_2' => max($userId, $otherUserId),
+                ],
+                ['pinned_attachment_id' => $attachmentId, 'pinned_message_id' => null]
+            );
+            
+            broadcast(new \App\Events\Chat\AttachmentPinned($attachment, 'dm', implode('.', [$userId, $otherUserId])))->toOthers();
+        }
+        
+        return response()->json(['message' => $message, 'attachment' => $attachment]);
+    }
+
+    // Unpin an attachment
+    public function unpinAttachment(Request $request, $attachmentId)
+    {
+        $attachment = MessageAttachment::with('message')->findOrFail($attachmentId);
+        $message = $attachment->message;
+        
+        if ($message->team_id) {
+            $team = Team::findOrFail($message->team_id);
+            if ($team->pinned_attachment_id == $attachmentId) {
+                $team->pinned_attachment_id = null;
+                $team->pinned_message_id = null;
+                $team->save();
+                
+                broadcast(new \App\Events\Chat\AttachmentUnpinned($attachmentId, 'team', $message->team_id))->toOthers();
+            }
+        } elseif ($message->recipient_id) {
+            $userId = auth()->id();
+            $otherUserId = $message->sender_id === $userId ? $message->recipient_id : $message->sender_id;
+            
+            DmPinnedMessage::where([
+                'user_id_1' => min($userId, $otherUserId),
+                'user_id_2' => max($userId, $otherUserId),
+            ])->update(['pinned_message_id' => null, 'pinned_attachment_id' => null]);
+            
+            broadcast(new \App\Events\Chat\AttachmentUnpinned($attachmentId, 'dm', implode('.', [$userId, $otherUserId])))->toOthers();
+        }
+        
+        return response()->json(['status' => 'ok']);
+    }
+
+    // Delete an attachment
+    public function deleteAttachment(Request $request, $attachmentId)
+    {
+        $attachment = MessageAttachment::with('message')->findOrFail($attachmentId);
+        $message = $attachment->message;
+        
+        // Only allow sender to delete their attachment
+        if ($message->sender_id !== auth()->id() && $message->user_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
+        // Soft delete the attachment
+        $attachment->deleted_at = now();
+        $attachment->save();
+        
+        // If this was pinned, unpin it (clear both message and attachment)
+        if ($message->team_id) {
+            $team = Team::findOrFail($message->team_id);
+            if ($team->pinned_attachment_id == $attachmentId) {
+                $team->pinned_message_id = null;
+                $team->pinned_attachment_id = null;
+                $team->save();
+                broadcast(new \App\Events\Chat\AttachmentUnpinned($attachmentId, 'team', $message->team_id))->toOthers();
+            }
+            broadcast(new \App\Events\Chat\AttachmentDeleted($attachmentId, 'team', $message->team_id))->toOthers();
+        } elseif ($message->recipient_id) {
+            $userId = auth()->id();
+            $otherUserId = $message->sender_id === $userId ? $message->recipient_id : $message->sender_id;
+            $wasPinned = DmPinnedMessage::where([
+                'user_id_1' => min($userId, $otherUserId),
+                'user_id_2' => max($userId, $otherUserId),
+                'pinned_attachment_id' => $attachmentId,
+            ])->exists();
+            
+            if ($wasPinned) {
+                DmPinnedMessage::where([
+                    'user_id_1' => min($userId, $otherUserId),
+                    'user_id_2' => max($userId, $otherUserId),
+                ])->update(['pinned_message_id' => null, 'pinned_attachment_id' => null]);
+                broadcast(new \App\Events\Chat\AttachmentUnpinned($attachmentId, 'dm', implode('.', [$userId, $otherUserId])))->toOthers();
+            }
+            broadcast(new \App\Events\Chat\AttachmentDeleted($attachmentId, 'dm', implode('.', [$userId, $otherUserId])))->toOthers();
+        }
+        
+        return response()->json(['status' => 'ok']);
+    }
+
+    // Restore a deleted attachment
+    public function restoreAttachment(Request $request, $attachmentId)
+    {
+        $attachment = MessageAttachment::with('message')->findOrFail($attachmentId);
+        $message = $attachment->message;
+        
+        // Only allow sender to restore their attachment
+        if ($message->sender_id !== auth()->id() && $message->user_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
+        // Restore the attachment
+        $attachment->deleted_at = null;
+        $attachment->save();
+        
+        // Broadcast attachment restored event
+        if ($message->team_id) {
+            broadcast(new \App\Events\Chat\AttachmentRestored($attachment, 'team', $message->team_id))->toOthers();
+        } elseif ($message->recipient_id) {
+            $userId = auth()->id();
+            $otherUserId = $message->sender_id === $userId ? $message->recipient_id : $message->sender_id;
+            broadcast(new \App\Events\Chat\AttachmentRestored($attachment, 'dm', implode('.', [$userId, $otherUserId])))->toOthers();
+        }
+        
+        return response()->json(['status' => 'ok', 'attachment' => $attachment]);
+    }
 }
+
+

@@ -157,6 +157,16 @@ Route::prefix('chat')->group(function () {
     Route::post('messages/{messageId}/reactions', [MessageController::class, 'addReaction']);
     Route::delete('messages/{messageId}/reactions', [MessageController::class, 'removeReaction']);
     
+    // Attachment Reactions
+    Route::post('attachments/{attachmentId}/reactions', [MessageController::class, 'addAttachmentReaction']);
+    Route::delete('attachments/{attachmentId}/reactions', [MessageController::class, 'removeAttachmentReaction']);
+    
+    // Attachment Actions
+    Route::post('attachments/{attachmentId}/pin', [MessageController::class, 'pinAttachment']);
+    Route::delete('attachments/{attachmentId}/pin', [MessageController::class, 'unpinAttachment']);
+    Route::delete('attachments/{attachmentId}', [MessageController::class, 'deleteAttachment']);
+    Route::post('attachments/{attachmentId}/restore', [MessageController::class, 'restoreAttachment']);
+    
     // Message Read Status
     Route::post('messages/read', [MessageReadController::class, 'store']);
     Route::post('messages/read-batch', [MessageReadController::class, 'storeBatch']);

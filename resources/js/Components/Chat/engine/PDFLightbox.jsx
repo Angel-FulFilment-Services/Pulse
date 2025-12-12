@@ -5,8 +5,8 @@ import { ring } from 'ldrs'
 // Register the ring spinner
 ring.register()
 
-export default function ImageLightbox({ attachment, onClose }) {
-  const [imageLoaded, setImageLoaded] = useState(false)
+export default function PDFLightbox({ attachment, onClose }) {
+  const [pdfLoaded, setPdfLoaded] = useState(false)
   
   useEffect(() => {
     const handleEscape = (e) => {
@@ -71,13 +71,13 @@ export default function ImageLightbox({ attachment, onClose }) {
         <ArrowDownTrayIcon className="w-6 h-6" />
       </button>
 
-      {/* Image */}
+      {/* PDF Viewer */}
       <div 
-        className="relative max-w-7xl max-h-full flex items-center justify-center min-h-[50vh]"
+        className="relative w-full max-w-6xl h-[90vh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Loading spinner */}
-        {!imageLoaded && (
+        {!pdfLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <l-ring
               size="60"
@@ -89,15 +89,15 @@ export default function ImageLightbox({ attachment, onClose }) {
           </div>
         )}
         
-        <img
+        <iframe
           src={attachment.url}
-          alt={attachment.file_name}
-          className={`max-w-full max-h-[90vh] object-contain rounded-2xl transition-opacity duration-300 bg-neutral-900 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full rounded-2xl transition-opacity duration-300 bg-neutral-900 ${pdfLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setPdfLoaded(true)}
+          title={attachment.file_name}
         />
         
         {/* Filename caption */}
-        {imageLoaded && (
+        {pdfLoaded && (
           <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3 rounded-b-2xl">
             <p className="text-sm font-medium truncate">{attachment.file_name}</p>
             <p className="text-xs text-gray-300">{attachment.file_size_formatted}</p>

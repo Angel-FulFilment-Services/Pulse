@@ -4,6 +4,7 @@ namespace App\Models\Chat;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MessageAttachment extends Model
 {
@@ -35,6 +36,14 @@ class MessageAttachment extends Model
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
+    }
+
+    /**
+     * Get the reactions for the attachment
+     */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(AttachmentReaction::class, 'attachment_id');
     }
 
     /**

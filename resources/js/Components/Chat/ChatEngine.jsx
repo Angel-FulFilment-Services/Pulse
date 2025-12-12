@@ -36,8 +36,10 @@ export default function ChatEngine({
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
   const [pinnedMessage, setPinnedMessage] = useState(null)
+  const [pinnedAttachment, setPinnedAttachment] = useState(null)
   const [pendingAttachments, setPendingAttachments] = useState([]) // Attachments waiting to be sent
   const [uploadedAttachmentData, setUploadedAttachmentData] = useState([]) // Uploaded attachment metadata
+  const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false) // Trigger to clear MessageInput attachments
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
@@ -452,6 +454,61 @@ export default function ChatEngine({
     }))
   }
 
+  // Handle attachment reaction added via broadcast
+  const handleAttachmentReactionAdded = (reaction) => {
+    console.log('Attachment reaction added via broadcast:', reaction)
+    
+    setMessages(prev => prev.map(msg => {
+      const attachmentIndex = msg.attachments?.findIndex(a => a.id == reaction.attachment_id)
+      if (attachmentIndex === -1 || attachmentIndex === undefined) return msg
+      
+      const updatedAttachments = [...msg.attachments]
+      const attachment = updatedAttachments[attachmentIndex]
+      const existingReactions = attachment.reactions || []
+      
+      // Check if this exact reaction already exists
+      const alreadyExists = existingReactions.some(
+        r => r.user_id === reaction.user_id && r.emoji === reaction.emoji
+      )
+      
+      if (alreadyExists) return msg
+      
+      // Add the new reaction with animation flag
+      updatedAttachments[attachmentIndex] = {
+        ...attachment,
+        reactions: [...existingReactions, { ...reaction, isNewReaction: true }]
+      }
+      
+      return { ...msg, attachments: updatedAttachments }
+    }))
+  }
+
+  // Handle attachment reaction removed via broadcast
+  const handleAttachmentReactionRemoved = (attachmentId, userId, emoji) => {
+    console.log('Attachment reaction removed via broadcast:', { attachmentId, userId, emoji })
+    
+    setMessages(prev => prev.map(msg => {
+      const attachmentIndex = msg.attachments?.findIndex(a => a.id == attachmentId)
+      if (attachmentIndex === -1 || attachmentIndex === undefined) return msg
+      
+      const updatedAttachments = [...msg.attachments]
+      const attachment = updatedAttachments[attachmentIndex]
+      const existingReactions = attachment.reactions || []
+      
+      // Remove the specific reaction
+      const updatedReactions = existingReactions.filter(
+        r => !(r.user_id === userId && r.emoji === emoji)
+      )
+      
+      updatedAttachments[attachmentIndex] = {
+        ...attachment,
+        reactions: updatedReactions
+      }
+      
+      return { ...msg, attachments: updatedAttachments }
+    }))
+  }
+
   // Set up real-time listeners
   const { sendTypingIndicator } = useRealtimeChat({
     selectedChat,
@@ -462,6 +519,8 @@ export default function ChatEngine({
     onClearTypingUser,
     onReactionAdded: handleReactionAdded,
     onReactionRemoved: handleReactionRemoved,
+    onAttachmentReactionAdded: handleAttachmentReactionAdded,
+    onAttachmentReactionRemoved: handleAttachmentReactionRemoved,
     onMessagePinned: (message) => {
       console.log('Message pinned:', message)
       setPinnedMessage(message)
@@ -487,6 +546,45 @@ export default function ChatEngine({
           ? { ...message, deleted_at: null }
           : msg
       ))
+    },
+    onAttachmentPinned: (attachment) => {
+      console.log('Attachment pinned:', attachment)
+      setPinnedAttachment(attachment)
+      setPinnedMessage(null)
+    },
+    onAttachmentUnpinned: (attachmentId) => {
+      console.log('Attachment unpinned:', attachmentId)
+      if (pinnedAttachment?.id == attachmentId) {
+        setPinnedAttachment(null)
+      }
+    },
+    onAttachmentDeleted: (attachmentId) => {
+      console.log('Attachment deleted:', attachmentId)
+      // Mark attachment as deleted in messages
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        attachments: msg.attachments?.map(att => 
+          att.id == attachmentId 
+            ? { ...att, deleted_at: new Date().toISOString() }
+            : att
+        )
+      })))
+      // Clear from pinned if it was pinned
+      if (pinnedAttachment?.id == attachmentId) {
+        setPinnedAttachment(null)
+      }
+    },
+    onAttachmentRestored: (attachment) => {
+      console.log('Attachment restored:', attachment)
+      // Mark attachment as restored in messages
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        attachments: msg.attachments?.map(att => 
+          att.id == attachment.id 
+            ? { ...att, deleted_at: null }
+            : att
+        )
+      })))
     }
   })
 
@@ -612,55 +710,120 @@ export default function ChatEngine({
   useEffect(() => {
     if (!selectedChat || optimisticQueue.length === 0) return
 
+    console.log('Background processor running. Queue:', optimisticQueue.map(m => ({ id: m.id, status: m.status, body: m.body })))
+
     const processPendingMessages = async () => {
       for (const msg of optimisticQueue) {
         // Skip if not pending or already being processed
-        if (msg.status !== 'pending' || processingRef.current.has(msg.id)) continue
+        if (msg.status !== 'pending' || processingRef.current.has(msg.id)) {
+          console.log('Skipping message:', msg.id, 'Status:', msg.status, 'Processing:', processingRef.current.has(msg.id))
+          continue
+        }
+        
+        console.log('Processing pending message:', msg.id, msg.body)
 
         // Mark as being processed
         processingRef.current.add(msg.id)
 
         try {
-          // Prepare request data
-          const requestData = {
-            body: msg.body,
-            type: 'message'
-          }
-          
-          // Set team_id or recipient_id based on chat type
-          if (chatType === 'team') {
-            requestData.team_id = selectedChat.id
-          } else {
-            requestData.recipient_id = selectedChat.id
-          }
-          
-          // Include reply_to_message_id if replying
-          if (msg.reply_to_message_id) {
-            requestData.reply_to_message_id = msg.reply_to_message_id
-          }
-          
-          // Include attachments if any
+          // Check if message has attachments - if so, they must be File objects
+          // After page refresh, File objects are lost, so we can't send the message
           if (msg.attachments && msg.attachments.length > 0) {
-            requestData.attachments = msg.attachments
+            const hasValidFiles = msg.attachments.every(att => att.file instanceof File)
+            if (!hasValidFiles) {
+              console.log('Message has attachments but File objects are missing (page refresh). Marking as failed.')
+              updateMessageStatus(msg.id, 'failed')
+              processingRef.current.delete(msg.id)
+              continue
+            }
           }
           
-          const response = await fetch('/api/chat/messages', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-            },
-            body: JSON.stringify(requestData),
-            signal: AbortSignal.timeout(10000) // 10 second timeout
-          })
+          // Use FormData if we have attachments, otherwise use JSON
+          let response
+          
+          if (msg.attachments && msg.attachments.length > 0) {
+            // Use FormData for messages with attachments
+            const formData = new FormData()
+            formData.append('body', msg.body || '')
+            formData.append('type', 'message')
+            
+            // Set team_id or recipient_id based on chat type
+            if (chatType === 'team') {
+              formData.append('team_id', selectedChat.id)
+            } else {
+              formData.append('recipient_id', selectedChat.id)
+            }
+            
+            // Include reply_to_message_id if replying
+            if (msg.reply_to_message_id) {
+              formData.append('reply_to_message_id', msg.reply_to_message_id)
+            }
+            
+            // Add attachments
+            msg.attachments.forEach((attachment, index) => {
+              formData.append(`attachments[${index}]`, attachment.file)
+            })
+            
+            response = await fetch('/api/chat/messages', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+              },
+              body: formData,
+              signal: AbortSignal.timeout(10000)
+            })
+          } else {
+            // Use JSON for text-only messages
+            const requestData = {
+              body: msg.body,
+              type: 'message'
+            }
+            
+            // Set team_id or recipient_id based on chat type
+            if (chatType === 'team') {
+              requestData.team_id = selectedChat.id
+            } else {
+              requestData.recipient_id = selectedChat.id
+            }
+            
+            // Include reply_to_message_id if replying
+            if (msg.reply_to_message_id) {
+              requestData.reply_to_message_id = msg.reply_to_message_id
+            }
+            
+            response = await fetch('/api/chat/messages', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+              },
+              body: JSON.stringify(requestData),
+              signal: AbortSignal.timeout(10000)
+            })
+          }
 
           if (!response.ok) {
+            const errorText = await response.text()
+            console.error('Server error response:', response.status, errorText)
             throw new Error(`Failed to send message: ${response.status}`)
           }
           
           const data = await response.json()
           console.log('Message sent successfully:', data)
+          
+          // Check if attachments were included in request but missing from response
+          if (msg.attachments && msg.attachments.length > 0) {
+            const responseAttachments = data.message?.attachments || data.attachments || []
+            if (responseAttachments.length === 0) {
+              console.error('WARNING: Message sent with attachments but server returned no attachments!')
+              console.log('Requested attachments:', msg.attachments.length, 'Received:', responseAttachments.length)
+              // Mark as failed since attachments didn't upload
+              updateMessageStatus(msg.id, 'failed')
+              return
+            }
+          }
           
           // Mark as sent and remove from queue immediately
           updateMessageStatus(msg.id, 'sent', data)
@@ -760,6 +923,7 @@ export default function ChatEngine({
 
   // Handle attachments change from MessageInput
   const handleAttachmentsChange = (attachments) => {
+    console.log('ChatEngine received attachments:', { count: attachments.length, attachments })
     setPendingAttachments(attachments)
   }
 
@@ -806,8 +970,9 @@ export default function ChatEngine({
 
 
   // Add message to optimistic queue
-  const queueMessage = (messageText, replyToMessageId = null) => {
-    if (!messageText.trim() || !selectedChat || sending) return false
+  const queueMessage = (messageText, replyToMessageId = null, attachments = []) => {
+    console.log('queueMessage called:', { messageText, replyToMessageId, attachmentsCount: attachments.length })
+    if ((!messageText.trim() && attachments.length === 0) || !selectedChat || sending) return false
     
     // Filter restricted words from message
     const { filteredText, blocked, blockedWords } = filterRestrictedWords(messageText.trim())
@@ -841,9 +1006,10 @@ export default function ChatEngine({
     const allMessages = getMergedMessages(messages)
     const replyToMessage = replyToMessageId ? allMessages.find(m => m.id === replyToMessageId) : null
     
-    // Add to optimistic queue with filtered message
+    // Add to optimistic queue with filtered message and attachments
     const optimisticMsg = addOptimisticMessage({
       body: filteredText,
+      attachments: attachments,
       reply_to_message_id: replyToMessageId,
       reply_to_message: replyToMessage ? {
         id: replyToMessage.id,
@@ -857,6 +1023,10 @@ export default function ChatEngine({
     // Clear input immediately for instant feedback
     setNewMessage('')
     setReplyingTo(null)
+    
+    // Clear pending attachments and trigger MessageInput cleanup
+    setPendingAttachments([])
+    setClearAttachmentsTrigger(prev => !prev)
     
     // Scroll to bottom instantly when sending
     setTimeout(() => {
@@ -874,12 +1044,13 @@ export default function ChatEngine({
   }
 
   // Shared function for sending messages (legacy, now just queues)
-  const sendMessageToRecipient = async (message, recipient, recipientType, replyToMessageId = null) => {
-    if (!message.trim() || !recipient) return false
+  const sendMessageToRecipient = async (message, recipient, recipientType, attachments = [], replyToMessageId = null) => {
+    console.log('sendMessageToRecipient called:', { message, recipientType, attachmentsCount: attachments.length, replyToMessageId })
+    if ((!message.trim() && attachments.length === 0) || !recipient) return false
     
     // If we're in an existing chat (selectedChat is set and matches recipient), use the optimistic queue
     if (selectedChat && selectedChat.id === recipient.id && chatType === recipientType) {
-      return queueMessage(message, replyToMessageId)
+      return queueMessage(message, replyToMessageId, attachments)
     }
     
     // Otherwise, we're sending from compose mode - send directly to API
@@ -902,32 +1073,40 @@ export default function ChatEngine({
     }
     
     try {
-      // Prepare request data
-      const requestData = {
-        body: filteredText,
-        type: 'message'
-      }
+      // Use FormData for file uploads
+      const formData = new FormData()
+      formData.append('body', filteredText)
+      formData.append('type', 'message')
       
       // Set team_id or recipient_id based on recipient type
       if (recipientType === 'team') {
-        requestData.team_id = recipient.id
+        formData.append('team_id', recipient.id)
       } else {
-        requestData.recipient_id = recipient.id
+        formData.append('recipient_id', recipient.id)
       }
       
       // Include reply_to_message_id if replying
       if (replyToMessageId) {
-        requestData.reply_to_message_id = replyToMessageId
+        formData.append('reply_to_message_id', replyToMessageId)
       }
       
+      // Add attachments
+      if (attachments && attachments.length > 0) {
+        console.log('Adding attachments to FormData:', attachments.length)
+        attachments.forEach((attachment, index) => {
+          console.log(`Attachment ${index}:`, { name: attachment.name, size: attachment.size, type: attachment.type })
+          formData.append(`attachments[${index}]`, attachment.file)
+        })
+      }
+      
+      console.log('Sending message to API with FormData')
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 
-          'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         },
-        body: JSON.stringify(requestData)
+        body: formData
       })
 
       if (!response.ok) {
@@ -957,9 +1136,16 @@ export default function ChatEngine({
   // Send message in existing chat
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedChat) return
+    console.log('ChatEngine handleSendMessage:', { message: newMessage, pendingAttachments: pendingAttachments.length })
+    if ((!newMessage.trim() && pendingAttachments.length === 0) || !selectedChat) return
 
-    await sendMessageToRecipient(newMessage, selectedChat, chatType, replyingTo?.id)
+    const success = await sendMessageToRecipient(newMessage, selectedChat, chatType, pendingAttachments, replyingTo?.id)
+    
+    if (success) {
+      // Clear pending attachments and trigger MessageInput cleanup
+      setPendingAttachments([])
+      setClearAttachmentsTrigger(prev => !prev)
+    }
   }
 
   // Handle reply button click
@@ -1090,6 +1276,135 @@ export default function ChatEngine({
     }
   }
 
+  // Handle adding reaction to an attachment
+  const handleAddAttachmentReaction = async (attachmentId, reaction) => {
+    // Create a unique key for this reaction action
+    const reactionKey = `attachment-${attachmentId}-${currentUser.id}-${reaction.emoji}`
+    
+    // Prevent duplicate requests
+    if (pendingReactionsRef.current.has(reactionKey)) {
+      return
+    }
+    
+    try {
+      // Mark as pending
+      pendingReactionsRef.current.add(reactionKey)
+      
+      // Optimistically update UI
+      setMessages(prev => prev.map(msg => {
+        // Find the message containing this attachment
+        const attachmentIndex = msg.attachments?.findIndex(a => a.id === attachmentId)
+        if (attachmentIndex === -1 || attachmentIndex === undefined) return msg
+        
+        const updatedAttachments = [...msg.attachments]
+        const attachment = updatedAttachments[attachmentIndex]
+        const existingReactions = attachment.reactions || []
+        
+        // Check if user already reacted with this emoji
+        const userReactionIndex = existingReactions.findIndex(
+          r => r.user_id === currentUser.id && r.emoji === reaction.emoji
+        )
+        
+        let updatedReactions
+        if (userReactionIndex >= 0) {
+          // Remove reaction if already exists (toggle off)
+          updatedReactions = existingReactions.filter((_, i) => i !== userReactionIndex)
+        } else {
+          // Add new reaction
+          updatedReactions = [
+            ...existingReactions,
+            {
+              id: `temp-${Date.now()}`,
+              attachment_id: attachmentId,
+              user_id: currentUser.id,
+              user: currentUser,
+              emoji: reaction.emoji,
+              name: reaction.name,
+              created_at: new Date().toISOString(),
+              isNewReaction: true // Mark as new for animation
+            }
+          ]
+        }
+        
+        updatedAttachments[attachmentIndex] = {
+          ...attachment,
+          reactions: updatedReactions
+        }
+        
+        return { ...msg, attachments: updatedAttachments }
+      }))
+      
+      // Send to backend
+      const response = await fetch(`/api/chat/attachments/${attachmentId}/reactions`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify({
+          emoji: reaction.emoji,
+          name: reaction.name
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to add attachment reaction')
+      }
+      
+      const data = await response.json()
+      
+      // Update with real data from server
+      setMessages(prev => prev.map(msg => {
+        const attachmentIndex = msg.attachments?.findIndex(a => a.id === attachmentId)
+        if (attachmentIndex === -1 || attachmentIndex === undefined) return msg
+        
+        const updatedAttachments = [...msg.attachments]
+        const attachment = updatedAttachments[attachmentIndex]
+        const oldReactions = attachment.reactions || []
+        const newReactions = data.reactions || []
+        
+        // Create a map of existing emoji positions
+        const emojiPositions = new Map()
+        oldReactions.forEach((r, index) => {
+          if (!emojiPositions.has(r.emoji)) {
+            emojiPositions.set(r.emoji, index)
+          }
+        })
+        
+        // Sort new reactions by original position
+        const sortedReactions = [...newReactions].sort((a, b) => {
+          const posA = emojiPositions.has(a.emoji) ? emojiPositions.get(a.emoji) : Infinity
+          const posB = emojiPositions.has(b.emoji) ? emojiPositions.get(b.emoji) : Infinity
+          return posA - posB
+        })
+        
+        updatedAttachments[attachmentIndex] = {
+          ...attachment,
+          reactions: sortedReactions
+        }
+        
+        return { ...msg, attachments: updatedAttachments }
+      }))
+      
+    } catch (error) {
+      console.error('Error adding attachment reaction:', error)
+      // Revert optimistic update on error
+      try {
+        const freshResponse = await fetch(`/api/chat/messages?conversation_id=${selectedChat?.id}&type=${chatType}`)
+        if (freshResponse.ok) {
+          const freshData = await freshResponse.json()
+          setMessages(freshData.messages || [])
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh messages:', refreshError)
+      }
+    } finally {
+      // Remove from pending set
+      pendingReactionsRef.current.delete(reactionKey)
+    }
+  }
+
   // Pin/Unpin message
   const handlePinMessage = async (messageId) => {
     if (!selectedChat) return
@@ -1107,6 +1422,7 @@ export default function ChatEngine({
         
         if (response.ok) {
           setPinnedMessage(null)
+          setPinnedAttachment(null)
           toast.success('Message unpinned', {
             position: 'top-center',
             autoClose: 3000,
@@ -1131,6 +1447,7 @@ export default function ChatEngine({
         if (response.ok) {
           const data = await response.json()
           setPinnedMessage(data.message)
+          setPinnedAttachment(null)
           toast.success('Message pinned', {
             position: 'top-center',
             autoClose: 3000,
@@ -1269,10 +1586,10 @@ export default function ChatEngine({
       if (response.ok) {
         const data = await response.json()
         console.log('Restore data:', data)
-        // Update local state
+        // Update local state - use the full message data from response to restore attachments too
         setMessages(prev => prev.map(msg => 
           msg.id == messageId 
-            ? { ...msg, deleted_at: null }
+            ? { ...msg, ...data.message, deleted_at: null }
             : msg
         ))
         toast.success('Message restored', {
@@ -1314,6 +1631,162 @@ export default function ChatEngine({
     }
   }
 
+  // Pin/Unpin attachment
+  const handlePinAttachment = async (attachmentId) => {
+    if (!selectedChat) return
+    
+    try {
+      if (pinnedAttachment?.id === attachmentId) {
+        // Unpin
+        const response = await fetch(`/api/chat/attachments/${attachmentId}/pin`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+          }
+        })
+        
+        if (response.ok) {
+          setPinnedAttachment(null)
+          setPinnedMessage(null)
+          toast.success('Attachment unpinned', {
+            position: 'top-center',
+            autoClose: 2000,
+            theme: 'light',
+          })
+        }
+      } else {
+        // Pin
+        const response = await fetch(`/api/chat/attachments/${attachmentId}/pin`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setPinnedAttachment(data.attachment)
+          setPinnedMessage(null)
+          toast.success('Attachment pinned', {
+            position: 'top-center',
+            autoClose: 2000,
+            theme: 'light',
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error pinning/unpinning attachment:', error)
+      toast.error('Failed to pin/unpin attachment', {
+        position: 'top-center',
+        autoClose: 3000,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Delete attachment
+  const handleDeleteAttachment = async (attachmentId) => {
+    if (!selectedChat) return
+    
+    try {
+      const response = await fetch(`/api/chat/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      })
+      
+      if (response.ok) {
+        // Update local state - mark attachment as deleted
+        setMessages(prev => prev.map(msg => ({
+          ...msg,
+          attachments: msg.attachments?.map(att => 
+            att.id === attachmentId 
+              ? { ...att, deleted_at: new Date().toISOString() }
+              : att
+          )
+        })))
+        
+        // If this was the pinned attachment, clear it
+        if (pinnedAttachment?.id === attachmentId) {
+          setPinnedAttachment(null)
+        }
+        
+        toast.success('Attachment deleted', {
+          position: 'top-center',
+          autoClose: 3000,
+          theme: 'light',
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Delete failed:', errorData)
+        toast.error(errorData.error || 'Failed to delete attachment', {
+          position: 'top-center',
+          autoClose: 3000,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting attachment:', error)
+      toast.error('Failed to delete attachment', {
+        position: 'top-center',
+        autoClose: 3000,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Restore deleted attachment
+  const handleRestoreAttachment = async (attachmentId) => {
+    if (!selectedChat) return
+    
+    try {
+      const response = await fetch(`/api/chat/attachments/${attachmentId}/restore`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      })
+      
+      if (response.ok) {
+        // Update local state - remove deleted_at
+        setMessages(prev => prev.map(msg => ({
+          ...msg,
+          attachments: msg.attachments?.map(att => 
+            att.id === attachmentId 
+              ? { ...att, deleted_at: null }
+              : att
+          )
+        })))
+        
+        toast.success('Attachment restored', {
+          position: 'top-center',
+          autoClose: 3000,
+          theme: 'light',
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Restore failed:', errorData)
+        toast.error(errorData.error || 'Failed to restore attachment', {
+          position: 'top-center',
+          autoClose: 3000,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error restoring attachment:', error)
+      toast.error('Failed to restore attachment', {
+        position: 'top-center',
+        autoClose: 3000,
+        theme: 'light',
+      })
+    }
+  }
+
   // Fetch pinned message
   useEffect(() => {
     // Clear pinned message immediately when chat changes
@@ -1338,9 +1811,11 @@ export default function ChatEngine({
         
         if (response.ok) {
           const data = await response.json()
-          setPinnedMessage(data || null)
+          setPinnedMessage(data?.message || null)
+          setPinnedAttachment(data?.attachment || null)
         } else {
           setPinnedMessage(null)
+          setPinnedAttachment(null)
         }
       } catch (error) {
         console.error('Error fetching pinned message:', error)
@@ -1375,7 +1850,9 @@ export default function ChatEngine({
       {/* Pinned Message Banner */}
       <PinnedMessageBanner 
         pinnedMessage={pinnedMessage}
+        pinnedAttachment={pinnedAttachment}
         onUnpin={handlePinMessage}
+        onUnpinAttachment={handlePinAttachment}
         onClickPinned={handleClickPinned}
       />
 
@@ -1405,6 +1882,10 @@ export default function ChatEngine({
           onReplyClick={handleReplyClick}
           messageRefsRef={messageRefsRef}
           onAddReaction={handleAddReaction}
+          onAddAttachmentReaction={handleAddAttachmentReaction}
+          onPinAttachment={handlePinAttachment}
+          onDeleteAttachment={handleDeleteAttachment}
+          onRestoreAttachment={handleRestoreAttachment}
           onRetryMessage={handleRetryMessage}
           loadingMore={loadingMore}
           hasMore={hasMore}
@@ -1412,6 +1893,7 @@ export default function ChatEngine({
           pendingReactionsRef={pendingReactionsRef}
           onPinMessage={handlePinMessage}
           pinnedMessageId={pinnedMessage?.id}
+          pinnedAttachmentId={pinnedAttachment?.id}
           onDeleteMessage={handleDeleteMessage}
           onRestoreMessage={handleRestoreMessage}
         />
@@ -1446,6 +1928,7 @@ export default function ChatEngine({
           replyingTo={replyingTo}
           inputRef={messageInputRef}
           onAttachmentsChange={handleAttachmentsChange}
+          clearAttachments={clearAttachmentsTrigger}
         />
       </div>
     </div>

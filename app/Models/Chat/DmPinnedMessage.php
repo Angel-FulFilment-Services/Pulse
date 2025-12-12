@@ -13,6 +13,7 @@ class DmPinnedMessage extends Model
         'user_id_1',
         'user_id_2',
         'pinned_message_id',
+        'pinned_attachment_id',
     ];
     
     public function pinnedMessage()

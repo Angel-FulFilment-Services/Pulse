@@ -19,18 +19,59 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
         
         // Filter messages for this chat and remove expired ones
         const chatKey = chatType === 'team' ? `team-${selectedChat.id}` : `dm-${selectedChat.id}`
-        const validMessages = allMessages.filter(msg => {
-          const isForThisChat = msg.chatKey === chatKey
-          const notExpired = (now - msg.createdAt) < MESSAGE_EXPIRY_MS
-          return isForThisChat && notExpired
-        })
+        const validMessages = allMessages
+          .filter(msg => {
+            const isForThisChat = msg.chatKey === chatKey
+            const notExpired = (now - msg.createdAt) < MESSAGE_EXPIRY_MS
+            
+            // Remove messages that have attachments (File objects are lost after refresh)
+            const hasAttachments = msg.attachments && msg.attachments.length > 0
+            if (hasAttachments) {
+              console.log('Removing message with attachments after page refresh:', msg.id, msg.body)
+              return false
+            }
+            
+            // Remove failed messages that have no text (can't be recovered)
+            const hasText = msg.body && msg.body.trim().length > 0
+            const shouldKeep = msg.status !== 'failed' || hasText
+            
+            return isForThisChat && notExpired && shouldKeep
+          })
+          .map(msg => {
+            // Mark any pending messages as failed on page load - they need manual retry
+            if (msg.status === 'pending') {
+              console.log('Converting pending message to failed on page load:', msg.id, msg.body)
+              return { ...msg, status: 'failed' }
+            }
+            return msg
+          })
         
+        console.log('Loaded optimistic messages from storage:', validMessages.map(m => ({ id: m.id, status: m.status, body: m.body })))
         setOptimisticQueue(validMessages)
         
-        // Clean up expired messages from storage
-        const allValid = allMessages.filter(msg => 
-          (now - msg.createdAt) < MESSAGE_EXPIRY_MS
-        )
+        // Clean up expired and invalid messages from storage
+        // Also mark any pending messages as failed for ALL chats
+        const allValid = allMessages
+          .filter(msg => {
+            const notExpired = (now - msg.createdAt) < MESSAGE_EXPIRY_MS
+            
+            // Remove messages with attachments
+            const hasAttachments = msg.attachments && msg.attachments.length > 0
+            if (hasAttachments) {
+              return false
+            }
+            
+            const hasText = msg.body && msg.body.trim().length > 0
+            const shouldKeep = msg.status !== 'failed' || hasText
+            return notExpired && shouldKeep
+          })
+          .map(msg => {
+            // Mark any pending messages as failed on page load
+            if (msg.status === 'pending') {
+              return { ...msg, status: 'failed' }
+            }
+            return msg
+          })
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(allValid))
       } catch (e) {
         console.error('Error loading optimistic messages:', e)
@@ -124,43 +165,55 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
 
   // Get all messages including optimistic ones (for display)
   const getMergedMessages = (serverMessages) => {
-    // Create a Set of server message IDs for quick lookup
-    const serverMessageIds = new Set(serverMessages.map(m => m.id))
-    
-    // Filter out optimistic messages that have been successfully sent
+    // Filter out optimistic messages that match server messages
+    // This must happen synchronously to prevent flash
     const pendingOptimistic = optimisticQueue.filter(msg => {
-      // If marked as sent and the real message exists in server messages, don't show optimistic
-      if (msg.status === 'sent' && msg.realMessage && serverMessageIds.has(msg.realMessage.id)) {
-        console.log('Filtering out sent optimistic message:', msg.id, '-> real:', msg.realMessage.id)
+      // Only show pending and failed messages
+      if (msg.status !== 'pending' && msg.status !== 'failed') {
         return false
       }
       
-      // Also check if there's a server message with matching body, timestamp, sender, AND reply context
-      // This handles race conditions where broadcast arrives before status update
+      // Check if there's a matching server message
       const isDuplicate = serverMessages.some(sm => {
         const timeDiff = Math.abs(new Date(sm.created_at).getTime() - new Date(msg.created_at).getTime())
-        const sameBody = sm.body === msg.body
+        const sameBody = (sm.body || '') === (msg.body || '')
         const sameSender = sm.sender_id === msg.sender_id
         const sameReply = sm.reply_to_message_id === msg.reply_to_message_id
-        const withinTimeWindow = timeDiff < 2000 // Within 2 seconds
+        const withinTimeWindow = timeDiff < 5000
         
-        const matches = sameBody && sameSender && sameReply && withinTimeWindow
+        // For messages with attachments, also check attachment count
+        const optimisticAttachmentCount = msg.attachments?.length || 0
+        const serverAttachmentCount = sm.attachments?.length || 0
+        const sameAttachmentCount = optimisticAttachmentCount === serverAttachmentCount
+        
+        // For attachment-only messages (no body text), be more lenient with timing
+        const isAttachmentOnly = !msg.body || msg.body.trim() === ''
+        const attachmentOnlyMatch = isAttachmentOnly && sameAttachmentCount > 0 && sameSender && withinTimeWindow
+        
+        const matches = (sameBody && sameSender && sameReply && withinTimeWindow && sameAttachmentCount) || attachmentOnlyMatch
         
         if (matches) {
-          console.log('Found duplicate:', {
-            optimistic: { id: msg.id, body: msg.body, reply_to: msg.reply_to_message_id },
-            server: { id: sm.id, body: sm.body, reply_to: sm.reply_to_message_id },
-            timeDiff
+          console.log('Found duplicate message:', {
+            optimistic: { id: msg.id, body: msg.body, attachments: optimisticAttachmentCount },
+            server: { id: sm.id, body: sm.body, attachments: serverAttachmentCount },
+            timeDiff,
+            attachmentOnly: isAttachmentOnly
           })
         }
         
         return matches
       })
       
-      if (isDuplicate) return false
+      // If duplicate found, schedule removal from queue
+      if (isDuplicate) {
+        // Use requestAnimationFrame to clean up queue after render completes
+        requestAnimationFrame(() => {
+          removeOptimisticMessage(msg.id)
+        })
+        return false // Don't include in merged messages
+      }
       
-      // Show pending and failed messages
-      return msg.status === 'pending' || msg.status === 'failed'
+      return true
     })
     
     // Merge and sort by created_at timestamp to maintain chronological order
