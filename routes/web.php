@@ -179,9 +179,7 @@ Route::get('/public/knowledge-base/article/{id}', [KnowledgeBaseController::clas
 | Chat
 |-----------------------
 */
-Route::get('/chat', function () {
-    return inertia('Chat');
-})->name('chat');
+Route::get('/chat', [ChatController::class, 'index'])->name('chat');
 
 /*
 |-----------------------
