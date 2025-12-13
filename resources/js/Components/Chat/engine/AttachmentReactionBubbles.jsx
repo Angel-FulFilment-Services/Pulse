@@ -56,18 +56,25 @@ function ReactionTooltip({ isVisible, referenceEl, emoji, name, users, boundaryE
 }
 
 export default function AttachmentReactionBubbles({ reactions, isMyMessage, currentUserId, onRemoveReaction, attachmentId, onHoverChange, boundaryRef, pendingReactionsRef }) {
-  const [removingEmoji, setRemovingEmoji] = useState(null)
+  const [removingEmojis, setRemovingEmojis] = useState(new Set())
   const [hoveredReaction, setHoveredReaction] = useState(null)
   const [hoveredOverflow, setHoveredOverflow] = useState(false)
   const [newReactionEmojis, setNewReactionEmojis] = useState(new Set())
   const reactionRefs = React.useRef({})
   const overflowRef = React.useRef(null)
   const previousReactionCountsRef = React.useRef({})
+  const removalTimeoutsRef = React.useRef(new Map())
+  const animatingOutRef = React.useRef(new Map()) // Track emojis animating out with their data
+  const newReactionKeysRef = React.useRef(new Set()) // Track which user+emoji combos are new
   
   // Track new reactions for animation
   React.useEffect(() => {
     if (!reactions || reactions.length === 0) {
       previousReactionCountsRef.current = {}
+      // Clear any removal animations when reactions are gone
+      setRemovingEmojis(new Set())
+      removalTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      removalTimeoutsRef.current.clear()
       return
     }
     
@@ -77,35 +84,71 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
       currentCounts[r.emoji] = (currentCounts[r.emoji] || 0) + 1
     })
     
+    // Check if any emojis have been completely removed
+    const currentEmojis = new Set(Object.keys(currentCounts))
+    
+    // DON'T clear removal animation immediately - let it complete
+    // The animation will clear itself after 250ms
+    // This block is intentionally removed to allow phantom reactions to persist
+    
+    // Find newly added reactions (reactions that exist now but didn't before)
+    const newReactions = reactions.filter(r => {
+      const key = `${r.user_id}-${r.emoji}`
+      const prevCount = previousReactionCountsRef.current[r.emoji] || 0
+      const isNew = prevCount === 0 || !previousReactionCountsRef.current.hasOwnProperty(r.emoji)
+      return isNew
+    })
+    
+    // Add new reaction keys to the set
+    if (newReactions.length > 0) {
+      newReactions.forEach(r => {
+        const key = `${r.user_id}-${r.emoji}`
+        newReactionKeysRef.current.add(key)
+      })
+      
+      // Clear after animation
+      setTimeout(() => {
+        newReactions.forEach(r => {
+          const key = `${r.user_id}-${r.emoji}`
+          newReactionKeysRef.current.delete(key)
+        })
+        setNewReactionEmojis(new Set())
+      }, 300)
+      
+      // Trigger re-render
+      setNewReactionEmojis(new Set(newReactions.map(r => r.emoji)))
+    }
+    
     // Find truly new reaction emojis (emoji types that didn't exist before)
     const newEmojis = reactions
-      .filter(r => r.isNewReaction && previousReactionCountsRef.current[r.emoji] === undefined)
+      .filter(r => previousReactionCountsRef.current[r.emoji] === undefined)
       .map(r => r.emoji)
     
     if (newEmojis.length > 0) {
-      setNewReactionEmojis(new Set(newEmojis))
-      
-      // Clear the new flag after animation completes
-      const timer = setTimeout(() => {
-        setNewReactionEmojis(new Set())
-      }, 300) // Slightly longer than animation duration
-      
-      // Update previous counts
-      previousReactionCountsRef.current = currentCounts
-      
-      return () => clearTimeout(timer)
+      // No need to update here - handled above
     }
     
     // Update previous counts even if no new emojis
     previousReactionCountsRef.current = currentCounts
   }, [reactions])
   
+  // Cleanup timeouts on unmount
+  React.useEffect(() => {
+    return () => {
+      removalTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      removalTimeoutsRef.current.clear()
+    }
+  }, [])
+  
   if (!reactions || reactions.length === 0) {
     return null
   }
 
-  // Group reactions by emoji
-  const groupedReactions = reactions.reduce((acc, reaction) => {
+  // Group reactions by emoji while preserving first appearance order
+  // Filter out reactions that are currently being removed (they'll be shown as phantoms)
+  const filteredReactions = reactions.filter(r => !removingEmojis.has(r.emoji))
+  
+  const groupedReactions = filteredReactions.reduce((acc, reaction) => {
     const emoji = reaction.emoji
     if (!acc[emoji]) {
       acc[emoji] = {
@@ -114,7 +157,8 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
         count: 0,
         users: [],
         hasCurrentUser: false,
-        firstSeenAt: reaction.created_at || Date.now()
+        firstSeenAt: reaction.created_at || Date.now(),
+        insertionOrder: Object.keys(acc).length // Track insertion order
       }
     }
     acc[emoji].count++
@@ -125,33 +169,68 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
     return acc
   }, {})
 
-  const reactionGroups = Object.values(groupedReactions)
+  // Sort by insertion order to maintain stable display
+  const reactionGroups = Object.values(groupedReactions).sort((a, b) => a.insertionOrder - b.insertionOrder)
+  
+  // Add phantom reactions for emojis that are being removed (so animation can complete)
+  const phantomGroups = Array.from(animatingOutRef.current.values())
+    .filter(data => !reactionGroups.some(g => g.emoji === data.emoji))
+    .map(data => ({
+      emoji: data.emoji,
+      name: data.name,
+      count: 0,
+      users: [],
+      hasCurrentUser: false,
+      isPhantom: true
+    }))
+  
+  const allReactionGroups = [...reactionGroups, ...phantomGroups]
   
   // Limit to 10 reactions, rest shown in overflow
   const MAX_VISIBLE_REACTIONS = 10
-  const visibleReactions = reactionGroups.slice(0, MAX_VISIBLE_REACTIONS)
-  const overflowReactions = reactionGroups.slice(MAX_VISIBLE_REACTIONS)
+  const visibleReactions = allReactionGroups.slice(0, MAX_VISIBLE_REACTIONS)
+  const overflowReactions = allReactionGroups.slice(MAX_VISIBLE_REACTIONS)
   const hasOverflow = overflowReactions.length > 0
 
   const handleClick = (group) => {
     if (!group.hasCurrentUser || !onRemoveReaction) return
     
-    // Check if this reaction is still pending
-    const reactionKey = `${attachmentId}-${currentUserId}-${group.emoji}`
-    const isPending = pendingReactionsRef?.current?.has(reactionKey)
+    // Don't handle phantom clicks
+    if (group.isPhantom) return
     
-    // Block removal if pending
+    // Check if this reaction is pending (block all interactions)
+    const reactionKey = `attachment-${attachmentId}-${currentUserId}-${group.emoji}`
+    const isPending = pendingReactionsRef?.current?.has(reactionKey)
     if (isPending) return
     
-    // Only animate if this is the last reaction of this type (count === 1)
+    // Prevent double-clicks on the same emoji
+    if (removingEmojis.has(group.emoji)) return
+    
+    // Only animate if this is the last reaction of this type
     if (group.count === 1) {
-      setRemovingEmoji(group.emoji)
+      // Store the emoji data in ref for phantom creation
+      animatingOutRef.current.set(group.emoji, {
+        emoji: group.emoji,
+        name: group.name,
+        timestamp: Date.now()
+      })
+      
+      setRemovingEmojis(prev => new Set(prev).add(group.emoji))
+      
+      // Call removal immediately for optimistic update
+      onRemoveReaction(attachmentId, { emoji: group.emoji, name: group.name })
+      
+      // Clear animation state after animation completes
       setTimeout(() => {
-        onRemoveReaction(attachmentId, { emoji: group.emoji, name: group.name })
-        setRemovingEmoji(null)
+        animatingOutRef.current.delete(group.emoji)
+        setRemovingEmojis(prev => {
+          const updated = new Set(prev)
+          updated.delete(group.emoji)
+          return updated
+        })
       }, 200)
     } else {
-      // Just remove without animation
+      // Just remove without animation if count > 1
       onRemoveReaction(attachmentId, { emoji: group.emoji, name: group.name })
     }
   }
@@ -170,7 +249,14 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
         onHoverChange?.(true)
       }}
     >
-      {visibleReactions.map((group, idx) => (
+      {visibleReactions.map((group, idx) => {
+        const reactionKey = `attachment-${attachmentId}-${currentUserId}-${group.emoji}`
+        const isPending = pendingReactionsRef?.current?.has(reactionKey)
+        
+        // Only show pending state if user is currently trying to interact (has the user's reaction)
+        const showPending = isPending && group.hasCurrentUser && removingEmojis.has(group.emoji)
+        
+        return (
         <div
           key={group.emoji}
           ref={el => reactionRefs.current[idx] = el}
@@ -183,15 +269,16 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
             e.stopPropagation()
             setHoveredReaction(null)
           }}
-          className={`relative flex items-center gap-1 bg-white/75 border border-gray-200 rounded-full px-1 py-1 shadow-sm transition-shadow ${
+          className={`relative flex items-center gap-1 bg-white/75 border border-gray-200 rounded-full px-1 py-1 shadow-sm transition-all ${
             group.hasCurrentUser ? 'cursor-pointer' : 'cursor-default'
-          }`}
+          } ${showPending ? 'opacity-50 cursor-wait' : ''}`}
           style={{
-            animation: removingEmoji === group.emoji 
+            animation: removingEmojis.has(group.emoji)
               ? `popOut 0.2s ease-in forwards` 
               : newReactionEmojis.has(group.emoji) 
                 ? `popIn 0.2s ease-out`
-                : 'none'
+                : 'none',
+            pointerEvents: isPending ? 'none' : 'auto'
           }}
         >
           <span className="text-md leading-none">{group.emoji}</span>
@@ -201,7 +288,8 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
             </span>
           )}
         </div>
-      ))}
+        )
+      })}
       
       {/* Overflow indicator */}
       {hasOverflow && (

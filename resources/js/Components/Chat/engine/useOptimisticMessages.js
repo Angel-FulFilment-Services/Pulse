@@ -120,6 +120,8 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
       createdAt: Date.now(),
       attachments: messageData.attachments || [],
       reply_to_message_id: messageData.reply_to_message_id,
+      reply_to_attachment_id: messageData.reply_to_attachment_id,
+      reply_to_attachment: messageData.reply_to_attachment,
       reply_to_message: messageData.reply_to_message,
       status: 'pending', // pending, failed, sent
       retryCount: 0,

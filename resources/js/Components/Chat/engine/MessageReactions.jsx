@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 
@@ -175,7 +175,7 @@ const ALL_REACTIONS = {
   ]
 }
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, isDeleted }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted }) {
   const [showQuickReactions, setShowQuickReactions] = useState(false)
   const [showAllReactions, setShowAllReactions] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -409,6 +409,20 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
               >
                 <PinIcon className="w-5 h-5 text-gray-500" filled={isPinned} />
               </button>
+              
+              {/* Reply button */}
+              {onReplyClick && (
+                <>
+                  <div className="w-px h-6 bg-gray-200" />
+                  <button
+                    onClick={() => onReplyClick(message)}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-gray-600"
+                    title="Reply"
+                  >
+                    <ArrowUturnLeftIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
               
               {/* Delete button - only show for own messages that aren't already deleted */}
               {isMyMessage && !isDeleted && (

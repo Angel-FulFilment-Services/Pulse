@@ -115,45 +115,90 @@ class AttachmentController extends Controller
      */
     public function proxy(Request $request, $id)
     {
-        $attachment = MessageAttachment::findOrFail($id);
-        
-        // Check if user has access to this attachment
-        $message = $attachment->message;
-        $userId = $request->user()->id;
-        
-        // Check if user is part of the conversation
-        $hasAccess = false;
-        if ($message->team_id) {
-            // Check team membership
-            $hasAccess = $message->team->members()->where('user_id', $userId)->exists();
-        } else {
-            // Check if user is sender or recipient
-            $hasAccess = ($message->sender_id === $userId || $message->recipient_id === $userId);
+        try {
+            $attachment = MessageAttachment::with(['message', 'message.team'])->findOrFail($id);
+            
+            // Check if user has access to this attachment
+            $message = $attachment->message;
+            
+            if (!$message) {
+                \Log::error('Attachment has no associated message', ['attachment_id' => $id]);
+                abort(404, 'Message not found');
+            }
+            
+            $userId = $request->user()->id;
+            
+            // Check if user is part of the conversation
+            $hasAccess = false;
+            if ($message->team_id) {
+                // Check team membership - use DB query since Team model doesn't have members relationship
+                if (!$message->team) {
+                    \Log::error('Team not found for message', [
+                        'message_id' => $message->id,
+                        'team_id' => $message->team_id
+                    ]);
+                    abort(404, 'Team not found');
+                }
+                
+                // Check if user is a member of the team
+                $hasAccess = \DB::connection('pulse')->table('team_user')
+                    ->where('team_id', $message->team_id)
+                    ->where('user_id', $userId)
+                    ->exists();
+            } else {
+                // Check if user is sender or recipient
+                $hasAccess = ($message->sender_id === $userId || $message->recipient_id === $userId);
+            }
+            
+            if (!$hasAccess) {
+                \Log::warning('User unauthorized to access attachment', [
+                    'user_id' => $userId,
+                    'attachment_id' => $id,
+                    'message_id' => $message->id,
+                    'team_id' => $message->team_id
+                ]);
+                abort(403, 'Unauthorized');
+            }
+            
+            // Determine which file to serve
+            $isThumbnail = $request->has('thumbnail') && $attachment->thumbnail_path;
+            $storagePath = $isThumbnail ? $attachment->thumbnail_path : $attachment->storage_path;
+            
+            \Log::info('Serving attachment', [
+                'attachment_id' => $id,
+                'is_thumbnail' => $isThumbnail,
+                'storage_path' => $storagePath,
+                'storage_driver' => $attachment->storage_driver
+            ]);
+            
+            // Get file from storage
+            $fileContent = $this->attachmentService->getFile($storagePath, $attachment->storage_driver);
+            
+            if (!$fileContent) {
+                \Log::error('File not found in storage', [
+                    'attachment_id' => $id,
+                    'storage_path' => $storagePath,
+                    'driver' => $attachment->storage_driver
+                ]);
+                abort(404, 'File not found');
+            }
+            
+            // Set appropriate headers
+            $mimeType = $isThumbnail ? 'image/webp' : $attachment->mime_type;
+            
+            return response($fileContent, 200)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'inline; filename="' . $attachment->file_name . '"')
+                ->header('Cache-Control', 'public, max-age=31536000') // Cache for 1 year
+                ->header('Expires', gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
+        } catch (\Exception $e) {
+            \Log::error('Attachment proxy error', [
+                'attachment_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            abort(500, 'Error serving attachment: ' . $e->getMessage());
         }
-        
-        if (!$hasAccess) {
-            abort(403, 'Unauthorized');
-        }
-        
-        // Determine which file to serve
-        $isThumbnail = $request->has('thumbnail') && $attachment->thumbnail_path;
-        $storagePath = $isThumbnail ? $attachment->thumbnail_path : $attachment->storage_path;
-        
-        // Get file from storage
-        $fileContent = $this->attachmentService->getFile($storagePath, $attachment->storage_driver);
-        
-        if (!$fileContent) {
-            abort(404, 'File not found');
-        }
-        
-        // Set appropriate headers
-        $mimeType = $isThumbnail ? 'image/webp' : $attachment->mime_type;
-        
-        return response($fileContent, 200)
-            ->header('Content-Type', $mimeType)
-            ->header('Content-Disposition', 'inline; filename="' . $attachment->file_name . '"')
-            ->header('Cache-Control', 'public, max-age=31536000') // Cache for 1 year
-            ->header('Expires', gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
     }
     
     /**

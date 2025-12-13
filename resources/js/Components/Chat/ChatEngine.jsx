@@ -412,11 +412,6 @@ export default function ChatEngine({
 
   // Handle reaction added from broadcast
   const handleReactionAdded = (reaction) => {
-    // Ignore our own reactions (they're already handled optimistically)
-    if (reaction.user_id === currentUser.id) {
-      return
-    }
-    
     setMessages(prev => prev.map(msg => {
       // Convert both to numbers for comparison (message_id might be string from broadcast)
       if (msg.id == reaction.message_id) {
@@ -437,8 +432,9 @@ export default function ChatEngine({
 
   // Handle reaction removed from broadcast
   const handleReactionRemoved = (messageId, userId, emoji) => {
-    // Ignore our own reaction removals (they're already handled optimistically)
-    if (userId === currentUser.id) {
+    // Ignore if this is our own reaction and it's still pending
+    const reactionKey = `${messageId}-${userId}-${emoji}`
+    if (pendingReactionsRef.current.has(reactionKey)) {
       return
     }
     
@@ -457,6 +453,12 @@ export default function ChatEngine({
   // Handle attachment reaction added via broadcast
   const handleAttachmentReactionAdded = (reaction) => {
     console.log('Attachment reaction added via broadcast:', reaction)
+    
+    // Ignore if this is our own reaction and it's still pending
+    const reactionKey = `attachment-${reaction.attachment_id}-${reaction.user_id}-${reaction.emoji}`
+    if (pendingReactionsRef.current.has(reactionKey)) {
+      return
+    }
     
     setMessages(prev => prev.map(msg => {
       const attachmentIndex = msg.attachments?.findIndex(a => a.id == reaction.attachment_id)
@@ -486,6 +488,12 @@ export default function ChatEngine({
   // Handle attachment reaction removed via broadcast
   const handleAttachmentReactionRemoved = (attachmentId, userId, emoji) => {
     console.log('Attachment reaction removed via broadcast:', { attachmentId, userId, emoji })
+    
+    // Ignore if this is our own reaction and it's still pending
+    const reactionKey = `attachment-${attachmentId}-${userId}-${emoji}`
+    if (pendingReactionsRef.current.has(reactionKey)) {
+      return
+    }
     
     setMessages(prev => prev.map(msg => {
       const attachmentIndex = msg.attachments?.findIndex(a => a.id == attachmentId)
@@ -759,6 +767,11 @@ export default function ChatEngine({
               formData.append('reply_to_message_id', msg.reply_to_message_id)
             }
             
+            // Include reply_to_attachment_id if replying to specific attachment
+            if (msg.reply_to_attachment_id) {
+              formData.append('reply_to_attachment_id', msg.reply_to_attachment_id)
+            }
+            
             // Add attachments
             msg.attachments.forEach((attachment, index) => {
               formData.append(`attachments[${index}]`, attachment.file)
@@ -790,6 +803,11 @@ export default function ChatEngine({
             // Include reply_to_message_id if replying
             if (msg.reply_to_message_id) {
               requestData.reply_to_message_id = msg.reply_to_message_id
+            }
+            
+            // Include reply_to_attachment_id if replying to specific attachment
+            if (msg.reply_to_attachment_id) {
+              requestData.reply_to_attachment_id = msg.reply_to_attachment_id
             }
             
             response = await fetch('/api/chat/messages', {
@@ -970,8 +988,9 @@ export default function ChatEngine({
 
 
   // Add message to optimistic queue
-  const queueMessage = (messageText, replyToMessageId = null, attachments = []) => {
-    console.log('queueMessage called:', { messageText, replyToMessageId, attachmentsCount: attachments.length })
+  const queueMessage = (messageText, replyToMessageId = null, replyToAttachmentId = null, attachments = []) => {
+    console.log('queueMessage called:', { messageText, replyToMessageId, replyToAttachmentId, attachmentsCount: attachments.length })
+    console.log('DEBUG - replyToAttachmentId value:', replyToAttachmentId, 'Type:', typeof replyToAttachmentId)
     if ((!messageText.trim() && attachments.length === 0) || !selectedChat || sending) return false
     
     // Filter restricted words from message
@@ -1006,11 +1025,20 @@ export default function ChatEngine({
     const allMessages = getMergedMessages(messages)
     const replyToMessage = replyToMessageId ? allMessages.find(m => m.id === replyToMessageId) : null
     
+    // If replying to an attachment, find the specific attachment
+    let replyToAttachment = null
+    if (replyToAttachmentId && replyToMessage) {
+      replyToAttachment = replyToMessage.attachments?.find(a => a.id === replyToAttachmentId)
+    }
+    
     // Add to optimistic queue with filtered message and attachments
+    console.log('DEBUG - Adding to optimistic queue with reply_to_attachment_id:', replyToAttachmentId)
     const optimisticMsg = addOptimisticMessage({
       body: filteredText,
       attachments: attachments,
       reply_to_message_id: replyToMessageId,
+      reply_to_attachment_id: replyToAttachmentId,
+      reply_to_attachment: replyToAttachment,
       reply_to_message: replyToMessage ? {
         id: replyToMessage.id,
         body: replyToMessage.body,
@@ -1019,6 +1047,7 @@ export default function ChatEngine({
         created_at: replyToMessage.created_at,
       } : null,
     })
+    console.log('DEBUG - Optimistic message created:', optimisticMsg)
     
     // Clear input immediately for instant feedback
     setNewMessage('')
@@ -1044,13 +1073,13 @@ export default function ChatEngine({
   }
 
   // Shared function for sending messages (legacy, now just queues)
-  const sendMessageToRecipient = async (message, recipient, recipientType, attachments = [], replyToMessageId = null) => {
-    console.log('sendMessageToRecipient called:', { message, recipientType, attachmentsCount: attachments.length, replyToMessageId })
+  const sendMessageToRecipient = async (message, recipient, recipientType, attachments = [], replyToMessageId = null, replyToAttachmentId = null) => {
+    console.log('sendMessageToRecipient called:', { message, recipientType, attachmentsCount: attachments.length, replyToMessageId, replyToAttachmentId })
     if ((!message.trim() && attachments.length === 0) || !recipient) return false
     
     // If we're in an existing chat (selectedChat is set and matches recipient), use the optimistic queue
     if (selectedChat && selectedChat.id === recipient.id && chatType === recipientType) {
-      return queueMessage(message, replyToMessageId, attachments)
+      return queueMessage(message, replyToMessageId, replyToAttachmentId, attachments)
     }
     
     // Otherwise, we're sending from compose mode - send directly to API
@@ -1085,9 +1114,14 @@ export default function ChatEngine({
         formData.append('recipient_id', recipient.id)
       }
       
-      // Include reply_to_message_id if replying
+      // Include reply_to_message_id if replying to a message
       if (replyToMessageId) {
         formData.append('reply_to_message_id', replyToMessageId)
+      }
+      
+      // Include reply_to_attachment_id if replying to a specific attachment
+      if (replyToAttachmentId) {
+        formData.append('reply_to_attachment_id', replyToAttachmentId)
       }
       
       // Add attachments
@@ -1139,7 +1173,7 @@ export default function ChatEngine({
     console.log('ChatEngine handleSendMessage:', { message: newMessage, pendingAttachments: pendingAttachments.length })
     if ((!newMessage.trim() && pendingAttachments.length === 0) || !selectedChat) return
 
-    const success = await sendMessageToRecipient(newMessage, selectedChat, chatType, pendingAttachments, replyingTo?.id)
+    const success = await sendMessageToRecipient(newMessage, selectedChat, chatType, pendingAttachments, replyingTo?.id, replyingTo?.attachmentId)
     
     if (success) {
       // Clear pending attachments and trigger MessageInput cleanup
@@ -1149,8 +1183,25 @@ export default function ChatEngine({
   }
 
   // Handle reply button click
-  const handleReplyClick = (message) => {
-    setReplyingTo(message)
+  const handleReplyClick = (messageOrRef) => {
+    // If this is an attachment reply (has attachmentId), find the full message
+    if (messageOrRef.attachmentId) {
+      const allMessages = getMergedMessages(messages)
+      const fullMessage = allMessages.find(m => m.id === messageOrRef.id)
+      if (fullMessage) {
+        // Find the specific attachment
+        const attachment = fullMessage.attachments?.find(a => a.id === messageOrRef.attachmentId)
+        setReplyingTo({
+          ...fullMessage,
+          attachmentId: messageOrRef.attachmentId,
+          replyAttachment: attachment // Store the specific attachment for preview
+        })
+      }
+    } else {
+      // Regular message reply
+      setReplyingTo(messageOrRef)
+    }
+    
     // Focus the message input after a brief delay to ensure state update
     setTimeout(() => {
       messageInputRef.current?.focus()
@@ -1201,8 +1252,7 @@ export default function ChatEngine({
                 user: currentUser,
                 emoji: reaction.emoji,
                 name: reaction.name,
-                created_at: new Date().toISOString(),
-                isNewReaction: true // Mark as new for animation
+                created_at: new Date().toISOString()
               }
             ]
           }
@@ -1232,47 +1282,29 @@ export default function ChatEngine({
       
       const data = await response.json()
       
-      // Update with real data from server, preserving emoji order
-      setMessages(prev => prev.map(msg => {
-        if (msg.id == messageId) {
-          const oldReactions = msg.reactions || []
-          const newReactions = data.reactions || []
-          
-          // Create a map of existing emoji positions
-          const emojiPositions = new Map()
-          oldReactions.forEach((r, index) => {
-            if (!emojiPositions.has(r.emoji)) {
-              emojiPositions.set(r.emoji, index)
-            }
-          })
-          
-          // Sort new reactions by original position, new emojis go to the end
-          const sortedReactions = [...newReactions].sort((a, b) => {
-            const posA = emojiPositions.has(a.emoji) ? emojiPositions.get(a.emoji) : Infinity
-            const posB = emojiPositions.has(b.emoji) ? emojiPositions.get(b.emoji) : Infinity
-            return posA - posB
-          })
-          
-          return { ...msg, reactions: sortedReactions }
-        }
-        return msg
-      }))
+      // Remove from pending set BEFORE updating
+      pendingReactionsRef.current.delete(reactionKey)
+      
+      // DON'T update from server response - we already did optimistic update
+      // The server response is just confirmation. Broadcasts will handle other users.
+      // This prevents flickering from server responses conflicting with optimistic updates
       
     } catch (error) {
       console.error('Error adding reaction:', error)
-      // Revert optimistic update on error by fetching fresh message state
-      try {
-        const freshResponse = await fetch(`/api/chat/messages?conversation_id=${selectedChat?.id}&type=${chatType}`)
-        if (freshResponse.ok) {
-          const freshData = await freshResponse.json()
-          setMessages(freshData.messages || [])
-        }
-      } catch (refreshError) {
-        console.error('Failed to refresh messages:', refreshError)
-      }
-    } finally {
-      // Remove from pending set
+      
+      // Remove from pending on error too
       pendingReactionsRef.current.delete(reactionKey)
+      
+      // Revert optimistic update on error
+      setMessages(prev => prev.map(msg => {
+        if (msg.id == messageId) {
+          const revertedReactions = (msg.reactions || []).filter(
+            r => !(r.user_id === currentUser.id && r.emoji === reaction.emoji && r.id?.startsWith('temp-'))
+          )
+          return { ...msg, reactions: revertedReactions }
+        }
+        return msg
+      }))
     }
   }
 
@@ -1309,24 +1341,21 @@ export default function ChatEngine({
         if (userReactionIndex >= 0) {
           // Remove reaction if already exists (toggle off)
           updatedReactions = existingReactions.filter((_, i) => i !== userReactionIndex)
-        } else {
-          // Add new reaction
-          updatedReactions = [
-            ...existingReactions,
-            {
-              id: `temp-${Date.now()}`,
-              attachment_id: attachmentId,
-              user_id: currentUser.id,
-              user: currentUser,
-              emoji: reaction.emoji,
-              name: reaction.name,
-              created_at: new Date().toISOString(),
-              isNewReaction: true // Mark as new for animation
-            }
-          ]
-        }
-        
-        updatedAttachments[attachmentIndex] = {
+          } else {
+            // Add new reaction
+            updatedReactions = [
+              ...existingReactions,
+              {
+                id: `temp-${Date.now()}`,
+                attachment_id: attachmentId,
+                user_id: currentUser.id,
+                user: currentUser,
+                emoji: reaction.emoji,
+                name: reaction.name,
+                created_at: new Date().toISOString()
+              }
+            ]
+          }        updatedAttachments[attachmentIndex] = {
           ...attachment,
           reactions: updatedReactions
         }
@@ -1349,59 +1378,44 @@ export default function ChatEngine({
       })
       
       if (!response.ok) {
-        throw new Error('Failed to add attachment reaction')
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        console.error('Attachment reaction API error:', response.status, errorData)
+        throw new Error(`Failed to add attachment reaction: ${errorData.message || response.statusText}`)
       }
       
       const data = await response.json()
       
-      // Update with real data from server
+      // Remove from pending set BEFORE updating
+      pendingReactionsRef.current.delete(reactionKey)
+      
+      // DON'T update from server response - we already did optimistic update
+      // The server response is just confirmation. Broadcasts will handle other users.
+      // This prevents flickering from server responses conflicting with optimistic updates
+      
+    } catch (error) {
+      console.error('Error adding attachment reaction:', error)
+      
+      // Remove from pending on error too
+      pendingReactionsRef.current.delete(reactionKey)
+      
+      // Revert optimistic update on error
       setMessages(prev => prev.map(msg => {
         const attachmentIndex = msg.attachments?.findIndex(a => a.id === attachmentId)
         if (attachmentIndex === -1 || attachmentIndex === undefined) return msg
         
         const updatedAttachments = [...msg.attachments]
         const attachment = updatedAttachments[attachmentIndex]
-        const oldReactions = attachment.reactions || []
-        const newReactions = data.reactions || []
-        
-        // Create a map of existing emoji positions
-        const emojiPositions = new Map()
-        oldReactions.forEach((r, index) => {
-          if (!emojiPositions.has(r.emoji)) {
-            emojiPositions.set(r.emoji, index)
-          }
-        })
-        
-        // Sort new reactions by original position
-        const sortedReactions = [...newReactions].sort((a, b) => {
-          const posA = emojiPositions.has(a.emoji) ? emojiPositions.get(a.emoji) : Infinity
-          const posB = emojiPositions.has(b.emoji) ? emojiPositions.get(b.emoji) : Infinity
-          return posA - posB
-        })
+        const revertedReactions = (attachment.reactions || []).filter(
+          r => !(r.user_id === currentUser.id && r.emoji === reaction.emoji && r.id?.startsWith('temp-'))
+        )
         
         updatedAttachments[attachmentIndex] = {
           ...attachment,
-          reactions: sortedReactions
+          reactions: revertedReactions
         }
         
         return { ...msg, attachments: updatedAttachments }
       }))
-      
-    } catch (error) {
-      console.error('Error adding attachment reaction:', error)
-      // Revert optimistic update on error
-      try {
-        const freshResponse = await fetch(`/api/chat/messages?conversation_id=${selectedChat?.id}&type=${chatType}`)
-        if (freshResponse.ok) {
-          const freshData = await freshResponse.json()
-          setMessages(freshData.messages || [])
-        }
-      } catch (refreshError) {
-        console.error('Failed to refresh messages:', refreshError)
-      }
-    } finally {
-      // Remove from pending set
-      pendingReactionsRef.current.delete(reactionKey)
     }
   }
 

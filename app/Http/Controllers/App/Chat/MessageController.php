@@ -172,7 +172,7 @@ class MessageController extends Controller
         // Clone query to check for more messages
         $checkQuery = clone $query;
         
-        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user'])
+        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment'])
             ->orderBy('sent_at', 'desc')
             ->limit($perPage)
             ->get()
@@ -206,6 +206,7 @@ class MessageController extends Controller
             'recipient_id' => 'nullable|integer',
             'mentions' => 'nullable|array',
             'reply_to_message_id' => 'nullable|integer|exists:pulse.messages,id',
+            'reply_to_attachment_id' => 'nullable|integer|exists:pulse.message_attachments,id',
             'attachments.*' => 'nullable|file|max:512000', // Max 500MB per file
         ];
 
@@ -270,6 +271,7 @@ class MessageController extends Controller
             'type' => $data['type'] ?? 'message',
             'sent_at' => now(),
             'reply_to_message_id' => $data['reply_to_message_id'] ?? null,
+            'reply_to_attachment_id' => $data['reply_to_attachment_id'] ?? null,
         ]);
         
         // Attach uploaded attachments to the message
@@ -318,7 +320,7 @@ class MessageController extends Controller
             // Log broadcast failure but don't stop message from being sent
             \Log::warning('Failed to broadcast message: ' . $e->getMessage());
         }
-        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user']), 201);
+        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment']), 201);
     }
     // List direct message contacts for the current user
     public function contacts(Request $request)
@@ -377,15 +379,42 @@ class MessageController extends Controller
         ]);
         $userId = auth()->user()->id;
         
-        // Check if reaction already exists (use binary comparison for emoji)
+        \Log::info('ADD REACTION REQUEST', [
+            'messageId' => $messageId,
+            'userId' => $userId,
+            'emoji' => $data['emoji'],
+            'name' => $data['name'] ?? null,
+        ]);
+        
+        // Check if reaction already exists
         $existingReaction = MessageReaction::where('message_id', $messageId)
             ->where('user_id', $userId)
-            ->whereRaw('BINARY emoji = ?', [$data['emoji']])
+            ->where('emoji', $data['emoji'])
             ->first();
+        
+        // Get all reactions for this user/message to debug
+        $allUserReactions = MessageReaction::where('message_id', $messageId)
+            ->where('user_id', $userId)
+            ->get();
+        
+        \Log::info('EXISTING REACTION CHECK', [
+            'searchingFor' => $data['emoji'],
+            'searchingForHex' => bin2hex($data['emoji']),
+            'exists' => $existingReaction ? true : false,
+            'existingId' => $existingReaction?->id,
+            'existingEmoji' => $existingReaction?->emoji,
+            'existingEmojiHex' => $existingReaction ? bin2hex($existingReaction->emoji) : null,
+            'allUserReactions' => $allUserReactions->map(fn($r) => [
+                'id' => $r->id,
+                'emoji' => $r->emoji,
+                'emojiHex' => bin2hex($r->emoji)
+            ])->toArray()
+        ]);
         
         if ($existingReaction) {
             // Remove reaction if it exists (toggle off)
             $existingReaction->delete();
+            \Log::info('REMOVED REACTION', ['emoji' => $data['emoji']]);
             broadcast(new \App\Events\Chat\MessageReactionRemoved($messageId, $userId, $data['emoji']))->toOthers();
         } else {
             // Add new reaction
@@ -395,6 +424,7 @@ class MessageController extends Controller
                 'emoji' => $data['emoji'],
                 'name' => $data['name'] ?? null,
             ]);
+            \Log::info('CREATED REACTION', ['id' => $reaction->id, 'emoji' => $data['emoji']]);
             // Load user and message relationships for broadcasting
             $reaction->load(['user', 'message']);
             broadcast(new \App\Events\Chat\MessageReactionAdded($reaction))->toOthers();
@@ -403,6 +433,7 @@ class MessageController extends Controller
         // Return all reactions for this message with user data
         $reactions = MessageReaction::where('message_id', $messageId)
             ->with('user')
+            ->orderBy('id', 'asc')
             ->get();
         
         return response()->json(['status' => 'ok', 'reactions' => $reactions]);
@@ -596,7 +627,7 @@ class MessageController extends Controller
         // Check if reaction already exists (use binary comparison for emoji)
         $existingReaction = \App\Models\Chat\AttachmentReaction::where('attachment_id', $attachmentId)
             ->where('user_id', $userId)
-            ->whereRaw('BINARY emoji = ?', [$data['emoji']])
+            ->where('emoji', $data['emoji'])
             ->first();
         
         if ($existingReaction) {
@@ -619,6 +650,7 @@ class MessageController extends Controller
         // Return all reactions for this attachment with user data
         $reactions = \App\Models\Chat\AttachmentReaction::where('attachment_id', $attachmentId)
             ->with('user')
+            ->orderBy('id', 'asc')
             ->get();
         
         return response()->json(['status' => 'ok', 'reactions' => $reactions]);

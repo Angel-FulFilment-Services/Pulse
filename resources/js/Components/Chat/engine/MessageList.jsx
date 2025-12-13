@@ -44,8 +44,10 @@ export default function MessageList({
   }
 
   // Scroll to a specific message
-  const scrollToMessage = (messageId) => {
-    const element = messageRefs.current[messageId]
+  const scrollToMessage = (messageId, attachmentId = null) => {
+    // If attachmentId is provided, scroll to the specific attachment
+    const targetId = attachmentId || messageId
+    const element = messageRefs.current[targetId]
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       // Add a brief highlight effect to the bubble
@@ -222,7 +224,16 @@ export default function MessageList({
                                 const attachmentKey = attachment.id ? `msg-${message.id}-att-${attachment.id}` : `msg-${message.id}-att-${index}`
                                 
                                 return (
-                                  <div key={attachmentKey} className={prevAttachmentHasReactions ? 'mt-7' : ''}>
+                                  <div 
+                                    key={attachmentKey} 
+                                    className={prevAttachmentHasReactions ? 'mt-7' : ''}
+                                    ref={el => {
+                                      // Store ref for both message and attachment
+                                      if (el && attachment.id) {
+                                        messageRefs.current[attachment.id] = el
+                                      }
+                                    }}
+                                  >
                                     <AttachmentPreview
                                       attachment={attachment}
                                       onImageClick={setLightboxImage}
@@ -235,6 +246,7 @@ export default function MessageList({
                                       onPinAttachment={onPinAttachment}
                                       onDeleteAttachment={onDeleteAttachment}
                                       onRestoreAttachment={onRestoreAttachment}
+                                      onReplyClick={onReplyClick}
                                       isPinned={pinnedAttachmentId === attachment.id}
                                       isDeleted={attachment.deleted_at != null}
                                       pendingReactionsRef={pendingReactionsRef}
@@ -310,13 +322,26 @@ export default function MessageList({
                             {/* Content wrapper with relative positioning to appear above gradient */}
                             <div className="relative z-10">
                               {/* Show replied message context if this is a reply and not deleted */}
-                              {message.reply_to_message && !message.deleted_at && (
-                                <ReplyBubble 
-                                  repliedMessage={message.reply_to_message} 
-                                  isMyMessage={isMyGroup}
-                                  onClickReply={scrollToMessage}
-                                />
-                              )}
+                              {message.reply_to_message && !message.deleted_at && (() => {
+                                // Look up the current state of the replied message from the messages array
+                                let currentRepliedMessage = messages.find(m => m.id === message.reply_to_message.id) || message.reply_to_message
+                                
+                                // If this message has a reply_to_attachment, add it to the replied message
+                                if (message.reply_to_attachment) {
+                                  currentRepliedMessage = {
+                                    ...currentRepliedMessage,
+                                    reply_to_attachment: message.reply_to_attachment
+                                  }
+                                }
+                                
+                                return (
+                                  <ReplyBubble 
+                                    repliedMessage={currentRepliedMessage} 
+                                    isMyMessage={isMyGroup}
+                                    onClickReply={scrollToMessage}
+                                  />
+                                )
+                              })()}
                               
                               {message.deleted_at ? (
                                 <div className="flex items-center gap-3">
@@ -351,29 +376,20 @@ export default function MessageList({
                               onPinMessage={onPinMessage}
                               isPinned={message.id === pinnedMessageId}
                               onDeleteMessage={onDeleteMessage}
+                              onReplyClick={onReplyClick}
                               isDeleted={!!message.deleted_at}
                             />
                           )}
                           
-                          {/* Reply/Retry button - aligned to bubble top, hide for deleted messages */}
-                          {!message.deleted_at && (
-                            message.status === 'failed' ? (
-                              <button
-                                onClick={() => onRetryMessage?.(message.id)}
-                                className="mt-1 p-1 text-red-500 hover:text-red-700"
-                                title="Retry sending"
-                              >
-                                <ArrowPathIcon className="w-4 h-4" />
-                              </button>
-                            ) : onReplyClick && (
-                              <button
-                                onClick={() => onReplyClick(message)}
-                                className="opacity-0 group-hover/message:opacity-100 transition-opacity mt-1 p-1 text-gray-400 hover:text-gray-600"
-                                title="Reply"
-                              >
-                                <ArrowUturnLeftIcon className="w-4 h-4" />
-                              </button>
-                            )
+                          {/* Retry button for failed messages - aligned to bubble top */}
+                          {!message.deleted_at && message.status === 'failed' && (
+                            <button
+                              onClick={() => onRetryMessage?.(message.id)}
+                              className="mt-1 p-1 text-red-500 hover:text-red-700"
+                              title="Retry sending"
+                            >
+                              <ArrowPathIcon className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
                         )}

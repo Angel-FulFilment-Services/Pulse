@@ -10,7 +10,7 @@ class Message extends Model
 {
     protected $connection = 'pulse';
     protected $fillable = [
-        'team_id', 'sender_id', 'recipient_id', 'body', 'mentions', 'type', 'is_edited', 'sent_at', 'reply_to_message_id', 'deleted_at'
+        'team_id', 'sender_id', 'recipient_id', 'body', 'mentions', 'type', 'is_edited', 'sent_at', 'reply_to_message_id', 'reply_to_attachment_id', 'deleted_at'
     ];
 
     public function team(): BelongsTo
@@ -51,5 +51,10 @@ class Message extends Model
     public function replyToMessage(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'reply_to_message_id');
+    }
+    
+    public function replyToAttachment(): BelongsTo
+    {
+        return $this->belongsTo(MessageAttachment::class, 'reply_to_attachment_id');
     }
 }

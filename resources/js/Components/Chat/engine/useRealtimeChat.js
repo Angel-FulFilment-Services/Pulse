@@ -24,6 +24,7 @@ export function useRealtimeChat({
   onAttachmentRestored
 }) {
   const echoRef = useRef(null)
+  const currentUserRef = useRef(currentUser)
   const onMessageReceivedRef = useRef(onMessageReceived)
   const onMessageReadRef = useRef(onMessageRead)
   const onClearTypingUserRef = useRef(onClearTypingUser)
@@ -42,6 +43,7 @@ export function useRealtimeChat({
 
   // Keep refs up to date
   useEffect(() => {
+    currentUserRef.current = currentUser
     onMessageReceivedRef.current = onMessageReceived
     onMessageReadRef.current = onMessageRead
     onClearTypingUserRef.current = onClearTypingUser
@@ -101,32 +103,32 @@ export function useRealtimeChat({
       
       // Listen for reaction added
       channel.listen('.MessageReactionAdded', (e) => {
-        console.log('.MessageReactionAdded event received!', e)
-        if (onReactionAddedRef.current && e.reaction) {
+        // Ignore our own reactions
+        if (e.reaction && e.reaction.user_id !== currentUserRef.current?.id && onReactionAddedRef.current) {
           onReactionAddedRef.current(e.reaction)
         }
       })
       
       // Listen for reaction removed
       channel.listen('.MessageReactionRemoved', (e) => {
-        console.log('.MessageReactionRemoved event received!', e)
-        if (onReactionRemovedRef.current) {
+        // Ignore our own reactions
+        if (e.user_id !== currentUserRef.current?.id && onReactionRemovedRef.current) {
           onReactionRemovedRef.current(e.message_id, e.user_id, e.emoji)
         }
       })
       
       // Listen for attachment reaction added
       channel.listen('.AttachmentReactionAdded', (e) => {
-        console.log('.AttachmentReactionAdded event received!', e)
-        if (onAttachmentReactionAddedRef.current && e.reaction) {
+        // Ignore our own reactions
+        if (e.reaction && e.reaction.user_id !== currentUserRef.current?.id && onAttachmentReactionAddedRef.current) {
           onAttachmentReactionAddedRef.current(e.reaction)
         }
       })
       
       // Listen for attachment reaction removed
       channel.listen('.AttachmentReactionRemoved', (e) => {
-        console.log('.AttachmentReactionRemoved event received!', e)
-        if (onAttachmentReactionRemovedRef.current) {
+        // Ignore our own reactions
+        if (e.user_id !== currentUserRef.current?.id && onAttachmentReactionRemovedRef.current) {
           onAttachmentReactionRemovedRef.current(e.attachment_id, e.user_id, e.emoji)
         }
       })

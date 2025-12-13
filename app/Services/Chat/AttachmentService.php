@@ -187,9 +187,56 @@ class AttachmentService
     public function getFile(string $storagePath, string $driver = 'r2'): ?string
     {
         try {
-            return Storage::disk($driver)->get($storagePath);
+            \Log::info('Attempting to get file from storage', [
+                'path' => $storagePath,
+                'driver' => $driver
+            ]);
+            
+            // Try the specified driver first
+            $exists = Storage::disk($driver)->exists($storagePath);
+            \Log::info('File exists check', ['exists' => $exists, 'path' => $storagePath, 'driver' => $driver]);
+            
+            if ($exists) {
+                $content = Storage::disk($driver)->get($storagePath);
+                \Log::info('File retrieved successfully', [
+                    'path' => $storagePath,
+                    'driver' => $driver,
+                    'size' => strlen($content)
+                ]);
+                return $content;
+            }
+            
+            // Fallback: try the opposite driver (r2 <-> local)
+            $fallbackDriver = $driver === 'r2' ? 'local' : 'r2';
+            \Log::info('File not found, trying fallback driver', [
+                'original_driver' => $driver,
+                'fallback_driver' => $fallbackDriver,
+                'path' => $storagePath
+            ]);
+            
+            if (Storage::disk($fallbackDriver)->exists($storagePath)) {
+                $content = Storage::disk($fallbackDriver)->get($storagePath);
+                \Log::info('File retrieved from fallback driver', [
+                    'path' => $storagePath,
+                    'driver' => $fallbackDriver,
+                    'size' => strlen($content)
+                ]);
+                return $content;
+            }
+            
+            \Log::warning('File does not exist in any storage', [
+                'path' => $storagePath,
+                'tried_drivers' => [$driver, $fallbackDriver]
+            ]);
+            return null;
+            
         } catch (\Exception $e) {
-            \Log::error('Failed to get file from storage: ' . $e->getMessage());
+            \Log::error('Failed to get file from storage', [
+                'path' => $storagePath,
+                'driver' => $driver,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }

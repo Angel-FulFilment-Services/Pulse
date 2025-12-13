@@ -17,6 +17,7 @@ export default function AttachmentPreview({
   onPinAttachment = null,
   onDeleteAttachment = null,
   onRestoreAttachment = null,
+  onReplyClick = null,
   isPinned = false,
   isDeleted = false,
   pendingReactionsRef = null,
@@ -145,6 +146,9 @@ export default function AttachmentPreview({
       return content
     }
 
+    // Check if we have reactions to display
+    const hasReactions = showReactions && attachment.reactions && attachment.reactions.length > 0
+
     return (
       <div 
         ref={attachmentRef}
@@ -178,20 +182,35 @@ export default function AttachmentPreview({
           onPinAttachment={onPinAttachment}
           isPinned={isPinned}
           onDeleteAttachment={onDeleteAttachment}
+          onReplyClick={onReplyClick}
           isDeleted={isDeleted}
           showReactionButtons={showReactions}
+          messageId={messageId}
         />
       </div>
     )
   }
 
   // Don't render anything if image failed to load and it's not deletable (sent messages)
-  if (error && !isDeletable && fileType === 'image') {
-    return null
-  }
+  // if (error && !isDeletable && fileType === 'image') {
+  //   return null
+  // }
 
   // Render image attachment
   if (fileType === 'image') {
+    // For composer mode with file object, create/use blob URL
+    const imageUrl = isDeletable 
+      ? (attachment.preview || (attachment.file ? URL.createObjectURL(attachment.file) : attachment.url))
+      : (attachment.thumbnail_url || attachment.url || attachment.preview)
+    
+    // Only add version param to non-blob URLs, and use proper query string format
+    const isBlobUrl = imageUrl?.startsWith('blob:')
+    const imageUrlWithVersion = isBlobUrl 
+      ? imageUrl 
+      : (attachment.id && !isDeletable 
+          ? imageUrl + (imageUrl.includes('?') ? '&' : '?') + `v=${attachment.id}`
+          : imageUrl)
+    
     return wrapWithReactions(
       <div 
         ref={containerRef}
@@ -202,14 +221,21 @@ export default function AttachmentPreview({
           // Composer mode - with borders and banner
           <div className="bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
             <div className="h-48 bg-gray-100 flex items-center justify-center relative">
-              <img
-                key={attachment.id || attachment.url}
-                src={(attachment.thumbnail_url || attachment.url || attachment.preview) + (attachment.id ? `?v=${attachment.id}` : '')}
-                alt={attachment.file_name || attachment.name}
-                className="w-full h-full object-contain"
-                onError={handleImageError}
-                loading="lazy"
-              />
+              {!error && imageUrl ? (
+                <img
+                  key={attachment.id || attachment.preview || attachment.url}
+                  src={imageUrlWithVersion}
+                  alt={attachment.file_name || attachment.name}
+                  className="w-full h-full object-contain"
+                  onError={handleImageError}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <PhotoIcon className="w-12 h-12 text-gray-400" />
+                  <p className="text-sm font-medium text-gray-400 mt-2">Failed to load image</p>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
@@ -229,38 +255,29 @@ export default function AttachmentPreview({
           </div>
         ) : (
           // Chat feed mode - just rounded image
-          <img
-            key={attachment.id || attachment.url}
-            src={(attachment.thumbnail_url || attachment.url || attachment.preview) + (attachment.id ? `?v=${attachment.id}` : '')}
-            alt={attachment.file_name || attachment.name}
-            className="max-w-sm max-h-96 object-contain rounded-lg"
-            onError={handleImageError}
-            loading="lazy"
-          />
-        )}
-        {error && isDeletable && (
-          <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-            <div className="h-48 bg-gray-100 flex flex-col items-center justify-center relative">
-              <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400" />
-              <p className="text-sm font-medium text-gray-400">Failed to load image</p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete?.()
-                }}
-                className="absolute top-2 right-2 p-1.5 bg-theme-500/80 hover:bg-theme-500/90 text-white rounded transition-colors"
-                style={{ backdropFilter: 'blur(4px)' }}
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </button>
+          !error && imageUrl ? (
+            <img
+              key={attachment.id || attachment.url}
+              src={imageUrlWithVersion}
+              alt={attachment.file_name || attachment.name}
+              className="max-w-sm max-h-96 object-contain rounded-lg"
+              onError={handleImageError}
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
+              <div className="h-48 bg-gray-100 flex flex-col items-center justify-center relative">
+                <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400" />
+                <p className="text-sm font-medium text-gray-400">Failed to load image</p>
+              </div>
+              <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
+                <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
+                <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+              </div>
             </div>
-            <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
-              <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
-              <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
-            </div>
-          </div>
+          )
         )}
+        {/* Removed duplicate error display - now handled inline above */}
       </div>
     )
   }
