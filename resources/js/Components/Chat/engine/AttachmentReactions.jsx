@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
-import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../config/EmojiConfig'
+import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Config/EmojiConfig'
 import EmojiPicker from './EmojiPicker'
 
 export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId }) {

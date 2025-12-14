@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
-import { ALL_REACTIONS } from '../../../config/EmojiConfig'
+import { ALL_REACTIONS } from '../../../Config/EmojiConfig'
 
 export default function EmojiPicker({ onSelectEmoji, referenceElement, onClose, userReactions = [] }) {
   const [searchTerm, setSearchTerm] = useState('')
