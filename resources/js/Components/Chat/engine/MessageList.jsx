@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import ReplyBubble from './ReplyBubble'
@@ -37,6 +37,47 @@ export default function MessageList({
   const [lightboxImage, setLightboxImage] = useState(null)
   const [lightboxPdf, setLightboxPdf] = useState(null)
   const bubbleRefs = useRef({})
+  const seenMessageIds = useRef(new Set())
+  const [newMessageIds, setNewMessageIds] = useState(new Set())
+  const isInitialLoad = useRef(true)
+  
+  // Track new messages for animation
+  useEffect(() => {
+    if (loading) return
+    
+    // Mark initial load complete after first render with messages
+    if (isInitialLoad.current && messages.length > 0) {
+      // Add all current message IDs to seen set without animating
+      messages.forEach(msg => seenMessageIds.current.add(msg.id))
+      isInitialLoad.current = false
+      return
+    }
+    
+    // Find truly new messages (not in seen set)
+    const newIds = new Set()
+    messages.forEach(msg => {
+      if (!seenMessageIds.current.has(msg.id)) {
+        // For sent messages, only animate optimistic (temp) messages
+        const isMine = (msg.sender_id || msg.user_id) === currentUser?.id
+        const isOptimistic = String(msg.id).startsWith('temp-')
+        
+        // Animate if: it's a received message OR it's an optimistic sent message
+        if (!isMine || isOptimistic) {
+          newIds.add(msg.id)
+        }
+        
+        seenMessageIds.current.add(msg.id)
+      }
+    })
+    
+    if (newIds.size > 0) {
+      setNewMessageIds(newIds)
+      // Remove animation class after animation completes
+      setTimeout(() => {
+        setNewMessageIds(new Set())
+      }, 300)
+    }
+  }, [messages, loading, currentUser])
   
   // Connect local refs to parent component
   if (messageRefsRef) {
@@ -102,9 +143,19 @@ export default function MessageList({
   }, [])
 
   if (loading) {
+    // Get theme color from CSS variable (RGB values need wrapping)
+    const themeRgb = getComputedStyle(document.body).getPropertyValue('--theme-500').trim()
+    const themeColor = themeRgb ? `rgb(${themeRgb})` : 'rgb(249, 115, 22)' // Default to orange-500
+    
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-theme-600"></div>
+        <l-ring
+          size="40"
+          stroke="4"
+          bg-opacity="0"
+          speed="2"
+          color={themeColor}
+        ></l-ring>
       </div>
     )
   }
@@ -121,9 +172,11 @@ export default function MessageList({
           <div key={groupKey} className="mb-4">
             <div className={`flex ${isMyGroup ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[70%]`}>
-                {/* Avatar - only show for other users */}
+                {/* Avatar - only show for other users, aligned with name/timestamp */}
                 {!isMyGroup && (
-                  <UserIcon contact={group[0].user} size="medium" />
+                  <div className="-mt-[10px]">
+                    <UserIcon contact={group[0].user} size="medium" />
+                  </div>
                 )}
                 
                 <div className="flex-1">
@@ -183,7 +236,8 @@ export default function MessageList({
                       })
                       .map(read => {
                         // Try to get the user name from the read object
-                        return read.user?.name || read.reader?.name || 'Someone'
+                        // user_name is from broadcast, user.name is from initial load
+                        return read.user_name || read.user?.name || read.reader?.name || 'Someone'
                       })
                       .filter((name, index, self) => self.indexOf(name) === index) // Remove duplicates
                     
@@ -212,7 +266,7 @@ export default function MessageList({
                                 messageRefs.current[message.id] = el
                               }
                             }}
-                            className={`flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${hasAttachmentReactions ? 'mb-7' : 'mb-2'}`}
+                            className={`flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${hasAttachmentReactions ? 'mb-7' : 'mb-2'} ${newMessageIds.has(message.id) ? (isMyGroup ? 'animate-message-slide-in-sent' : 'animate-message-slide-in-received') : ''}`}
                           >
                             <div>
                               {message.attachments.map((attachment, index) => {
@@ -226,7 +280,7 @@ export default function MessageList({
                                 return (
                                   <div 
                                     key={attachmentKey} 
-                                    className={prevAttachmentHasReactions ? 'mt-7' : ''}
+                                    className={prevAttachmentHasReactions ? 'mt-7' : 'mt-2'}
                                     ref={el => {
                                       // Store ref for both message and attachment
                                       if (el && attachment.id) {
@@ -272,7 +326,7 @@ export default function MessageList({
                         
                         {/* Container for bubble, reactions, and reply button - only show if there's text or it's deleted */}
                         {(message.body || message.deleted_at) && (
-                          <div className={`group/message peer relative flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div className={`group/message peer relative flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${newMessageIds.has(message.id) ? (isMyGroup ? 'animate-message-slide-in-sent' : 'animate-message-slide-in-received') : ''}`}>
                             {/* Message bubble */}
                             <div 
                               ref={el => {

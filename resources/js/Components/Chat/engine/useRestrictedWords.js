@@ -122,7 +122,6 @@ export function useRestrictedWords() {
       const response = await axios.get('/api/chat/restricted-words')
       restrictedWordsCache.words = response.data.words || []
       restrictedWordsCache.lastFetchTime = Date.now()
-      console.log(`Loaded ${restrictedWordsCache.words.length} restricted words`)
     } catch (error) {
       console.error('Failed to fetch restricted words:', error)
     }

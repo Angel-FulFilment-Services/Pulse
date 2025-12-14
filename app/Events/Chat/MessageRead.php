@@ -41,7 +41,15 @@ class MessageRead implements ShouldBroadcastNow
     public function broadcastWith()
     {
         return [
-            'message_reads' => array_map(fn($read) => $read->toArray(), $this->messageReads),
+            'message_reads' => array_map(function($read) {
+                return [
+                    'id' => $read->id,
+                    'message_id' => $read->message_id,
+                    'user_id' => $read->user_id,
+                    'user_name' => $read->user->name ?? null,
+                    'read_at' => $read->read_at,
+                ];
+            }, $this->messageReads),
         ];
     }
 

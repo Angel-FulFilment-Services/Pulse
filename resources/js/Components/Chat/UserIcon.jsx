@@ -55,7 +55,7 @@ const UserItem = ({ size = 'large', contact }) => {
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />
         )}
-        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-50">
+        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-20">
             <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
         </span>
       </span>

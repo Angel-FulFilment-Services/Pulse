@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { ring } from 'ldrs'
 import { 
-  MagnifyingGlassIcon, 
+  MagnifyingGlassIcon,
   PlusIcon,
   UserIcon as UserIconOutline, 
   UserGroupIcon,
@@ -23,7 +24,10 @@ import {
 } from '@heroicons/react/24/solid'
 import UserIcon from './UserIcon.jsx'
 
-export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0 }) {
+// Register the ring spinner
+ring.register()
+
+export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, lastMessageUpdate = null }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -175,13 +179,51 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showDropdown])
 
-  // Filter items based on search
-  const filteredTeams = teams.filter(team => 
-    team.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-  const filteredContacts = contacts.filter(contact => 
-    contact.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Update last_message_at when a new message is sent or received
+  useEffect(() => {
+    if (!lastMessageUpdate) return
+
+    const { chatType: msgChatType, chatId, timestamp, incrementUnread, resetUnread } = lastMessageUpdate
+
+    if (msgChatType === 'team') {
+      setTeams(prev => prev.map(team => 
+        team.id === chatId 
+          ? { 
+              ...team, 
+              ...(timestamp ? { last_message_at: timestamp } : {}),
+              unread_count: resetUnread ? 0 : (incrementUnread ? (team.unread_count || 0) + 1 : (team.unread_count || 0))
+            }
+          : team
+      ))
+    } else if (msgChatType === 'dm') {
+      setContacts(prev => prev.map(contact => 
+        contact.id === chatId 
+          ? { 
+              ...contact, 
+              ...(timestamp ? { last_message_at: timestamp } : {}),
+              unread_count: resetUnread ? 0 : (incrementUnread ? (contact.unread_count || 0) + 1 : (contact.unread_count || 0))
+            }
+          : contact
+      ))
+    }
+  }, [lastMessageUpdate])
+
+  // Filter items based on search and sort by most recent message
+  const filteredTeams = teams
+    .filter(team => team.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
+      const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
+      return bTime - aTime // Most recent first
+    })
+    
+  const filteredContacts = contacts
+    .filter(contact => contact.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
+      const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
+      return bTime - aTime // Most recent first
+    })
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -231,9 +273,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       
       // Show appropriate notification based on result
       if (result.status === 'added') {
-        console.log(`${type === 'team' ? 'Team' : 'User'} added to favorites`)
       } else if (result.status === 'removed') {
-        console.log(`${type === 'team' ? 'Team' : 'User'} removed from favorites`)
       }
       
       // Refresh favorites
@@ -282,7 +322,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             })
             if (response.ok) {
               const result = await response.json()
-              console.log(`Message ${result.status}:`, item.name)
               // Refresh data to update unread counts
               window.location.reload() // Simple refresh for now
             }
@@ -296,7 +335,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               body: JSON.stringify(chatData)
             })
             if (response.ok) {
-              console.log('Chat hidden:', item.name)
               // TODO: Remove from current view or refresh data
             }
             break
@@ -310,7 +348,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 body: JSON.stringify(chatData)
               })
               if (response.ok) {
-                console.log('Chat history removed:', item.name)
               }
             }
             break
@@ -324,7 +361,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             })
             if (response.ok) {
               const result = await response.json()
-              console.log(`Chat ${result.status}:`, item.name)
               // Refresh chat preferences
               refreshChatPreferences()
             }
@@ -478,6 +514,18 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   // Handle chat selection with context tracking
   const handleChatClick = (chat, type, section) => {
     setSelectedContext({ id: chat.id, type, section })
+    
+    // Reset unread count for this chat
+    if (type === 'team') {
+      setTeams(prev => prev.map(team => 
+        team.id === chat.id ? { ...team, unread_count: 0 } : team
+      ))
+    } else {
+      setContacts(prev => prev.map(contact => 
+        contact.id === chat.id ? { ...contact, unread_count: 0 } : contact
+      ))
+    }
+    
     onChatSelect(chat, type)
   }
 
@@ -490,15 +538,15 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         key={`${section}-team-${team.id}`}
         className={`flex items-center px-3 py-2 mx-2 rounded-lg cursor-pointer group transition-colors ${
           isItemSelected(team, 'team', section)
-            ? 'bg-theme-100 text-theme-900'
+            ? 'bg-theme-50 text-theme-900'
             : 'hover:bg-gray-100'
         }`}
         onClick={() => handleChatClick(team, 'team', section)}
       >
         {/* Unread indicator dot */}
         <div className="w-2 mr-2 flex justify-center">
-          {isUnread && (
-            <div className="w-2 h-2 bg-theme-500 rounded-full"></div>
+          {team.unread_count > 0 && (
+            <div className="w-2 h-2 bg-theme-500 rounded-full animate-sync-pulse"></div>
           )}
         </div>
         
@@ -507,11 +555,16 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium text-gray-900 truncate ${
-            isUnread ? 'font-bold text-base' : ''
+            team.unread_count ? 'font-bold text-base' : ''
           }`}>
             {team.name}
           </p>
-          <p className="text-xs text-gray-500 truncate">{team.description}</p>
+          <p className="text-xs text-gray-500 truncate">
+            {team.unread_count > 0 
+              ? `${team.unread_count} new message${team.unread_count === 1 ? '' : 's'}`
+              : team.description
+            }
+          </p>
         </div>
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
@@ -538,15 +591,15 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         key={`${section}-contact-${contact.id}`}
         className={`flex items-center px-3 py-2 mx-2 rounded-lg cursor-pointer group transition-colors ${
           isItemSelected(contact, 'dm', section)
-            ? 'bg-theme-100 text-theme-900'
+            ? 'bg-theme-50 text-theme-900'
             : 'hover:bg-gray-100'
         }`}
         onClick={() => handleChatClick(contact, 'dm', section)}
       >
         {/* Unread indicator dot */}
         <div className="w-2 mr-2 flex justify-center">
-          {isUnread && (
-            <div className="w-2 h-2 bg-theme-500 rounded-full"></div>
+          {contact.unread_count > 0 && (
+            <div className="w-2 h-2 bg-theme-500 rounded-full animate-sync-pulse"></div>
           )}
         </div>
         
@@ -557,11 +610,11 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium text-gray-900 truncate ${
-            isUnread ? 'font-bold text-base' : ''
+            contact.unread_count ? 'font-bold text-base' : ''
           }`}>
             {contact.name}
           </p>
-          <p className="text-xs text-gray-500 truncate">
+          <div className="text-xs text-gray-500 truncate">
             {(typingUsers[`dm-${contact.id}`] || []).some(u => u.user_id === contact.id) ? (
               <span className="flex gap-x-1.5">
                 Typing
@@ -571,10 +624,12 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                   <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </span>
               </span>
+            ) : contact.unread_count > 0 ? (
+              `${contact.unread_count} new message${contact.unread_count === 1 ? '' : 's'}`
             ) : (
               contact.is_online ? 'Active' : 'Away'
             )}
-          </p>
+          </div>
         </div>
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
@@ -617,7 +672,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         
         if (response.ok) {
           const newTeam = await response.json()
-          console.log('Team created successfully:', newTeam)
           
           // Refresh teams list
           const teamsResponse = await fetch('/api/chat/teams', { 
@@ -730,8 +784,14 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 }`}
               >
                 {isCreating ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="flex items-center gap-2">
+                    <l-ring
+                      size="16"
+                      stroke="2"
+                      bg-opacity="0"
+                      speed="2"
+                      color="white"
+                    ></l-ring>
                     Creating...
                   </div>
                 ) : (
@@ -746,7 +806,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   }
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
@@ -820,23 +880,21 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {!currentUser ? (
-          <div className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-2">Please log in to access chat</p>
-              <button 
-                onClick={() => window.location.href = '/login'}
-                className="px-4 py-2 text-sm font-medium text-white bg-theme-600 hover:bg-theme-700 rounded-lg"
-              >
-                Login
-              </button>
+        {loading ? (() => {
+          const themeRgb = getComputedStyle(document.body).getPropertyValue('--theme-500').trim()
+          const themeColor = themeRgb ? `rgb(${themeRgb})` : 'rgb(249, 115, 22)' // Default to orange-500
+          return (
+            <div className="flex items-center justify-center p-8">
+              <l-ring
+                size="40"
+                stroke="4"
+                bg-opacity="0"
+                speed="2"
+                color={themeColor}
+              ></l-ring>
             </div>
-          </div>
-        ) : loading ? (
-          <div className="flex items-center justify-center p-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-theme-600"></div>
-          </div>
-        ) : (
+          )
+        })() : (
           <>
             {/* Favorites */}
             {favorites.length > 0 && (

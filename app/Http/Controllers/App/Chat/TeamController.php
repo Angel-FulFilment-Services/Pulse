@@ -113,7 +113,7 @@ class TeamController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        // Add unread_count for each team
+        // Add unread_count and last_message_at for each team
         $teams = $teams->map(function($team) use ($userId) {
             $unread = $team->messages()
                 ->whereDoesntHave('reads', function($q) use ($userId) {
@@ -122,6 +122,11 @@ class TeamController extends Controller
                 ->where('sender_id', '!=', $userId)
                 ->count();
             $team->unread_count = $unread;
+            
+            // Get the last message timestamp for sorting
+            $lastMessage = $team->messages()->latest('created_at')->first();
+            $team->last_message_at = $lastMessage ? $lastMessage->created_at : null;
+            
             return $team;
         });
         return response()->json($teams);
@@ -248,10 +253,11 @@ class TeamController extends Controller
         
         $users = User::select('id', 'name', 'email')
             ->whereIn('id', $userIdsWithConversations)
+            ->where('id', '!=', $currentUserId)
             ->orderBy('name', 'asc')
             ->get();
         
-        // Add unread_count for each user (direct messages)
+        // Add unread_count and last_message_at for each user (direct messages)
         $users = $users->map(function($user) use ($currentUserId) {
             $unread = \DB::connection('pulse')
                 ->table('messages')
@@ -267,6 +273,25 @@ class TeamController extends Controller
                 ->count();
             
             $user->unread_count = $unread;
+            
+            // Get the last message timestamp for sorting
+            $lastMessage = \DB::connection('pulse')
+                ->table('messages')
+                ->where(function($query) use ($currentUserId, $user) {
+                    $query->where(function($q) use ($currentUserId, $user) {
+                        $q->where('sender_id', $currentUserId)
+                          ->where('recipient_id', $user->id);
+                    })->orWhere(function($q) use ($currentUserId, $user) {
+                        $q->where('sender_id', $user->id)
+                          ->where('recipient_id', $currentUserId);
+                    });
+                })
+                ->where('team_id', null)
+                ->orderBy('created_at', 'desc')
+                ->first();
+                
+            $user->last_message_at = $lastMessage ? $lastMessage->created_at : null;
+            
             return $user;
         });
         
@@ -278,6 +303,7 @@ class TeamController extends Controller
     {
         // Get all users
         $users = User::select('id', 'name', 'email')
+            ->where('id', '!=', auth()->user()->id)
             ->where('client_ref', '=', 'ANGL')
             ->where('active', 1)
             ->orderBy('name', 'asc')

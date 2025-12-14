@@ -38,6 +38,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ClearOldCookies::class, // Temporarily clear old domain cookies
+            \App\Http\Middleware\UpdateActivity::class, // Update user activity timestamp
         ],
 
         'api' => [
@@ -46,6 +47,7 @@ class Kernel extends HttpKernel
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\UpdateActivity::class, // Update user activity timestamp
         ],
     ];
 
@@ -73,5 +75,6 @@ class Kernel extends HttpKernel
         'twofactor' => \App\Http\Middleware\TwoFactorMiddleware::class,
         'whitelistedIp' => \App\Http\Middleware\WhitelistedIp::class,
         'ipInRange' => \App\Http\Middleware\IpInRange::class,
+        'update.activity' => \App\Http\Middleware\UpdateActivity::class,
     ];
 }

@@ -208,10 +208,10 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
       
       // If duplicate found, schedule removal from queue
       if (isDuplicate) {
-        // Use requestAnimationFrame to clean up queue after render completes
-        requestAnimationFrame(() => {
+        // Use setTimeout to clean up queue immediately but asynchronously
+        setTimeout(() => {
           removeOptimisticMessage(msg.id)
-        })
+        }, 0)
         return false // Don't include in merged messages
       }
       

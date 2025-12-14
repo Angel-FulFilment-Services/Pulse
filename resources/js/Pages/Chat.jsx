@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Sidebar from '../Components/Chat/Sidebar'
 import ChatEngine from '../Components/Chat/ChatEngine'
 import NotificationToast from '../Components/Chat/NotificationToast'
@@ -13,6 +13,18 @@ export default function Chat() {
   const [teams, setTeams] = useState([]) // All teams for channel subscriptions
   const [unreadChats, setUnreadChats] = useState(new Set()) // Track which chats have unread messages
   const [contactsRefreshKey, setContactsRefreshKey] = useState(0)
+  const [lastMessageUpdate, setLastMessageUpdate] = useState(null) // Track last message for sidebar reordering
+  
+  // Use refs to track current selected chat without causing re-subscriptions
+  const selectedChatRef = useRef(selectedChat)
+  const chatTypeRef = useRef(chatType)
+  const subscribedContactsRef = useRef(new Set())
+  const subscribedTeamsRef = useRef(new Set())
+  
+  useEffect(() => {
+    selectedChatRef.current = selectedChat
+    chatTypeRef.current = chatType
+  }, [selectedChat, chatType])
 
   // Fetch current user
   useEffect(() => {
@@ -41,16 +53,21 @@ export default function Chat() {
       .then(res => res.ok ? res.json() : [])
       .then(data => setTeams(Array.isArray(data) ? data : []))
       .catch(() => setTeams([]))
-  }, [currentUser])
+  }, [currentUser, contactsRefreshKey])
 
   // Set up global typing listeners for all DM channels
   useEffect(() => {
-    if (!currentUser?.id || !window.Echo || contacts.length === 0) return
+    if (!currentUser?.id || !window.Echo) return
 
     const channels = []
 
-    // Subscribe to all DM channels
+    // Subscribe to all DM channels (only new ones)
     contacts.forEach(contact => {
+      // Skip if already subscribed
+      if (subscribedContactsRef.current.has(contact.id)) return
+      
+      subscribedContactsRef.current.add(contact.id)
+      
       const channelName = `chat.dm.${Math.min(currentUser.id, contact.id)}.${Math.max(currentUser.id, contact.id)}`
       const channelKey = `dm-${contact.id}`
       const channel = window.Echo.join(channelName)
@@ -65,11 +82,21 @@ export default function Chat() {
         }
       })
       
-      // Listen for new messages to mark as unread
-      channel.listen('.MessageSent', (e) => {
+      // Listen for new message notifications (not the full message, just notification)
+      channel.listen('.MessageNotification', (e) => {
+        const shouldIncrementUnread = e.sender_id !== currentUser.id && 
+          !(selectedChatRef.current?.id === contact.id && chatTypeRef.current === 'dm')
+        
+        // Update last message timestamp for sidebar reordering
+        setLastMessageUpdate({
+          chatType: 'dm',
+          chatId: contact.id,
+          timestamp: e.timestamp || new Date().toISOString(),
+          incrementUnread: shouldIncrementUnread
+        })
+        
         // Only mark as unread if message is from someone else and chat is not currently selected
-        if (e.message.sender_id !== currentUser.id && 
-            !(selectedChat?.id === contact.id && chatType === 'dm')) {
+        if (shouldIncrementUnread) {
           setUnreadChats(prev => new Set([...prev, `dm-${contact.id}`]))
         }
       })
@@ -77,8 +104,24 @@ export default function Chat() {
       channels.push(channelName)
     })
 
-    // Subscribe to all team channels
+    // Also listen to user's private channel for DM notifications (including from new contacts)
+    const userPrivateChannel = window.Echo.private(`user.${currentUser.id}`)
+    userPrivateChannel.listen('.MessageNotification', (e) => {
+      // Check if this is from a contact not in our current contacts list
+      const isNewContact = !contacts.some(c => c.id === e.sender_id)
+      if (isNewContact) {
+        // Refresh contacts to add the new contact
+        setContactsRefreshKey(prev => prev + 1)
+      }
+    })
+
+    // Subscribe to all team channels (only new ones)
     teams.forEach(team => {
+      // Skip if already subscribed
+      if (subscribedTeamsRef.current.has(team.id)) return
+      
+      subscribedTeamsRef.current.add(team.id)
+      
       const channelName = `chat.team.${team.id}`
       const channelKey = `team-${team.id}`
       const channel = window.Echo.join(channelName)
@@ -93,11 +136,21 @@ export default function Chat() {
         }
       })
       
-      // Listen for new messages to mark as unread
-      channel.listen('.MessageSent', (e) => {
+      // Listen for new message notifications (not the full message, just notification)
+      channel.listen('.MessageNotification', (e) => {
+        const shouldIncrementUnread = e.sender_id !== currentUser.id && 
+          !(selectedChatRef.current?.id === team.id && chatTypeRef.current === 'team')
+        
+        // Update last message timestamp for sidebar reordering
+        setLastMessageUpdate({
+          chatType: 'team',
+          chatId: team.id,
+          timestamp: e.timestamp || new Date().toISOString(),
+          incrementUnread: shouldIncrementUnread
+        })
+        
         // Only mark as unread if message is from someone else and chat is not currently selected
-        if (e.message.sender_id !== currentUser.id && 
-            !(selectedChat?.id === team.id && chatType === 'team')) {
+        if (shouldIncrementUnread) {
           setUnreadChats(prev => new Set([...prev, `team-${team.id}`]))
         }
       })
@@ -105,11 +158,28 @@ export default function Chat() {
       channels.push(channelName)
     })
 
-    // Cleanup
+    // Cleanup function to remove listeners when effect re-runs
     return () => {
-      channels.forEach(channelName => {
-        window.Echo.leave(channelName)
+      // Note: We can't properly clean up whisper listeners, so we rely on Echo
+      // to handle duplicate prevention. Just clean up regular listeners.
+      contacts.forEach(contact => {
+        const channelName = `chat.dm.${Math.min(currentUser.id, contact.id)}.${Math.max(currentUser.id, contact.id)}`
+        if (window.Echo.connector.channels[channelName]) {
+          window.Echo.connector.channels[channelName].stopListening('.MessageNotification')
+        }
       })
+      
+      teams.forEach(team => {
+        const channelName = `chat.team.${team.id}`
+        if (window.Echo.connector.channels[channelName]) {
+          window.Echo.connector.channels[channelName].stopListening('.MessageNotification')
+        }
+      })
+      
+      const privateChannelName = `private-user.${currentUser.id}`
+      if (window.Echo.connector.channels[privateChannelName]) {
+        window.Echo.connector.channels[privateChannelName].stopListening('.MessageNotification')
+      }
     }
   }, [currentUser, contacts, teams])
 
@@ -177,6 +247,14 @@ export default function Chat() {
       newSet.delete(chatKey)
       return newSet
     })
+    
+    // Also reset the unread count in the sidebar (without updating timestamp)
+    setLastMessageUpdate({
+      chatType: chatType,
+      chatId: selectedChat.id,
+      incrementUnread: false,
+      resetUnread: true
+    })
   }
 
   // Listen for notifications
@@ -184,6 +262,7 @@ export default function Chat() {
     if (!currentUser?.id || !window.Echo) return
 
     const channel = window.Echo.private(`user.${currentUser.id}`)
+    
     channel.listen('App\\Events\\Chat\\ChatNotification', (e) => {
       let message = 'New message'
       if (e.type === 'mention') message = 'You were mentioned!'
@@ -193,21 +272,14 @@ export default function Chat() {
       setTimeout(() => setNotification(null), 5000)
     })
 
-    return () => channel.stopListening('App\\Events\\Chat\\ChatNotification')
+    return () => {
+      channel.stopListening('App\\Events\\Chat\\ChatNotification')
+    }
   }, [currentUser])
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar
-        typingUsers={typingUsers}
-        unreadChats={unreadChats}
-        onChatSelect={handleChatSelect}
-        selectedChat={selectedChat}
-        chatType={chatType}
-        refreshKey={contactsRefreshKey}
-      />
-      
+    <div className="h-screen sm:flex-row flex-row-reverse flex bg-gray-50">
+      {/* Sidebar */}      
       {/* Chat Area */}
       <ChatEngine
         selectedChat={selectedChat}
@@ -218,11 +290,20 @@ export default function Chat() {
         typingUsers={(() => {
           const channelKey = chatType === 'team' ? `team-${selectedChat?.id}` : `dm-${selectedChat?.id}`
           const users = selectedChat ? (typingUsers[channelKey] || []) : []
-          console.log('Passing typing users to ChatEngine:', { channelKey, users, allTypingUsers: typingUsers })
           return users
         })()}
         onClearTypingUser={clearTypingUser}
         onClearUnread={clearUnreadForCurrentChat}
+      />
+
+      <Sidebar
+        typingUsers={typingUsers}
+        unreadChats={unreadChats}
+        onChatSelect={handleChatSelect}
+        selectedChat={selectedChat}
+        chatType={chatType}
+        refreshKey={contactsRefreshKey}
+        lastMessageUpdate={lastMessageUpdate}
       />
       
       {/* Notifications */}

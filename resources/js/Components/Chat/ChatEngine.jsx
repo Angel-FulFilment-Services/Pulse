@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
+import { ring } from 'ldrs'
 import ChatHeader from './engine/ChatHeader'
+
+// Register the ring spinner
+ring.register()
 import MessageList from './engine/MessageList'
 import MessageInput from './engine/MessageInput'
 import TypingIndicator from './engine/TypingIndicator'
@@ -59,11 +63,6 @@ export default function ChatEngine({
   
   // Track pending reactions to prevent double-clicks
   const pendingReactionsRef = useRef(new Set())
-  
-  // Track scroll positions for each chat (persists during session)
-  const scrollPositionsRef = useRef({})
-  const isInitialLoadRef = useRef(true)
-  const previousChatRef = useRef(null)
 
   // Use optimistic messages hook
   const {
@@ -108,13 +107,6 @@ export default function ChatEngine({
   const isLoadingMoreRef = useRef(false)
   
   useEffect(() => {
-    // Skip auto-scroll during initial load (handled in fetch effect)
-    if (isInitialLoadRef.current) {
-      const mergedMessages = getMergedMessages(messages)
-      prevMessageCountRef.current = mergedMessages.length
-      return
-    }
-    
     // Skip auto-scroll when loading more messages (pagination)
     if (isLoadingMoreRef.current) {
       const mergedMessages = getMergedMessages(messages)
@@ -237,17 +229,6 @@ export default function ChatEngine({
       return
     }
 
-    // Save scroll position of the PREVIOUS chat before switching
-    if (previousChatRef.current && messageListContainerRef.current) {
-      const prevChatKey = previousChatRef.current
-      scrollPositionsRef.current[prevChatKey] = messageListContainerRef.current.scrollTop
-    }
-
-    // Update the current chat key
-    const currentChatKey = chatType === 'team' ? `team-${selectedChat.id}` : `dm-${selectedChat.id}`
-    previousChatRef.current = currentChatKey
-
-    isInitialLoadRef.current = true
     setLoading(true)
     loadedMessageIdsRef.current.clear() // Clear for new chat
     
@@ -281,30 +262,15 @@ export default function ChatEngine({
         
         setLoading(false)
         
-        // Restore scroll position or jump to bottom after messages load
-        requestAnimationFrame(() => {
-          const savedPosition = scrollPositionsRef.current[currentChatKey]
-          
-          if (savedPosition !== undefined && messageListContainerRef.current) {
-            // Restore saved scroll position
-            messageListContainerRef.current.scrollTop = savedPosition
-            
-            // Update scroll state
-            const { scrollTop, scrollHeight, clientHeight } = messageListContainerRef.current
-            isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100
-          } else {
-            // First time opening this chat - jump to bottom instantly
-            messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
-            isUserScrolledUpRef.current = false
-          }
-          
-          isInitialLoadRef.current = false
-        })
+        // Always scroll to bottom when opening a chat
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+          isUserScrolledUpRef.current = false
+        }, 50)
       })
       .catch(() => {
         setMessages([])
         setLoading(false)
-        isInitialLoadRef.current = false
       })
   }, [selectedChat, chatType])
 
@@ -384,10 +350,8 @@ export default function ChatEngine({
     setMessages(prev => {
       const exists = prev.some(msg => msg.id === message.id)
       if (exists) {
-        console.log('Message already exists, skipping:', message.id)
         return prev
       }
-      console.log('Adding message from broadcast:', message.id, 'reply_to:', message.reply_to_message_id)
       
       // If this is a reply, ensure we have the replied message in context
       if (message.reply_to_message_id && !message.reply_to_message) {
@@ -452,8 +416,6 @@ export default function ChatEngine({
 
   // Handle attachment reaction added via broadcast
   const handleAttachmentReactionAdded = (reaction) => {
-    console.log('Attachment reaction added via broadcast:', reaction)
-    
     // Ignore if this is our own reaction and it's still pending
     const reactionKey = `attachment-${reaction.attachment_id}-${reaction.user_id}-${reaction.emoji}`
     if (pendingReactionsRef.current.has(reactionKey)) {
@@ -487,8 +449,6 @@ export default function ChatEngine({
 
   // Handle attachment reaction removed via broadcast
   const handleAttachmentReactionRemoved = (attachmentId, userId, emoji) => {
-    console.log('Attachment reaction removed via broadcast:', { attachmentId, userId, emoji })
-    
     // Ignore if this is our own reaction and it's still pending
     const reactionKey = `attachment-${attachmentId}-${userId}-${emoji}`
     if (pendingReactionsRef.current.has(reactionKey)) {
@@ -530,17 +490,14 @@ export default function ChatEngine({
     onAttachmentReactionAdded: handleAttachmentReactionAdded,
     onAttachmentReactionRemoved: handleAttachmentReactionRemoved,
     onMessagePinned: (message) => {
-      console.log('Message pinned:', message)
       setPinnedMessage(message)
     },
     onMessageUnpinned: (messageId) => {
-      console.log('Message unpinned:', messageId)
       if (pinnedMessage?.id === messageId) {
         setPinnedMessage(null)
       }
     },
     onMessageDeleted: (messageId) => {
-      console.log('Message deleted:', messageId)
       setMessages(prev => prev.map(msg => 
         msg.id == messageId 
           ? { ...msg, deleted_at: new Date().toISOString() }
@@ -548,7 +505,6 @@ export default function ChatEngine({
       ))
     },
     onMessageRestored: (message) => {
-      console.log('Message restored:', message)
       setMessages(prev => prev.map(msg => 
         msg.id == message.id 
           ? { ...message, deleted_at: null }
@@ -556,18 +512,15 @@ export default function ChatEngine({
       ))
     },
     onAttachmentPinned: (attachment) => {
-      console.log('Attachment pinned:', attachment)
       setPinnedAttachment(attachment)
       setPinnedMessage(null)
     },
     onAttachmentUnpinned: (attachmentId) => {
-      console.log('Attachment unpinned:', attachmentId)
       if (pinnedAttachment?.id == attachmentId) {
         setPinnedAttachment(null)
       }
     },
     onAttachmentDeleted: (attachmentId) => {
-      console.log('Attachment deleted:', attachmentId)
       // Mark attachment as deleted in messages
       setMessages(prev => prev.map(msg => ({
         ...msg,
@@ -583,7 +536,6 @@ export default function ChatEngine({
       }
     },
     onAttachmentRestored: (attachment) => {
-      console.log('Attachment restored:', attachment)
       // Mark attachment as restored in messages
       setMessages(prev => prev.map(msg => ({
         ...msg,
@@ -718,17 +670,12 @@ export default function ChatEngine({
   useEffect(() => {
     if (!selectedChat || optimisticQueue.length === 0) return
 
-    console.log('Background processor running. Queue:', optimisticQueue.map(m => ({ id: m.id, status: m.status, body: m.body })))
-
     const processPendingMessages = async () => {
       for (const msg of optimisticQueue) {
         // Skip if not pending or already being processed
         if (msg.status !== 'pending' || processingRef.current.has(msg.id)) {
-          console.log('Skipping message:', msg.id, 'Status:', msg.status, 'Processing:', processingRef.current.has(msg.id))
           continue
         }
-        
-        console.log('Processing pending message:', msg.id, msg.body)
 
         // Mark as being processed
         processingRef.current.add(msg.id)
@@ -739,7 +686,6 @@ export default function ChatEngine({
           if (msg.attachments && msg.attachments.length > 0) {
             const hasValidFiles = msg.attachments.every(att => att.file instanceof File)
             if (!hasValidFiles) {
-              console.log('Message has attachments but File objects are missing (page refresh). Marking as failed.')
               updateMessageStatus(msg.id, 'failed')
               processingRef.current.delete(msg.id)
               continue
@@ -829,14 +775,12 @@ export default function ChatEngine({
           }
           
           const data = await response.json()
-          console.log('Message sent successfully:', data)
           
           // Check if attachments were included in request but missing from response
           if (msg.attachments && msg.attachments.length > 0) {
             const responseAttachments = data.message?.attachments || data.attachments || []
             if (responseAttachments.length === 0) {
               console.error('WARNING: Message sent with attachments but server returned no attachments!')
-              console.log('Requested attachments:', msg.attachments.length, 'Received:', responseAttachments.length)
               // Mark as failed since attachments didn't upload
               updateMessageStatus(msg.id, 'failed')
               return
@@ -918,6 +862,7 @@ export default function ChatEngine({
     if (messageSentTimestamps.current.length >= MAX_MESSAGES_PER_WINDOW) {
       setIsRateLimited(true)
       toast.warning('Slow down! You\'re sending messages too quickly.', {
+        toastId: 'rate-limit-warning',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -941,7 +886,6 @@ export default function ChatEngine({
 
   // Handle attachments change from MessageInput
   const handleAttachmentsChange = (attachments) => {
-    console.log('ChatEngine received attachments:', { count: attachments.length, attachments })
     setPendingAttachments(attachments)
   }
 
@@ -989,8 +933,6 @@ export default function ChatEngine({
 
   // Add message to optimistic queue
   const queueMessage = (messageText, replyToMessageId = null, replyToAttachmentId = null, attachments = []) => {
-    console.log('queueMessage called:', { messageText, replyToMessageId, replyToAttachmentId, attachmentsCount: attachments.length })
-    console.log('DEBUG - replyToAttachmentId value:', replyToAttachmentId, 'Type:', typeof replyToAttachmentId)
     if ((!messageText.trim() && attachments.length === 0) || !selectedChat || sending) return false
     
     // Filter restricted words from message
@@ -999,6 +941,7 @@ export default function ChatEngine({
     // If message is blocked (contains level 3 words), show error and don't send
     if (blocked) {
       toast.error(`Message blocked. Contains prohibited content: ${blockedWords.join(', ')}`, {
+        toastId: 'blocked-content',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1032,7 +975,6 @@ export default function ChatEngine({
     }
     
     // Add to optimistic queue with filtered message and attachments
-    console.log('DEBUG - Adding to optimistic queue with reply_to_attachment_id:', replyToAttachmentId)
     const optimisticMsg = addOptimisticMessage({
       body: filteredText,
       attachments: attachments,
@@ -1047,7 +989,6 @@ export default function ChatEngine({
         created_at: replyToMessage.created_at,
       } : null,
     })
-    console.log('DEBUG - Optimistic message created:', optimisticMsg)
     
     // Clear input immediately for instant feedback
     setNewMessage('')
@@ -1074,7 +1015,6 @@ export default function ChatEngine({
 
   // Shared function for sending messages (legacy, now just queues)
   const sendMessageToRecipient = async (message, recipient, recipientType, attachments = [], replyToMessageId = null, replyToAttachmentId = null) => {
-    console.log('sendMessageToRecipient called:', { message, recipientType, attachmentsCount: attachments.length, replyToMessageId, replyToAttachmentId })
     if ((!message.trim() && attachments.length === 0) || !recipient) return false
     
     // If we're in an existing chat (selectedChat is set and matches recipient), use the optimistic queue
@@ -1089,6 +1029,7 @@ export default function ChatEngine({
     // If message is blocked, show error and don't send
     if (blocked) {
       toast.error(`Message blocked. Contains prohibited content: ${blockedWords.join(', ')}`, {
+        toastId: 'blocked-content',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1126,14 +1067,11 @@ export default function ChatEngine({
       
       // Add attachments
       if (attachments && attachments.length > 0) {
-        console.log('Adding attachments to FormData:', attachments.length)
         attachments.forEach((attachment, index) => {
-          console.log(`Attachment ${index}:`, { name: attachment.name, size: attachment.size, type: attachment.type })
           formData.append(`attachments[${index}]`, attachment.file)
         })
       }
       
-      console.log('Sending message to API with FormData')
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
         credentials: 'same-origin',
@@ -1148,12 +1086,12 @@ export default function ChatEngine({
       }
       
       const data = await response.json()
-      console.log('Message sent successfully from compose:', data)
       
       return true
     } catch (error) {
       console.error('Error sending message from compose:', error)
       toast.error('Failed to send message', {
+        toastId: 'send-failed',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1170,7 +1108,6 @@ export default function ChatEngine({
   // Send message in existing chat
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    console.log('ChatEngine handleSendMessage:', { message: newMessage, pendingAttachments: pendingAttachments.length })
     if ((!newMessage.trim() && pendingAttachments.length === 0) || !selectedChat) return
 
     const success = await sendMessageToRecipient(newMessage, selectedChat, chatType, pendingAttachments, replyingTo?.id, replyingTo?.attachmentId)
@@ -1438,6 +1375,7 @@ export default function ChatEngine({
           setPinnedMessage(null)
           setPinnedAttachment(null)
           toast.success('Message unpinned', {
+            toastId: 'message-unpinned',
             position: 'top-center',
             autoClose: 3000,
             hideProgressBar: false,
@@ -1463,6 +1401,7 @@ export default function ChatEngine({
           setPinnedMessage(data.message)
           setPinnedAttachment(null)
           toast.success('Message pinned', {
+            toastId: 'message-pinned',
             position: 'top-center',
             autoClose: 3000,
             hideProgressBar: false,
@@ -1477,6 +1416,7 @@ export default function ChatEngine({
     } catch (error) {
       console.error('Error pinning message:', error)
       toast.error('Failed to pin message', {
+        toastId: 'pin-failed',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1502,6 +1442,7 @@ export default function ChatEngine({
       // Message not loaded, need to fetch it
       // For now, just scroll to top and load more
       toast.info('Loading pinned message...', {
+        toastId: 'loading-pinned',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1520,8 +1461,6 @@ export default function ChatEngine({
   // Delete message
   const handleDeleteMessage = async (messageId) => {
     if (!selectedChat) return
-    
-    console.log('Deleting message:', messageId)
     
     try {
       const response = await fetch(`/api/chat/messages/${messageId}`, {
@@ -1542,6 +1481,7 @@ export default function ChatEngine({
             : msg
         ))
         toast.success('Message deleted', {
+          toastId: 'message-deleted',
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -1555,6 +1495,7 @@ export default function ChatEngine({
         const errorData = await response.json().catch(() => ({}))
         console.error('Delete failed:', errorData)
         toast.error(errorData.error || 'Failed to delete message', {
+          toastId: 'delete-failed',
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -1607,6 +1548,7 @@ export default function ChatEngine({
             : msg
         ))
         toast.success('Message restored', {
+          toastId: 'message-restored',
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -1620,6 +1562,7 @@ export default function ChatEngine({
         const errorData = await response.json().catch(() => ({}))
         console.error('Restore failed:', errorData)
         toast.error(errorData.error || 'Failed to restore message', {
+          toastId: 'restore-failed',
           position: 'top-center',
           autoClose: 3000,
           hideProgressBar: false,
@@ -1633,6 +1576,7 @@ export default function ChatEngine({
     } catch (error) {
       console.error('Error restoring message:', error)
       toast.error('Failed to restore message', {
+        toastId: 'restore-failed',
         position: 'top-center',
         autoClose: 3000,
         hideProgressBar: false,
@@ -1664,6 +1608,7 @@ export default function ChatEngine({
           setPinnedAttachment(null)
           setPinnedMessage(null)
           toast.success('Attachment unpinned', {
+            toastId: 'attachment-unpinned',
             position: 'top-center',
             autoClose: 2000,
             theme: 'light',
@@ -1684,6 +1629,7 @@ export default function ChatEngine({
           setPinnedAttachment(data.attachment)
           setPinnedMessage(null)
           toast.success('Attachment pinned', {
+            toastId: 'attachment-pinned',
             position: 'top-center',
             autoClose: 2000,
             theme: 'light',
@@ -1693,6 +1639,7 @@ export default function ChatEngine({
     } catch (error) {
       console.error('Error pinning/unpinning attachment:', error)
       toast.error('Failed to pin/unpin attachment', {
+        toastId: 'attachment-pin-failed',
         position: 'top-center',
         autoClose: 3000,
         theme: 'light',
@@ -1730,6 +1677,7 @@ export default function ChatEngine({
         }
         
         toast.success('Attachment deleted', {
+          toastId: 'attachment-deleted',
           position: 'top-center',
           autoClose: 3000,
           theme: 'light',
@@ -1738,6 +1686,7 @@ export default function ChatEngine({
         const errorData = await response.json().catch(() => ({}))
         console.error('Delete failed:', errorData)
         toast.error(errorData.error || 'Failed to delete attachment', {
+          toastId: 'attachment-delete-failed',
           position: 'top-center',
           autoClose: 3000,
           theme: 'light',
@@ -1746,6 +1695,7 @@ export default function ChatEngine({
     } catch (error) {
       console.error('Error deleting attachment:', error)
       toast.error('Failed to delete attachment', {
+        toastId: 'attachment-delete-failed',
         position: 'top-center',
         autoClose: 3000,
         theme: 'light',
@@ -1778,6 +1728,7 @@ export default function ChatEngine({
         })))
         
         toast.success('Attachment restored', {
+          toastId: 'attachment-restored',
           position: 'top-center',
           autoClose: 3000,
           theme: 'light',
@@ -1873,11 +1824,21 @@ export default function ChatEngine({
       {/* Messages */}
       <div ref={messageListContainerRef} className="flex-1 overflow-y-auto px-6 py-4 relative">
         {/* Load more indicator at top */}
-        {loadingMore && (
-          <div className="flex justify-center py-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-600"></div>
-          </div>
-        )}
+        {loadingMore && !loading && (() => {
+          const themeRgb = getComputedStyle(document.body).getPropertyValue('--theme-500').trim()
+          const themeColor = themeRgb ? `rgb(${themeRgb})` : 'rgb(249, 115, 22)' // Default to orange-500
+          return (
+            <div className="flex justify-center py-2">
+              <l-ring
+                size="30"
+                stroke="3"
+                bg-opacity="0"
+                speed="2"
+                color={themeColor}
+              ></l-ring>
+            </div>
+          )
+        })()}
         
         {/* Show "No more messages" if at the top */}
         {!hasMore && messages.length > 0 && !loading && (

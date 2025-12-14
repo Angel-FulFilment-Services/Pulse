@@ -22,7 +22,6 @@ window.Echo = new Echo({
     authorizer: (channel, options) => {
         return {
             authorize: (socketId, callback) => {
-                console.log('Authorizing channel:', channel.name, 'socket:', socketId);
                 fetch('/broadcasting/auth', {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -37,21 +36,17 @@ window.Echo = new Echo({
                     })
                 })
                 .then(response => {
-                    console.log('Auth response:', response.status);
                     if (!response.ok) {
                         return response.text().then(text => {
-                            console.error('Auth failed:', response.status, text);
                             throw new Error(`HTTP ${response.status}: ${text}`);
                         });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Auth successful:', data);
                     callback(null, data);
                 })
                 .catch(error => {
-                    console.error('Auth error:', error);
                     callback(error, null);
                 });
             }

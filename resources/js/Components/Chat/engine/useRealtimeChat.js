@@ -64,11 +64,25 @@ export function useRealtimeChat({
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') return
 
-    // Leave previous channel
-    if (echoRef.current) {
-      echoRef.current.stopListening('MessageSent')
-      echoRef.current.stopListening('Typing')
-      window.Echo.leave(echoRef.current.channelName)
+    // Stop listening to events from previous channel
+    if (echoRef.current?.channel) {
+      const prevChannel = echoRef.current.channel
+      // Remove ChatEngine-specific event listeners from the previous channel
+      prevChannel.stopListening('.MessageSent')
+      prevChannel.stopListening('.ReactionAdded')
+      prevChannel.stopListening('.ReactionRemoved')
+      prevChannel.stopListening('.AttachmentReactionAdded')
+      prevChannel.stopListening('.AttachmentReactionRemoved')
+      prevChannel.stopListening('.MessagePinned')
+      prevChannel.stopListening('.MessageUnpinned')
+      prevChannel.stopListening('.MessageDeleted')
+      prevChannel.stopListening('.MessageRestored')
+      prevChannel.stopListening('.AttachmentPinned')
+      prevChannel.stopListening('.AttachmentUnpinned')
+      prevChannel.stopListening('.AttachmentDeleted')
+      prevChannel.stopListening('.AttachmentRestored')
+      prevChannel.stopListening('.MessageRead')
+      // NOTE: Not calling window.Echo.leave() to preserve global listeners
     }
 
     // Join new channel
@@ -80,15 +94,10 @@ export function useRealtimeChat({
     }
 
     if (channelName) {
-      console.log('Joining channel:', channelName)
       const channel = window.Echo.join(channelName)
-      
-      console.log('Setting up listeners for channel:', channelName)
       
       // Listen for new messages
       channel.listen('.MessageSent', (e) => {
-        console.log('.MessageSent event received!', e)
-        
         // Clear typing indicator for this user immediately
         if (onClearTypingUserRef.current && (e.message.user_id || e.message.sender_id)) {
           const userId = e.message.user_id || e.message.sender_id
@@ -135,7 +144,6 @@ export function useRealtimeChat({
       
       // Listen for message pinned
       channel.listen('.MessagePinned', (e) => {
-        console.log('.MessagePinned event received!', e)
         if (onMessagePinnedRef.current && e.message) {
           onMessagePinnedRef.current(e.message)
         }
@@ -143,7 +151,6 @@ export function useRealtimeChat({
       
       // Listen for message unpinned
       channel.listen('.MessageUnpinned', (e) => {
-        console.log('.MessageUnpinned event received!', e)
         if (onMessageUnpinnedRef.current && e.message_id) {
           onMessageUnpinnedRef.current(e.message_id)
         }
@@ -151,7 +158,6 @@ export function useRealtimeChat({
       
       // Listen for message deleted
       channel.listen('.MessageDeleted', (e) => {
-        console.log('.MessageDeleted event received!', e)
         if (onMessageDeletedRef.current && e.message_id) {
           onMessageDeletedRef.current(e.message_id)
         }
@@ -159,7 +165,6 @@ export function useRealtimeChat({
       
       // Listen for message restored
       channel.listen('.MessageRestored', (e) => {
-        console.log('.MessageRestored event received!', e)
         if (onMessageRestoredRef.current && e.message) {
           onMessageRestoredRef.current(e.message)
         }
@@ -167,7 +172,6 @@ export function useRealtimeChat({
       
       // Listen for attachment pinned
       channel.listen('.AttachmentPinned', (e) => {
-        console.log('.AttachmentPinned event received!', e)
         if (onAttachmentPinnedRef.current && e.attachment) {
           onAttachmentPinnedRef.current(e.attachment)
         }
@@ -175,7 +179,6 @@ export function useRealtimeChat({
       
       // Listen for attachment unpinned
       channel.listen('.AttachmentUnpinned', (e) => {
-        console.log('.AttachmentUnpinned event received!', e)
         if (onAttachmentUnpinnedRef.current && e.attachment_id) {
           onAttachmentUnpinnedRef.current(e.attachment_id)
         }
@@ -183,7 +186,6 @@ export function useRealtimeChat({
       
       // Listen for attachment deleted
       channel.listen('.AttachmentDeleted', (e) => {
-        console.log('.AttachmentDeleted event received!', e)
         if (onAttachmentDeletedRef.current && e.attachment_id) {
           onAttachmentDeletedRef.current(e.attachment_id)
         }
@@ -191,7 +193,6 @@ export function useRealtimeChat({
       
       // Listen for attachment restored
       channel.listen('.AttachmentRestored', (e) => {
-        console.log('.AttachmentRestored event received!', e)
         if (onAttachmentRestoredRef.current && e.attachment) {
           onAttachmentRestoredRef.current(e.attachment)
         }
@@ -199,36 +200,36 @@ export function useRealtimeChat({
       
       // Listen for typing indicators
       channel.listenForWhisper('typing', (e) => {
-        console.log('Typing event received:', e)
         // Don't show typing indicator for current user
         if (e.user_id !== currentUser?.id) {
           // Handle typing indicator in parent component
           // This would need to be passed as a callback
-          console.log(`${e.user_name} is typing...`)
         }
       })
       
       // Listen for successful subscription
       channel.subscription.bind('pusher:subscription_succeeded', () => {
-        console.log('Successfully subscribed to:', channelName)
       })
       
       channel.subscription.bind('pusher:subscription_error', (error) => {
         console.error('Subscription error for', channelName, error)
       })
 
-      echoRef.current = channel
+      // Store both the channel and its name for cleanup
+      echoRef.current = {
+        channel: channel,
+        channelName: channelName
+      }
     }
 
     // Subscribe to the user's private channel for MessageRead events
+    let userChannel = null
     if (currentUser?.id) {
       const userChannelName = `chat.user.${currentUser.id}`
-      console.log('Subscribing to user channel for read receipts:', userChannelName)
       
-      const userChannel = window.Echo.private(userChannelName)
+      userChannel = window.Echo.private(userChannelName)
       
       userChannel.listen('.MessageRead', (e) => {
-        console.log('MessageRead event received on user channel:', e)
         // Handle both single read and batch reads
         if (e.message_reads && onMessageReadRef.current) {
           // Batch reads
@@ -243,12 +244,13 @@ export function useRealtimeChat({
     }
 
     return () => {
-      if (channelName) {
-        window.Echo.leave(channelName)
+      // Clean up MessageRead listener from user channel
+      if (userChannel) {
+        userChannel.stopListening('.MessageRead')
       }
-      if (currentUser?.id) {
-        window.Echo.leave(`chat.user.${currentUser.id}`)
-      }
+      // NOTE: Don't call window.Echo.leave() on these channels because that would
+      // remove global listeners set up in Chat.jsx. The channels will persist across
+      // chat switches which is what we want for global functionality.
     }
   }, [selectedChat, chatType, currentUser])
 

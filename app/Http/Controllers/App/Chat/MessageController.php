@@ -9,6 +9,8 @@ use App\Models\Chat\MessageAttachment;
 use App\Models\Chat\Team;
 use App\Models\Chat\DmPinnedMessage;
 use App\Events\Chat\MessageSent;
+use App\Events\Chat\MessageNotification;
+use App\Events\Chat\NewContactMessage;
 use App\Models\User\User;
 
 class MessageController extends Controller
@@ -304,6 +306,51 @@ class MessageController extends Controller
                     : 'chat.dm.' . implode('.', $ids),
             ]);
             broadcast(new MessageSent($message))->toOthers();
+            
+            // Also broadcast notification event for sidebar updates
+            $channelName = $message->team_id 
+                ? 'chat.team.' . $message->team_id 
+                : 'chat.dm.' . implode('.', $ids);
+            broadcast(new MessageNotification(
+                $message->sender_id,
+                $message->created_at,
+                $channelName
+            ))->toOthers();
+            
+            // For DMs, also broadcast to recipient's private channel so they get notified even if it's a new contact
+            if (!$message->team_id && $message->recipient_id) {
+                // Broadcast to recipient's private channel
+                event(new class($message->sender_id, $message->created_at, $message->recipient_id) implements \Illuminate\Contracts\Broadcasting\ShouldBroadcastNow {
+                    use \Illuminate\Broadcasting\InteractsWithSockets;
+                    use \Illuminate\Foundation\Events\Dispatchable;
+                    
+                    public $sender_id;
+                    public $timestamp;
+                    public $recipient_id;
+                    
+                    public function __construct($sender_id, $timestamp, $recipient_id) {
+                        $this->sender_id = $sender_id;
+                        $this->timestamp = $timestamp;
+                        $this->recipient_id = $recipient_id;
+                    }
+                    
+                    public function broadcastOn() {
+                        return new \Illuminate\Broadcasting\PrivateChannel('user.' . $this->recipient_id);
+                    }
+                    
+                    public function broadcastWith() {
+                        return [
+                            'sender_id' => $this->sender_id,
+                            'timestamp' => $this->timestamp,
+                        ];
+                    }
+                    
+                    public function broadcastAs() {
+                        return 'MessageNotification';
+                    }
+                });
+            }
+            
             // Notify mentioned users (if any)
             if (isset($data['mentions']) && is_array($data['mentions'])) {
                 foreach ($data['mentions'] as $mentionId) {

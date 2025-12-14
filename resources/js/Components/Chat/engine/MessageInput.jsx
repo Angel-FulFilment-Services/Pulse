@@ -28,9 +28,7 @@ export default function MessageInput({
 
   // Clear attachments when parent requests it
   React.useEffect(() => {
-    console.log('MessageInput clearAttachments effect:', { clearAttachments, attachmentsLength: attachments.length })
     if (clearAttachments && attachments.length > 0) {
-      console.log('Clearing attachments in MessageInput')
       // Clean up preview URLs
       attachments.forEach(att => {
         if (att.preview) {
@@ -111,8 +109,8 @@ export default function MessageInput({
     }
   }
 
-  const handleEmojiSelect = (emoji) => {
-    onChange(value + emoji)
+  const handleEmojiSelect = (reaction) => {
+    onChange(value + reaction.emoji)
     setShowEmojiPicker(false)
   }
 
@@ -206,11 +204,8 @@ export default function MessageInput({
     }))
     
     const updated = [...attachments, ...newAttachments]
-    console.log('MessageInput updating attachments:', { count: updated.length, attachments: updated })
     setAttachments(updated)
-    console.log('MessageInput calling onAttachmentsChange:', { hasCallback: !!onAttachmentsChange })
     onAttachmentsChange?.(updated)
-    console.log('MessageInput onAttachmentsChange called')
     
     // Clear the file input so the same file can be selected again
     if (fileInputRef.current) {
@@ -391,7 +386,7 @@ export default function MessageInput({
             <button
               type="submit"
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className="p-2 text-white bg-theme-600 hover:bg-theme-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="p-2 text-white bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
             </button>
@@ -399,18 +394,12 @@ export default function MessageInput({
           
           {/* Emoji Picker */}
           {showEmojiPicker && (
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 z-40"
-                onClick={() => setShowEmojiPicker(false)}
-              />
-              {/* Picker */}
-              <EmojiPicker 
-                onSelectEmoji={handleEmojiSelect}
-                buttonRef={emojiButtonRef}
-              />
-            </>
+            <EmojiPicker 
+              referenceElement={emojiButtonRef.current}
+              onSelectEmoji={handleEmojiSelect}
+              onClose={() => setShowEmojiPicker(false)}
+              userReactions={[]}
+            />
           )}
         </form>
       </div>
