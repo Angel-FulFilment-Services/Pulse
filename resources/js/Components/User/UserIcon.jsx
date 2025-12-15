@@ -14,7 +14,7 @@ const Icon = ({ size = 'large', profilePhoto }) => {
     <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${sizeClasses[size]}`}>
       {profilePhoto ? (
         <img
-          src={`https://pulse.cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+          src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
           className={`w-full h-full select-none rounded-full brightness-95`}
           alt="User profile"
         />

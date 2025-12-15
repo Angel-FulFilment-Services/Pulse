@@ -82,7 +82,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
 
         {profilePhoto ? (
           <img
-            src={`https://pulse.cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+            src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
             className={`w-full h-full select-none rounded-full brightness-95`}
             alt="User profile"
           />

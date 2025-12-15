@@ -125,7 +125,7 @@ export default function Photo({ account }) {
                 <UserIcon className="size-32 lg:size-32 text-green-600 opacity-85 absolute z-20" />
             </div>
             <img
-                src={`https://pulse.cdn.angelfs.co.uk/profile/images/${account.profile_photo}`}
+                src={`https://pulse-cdn.angelfs.co.uk/profile/images/${account.profile_photo}`}
                 alt="Profile Preview"
                 draggable={false}
                 className="contrast-75 brightness-85 rounded-full w-full h-full object-cover"
