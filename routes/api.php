@@ -207,6 +207,9 @@ Route::prefix('chat')->group(function () {
     Route::post('preferences/mute', [ChatPreferencesController::class, 'mute']);
     Route::post('preferences/unmute', [ChatPreferencesController::class, 'unmute']);
     Route::post('preferences/remove-history', [ChatPreferencesController::class, 'removeHistory']);
+    Route::get('preferences/global', [ChatPreferencesController::class, 'getGlobalSettings']);
+    Route::post('preferences/global', [ChatPreferencesController::class, 'updateGlobalSettings']);
+    Route::post('preferences/hide-preview', [ChatPreferencesController::class, 'setHidePreview']);
     
     // Restricted Words
     Route::get('restricted-words', function () {

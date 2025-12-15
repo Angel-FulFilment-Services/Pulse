@@ -13,6 +13,7 @@ export default function Chat() {
   const [teams, setTeams] = useState([]) // All teams for channel subscriptions
   const [unreadChats, setUnreadChats] = useState(new Set()) // Track which chats have unread messages
   const [contactsRefreshKey, setContactsRefreshKey] = useState(0)
+  const [teamsRefreshKey, setTeamsRefreshKey] = useState(0)
   const [lastMessageUpdate, setLastMessageUpdate] = useState(null) // Track last message for sidebar reordering
   const [chatLoading, setChatLoading] = useState(false) // Track when a chat is loading
   const [showMobileSidebar, setShowMobileSidebar] = useState(true) // Track mobile view state
@@ -262,6 +263,11 @@ export default function Chat() {
     setContactsRefreshKey(prev => prev + 1)
   }
 
+  // Refresh teams list (for when a new team is created)
+  const refreshTeams = () => {
+    setTeamsRefreshKey(prev => prev + 1)
+  }
+
   // Clear typing indicator for a specific user (from all channels)
   const clearTypingUser = (userId) => {
     setTypingUsers(prev => {
@@ -335,6 +341,7 @@ export default function Chat() {
           onLoadingChange={setChatLoading}
           onBackToSidebar={handleBackToSidebar}
           chatPreferences={chatPreferences}
+          onRefreshTeams={refreshTeams}
         />
       </div>
 
@@ -347,9 +354,11 @@ export default function Chat() {
           selectedChat={selectedChat}
           chatType={chatType}
           refreshKey={contactsRefreshKey}
+          teamsRefreshKey={teamsRefreshKey}
           lastMessageUpdate={lastMessageUpdate}
           isLoading={chatLoading}
           onPreferencesChange={setChatPreferences}
+          currentUser={currentUser}
         />
       </div>
       

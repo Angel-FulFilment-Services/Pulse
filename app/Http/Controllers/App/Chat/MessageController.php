@@ -12,6 +12,7 @@ use App\Models\Chat\ChatUserPreference;
 use App\Events\Chat\MessageSent;
 use App\Events\Chat\MessageNotification;
 use App\Events\Chat\NewContactMessage;
+use App\Events\Chat\NewChatMessage;
 use App\Models\User\User;
 
 class MessageController extends Controller
@@ -478,6 +479,24 @@ class MessageController extends Controller
                         return 'MessageNotification';
                     }
                 });
+            }
+            
+            // Broadcast NewChatMessage for notification system
+            $sender = auth()->user();
+            if ($message->team_id) {
+                // Team message - notify all team members except sender
+                $team = Team::find($message->team_id);
+                if ($team) {
+                    $members = $team->getMembers();
+                    foreach ($members as $member) {
+                        if ($member->id != $sender->id) {
+                            broadcast(new NewChatMessage($member->id, $message, $sender));
+                        }
+                    }
+                }
+            } elseif ($message->recipient_id) {
+                // DM - notify recipient
+                broadcast(new NewChatMessage($message->recipient_id, $message, $sender));
             }
             
             // Notify mentioned users (if any)

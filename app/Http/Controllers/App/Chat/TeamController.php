@@ -97,10 +97,29 @@ class TeamController extends Controller
     public function destroy(Request $request, $teamId)
     {
         $team = Team::findOrFail($teamId);
+        
+        // Only owner can delete the team
         if (auth()->user()->id !== $team->owner_id) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
+        
+        // Get all active team members before deleting
+        $memberIds = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->whereNull('left_at')
+            ->pluck('user_id');
+        
+        // Soft delete the team
         $team->delete();
+        
+        // Broadcast TeamMemberRemoved to all members so their sidebars update
+        foreach ($memberIds as $memberId) {
+            broadcast(new \App\Events\Chat\TeamMemberRemoved(
+                (int) $memberId,
+                (int) $teamId
+            ));
+        }
+        
         return response()->json(['status' => 'deleted']);
     }
     public function index(Request $request)

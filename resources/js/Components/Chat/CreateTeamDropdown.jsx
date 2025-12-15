@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { toast } from 'react-toastify'
 import { ring } from 'ldrs'
 import { XMarkIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
@@ -26,12 +27,12 @@ export default function CreateTeamDropdown({
     whileElementsMounted: autoUpdate,
   })
   
-  // Sync external trigger ref with FloatingUI reference
+  // Sync external trigger ref with FloatingUI reference when dropdown opens
   useEffect(() => {
-    if (triggerRef?.current) {
+    if (isOpen && triggerRef?.current) {
       refs.setReference(triggerRef.current)
     }
-  }, [triggerRef, refs])
+  }, [isOpen, triggerRef, refs])
   
   // Focus input when opened
   useEffect(() => {
@@ -94,17 +95,49 @@ export default function CreateTeamDropdown({
           }
         }
         
+        toast.success(`Team "${newTeam.name}" created`, {
+          toastId: 'team-created',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+        
         // Callback to parent with the new team
         onTeamCreated?.(newTeam)
         onClose()
       } else {
         const errorData = await response.json()
         console.error('Error creating team:', errorData)
-        alert('Failed to create team. Please try again.')
+        toast.error('Failed to create team. Please try again.', {
+          toastId: 'team-create-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
       }
     } catch (error) {
       console.error('Error creating team:', error)
-      alert('Failed to create team. Please try again.')
+      toast.error('Failed to create team. Please try again.', {
+        toastId: 'team-create-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     } finally {
       setIsCreating(false)
     }

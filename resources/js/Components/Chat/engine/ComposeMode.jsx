@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  PaperAirplaneIcon,
+import {
   UserGroupIcon,
   MagnifyingGlassIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import UserIcon from '../UserIcon.jsx'
 import MessageInput from './MessageInput'
 
@@ -109,11 +109,11 @@ export default function ComposeMode({
   return (
     <div className="flex-1 flex flex-col bg-white dark:bg-dark-900">
       {/* Compose Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-900">
+      <div className="px-6 py-2 border-b border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-900 min-h-[5.31rem]">
         <div className="flex items-center justify-between">
           <div className="flex items-center flex-1">
-            <div className="w-10 h-10 bg-theme-100 dark:bg-theme-900/30 rounded-lg flex items-center justify-center mr-3">
-              <PaperAirplaneIcon className="w-5 h-5 text-theme-600 dark:text-theme-400" />
+            <div className="w-12 h-12 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-6">
+              <PaperAirplaneIcon className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-dark-50">New Chat</h2>

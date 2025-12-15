@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { toast } from 'react-toastify'
 import { ring } from 'ldrs'
 import { 
   MagnifyingGlassIcon,
@@ -22,6 +23,7 @@ import {
   SpeakerXMarkIcon as SpeakerXMarkIconSolid,
   UserGroupIcon as UserGroupIconSolid,
   UserIcon as UserIconSolid,
+  EyeSlashIcon as EyeSlashIconSolid,
 } from '@heroicons/react/24/solid'
 import UserIcon from './UserIcon.jsx'
 import { useUserStates } from '../Context/ActiveStateContext';
@@ -33,7 +35,7 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 // Register the ring spinner
 ring.register()
 
-export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange }) {
+export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, teamsRefreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange, currentUser }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -55,8 +57,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const [rawFavorites, setRawFavorites] = useState([])
   const [favorites, setFavorites] = useState([])
   const [chatPreferences, setChatPreferences] = useState([]) // Store mute/unread states
-  const [loading, setLoading] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
   const [activeSection, setActiveSection] = useState('teams')
   const [selectedContext, setSelectedContext] = useState(null) // Track which specific item was clicked
   const [expandedSections, setExpandedSections] = useState({
@@ -65,7 +65,16 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     favorites: true
   })
   const [confirmationDialog, setConfirmationDialog] = useState({ isOpen: false, type: null, item: null })
+  const [globalSettings, setGlobalSettings] = useState({ global_mute: false, global_hide_preview: false })
   const { userStates } = useUserStates();
+  
+  // Track loading states for initial data
+  const [teamsLoaded, setTeamsLoaded] = useState(false)
+  const [contactsLoaded, setContactsLoaded] = useState(false)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  
+  // Combined loading state - only show as loaded when all required data is ready
+  const loading = !teamsLoaded || !contactsLoaded || !preferencesLoaded
 
   // Helper function to get API headers
   const getHeaders = () => {
@@ -78,32 +87,17 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     }
   }
 
-  // Get current user first  
-  useEffect(() => {
-    if (window.Laravel?.user) {
-      setCurrentUser(window.Laravel.user)
-    } else {
-      // Assume user is authenticated since they're on the chat page
-      // We'll validate this when we try to fetch chat data
-      setCurrentUser({ authenticated: true })
-    }
-  }, [])
-
   // Fetch teams
   useEffect(() => {
     if (!currentUser) return
     
-    setLoading(true)
+    setTeamsLoaded(false)
     fetch('/api/chat/teams', { 
       credentials: 'same-origin',
       headers: getHeaders()
     })
       .then(res => {
         if (!res.ok) {
-          // If we get 401, then the user isn't actually authenticated
-          if (res.status === 401) {
-            setCurrentUser(null)
-          }
           throw new Error(`HTTP error! status: ${res.status}`)
         }
         return res.json()
@@ -113,23 +107,37 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         console.error('Error fetching teams:', error)
         setTeams([])
       })
-      .finally(() => setLoading(false))
-  }, [currentUser])
+      .finally(() => setTeamsLoaded(true))
+  }, [currentUser, teamsRefreshKey])
 
   // Listen for being added to a team
+  // Use refs to access current values without causing re-subscriptions
+  const selectedChatRef = useRef(selectedChat)
+  const chatTypeRef = useRef(chatType)
+  const onChatSelectRef = useRef(onChatSelect)
+  
+  useEffect(() => {
+    selectedChatRef.current = selectedChat
+    chatTypeRef.current = chatType
+    onChatSelectRef.current = onChatSelect
+  }, [selectedChat, chatType, onChatSelect])
+  
   useEffect(() => {
     if (!currentUser?.id || !window.Echo) return
     
     const userChannel = window.Echo.private(`chat.user.${currentUser.id}`)
     
     const handleTeamAdded = (e) => {
+      console.log('[TeamMemberAdded] Received event:', e)
       if (e.team) {
         // Add the new team to the list
         setTeams(prev => {
           // Check if team already exists
           if (prev.some(t => t.id === e.team.id)) {
+            console.log('[TeamMemberAdded] Team already exists, skipping')
             return prev
           }
+          console.log('[TeamMemberAdded] Adding team to list:', e.team.name)
           // Add new team and sort alphabetically
           return [...prev, e.team].sort((a, b) => a.name.localeCompare(b.name))
         })
@@ -137,6 +145,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     }
     
     const handleTeamRemoved = (e) => {
+      console.log('[TeamMemberRemoved] Received event:', e)
       if (e.team_id) {
         // Remove the team from the list
         setTeams(prev => prev.filter(t => t.id !== e.team_id))
@@ -145,20 +154,22 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         setRawFavorites(prev => prev.filter(f => !(f.type === 'team' && f.item?.id === e.team_id)))
         
         // If this team was selected, deselect it
-        if (selectedChat?.id === e.team_id && chatType === 'team') {
-          onChatSelect(null, 'compose')
+        if (selectedChatRef.current?.id === e.team_id && chatTypeRef.current === 'team') {
+          onChatSelectRef.current?.(null, 'compose')
         }
       }
     }
     
+    console.log('[TeamMember] Subscribing to channel:', `chat.user.${currentUser.id}`)
     userChannel.listen('.TeamMemberAdded', handleTeamAdded)
     userChannel.listen('.TeamMemberRemoved', handleTeamRemoved)
     
     return () => {
+      console.log('[TeamMember] Unsubscribing from channel')
       userChannel.stopListening('.TeamMemberAdded')
       userChannel.stopListening('.TeamMemberRemoved')
     }
-  }, [currentUser?.id, selectedChat?.id, chatType, onChatSelect])
+  }, [currentUser?.id])
 
   // Fetch contacts
   const [rawContacts, setRawContacts] = useState([])
@@ -166,15 +177,13 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   useEffect(() => {
     if (!currentUser) return
     
+    setContactsLoaded(false)
     fetch('/api/chat/users', { 
       credentials: 'same-origin',
       headers: getHeaders()
     })
       .then(res => {
         if (!res.ok) {
-          if (res.status === 401) {
-            setCurrentUser(null)
-          }
           throw new Error(`HTTP error! status: ${res.status}`)
         }
         return res.json()
@@ -184,6 +193,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         console.error('Error fetching contacts:', error)
         setRawContacts([])
       })
+      .finally(() => setContactsLoaded(true))
   }, [currentUser, refreshKey])
 
   // Enhance contacts with active status
@@ -227,9 +237,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     })
       .then(res => {
         if (!res.ok) {
-          if (res.status === 401) {
-            setCurrentUser(null)
-          }
           throw new Error(`HTTP error! status: ${res.status}`)
         }
         return res.json()
@@ -285,15 +292,13 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   useEffect(() => {
     if (!currentUser) return
     
+    setPreferencesLoaded(false)
     fetch('/api/chat/preferences/chat', { 
       credentials: 'same-origin',
       headers: getHeaders()
     })
       .then(res => {
         if (!res.ok) {
-          if (res.status === 401) {
-            setCurrentUser(null)
-          }
           throw new Error(`HTTP error! status: ${res.status}`)
         }
         return res.json()
@@ -303,7 +308,51 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         console.error('Error fetching chat preferences:', error)
         setChatPreferences([])
       })
+      .finally(() => setPreferencesLoaded(true))
   }, [currentUser])
+
+  // Fetch global notification settings
+  useEffect(() => {
+    if (!currentUser) return
+    
+    fetch('/api/chat/preferences/global', { 
+      credentials: 'same-origin',
+      headers: getHeaders()
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then(data => setGlobalSettings(data || { global_mute: false, global_hide_preview: false }))
+      .catch((error) => {
+        console.error('Error fetching global settings:', error)
+      })
+  }, [currentUser])
+
+  // Toggle global setting
+  const toggleGlobalSetting = async (setting) => {
+    const newValue = !globalSettings[setting]
+    
+    try {
+      const response = await fetch('/api/chat/preferences/global', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          [setting]: newValue
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setGlobalSettings(data)
+      }
+    } catch (error) {
+      console.error('Error updating global setting:', error)
+    }
+  }
 
   // Update last_message_at when a new message is sent or received
   useEffect(() => {
@@ -472,6 +521,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     const isMuted = isChatMuted(item, type)
     const isHidden = isChatHidden(item, type)
     const isUnread = hasUnreadMessages(item, type)
+    const hidePreview = isHidePreview(item, type)
     
     const handleOptionClick = async (action, e) => {
       e.stopPropagation()
@@ -553,6 +603,22 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             }
             break
             
+          case 'hidePreview':
+            // Toggle hide preview for this chat
+            response = await fetch('/api/chat/preferences/hide-preview', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: getHeaders(),
+              body: JSON.stringify({
+                ...chatData,
+                hide_preview: !hidePreview
+              })
+            })
+            if (response.ok) {
+              refreshChatPreferences()
+            }
+            break
+            
           case 'leaveTeam':
             // Leave team
             setConfirmationDialog({
@@ -629,10 +695,17 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               </button>
               <button
                 onClick={(e) => handleOptionClick('mute', e)}
-                className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${type === 'team' ? '' : 'rounded-b-lg'} flex items-center`}
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center"
               >
                 <SpeakerXMarkIcon className="w-4 h-4 mr-2" />
                 {isMuted ? 'Unmute' : 'Mute'}
+              </button>
+              <button
+                onClick={(e) => handleOptionClick('hidePreview', e)}
+                className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${type === 'team' ? '' : 'rounded-b-lg'} flex items-center`}
+              >
+                <EyeSlashIcon className="w-4 h-4 mr-2" />
+                {hidePreview ? 'Show Previews' : 'Hide Previews'}
               </button>
               {type === 'team' && (
                 <button
@@ -696,6 +769,15 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       pref.chat_id === item.id && 
       pref.chat_type === (type === 'team' ? 'team' : 'user') &&
       pref.is_muted
+    )
+  }
+
+  // Check if chat has hide preview enabled
+  const isHidePreview = (item, type) => {
+    return chatPreferences.some(pref => 
+      pref.chat_id === item.id && 
+      pref.chat_type === (type === 'team' ? 'team' : 'user') &&
+      pref.hide_preview
     )
   }
 
@@ -797,8 +879,8 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           )}
         </div>
         
-        <div className="w-8 h-8 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-3">
-          <UserGroupIconSolid className="w-4 h-4 text-white" />
+        <div className="h-9 w-9 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-3">
+          <UserGroupIconSolid className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium text-gray-900 dark:text-dark-50 truncate ${
@@ -816,7 +898,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
           {isMuted && (
-            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+            <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
           )}
           <ChatOptionsDropdown item={team} type="team" isItemSelected={isItemSelected(team, 'team', section)} />
           <FavoriteButton 
@@ -883,7 +965,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
           {isMuted && (
-            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+            <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
           )}
           <ChatOptionsDropdown item={contact} isItemSelected={isItemSelected(contact, 'dm', section)} type="user" />
           <FavoriteButton 
@@ -934,29 +1016,72 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               
               {showDropdown && (
                 <>
-                  {/* Backdrop - don't close if create team dropdown is open */}
+                  {/* Backdrop */}
                   <div 
                     className="fixed inset-0 z-40"
-                    onClick={() => {
-                      if (!showCreateTeamDropdown) {
-                        setShowDropdown(false)
-                      }
-                    }}
+                    onClick={() => setShowDropdown(false)}
                   />
                   <div 
                     ref={headerDropdownRefs.setFloating}
                     style={headerDropdownStyles}
-                    className="w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-50"
+                    className="w-72 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-50 py-1"
                   >
-                    <button 
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
-                      onClick={() => {
-                        setCreateTeamTrigger('header')
-                        setShowCreateTeamDropdown(true)
-                      }}
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-dark-700">
+                      <span className="text-xs font-semibold text-gray-500 dark:text-dark-400 uppercase tracking-wider">
+                        Global Settings
+                      </span>
+                    </div>
+                    
+                    {/* Mute All Notifications */}
+                    <button
+                      onClick={() => toggleGlobalSetting('global_mute')}
+                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                     >
-                      <UserGroupIcon className="w-4 h-4 mr-2" />
-                      Create New Team
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-1 rounded ${globalSettings.global_mute ? 'bg-theme-100 dark:bg-theme-900/30' : 'bg-gray-100 dark:bg-dark-700'}`}>
+                          {globalSettings.global_mute ? (
+                            <SpeakerXMarkIconSolid className="w-4 h-4 text-theme-600 dark:text-theme-400" />
+                          ) : (
+                            <SpeakerXMarkIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm font-medium ${globalSettings.global_mute ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-dark-300'}`}>
+                              Mute All Notifications
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-dark-400 mt-0.5">
+                            Silence all chat notifications across the app
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {/* Hide All Previews */}
+                    <button
+                      onClick={() => toggleGlobalSetting('global_hide_preview')}
+                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-1 rounded ${globalSettings.global_hide_preview ? 'bg-theme-100 dark:bg-theme-900/30' : 'bg-gray-100 dark:bg-dark-700'}`}>
+                          {globalSettings.global_hide_preview ? (
+                            <EyeSlashIcon className="w-4 h-4 text-theme-600 dark:text-theme-400" />
+                          ) : (
+                            <EyeIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm font-medium ${globalSettings.global_hide_preview ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-dark-300'}`}>
+                              Hide Message Previews
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-dark-400 mt-0.5">
+                            Hide message content in notifications for privacy
+                          </p>
+                        </div>
+                      </div>
                     </button>
                   </div>
                 </>
@@ -1149,6 +1274,29 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 if (selectedChat?.id === confirmationDialog.item.id && chatType === 'team') {
                   onChatSelect(null, 'compose')
                 }
+                toast.success(`You left ${confirmationDialog.item?.name}`, {
+                  toastId: 'team-left',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
+              } else {
+                toast.error('Failed to leave team', {
+                  toastId: 'team-leave-failed',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
               }
             } else if (confirmationDialog.type === 'removeHistory') {
               const response = await fetch('/api/chat/preferences/remove-history', {
@@ -1186,6 +1334,17 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             }
           } catch (error) {
             console.error('Error:', error)
+            toast.error('An error occurred', {
+              toastId: 'sidebar-action-error',
+              position: 'top-center',
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: false,
+              draggable: true,
+              progress: undefined,
+              theme: 'light',
+            })
           }
         }}
         type="warning"

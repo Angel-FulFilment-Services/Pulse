@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Chat\ChatUserPreference;
 use App\Models\Chat\Message;
 use App\Models\Chat\MessageRead;
+use App\Models\System\ChatNotificationSettings;
 use App\Events\Chat\MessageRead as MessageReadEvent;
 use App\Events\Chat\MessageUnread as MessageUnreadEvent;
 use Carbon\Carbon;
@@ -396,5 +397,75 @@ class ChatPreferencesController extends Controller
         );
 
         return response()->json(['status' => 'unmuted', 'preference' => $preference]);
+    }
+    
+    /**
+     * Get global notification settings for the current user
+     */
+    public function getGlobalSettings(Request $request)
+    {
+        $userId = auth()->user()->id;
+        $settings = ChatNotificationSettings::getForUser($userId);
+        
+        return response()->json([
+            'global_mute' => $settings->global_mute,
+            'global_hide_preview' => $settings->global_hide_preview,
+        ]);
+    }
+    
+    /**
+     * Update global notification settings
+     */
+    public function updateGlobalSettings(Request $request)
+    {
+        $data = $request->validate([
+            'global_mute' => 'sometimes|boolean',
+            'global_hide_preview' => 'sometimes|boolean',
+        ]);
+        
+        $userId = auth()->user()->id;
+        $settings = ChatNotificationSettings::getForUser($userId);
+        
+        if (isset($data['global_mute'])) {
+            $settings->global_mute = $data['global_mute'];
+        }
+        
+        if (isset($data['global_hide_preview'])) {
+            $settings->global_hide_preview = $data['global_hide_preview'];
+        }
+        
+        $settings->save();
+        
+        return response()->json([
+            'global_mute' => $settings->global_mute,
+            'global_hide_preview' => $settings->global_hide_preview,
+        ]);
+    }
+    
+    /**
+     * Update hide_preview setting for a specific chat
+     */
+    public function setHidePreview(Request $request)
+    {
+        $data = $request->validate([
+            'chat_id' => 'required|integer',
+            'chat_type' => 'required|in:team,user',
+            'hide_preview' => 'required|boolean',
+        ]);
+
+        $userId = auth()->user()->id;
+        
+        $preference = ChatUserPreference::updateOrCreate(
+            [
+                'user_id' => $userId,
+                'chat_id' => $data['chat_id'],
+                'chat_type' => $data['chat_type']
+            ],
+            [
+                'hide_preview' => $data['hide_preview']
+            ]
+        );
+
+        return response()->json(['status' => 'updated', 'preference' => $preference]);
     }
 }

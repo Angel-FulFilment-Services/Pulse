@@ -28,6 +28,7 @@ export default function ChatEngine({
   currentUser, 
   onChatSelect, 
   onRefreshContacts,
+  onRefreshTeams,
   typingUsers = [], 
   onClearTypingUser,
   onClearUnread,
@@ -1787,7 +1788,12 @@ export default function ChatEngine({
           toast.success('Attachment unpinned', {
             toastId: 'attachment-unpinned',
             position: 'top-center',
-            autoClose: 2000,
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
             theme: 'light',
           })
         }
@@ -1808,7 +1814,12 @@ export default function ChatEngine({
           toast.success('Attachment pinned', {
             toastId: 'attachment-pinned',
             position: 'top-center',
-            autoClose: 2000,
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
             theme: 'light',
           })
         }
@@ -1819,6 +1830,11 @@ export default function ChatEngine({
         toastId: 'attachment-pin-failed',
         position: 'top-center',
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
         theme: 'light',
       })
     }
@@ -1886,6 +1902,11 @@ export default function ChatEngine({
           toastId: 'attachment-deleted',
           position: 'top-center',
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
           theme: 'light',
         })
       } else {
@@ -1895,6 +1916,11 @@ export default function ChatEngine({
           toastId: 'attachment-delete-failed',
           position: 'top-center',
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
           theme: 'light',
         })
       }
@@ -1904,6 +1930,11 @@ export default function ChatEngine({
         toastId: 'attachment-delete-failed',
         position: 'top-center',
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
         theme: 'light',
       })
     }
@@ -1966,22 +1997,39 @@ export default function ChatEngine({
           toastId: 'attachment-restored',
           position: 'top-center',
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
           theme: 'light',
         })
       } else {
         const errorData = await response.json().catch(() => ({}))
         console.error('Restore failed:', errorData)
         toast.error(errorData.error || 'Failed to restore attachment', {
+          toastId: 'attachment-restore-failed',
           position: 'top-center',
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
           theme: 'light',
         })
       }
     } catch (error) {
       console.error('Error restoring attachment:', error)
       toast.error('Failed to restore attachment', {
+        toastId: 'attachment-restore-failed',
         position: 'top-center',
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
         theme: 'light',
       })
     }
@@ -2052,7 +2100,9 @@ export default function ChatEngine({
         chatPreferences={chatPreferences}
         onChatPreferenceChange={onRefreshContacts}
         currentUser={currentUser}
+        loading={loading}
         onTeamCreated={(newTeam) => {
+          onRefreshTeams?.()
           onChatSelect?.(newTeam, 'team')
         }}
       />

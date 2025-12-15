@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { ActiveStateProvider } from './Components/Context/ActiveStateContext';
+import { NotificationProvider } from './Components/Context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -129,8 +130,10 @@ createInertiaApp({
           <AppWrapper>
             {({ theme, mode, handleSetTheme, handleSetMode }) => (
               <ActiveStateProvider>
+                <NotificationProvider>
                   <ToastContainer />
                   <div children={page} />
+                </NotificationProvider>
               </ActiveStateProvider>
             )}
           </AppWrapper>
@@ -176,6 +179,7 @@ createInertiaApp({
           <AppWrapper>
             {({ theme, mode, handleSetTheme, handleSetMode }) => (
               <ActiveStateProvider>
+                <NotificationProvider>
                   <ToastContainer />
                   <NavBar
                     page={page}
@@ -184,6 +188,7 @@ createInertiaApp({
                   handleSetTheme={handleSetTheme}
                   handleSetMode={handleSetMode}
                 />
+                </NotificationProvider>
               </ActiveStateProvider>
             )}
           </AppWrapper>

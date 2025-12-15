@@ -130,7 +130,12 @@ export default function MessageList({
     if (date.toDateString() === now.toDateString()) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     } else {
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      // UK format: dd/mm/yyyy
+      const day = String(date.getDate()).padStart(2, '0')
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const year = date.getFullYear()
+      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      return `${day}/${month}/${year} ${time}`
     }
   }
 
@@ -277,6 +282,7 @@ export default function MessageList({
   // Helper to render a membership event (single)
   const renderMembershipEvent = (event) => {
     const isJoin = event.type === 'member_joined'
+    const isMe = event.user_id === currentUser?.id
     
     return (
       <div key={event.id} className="flex justify-center my-4">
@@ -286,14 +292,14 @@ export default function MessageList({
               <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
-              <span><strong>{event.user_name}</strong> has joined the team</span>
+              <span><strong>{isMe ? 'You' : event.user_name}</strong> {isMe ? 'joined' : 'has joined'} the team</span>
             </>
           ) : (
             <>
               <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
               </svg>
-              <span><strong>{event.user_name}</strong> has left the team</span>
+              <span><strong>{isMe ? 'You' : event.user_name}</strong> {isMe ? 'left' : 'has left'} the team</span>
             </>
           )}
           <span className="text-xs text-gray-400 dark:text-dark-500">
@@ -312,12 +318,35 @@ export default function MessageList({
     const events = eventGroup.events
     const names = events.map(e => e.user_name)
     const lastEvent = events[events.length - 1]
+    
+    // Check if current user is in the group
+    const currentUserEvent = events.find(e => e.user_id === currentUser?.id)
+    const otherEvents = events.filter(e => e.user_id !== currentUser?.id)
+    const othersCount = otherEvents.length
 
     const { refs, floatingStyles } = useFloating({
       placement: 'top',
       middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
       whileElementsMounted: autoUpdate,
     })
+    
+    // Build the display text
+    const getDisplayText = () => {
+      if (currentUserEvent && othersCount > 0) {
+        // "You and X others have joined/left the team"
+        return (
+          <span>
+            <strong>You</strong> and <strong>{othersCount} {othersCount === 1 ? 'other' : 'others'}</strong> have {isJoin ? 'joined' : 'left'} the team
+          </span>
+        )
+      } else if (currentUserEvent && othersCount === 0) {
+        // Just the current user (shouldn't happen in grouped, but handle it)
+        return <span><strong>You</strong> {isJoin ? 'joined' : 'left'} the team</span>
+      } else {
+        // No current user in group
+        return <span><strong>{events.length} people</strong> have {isJoin ? 'joined' : 'left'} the team</span>
+      }
+    }
 
     return (
       <div className="flex justify-center my-4">
@@ -329,20 +358,15 @@ export default function MessageList({
             onMouseLeave={() => setIsHovering(false)}
           >
             {isJoin ? (
-              <>
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-                <span><strong>{events.length} people</strong> have joined the team</span>
-              </>
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
             ) : (
-              <>
-                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
-                </svg>
-                <span><strong>{events.length} people</strong> have left the team</span>
-              </>
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+              </svg>
             )}
+            {getDisplayText()}
             <span className="text-xs text-gray-400 dark:text-dark-500">
               {formatTime(lastEvent.created_at)}
             </span>
@@ -356,8 +380,11 @@ export default function MessageList({
               className="px-3 py-2 bg-gray-800 dark:bg-dark-600 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-50"
             >
               <div className="flex flex-col gap-1">
-                {names.map((name, idx) => (
-                  <span key={idx} className="font-medium">{name}</span>
+                {currentUserEvent && (
+                  <span className="font-medium">You</span>
+                )}
+                {otherEvents.map((event, idx) => (
+                  <span key={idx} className="font-medium">{event.user_name}</span>
                 ))}
               </div>
             </div>

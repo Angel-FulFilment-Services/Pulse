@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { toast } from 'react-toastify'
 import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon, UserPlusIcon, XMarkIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { UserGroupIcon as UserGroupIconSolid } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
 
-export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated }) {
+export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false }) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMembersPanel, setShowMembersPanel] = useState(false)
   const [showAddUserPopover, setShowAddUserPopover] = useState(false)
@@ -176,6 +178,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
       })
       
       if (response.ok) {
+        // Find the user we just added to get their name
+        const addedUser = allUsers.find(u => u.id === userId)
         // Refresh members list
         const teamResponse = await fetch(`/api/chat/teams/${chat.id}`, { 
           credentials: 'same-origin',
@@ -190,15 +194,51 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
         setShowAddUserPopover(false)
         setUserSearch('')
         onMembersChange?.()
+        toast.success(`${addedUser?.name || 'Member'} added to team`, {
+          toastId: 'member-added',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        toast.error('Failed to add member', {
+          toastId: 'member-add-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
       }
     } catch (error) {
       console.error('Error adding member:', error)
+      toast.error('Failed to add member', {
+        toastId: 'member-add-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     }
   }
   
   // Remove member from team
   const handleRemoveMember = async (userId) => {
     try {
+      // Find member name before removing
+      const removedMember = teamMembers.find(m => m.id === userId)
       const response = await fetch(`/api/chat/teams/${chat.id}/members/${userId}`, {
         method: 'DELETE',
         credentials: 'same-origin',
@@ -208,9 +248,43 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
       if (response.ok) {
         setTeamMembers(prev => prev.filter(m => m.id !== userId))
         onMembersChange?.()
+        toast.success(`${removedMember?.name || 'Member'} removed from team`, {
+          toastId: 'member-removed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        toast.error('Failed to remove member', {
+          toastId: 'member-remove-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
       }
     } catch (error) {
       console.error('Error removing member:', error)
+      toast.error('Failed to remove member', {
+        toastId: 'member-remove-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     }
   }
   
@@ -239,21 +313,59 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
       
       if (response.ok) {
         const data = await response.json()
+        // Find member name
+        const member = teamMembers.find(m => m.id === userId)
         // Update local state
         setTeamMembers(prev => prev.map(m => 
           m.id === userId ? { ...m, role: newRole } : m
         ))
         setRoleDropdownMemberId(null)
         onMembersChange?.()
+        toast.success(`${member?.name || 'Member'}'s role changed to ${newRole}`, {
+          toastId: 'role-updated',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        toast.error('Failed to update role', {
+          toastId: 'role-update-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
       }
     } catch (error) {
       console.error('Error updating role:', error)
+      toast.error('Failed to update role', {
+        toastId: 'role-update-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     }
   }
   
   // Execute ownership transfer
   const executeOwnershipTransfer = async (userId) => {
     try {
+      // Find member name before transfer
+      const newOwner = teamMembers.find(m => m.id === userId)
       const response = await fetch(`/api/chat/teams/${chat.id}/members/${userId}/role`, {
         method: 'PUT',
         credentials: 'same-origin',
@@ -277,9 +389,43 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           }
         }
         onMembersChange?.()
+        toast.success(`Ownership transferred to ${newOwner?.name || 'new owner'}`, {
+          toastId: 'ownership-transferred',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        toast.error('Failed to transfer ownership', {
+          toastId: 'ownership-transfer-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
       }
     } catch (error) {
       console.error('Error transferring ownership:', error)
+      toast.error('Failed to transfer ownership', {
+        toastId: 'ownership-transfer-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     }
   }
   
@@ -363,6 +509,13 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             type: 'leaveTeam'
           })
           break
+          
+        case 'deleteTeam':
+          setConfirmationDialog({
+            isOpen: true,
+            type: 'deleteTeam'
+          })
+          break
       }
       
       if (response && !response.ok) {
@@ -410,8 +563,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           )}
           
           {chatType === 'team' ? (
-            <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-dark-700 flex items-center justify-center mr-6">
-              <UserGroupIcon className="w-5 h-5 text-gray-600 dark:text-dark-400" />
+            <div className="w-12 h-12 rounded-lg bg-theme-500 dark:bg-theme-600 flex items-center justify-center mr-6">
+              <UserGroupIconSolid className="w-9 h-9 text-white" />
             </div>
           ) : (
             <div className="w-10 h-10 flex items-center justify-center mr-6">
@@ -442,7 +595,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                   setShowMembersPanel(!showMembersPanel)
                   if (showMembersPanel) setShowAddUserPopover(false)
                 }}
-                className={`p-2 rounded-lg ${showMembersPanel ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'}`}
+                disabled={loading}
+                className={`p-2 rounded-lg ${showMembersPanel ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="Manage team members"
               >
                 <UserGroupIcon className="w-5 h-5" />
@@ -668,7 +822,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             <button
               ref={createTeamButtonRef}
               onClick={() => setShowCreateTeamDropdown(true)}
-              className={`p-2 rounded-lg ${showCreateTeamDropdown ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'}`}
+              disabled={loading}
+              className={`p-2 rounded-lg ${showCreateTeamDropdown ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Create team with this user"
             >
               <UserPlusIcon className="w-5 h-5" />
@@ -678,7 +833,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           {!isPopout && (
             <button
               onClick={handlePopout}
-              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
+              disabled={loading}
+              className={`p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Pop out chat in new window"
             >
               <ArrowTopRightOnSquareIcon className="w-5 h-5" />
@@ -689,7 +845,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           <div className="relative">
             <button 
               onClick={() => setShowDropdown(!showDropdown)}
-              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
+              disabled={loading}
+              className={`p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <EllipsisVerticalIcon className="w-5 h-5" />
             </button>
@@ -726,7 +883,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                   </button>
                   <button
                     onClick={() => handleOptionClick('mute')}
-                    className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${chatType === 'team' ? '' : 'rounded-b-lg'} flex items-center`}
+                    className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${chatType !== 'team' ? 'rounded-b-lg' : ''} flex items-center`}
                   >
                     <SpeakerXMarkIcon className="w-4 h-4 mr-2" />
                     {isMuted ? 'Unmute' : 'Mute'}
@@ -734,10 +891,19 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                   {chatType === 'team' && (
                     <button
                       onClick={() => handleOptionClick('leaveTeam')}
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg flex items-center"
+                      className={`w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-700 ${currentUserRole !== 'owner' ? 'rounded-b-lg' : ''} flex items-center`}
                     >
                       <TrashIcon className="w-4 h-4 mr-2" />
                       Leave Team
+                    </button>
+                  )}
+                  {chatType === 'team' && currentUserRole === 'owner' && (
+                    <button
+                      onClick={() => handleOptionClick('deleteTeam')}
+                      className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg flex items-center border-t border-gray-200 dark:border-dark-700"
+                    >
+                      <TrashIcon className="w-4 h-4 mr-2" />
+                      Delete Team
                     </button>
                   )}  
                 </div>
@@ -760,6 +926,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           confirmationDialog.type === 'leaveTeam' ? 'Leave Team' 
           : confirmationDialog.type === 'removeMember' ? 'Remove Member'
           : confirmationDialog.type === 'transferOwnership' ? 'Transfer Ownership'
+          : confirmationDialog.type === 'deleteTeam' ? 'Delete Team'
           : 'Remove Chat History'
         }
         description={
@@ -769,6 +936,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             ? `Are you sure you want to remove ${confirmationDialog.member?.name} from ${chat?.name}?`
             : confirmationDialog.type === 'transferOwnership'
             ? `Are you sure you want to transfer ownership of ${chat?.name} to ${confirmationDialog.member?.name}? You will become an admin.`
+            : confirmationDialog.type === 'deleteTeam'
+            ? `Are you sure you want to delete ${chat?.name}? This action cannot be undone and all team members will lose access.`
             : `Are you sure you want to remove all chat history with ${chat?.name}? Messages will not be deleted but won't appear in your history.`
         }
         isYes={async () => {
@@ -785,7 +954,62 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                 headers: getHeaders()
               })
               if (response.ok) {
+                toast.success(`You left ${chat?.name}`, {
+                  toastId: 'team-left',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
                 window.location.href = '/chat'
+              } else {
+                toast.error('Failed to leave team', {
+                  toastId: 'team-leave-failed',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
+              }
+            } else if (confirmationDialog.type === 'deleteTeam') {
+              const response = await fetch(`/api/chat/teams/${chat.id}`, {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: getHeaders()
+              })
+              if (response.ok) {
+                toast.success(`Team "${chat?.name}" deleted`, {
+                  toastId: 'team-deleted',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
+                window.location.href = '/chat'
+              } else {
+                toast.error('Failed to delete team', {
+                  toastId: 'team-delete-failed',
+                  position: 'top-center',
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: false,
+                  draggable: true,
+                  progress: undefined,
+                  theme: 'light',
+                })
               }
             } else if (confirmationDialog.type === 'removeMember' && confirmationDialog.member) {
               await handleRemoveMember(confirmationDialog.member.id)
@@ -804,12 +1028,24 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             }
           } catch (error) {
             console.error('Error:', error)
+            toast.error('An error occurred', {
+              toastId: 'action-error',
+              position: 'top-center',
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: false,
+              draggable: true,
+              progress: undefined,
+              theme: 'light',
+            })
           }
         }}
-        type="warning"
+        type={confirmationDialog.type === 'deleteTeam' ? 'delete' : 'warning'}
         yesText={
           confirmationDialog.type === 'leaveTeam' ? 'Leave' 
           : confirmationDialog.type === 'transferOwnership' ? 'Transfer'
+          : confirmationDialog.type === 'deleteTeam' ? 'Delete'
           : 'Remove'
         }
         cancelText="Cancel"

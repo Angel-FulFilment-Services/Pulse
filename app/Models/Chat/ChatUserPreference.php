@@ -15,6 +15,7 @@ class ChatUserPreference extends Model
         'chat_type', // 'team' or 'user'
         'is_muted',
         'is_hidden',
+        'hide_preview',
         'last_read_at',
         'history_removed_at'
     ];
@@ -22,6 +23,7 @@ class ChatUserPreference extends Model
     protected $casts = [
         'is_muted' => 'boolean',
         'is_hidden' => 'boolean',
+        'hide_preview' => 'boolean',
         'last_read_at' => 'datetime',
         'history_removed_at' => 'datetime'
     ];

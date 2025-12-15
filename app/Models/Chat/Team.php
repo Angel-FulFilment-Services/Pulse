@@ -3,12 +3,15 @@
 namespace App\Models\Chat;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Team extends Model
 {
+    use SoftDeletes;
+    
     protected $connection = 'pulse';
     protected $fillable = ['name', 'description', 'owner_id', 'pinned_message_id'];
 
