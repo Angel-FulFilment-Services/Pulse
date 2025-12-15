@@ -270,7 +270,7 @@ export default function MessageReactionBubbles({ reactions, isMyMessage, current
             e.stopPropagation()
             setHoveredReaction(null)
           }}
-          className={`relative flex items-center gap-1 bg-white/75 border border-gray-200 rounded-full px-1 py-1 shadow-sm transition-all ${
+          className={`relative flex items-center gap-1 bg-white/75 dark:bg-dark-700/75 border border-gray-200 dark:border-dark-600 rounded-full px-1 py-1 shadow-sm transition-all ${
             group.hasCurrentUser ? 'cursor-pointer' : 'cursor-default'
           } ${showPending ? 'opacity-50 cursor-wait' : ''}`}
           style={{
@@ -296,7 +296,7 @@ export default function MessageReactionBubbles({ reactions, isMyMessage, current
       {hasOverflow && (
         <div 
           ref={overflowRef}
-          className="relative flex items-center gap-1 bg-white/75 border border-gray-200 rounded-full px-2 py-1 shadow-sm cursor-default"
+          className="relative flex items-center gap-1 bg-white/75 dark:bg-dark-700/75 border border-gray-200 dark:border-dark-600 rounded-full px-2 py-1 shadow-sm cursor-default"
           onMouseEnter={(e) => {
             e.stopPropagation()
             setHoveredOverflow(true)

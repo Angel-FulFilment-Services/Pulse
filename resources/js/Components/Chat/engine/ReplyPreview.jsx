@@ -30,25 +30,25 @@ export default function ReplyPreview({ replyingTo, onCancel }) {
   const attachment = isReplyToSpecificAttachment ? specificAttachment : (isAttachmentOnlyReply ? replyingTo.attachments[0] : null)
 
   return (
-    <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+    <div className="px-6 py-3 bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="text-xs font-medium text-gray-600 mb-1">
+          <div className="text-xs font-medium text-gray-600 dark:text-dark-400 mb-1">
             Replying to {replyingTo.user?.name || 'Unknown User'}
           </div>
           {(isReplyToSpecificAttachment || isAttachmentOnlyReply) ? (
-            <div className="flex items-center gap-2 text-sm text-gray-700">
+            <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-dark-300">
               <span className="truncate">{getAttachmentDescription(attachment)}</span>
             </div>
           ) : (
-            <div className="text-sm text-gray-500 truncate">
+            <div className="text-sm text-gray-500 dark:text-dark-400 truncate max-w-xl">
               {replyingTo.body}
             </div>
           )}
         </div>
         <button
           onClick={onCancel}
-          className="ml-2 p-1 text-gray-400 hover:text-gray-600 rounded"
+          className="ml-2 p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded"
         >
           <XMarkIcon className="w-4 h-4" />
         </button>

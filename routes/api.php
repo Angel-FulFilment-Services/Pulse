@@ -184,6 +184,7 @@ Route::prefix('chat')->group(function () {
     Route::delete('teams/{teamId}/members/{userId}', [TeamController::class, 'removeMember']);
     Route::post('teams/{teamId}/mark-read', [TeamController::class, 'markRead']);
     Route::post('teams/{teamId}/typing', [TeamController::class, 'typing']);
+    Route::post('teams/{teamId}/leave', [TeamController::class, 'leave']);
     Route::get('users/all', [TeamController::class, 'allUsers']);
     Route::get('users', [TeamController::class, 'users']);
     
@@ -197,8 +198,14 @@ Route::prefix('chat')->group(function () {
     Route::get('preferences', [ChatPreferencesController::class, 'get']);
     Route::post('preferences', [ChatPreferencesController::class, 'update']);
     Route::get('preferences/chat', [ChatPreferencesController::class, 'getChatPreferences']);
-    Route::post('preferences/toggle-mark-unread', [ChatPreferencesController::class, 'toggleMarkUnread']);
-    Route::post('preferences/hide-chat', [ChatPreferencesController::class, 'hideChat']);
+    Route::post('preferences/mark-unread', [ChatPreferencesController::class, 'markUnread']);
+    Route::post('preferences/mark-read', [ChatPreferencesController::class, 'markRead']);
+    Route::post('preferences/hide', [ChatPreferencesController::class, 'hide']);
+    Route::post('preferences/unhide', [ChatPreferencesController::class, 'unhide']);
+    Route::post('preferences/toggle-mute', [ChatPreferencesController::class, 'toggleMute']);
+    Route::post('preferences/mute', [ChatPreferencesController::class, 'mute']);
+    Route::post('preferences/unmute', [ChatPreferencesController::class, 'unmute']);
+    Route::post('preferences/remove-history', [ChatPreferencesController::class, 'removeHistory']);
     
     // Restricted Words
     Route::get('restricted-words', function () {

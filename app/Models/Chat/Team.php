@@ -22,6 +22,7 @@ class Team extends Model
     {
         $userIds = \DB::connection('pulse')->table('team_user')
             ->where('team_id', $this->id)
+            ->whereNull('left_at')
             ->pluck('user_id');
         
         return \App\Models\User\User::whereIn('id', $userIds)->get();

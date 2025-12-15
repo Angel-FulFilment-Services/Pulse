@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Chat\Team;
 use App\Models\Chat\TeamUser;
+use App\Models\Chat\ChatUserPreference;
 use App\Models\User\User;
 
 class TeamController extends Controller
@@ -18,6 +19,7 @@ class TeamController extends Controller
         // Get team IDs that the user is a member of using a direct query
         $teamIds = \DB::connection('pulse')->table('team_user')
             ->where('user_id', $userId)
+            ->whereNull('left_at')
             ->pluck('team_id');
         
         $teams = Team::whereIn('id', $teamIds)
@@ -107,21 +109,35 @@ class TeamController extends Controller
         // Get team IDs that the user is a member of using a direct query
         $teamIds = \DB::connection('pulse')->table('team_user')
             ->where('user_id', $userId)
+            ->whereNull('left_at')
             ->pluck('team_id');
         
         $teams = Team::whereIn('id', $teamIds)
             ->orderBy('name', 'asc')
             ->get();
+        
+        // Get user's chat preferences for history_removed_at filtering
+        $preferences = ChatUserPreference::where('user_id', $userId)
+            ->where('chat_type', 'team')
+            ->whereIn('chat_id', $teamIds)
+            ->get()
+            ->keyBy('chat_id');
 
         // Add unread_count and last_message_at for each team
-        $teams = $teams->map(function($team) use ($userId) {
-            $unread = $team->messages()
+        $teams = $teams->map(function($team) use ($userId, $preferences) {
+            $query = $team->messages()
                 ->whereDoesntHave('reads', function($q) use ($userId) {
                     $q->where('user_id', $userId);
                 })
-                ->where('sender_id', '!=', $userId)
-                ->count();
-            $team->unread_count = $unread;
+                ->where('sender_id', '!=', $userId);
+            
+            // Filter by history_removed_at if set
+            $preference = $preferences->get($team->id);
+            if ($preference && $preference->history_removed_at) {
+                $query->where('created_at', '>=', $preference->history_removed_at);
+            }
+            
+            $team->unread_count = $query->count();
             
             // Get the last message timestamp for sorting
             $lastMessage = $team->messages()->latest('created_at')->first();
@@ -144,13 +160,17 @@ class TeamController extends Controller
             'owner_id' => auth()->user()->id,
         ]);
         
+        $now = now();
+        
         // Add the owner as a member using direct DB query
         \DB::connection('pulse')->table('team_user')->insert([
             'team_id' => $team->id,
             'user_id' => auth()->user()->id,
             'role' => 'owner',
-            'created_at' => now(),
-            'updated_at' => now(),
+            'joined_at' => $now,
+            'left_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
         
         return response()->json($team, 201);
@@ -163,21 +183,48 @@ class TeamController extends Controller
             'role' => 'nullable|string',
         ]);
         $team = Team::findOrFail($teamId);
+        $user = User::findOrFail($data['user_id']);
+        $now = now();
         
-        // Check for duplicates using direct DB query
-        $exists = \DB::connection('pulse')->table('team_user')
+        // Check if user is currently an active member (no left_at)
+        $activeMembership = \DB::connection('pulse')->table('team_user')
             ->where('team_id', $teamId)
             ->where('user_id', $data['user_id'])
-            ->exists();
+            ->whereNull('left_at')
+            ->first();
             
-        if (!$exists) {
+        if (!$activeMembership) {
+            // Insert new membership record (allows multiple records for join/leave history)
             \DB::connection('pulse')->table('team_user')->insert([
                 'team_id' => $teamId,
                 'user_id' => $data['user_id'],
                 'role' => $data['role'] ?? 'member',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'joined_at' => $now,
+                'left_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
+            
+            // Broadcast to team channel for the join message
+            broadcast(new \App\Events\Chat\TeamMemberJoined(
+                (int) $teamId,
+                (int) $data['user_id'],
+                $user->name,
+                $now->toISOString()
+            ))->toOthers();
+            
+            // Broadcast to the added user's channel so their sidebar updates
+            broadcast(new \App\Events\Chat\TeamMemberAdded(
+                (int) $data['user_id'],
+                [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                    'description' => $team->description,
+                    'owner_id' => $team->owner_id,
+                    'unread_count' => 0,
+                    'last_message_at' => null,
+                ]
+            ));
         }
         return response()->json(['message' => 'User added.']);
     }
@@ -185,10 +232,33 @@ class TeamController extends Controller
     public function removeMember(Request $request, $teamId, $userId)
     {
         $team = Team::findOrFail($teamId);
+        $user = User::findOrFail($userId);
+        $now = now();
+        
+        // Mark the active membership as left instead of deleting
         \DB::connection('pulse')->table('team_user')
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
-            ->delete();
+            ->whereNull('left_at')
+            ->update([
+                'left_at' => $now,
+                'updated_at' => $now,
+            ]);
+        
+        // Broadcast to team channel for the leave message
+        broadcast(new \App\Events\Chat\TeamMemberLeft(
+            (int) $teamId,
+            (int) $userId,
+            $user->name,
+            $now->toISOString()
+        ))->toOthers();
+        
+        // Broadcast to the removed user's channel so their sidebar updates
+        broadcast(new \App\Events\Chat\TeamMemberRemoved(
+            (int) $userId,
+            (int) $teamId
+        ));
+            
         return response()->json(['message' => 'User removed.']);
     }
 
@@ -257,22 +327,34 @@ class TeamController extends Controller
             ->orderBy('name', 'asc')
             ->get();
         
+        // Get user's chat preferences for history_removed_at filtering
+        $preferences = ChatUserPreference::where('user_id', $currentUserId)
+            ->where('chat_type', 'user')
+            ->whereIn('chat_id', $userIdsWithConversations)
+            ->get()
+            ->keyBy('chat_id');
+        
         // Add unread_count and last_message_at for each user (direct messages)
-        $users = $users->map(function($user) use ($currentUserId) {
-            $unread = \DB::connection('pulse')
+        $users = $users->map(function($user) use ($currentUserId, $preferences) {
+            $query = \DB::connection('pulse')
                 ->table('messages')
                 ->where('sender_id', $user->id)
                 ->where('recipient_id', $currentUserId)
                 ->where('team_id', null) // Direct messages only
-                ->whereNotExists(function($query) use ($currentUserId) {
-                    $query->select(\DB::raw(1))
+                ->whereNotExists(function($q) use ($currentUserId) {
+                    $q->select(\DB::raw(1))
                           ->from('message_reads')
                           ->whereColumn('message_reads.message_id', 'messages.id')
                           ->where('message_reads.user_id', $currentUserId);
-                })
-                ->count();
+                });
             
-            $user->unread_count = $unread;
+            // Filter by history_removed_at if set
+            $preference = $preferences->get($user->id);
+            if ($preference && $preference->history_removed_at) {
+                $query->where('created_at', '>=', $preference->history_removed_at);
+            }
+            
+            $user->unread_count = $query->count();
             
             // Get the last message timestamp for sorting
             $lastMessage = \DB::connection('pulse')
@@ -310,5 +392,47 @@ class TeamController extends Controller
             ->get();
             
         return response()->json($users);
+    }
+
+    /**
+     * Leave a team - removes current user from team membership
+     */
+    public function leave(Request $request, $teamId)
+    {
+        $user = auth()->user();
+        $userId = $user->id;
+        $team = Team::findOrFail($teamId);
+        
+        // Don't allow leaving if user is the owner
+        if ($team->owner_id === $userId) {
+            return response()->json([
+                'error' => 'Team owner cannot leave the team. Please transfer ownership or delete the team instead.'
+            ], 403);
+        }
+        
+        $now = now();
+        
+        // Mark the active membership as left instead of deleting
+        \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->update([
+                'left_at' => $now,
+                'updated_at' => $now,
+            ]);
+        
+        // Broadcast the event
+        broadcast(new \App\Events\Chat\TeamMemberLeft(
+            (int) $teamId,
+            (int) $userId,
+            $user->name,
+            $now->toISOString()
+        ))->toOthers();
+            
+        return response()->json([
+            'status' => 'left',
+            'message' => 'You have left the team successfully.'
+        ]);
     }
 }

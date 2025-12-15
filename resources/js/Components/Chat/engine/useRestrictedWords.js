@@ -203,15 +203,23 @@ export function useRestrictedWords() {
       const regexPattern = isPhrase ? pattern : `\\b${pattern}\\b`
       const regex = new RegExp(regexPattern, 'gi')
       
+      // Also check for restricted word with alphanumeric characters attached (bypass attempts)
+      // This catches things like "shitbag" but not "scunthorpe" (which has the restricted word in middle)
+      const embeddedPattern = `\\b\\w*${pattern}\\w+|\\w+${pattern}\\w*\\b`
+      const embeddedRegex = new RegExp(embeddedPattern, 'gi')
+      
       // Check if the word/phrase exists in the text
-      if (regex.test(text)) {
+      const hasMatch = regex.test(text)
+      const hasEmbedded = !isPhrase && embeddedRegex.test(text)
+      
+      if (hasMatch || hasEmbedded) {
         if (level === 3) {
-          level3Words.push({ word, substitution })
+          level3Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
           blockedWords.push(word)
         } else if (level === 2) {
-          level2Words.push({ word, substitution })
+          level2Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
         } else {
-          level1Words.push({ word, substitution })
+          level1Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
         }
       }
     })
@@ -229,29 +237,10 @@ export function useRestrictedWords() {
     level2Words.forEach(wordObj => {
       const word = wordObj.word
       const substitution = wordObj.substitution
+      const pattern = wordObj.pattern
       
-      // Create a regex that also matches leet speak variations
-      const normalizedWord = word.toLowerCase()
-      
-      // Check if it's a multi-word phrase
-      const isPhrase = word.includes(' ')
-      
-      // Build a regex pattern that matches both normal and leet speak
-      let pattern = ''
-      for (let char of normalizedWord) {
-        // Find all leet variations of this character
-        const leetVariations = Object.keys(LEET_MAP).filter(k => LEET_MAP[k] === char)
-        if (leetVariations.length > 0) {
-          pattern += `[${char}${leetVariations.join('')}]`
-        } else {
-          // Escape special regex characters
-          pattern += char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        }
-      }
-      
-      // For phrases, match anywhere; for single words, use word boundaries
-      const regexPattern = isPhrase ? pattern : `\\b${pattern}\\b`
-      const regex = new RegExp(regexPattern, 'gi')
+      // Use the pattern determined during detection
+      const regex = new RegExp(pattern, 'gi')
       
       // If substitution provided, replace with it; otherwise remove
       if (substitution) {
@@ -266,27 +255,10 @@ export function useRestrictedWords() {
     level1Words.forEach(wordObj => {
       const word = wordObj.word
       const substitution = wordObj.substitution
+      const pattern = wordObj.pattern
       
-      const normalizedWord = word.toLowerCase()
-      
-      // Check if it's a multi-word phrase
-      const isPhrase = word.includes(' ')
-      
-      // Build a regex pattern that matches both normal and leet speak
-      let pattern = ''
-      for (let char of normalizedWord) {
-        const leetVariations = Object.keys(LEET_MAP).filter(k => LEET_MAP[k] === char)
-        if (leetVariations.length > 0) {
-          pattern += `[${char}${leetVariations.join('')}]`
-        } else {
-          // Escape special regex characters
-          pattern += char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        }
-      }
-      
-      // For phrases, match anywhere; for single words, use word boundaries
-      const regexPattern = isPhrase ? pattern : `\\b${pattern}\\b`
-      const regex = new RegExp(regexPattern, 'gi')
+      // Use the pattern determined during detection
+      const regex = new RegExp(pattern, 'gi')
       
       // If substitution provided, use it; otherwise replace with asterisks
       if (substitution) {

@@ -22,17 +22,18 @@ export default function AttachmentPreview({
   isDeleted = false,
   pendingReactionsRef = null,
   boundaryRef = null,
-  messageId = null
+  messageId = null,
+  contentRef = null // Ref callback to expose the content container to parent
 }) {
   // Show deleted state if attachment has been deleted
   if (isDeleted) {
     return (
       <div className="flex items-center gap-3 py-2">
-        <p className="italic text-gray-500">This attachment has been deleted.</p>
+        <p className="italic text-gray-500 dark:text-dark-400">This attachment has been deleted.</p>
         {isMyMessage && onRestoreAttachment && (
           <button
             onClick={() => onRestoreAttachment(attachment.id)}
-            className="text-sm underline text-theme-600 hover:text-theme-700 font-semibold"
+            className="text-sm underline text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 font-semibold"
           >
             Undo
           </button>
@@ -151,7 +152,11 @@ export default function AttachmentPreview({
 
     return (
       <div 
-        ref={attachmentRef}
+        ref={(el) => {
+          attachmentRef.current = el
+          // Also call the contentRef callback if provided
+          if (contentRef) contentRef(el)
+        }}
         className="relative" 
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -219,8 +224,8 @@ export default function AttachmentPreview({
       >
         {isDeletable ? (
           // Composer mode - with borders and banner
-          <div className="bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-            <div className="h-48 bg-gray-100 flex items-center justify-center relative">
+          <div className="bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-48 bg-gray-100 dark:bg-dark-700 flex items-center justify-center relative">
               {!error && imageUrl ? (
                 <img
                   key={attachment.id || attachment.preview || attachment.url}
@@ -232,8 +237,8 @@ export default function AttachmentPreview({
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center">
-                  <PhotoIcon className="w-12 h-12 text-gray-400" />
-                  <p className="text-sm font-medium text-gray-400 mt-2">Failed to load image</p>
+                  <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+                  <p className="text-sm font-medium text-gray-400 dark:text-dark-300 mt-2">Failed to load image</p>
                 </div>
               )}
               <button
@@ -265,10 +270,10 @@ export default function AttachmentPreview({
               loading="lazy"
             />
           ) : (
-            <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-              <div className="h-48 bg-gray-100 flex flex-col items-center justify-center relative">
-                <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400" />
-                <p className="text-sm font-medium text-gray-400">Failed to load image</p>
+            <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+              <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
+                <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+                <p className="text-sm font-medium text-gray-400 dark:text-dark-300 mt-2">Failed to load image</p>
               </div>
               <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
@@ -293,14 +298,26 @@ export default function AttachmentPreview({
         className={`max-w-sm relative ${!isDeletable ? 'cursor-pointer' : ''}`}
         onClick={() => !isDeletable && onPdfClick?.(attachment)}
       >
-        {isLoaded && pdfUrl ? (
-          <div className="bg-white rounded-lg overflow-hidden">
-            <div className="h-48 rounded-t-lg flex items-center justify-center relative border-x-2 border-t-2 border-gray-800/10 bg-gray-100">
+        {error ? (
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
+              <DocumentIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300 mt-2">Failed to load PDF</p>
+            </div>
+            <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
+              <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
+              <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+            </div>
+          </div>
+        ) : isLoaded && pdfUrl ? (
+          <div className="bg-white dark:bg-dark-800 rounded-lg overflow-hidden">
+            <div className="h-48 rounded-t-lg flex items-center justify-center relative border-x-2 border-t-2 border-gray-800/10 bg-gray-100 dark:bg-dark-700">
               <embed
                 src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                 type="application/pdf"
                 className="w-full h-full"
                 style={{ border: 'none', outline: 'none' }}
+                onError={() => setError(true)}
               />
               {/* Delete button for composer */}
               {isDeletable && (
@@ -316,15 +333,15 @@ export default function AttachmentPreview({
                 </button>
               )}
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2`}>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2`}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
-                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600 dark:text-dark-400'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
               </div>
               {!isDeletable && (
                 <button
                   onClick={handleDownload}
-                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 hover:bg-gray-400/50 text-gray-800'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
+                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400/50 dark:hover:bg-dark-500 text-gray-800 dark:text-dark-100'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
                   title="Download"
                 >
                   <ArrowDownTrayIcon className="w-4 h-4" />
@@ -333,14 +350,14 @@ export default function AttachmentPreview({
             </div>
           </div>
         ) : (
-          <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-            <div className="h-48 bg-gray-100 flex flex-col animate-pulse items-center gap-y-2 justify-center">
-              <DocumentIcon className="w-12 h-12 -mt-9 text-gray-400" />
-              <p className="text-sm font-medium text-gray-400">Loading Preview...</p>
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col animate-pulse items-center gap-y-2 justify-center">
+              <DocumentIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300">Loading Preview...</p>
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
-              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
-              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-1/4 animate-pulse`}></div>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
+              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
+              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-1/4 animate-pulse`}></div>
             </div>
           </div>
         )}
@@ -355,14 +372,26 @@ export default function AttachmentPreview({
     
     return wrapWithReactions(
       <div ref={containerRef} className="max-w-sm relative">
-        {isLoaded && videoUrl ? (
-          <div className="bg-white rounded-lg border-x-2 border-t-2 border-gray-800/10 overflow-hidden">
+        {error ? (
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
+              <PlayIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300 mt-2">Failed to load video</p>
+            </div>
+            <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
+              <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
+              <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+            </div>
+          </div>
+        ) : isLoaded && videoUrl ? (
+          <div className="bg-white dark:bg-dark-800 rounded-lg border-x-2 border-t-2 border-gray-800/10 overflow-hidden">
             <div className="bg-black relative">
               <video
                 controls
                 className="w-full min-h-96 max-h-96"
                 preload="metadata"
                 controlsList="nodownload noremoteplayback"
+                onError={() => setError(true)}
               >
                 <source src={videoUrl} type={attachment.mime_type || attachment.type} />
                 Your browser does not support the video tag.
@@ -381,15 +410,15 @@ export default function AttachmentPreview({
                 </button>
               )}
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2 gap-x-2`}>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2 gap-x-2`}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name} testing testing testing testing testing</p>
-                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600 dark:text-dark-400'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
               </div>
               {!isDeletable && (
                 <button
                   onClick={handleDownload}
-                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 hover:bg-gray-400/50 text-gray-800'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
+                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400/50 dark:hover:bg-dark-500 text-gray-800 dark:text-dark-100'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
                   title="Download"
                 >
                   <ArrowDownTrayIcon className="w-4 h-4" />
@@ -398,14 +427,14 @@ export default function AttachmentPreview({
             </div>
           </div>
         ) : (
-          <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-            <div className="h-40 bg-gray-100 flex flex-col animate-pulse items-center gap-y-2 justify-center">
-              <PlayIcon className="w-12 h-12 -mt-14 text-gray-400" />
-              <p className="text-sm font-medium text-gray-400">Loading Preview...</p>
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-40 bg-gray-100 dark:bg-dark-700 flex flex-col animate-pulse items-center gap-y-2 justify-center">
+              <PlayIcon className="w-12 h-12 -mt-14 text-gray-400 dark:text-dark-300" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300">Loading Preview...</p>
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
-              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
-              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-1/4 animate-pulse`}></div>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
+              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
+              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-1/4 animate-pulse`}></div>
             </div>
           </div>
         )}
@@ -420,15 +449,27 @@ export default function AttachmentPreview({
     
     return wrapWithReactions(
       <div ref={containerRef} className="max-w-sm relative">
-        {isLoaded && audioUrl ? (
-          <div className="w-80 bg-white rounded-lg overflow-hidden">
-            <div className="p-4 bg-gray-50 relative rounded-t-lg border-x-2 border-t-2 border-gray-800/10">
+        {error ? (
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
+              <PlayIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300 mt-2">Failed to load audio</p>
+            </div>
+            <div className="bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 px-3 py-2 absolute bottom-0 left-0 right-0 rounded-b-lg border-theme-500/95 border-x-2 border-b-2" style={{ backdropFilter: 'blur(4px)' }}>
+              <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
+              <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+            </div>
+          </div>
+        ) : isLoaded && audioUrl ? (
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden">
+            <div className="p-4 bg-gray-50 dark:bg-dark-700 relative rounded-t-lg border-x-2 border-t-2 border-gray-800/10">
               {/* Disable download on this audio element */}
               <audio
                 controls
                 className="w-full"
                 preload="metadata"
                 controlsList="nodownload nofullscreen noremoteplayback"
+                onError={() => setError(true)}
               >
                 <source src={audioUrl} type={attachment.mime_type || attachment.type} />
                 Your browser does not support the audio tag.
@@ -447,15 +488,15 @@ export default function AttachmentPreview({
                 </button>
               )}
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2`}>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2 flex items-center justify-between rounded-b-lg border-x-2 border-b-2`}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name} testing testing</p>
-                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600 dark:text-dark-400'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
               </div>
               {!isDeletable && (
                 <button
                   onClick={handleDownload}
-                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 hover:bg-gray-400/50 text-gray-800'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
+                  className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400/50 dark:hover:bg-dark-500 text-gray-800 dark:text-dark-100'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
                   title="Download"
                 >
                   <ArrowDownTrayIcon className="w-4 h-4" />
@@ -464,14 +505,14 @@ export default function AttachmentPreview({
             </div>
           </div>
         ) : (
-          <div className="w-80 bg-white rounded-lg overflow-hidden border-2 border-gray-800/10">
-            <div className="h-[8.6rem] bg-gray-100 flex flex-col animate-pulse items-center gap-y-2 justify-center">
-              <PlayIcon className="w-12 h-12 -mt-14 text-gray-400 rounded-lg" />
-              <p className="text-sm font-medium text-gray-400">Loading Preview...</p>
+          <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
+            <div className="h-[8.6rem] bg-gray-100 dark:bg-dark-700 flex flex-col animate-pulse items-center gap-y-2 justify-center">
+              <PlayIcon className="w-12 h-12 -mt-14 text-gray-400 dark:text-dark-300 rounded-lg" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-300">Loading Preview...</p>
             </div>
-            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 hover:bg-gray-200/80 text-gray-900 border-gray-300'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
-              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
-              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25'} rounded w-1/4 animate-pulse`}></div>
+            <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-500/85 text-theme-50/95 border-theme-500/95' : 'bg-gray-200 dark:bg-dark-700 hover:bg-gray-200/80 dark:hover:bg-dark-700/80 text-gray-900 dark:text-dark-50 border-gray-300 dark:border-dark-600'} px-3 py-2.5 absolute bottom-0 left-0 right-0 rounded-b-lg border-x-2 border-b-2`} style={{ backdropFilter: 'blur(4px)' }}>
+              <div className={`h-4 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-3/4 mb-1 animate-pulse`}></div>
+              <div className={`h-3 ${isDeletable || isMyMessage ? 'bg-theme-700/25' : 'bg-gray-400/25 dark:bg-dark-500/25'} rounded w-1/4 animate-pulse`}></div>
             </div>
           </div>
         )}
@@ -482,17 +523,17 @@ export default function AttachmentPreview({
   // Render generic file attachment (non-previewable)
   return wrapWithReactions(
     <div ref={containerRef} className="max-w-sm relative">
-      <div className="bg-white rounded-lg overflow-hidden">
-        <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 border-theme-500/95 text-theme-50/95' : 'bg-gray-200 border-gray-300 text-gray-900'} min-w-56 px-3 py-2 flex space-x-4 rounded-lg border-2`} style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white dark:bg-dark-800 rounded-lg overflow-hidden">
+        <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 border-theme-500/95 text-theme-50/95' : 'bg-gray-200 dark:bg-dark-700 border-gray-300 dark:border-dark-600 text-gray-900 dark:text-dark-50'} min-w-56 px-3 py-2 flex space-x-4 rounded-lg border-2`} style={{ backdropFilter: 'blur(4px)' }}>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
-                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
+                <p className={`text-xs ${isDeletable || isMyMessage ? 'text-theme-100/50' : 'text-gray-600 dark:text-dark-400'}`}>{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
             </div>
             <div className="flex items-center space-x-2">
                 {!isDeletable && (
                     <button
                     onClick={handleDownload}
-                    className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 hover:bg-gray-400/50 text-gray-800'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
+                    className={`h-7 w-7 ${isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50 text-white' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400/50 dark:hover:bg-dark-500 text-gray-800 dark:text-dark-100'} rounded text-xs flex items-center justify-center font-medium transition-colors`}
                     >
                         <ArrowDownTrayIcon className="w-4 h-4 inline-block" />
                     </button>
@@ -503,7 +544,7 @@ export default function AttachmentPreview({
                         e.stopPropagation()
                         onDelete?.()
                     }}
-                    className={`h-7 w-7 ${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50' : 'bg-gray-300 hover:bg-gray-400'} text-white rounded text-xs font-medium transition-colors`}
+                    className={`h-7 w-7 ${isDeletable || isMyMessage ? 'bg-theme-500/80 hover:bg-theme-600/50' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400 dark:hover:bg-dark-500'} text-white rounded text-xs font-medium transition-colors`}
                     >
                         <XMarkIcon className="w-4 h-4 inline-block" />
                     </button>

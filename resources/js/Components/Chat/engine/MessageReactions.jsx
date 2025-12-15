@@ -195,13 +195,13 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
           
           <div className="flex items-center gap-2">
             {/* Reactions control */}
-            <div ref={reactionsControlRef} className="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-1">
+            <div ref={reactionsControlRef} className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
                 {QUICK_REACTIONS.map((reaction) => (
                   <button
                     key={reaction.name}
                     onClick={() => handleReactionClick(reaction)}
-                    className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl ${
-                      hasUserReacted(reaction.emoji) ? 'bg-gray-200' : ''
+                    className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-xl ${
+                      hasUserReacted(reaction.emoji) ? 'bg-gray-200 dark:bg-dark-700' : ''
                     }`}
                     title={reaction.label}
                   >
@@ -211,38 +211,38 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
                 
                 <div>
                   {/* Separator */}
-                  <div className="w-px h-6 bg-gray-200 mx-1" />
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600 mx-1" />
                 </div>
 
                 {/* More button */}
                 <button
                   onClick={handleMoreClick}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors"
                   title="More reactions"
                 >
-                  <PlusIcon className="w-5 h-5 text-gray-600" />
+                  <PlusIcon className="w-5 h-5 text-gray-600 dark:text-dark-400" />
                 </button>
             </div>
             
             {/* Pin control */}
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-1">
+            <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
               <button
                 onClick={() => onPinMessage?.(message.id)}
-                className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors ${
-                  isPinned ? 'text-theme-600' : 'text-gray-600'
+                className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors ${
+                  isPinned ? 'text-theme-600 dark:text-theme-400' : 'text-gray-600 dark:text-dark-400'
                 }`}
                 title={isPinned ? 'Unpin message' : 'Pin message'}
               >
-                <PinIcon className="w-5 h-5 text-gray-500" filled={isPinned} />
+                <PinIcon className="w-5 h-5 text-gray-500 dark:text-dark-400" filled={isPinned} />
               </button>
               
               {/* Reply button */}
               {onReplyClick && (
                 <>
-                  <div className="w-px h-6 bg-gray-200" />
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
                   <button
                     onClick={() => onReplyClick(message)}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-gray-600"
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-400"
                     title="Reply"
                   >
                     <ArrowUturnLeftIcon className="w-5 h-5" />
@@ -253,10 +253,10 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
               {/* Delete button - only show for own messages that aren't already deleted */}
               {isMyMessage && !isDeleted && (
                 <>
-                  <div className="w-px h-6 bg-gray-200" />
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
                   <button
                     onClick={() => onDeleteMessage?.(message.id)}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-gray-600 hover:text-red-600"
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-400 hover:text-red-600 dark:hover:text-red-400"
                     title="Delete message"
                   >
                     <TrashIcon className="w-5 h-5" />

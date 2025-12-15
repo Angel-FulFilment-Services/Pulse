@@ -16,6 +16,7 @@ import PinnedMessageBanner from './engine/PinnedMessageBanner'
 import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
 import { useRestrictedWords } from './engine/useRestrictedWords'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 10000 // 10 seconds
@@ -29,7 +30,10 @@ export default function ChatEngine({
   onRefreshContacts,
   typingUsers = [], 
   onClearTypingUser,
-  onClearUnread
+  onClearUnread,
+  onLoadingChange,
+  onBackToSidebar,
+  chatPreferences = []
 }) {
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
@@ -37,6 +41,7 @@ export default function ChatEngine({
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [sending, setSending] = useState(false)
+  const [loadError, setLoadError] = useState(null)
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
   const [pinnedMessage, setPinnedMessage] = useState(null)
@@ -226,10 +231,14 @@ export default function ChatEngine({
       setMessages([])
       setHasMore(true)
       loadedMessageIdsRef.current.clear() // Clear loaded IDs when changing chats
+      onLoadingChange?.(false)
+      setLoadError(null)
       return
     }
 
     setLoading(true)
+    setLoadError(null)
+    onLoadingChange?.(true)
     loadedMessageIdsRef.current.clear() // Clear for new chat
     
     let url = ''
@@ -247,6 +256,8 @@ export default function ChatEngine({
         
         setMessages(messageList)
         setHasMore(hasMoreMessages)
+        setLoading(false)
+        onLoadingChange?.(false)
         
         // Track loaded message IDs
         messageList.forEach(msg => loadedMessageIdsRef.current.add(msg.id))
@@ -260,7 +271,58 @@ export default function ChatEngine({
         })
         setMessageReads(reads)
         
+        // Always scroll to bottom when opening a chat
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+          isUserScrolledUpRef.current = false
+        }, 50)
+      })
+      .catch((error) => {
+        console.error('Failed to load chat:', error)
+        setMessages([])
         setLoading(false)
+        setLoadError('Failed to load chat messages. Please try again.')
+        onLoadingChange?.(false)
+      })
+  }, [selectedChat, chatType])
+
+  // Retry loading chat
+  const retryLoadChat = () => {
+    if (!selectedChat) return
+    // Trigger a reload by toggling state
+    setLoadError(null)
+    setLoading(true)
+    onLoadingChange?.(true)
+    
+    let url = ''
+    if (chatType === 'team') {
+      url = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
+    } else if (chatType === 'dm') {
+      url = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
+    }
+
+    fetch(url, { credentials: 'same-origin' })
+      .then(res => res.ok ? res.json() : { messages: [], has_more: false })
+      .then(data => {
+        const messageList = Array.isArray(data) ? data : (data.messages || [])
+        const hasMoreMessages = data.has_more !== undefined ? data.has_more : false
+        
+        setMessages(messageList)
+        setHasMore(hasMoreMessages)
+        setLoading(false)
+        onLoadingChange?.(false)
+        
+        // Track loaded message IDs
+        messageList.forEach(msg => loadedMessageIdsRef.current.add(msg.id))
+        
+        // Build read status map
+        const reads = {}
+        messageList.forEach(msg => {
+          if (msg.reads && msg.reads.length > 0) {
+            reads[msg.id] = msg.reads
+          }
+        })
+        setMessageReads(reads)
         
         // Always scroll to bottom when opening a chat
         setTimeout(() => {
@@ -268,11 +330,14 @@ export default function ChatEngine({
           isUserScrolledUpRef.current = false
         }, 50)
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Failed to load chat:', error)
         setMessages([])
         setLoading(false)
+        setLoadError('Failed to load chat messages. Please try again.')
+        onLoadingChange?.(false)
       })
-  }, [selectedChat, chatType])
+  }
 
   // Load more messages when scrolling to top
   const loadMoreMessages = async () => {
@@ -372,6 +437,25 @@ export default function ChatEngine({
       ...prev,
       [messageRead.message_id]: [...(prev[messageRead.message_id] || []), messageRead]
     }))
+  }
+
+  // Handle message unread from broadcast
+  const handleMessageUnread = (data) => {
+    // Remove read receipts for the specified message IDs
+    setMessageReads(prev => {
+      const updated = { ...prev }
+      data.message_ids.forEach(messageId => {
+        if (updated[messageId]) {
+          // Remove read receipts from this user
+          updated[messageId] = updated[messageId].filter(read => read.user_id !== data.user_id)
+          // If no more read receipts, remove the entry
+          if (updated[messageId].length === 0) {
+            delete updated[messageId]
+          }
+        }
+      })
+      return updated
+    })
   }
 
   // Handle reaction added from broadcast
@@ -478,12 +562,13 @@ export default function ChatEngine({
   }
 
   // Set up real-time listeners
-  const { sendTypingIndicator } = useRealtimeChat({
+  const { sendTypingIndicator, connectionError } = useRealtimeChat({
     selectedChat,
     chatType,
     currentUser,
     onMessageReceived: handleMessageReceived,
     onMessageRead: handleMessageRead,
+    onMessageUnread: handleMessageUnread,
     onClearTypingUser,
     onReactionAdded: handleReactionAdded,
     onReactionRemoved: handleReactionRemoved,
@@ -521,30 +606,114 @@ export default function ChatEngine({
       }
     },
     onAttachmentDeleted: (attachmentId) => {
-      // Mark attachment as deleted in messages
-      setMessages(prev => prev.map(msg => ({
-        ...msg,
-        attachments: msg.attachments?.map(att => 
-          att.id == attachmentId 
-            ? { ...att, deleted_at: new Date().toISOString() }
-            : att
-        )
-      })))
+      // Mark attachment as deleted in messages and update reply_to_attachment references
+      setMessages(prev => prev.map(msg => {
+        const updatedMsg = {
+          ...msg,
+          attachments: msg.attachments?.map(att => 
+            att.id == attachmentId 
+              ? { ...att, deleted_at: new Date().toISOString() }
+              : att
+          )
+        }
+        // Also update reply_to_attachment if this message is replying to the deleted attachment
+        if (msg.reply_to_attachment?.id == attachmentId) {
+          updatedMsg.reply_to_attachment = {
+            ...msg.reply_to_attachment,
+            deleted_at: new Date().toISOString()
+          }
+        }
+        return updatedMsg
+      }))
       // Clear from pinned if it was pinned
       if (pinnedAttachment?.id == attachmentId) {
         setPinnedAttachment(null)
       }
+      // Update replyingTo if the deleted attachment is being replied to
+      if (replyingTo) {
+        if (replyingTo.replyAttachment?.id == attachmentId) {
+          setReplyingTo(prev => ({
+            ...prev,
+            replyAttachment: { ...prev.replyAttachment, deleted_at: new Date().toISOString() }
+          }))
+        } else if (replyingTo.attachments) {
+          setReplyingTo(prev => ({
+            ...prev,
+            attachments: prev.attachments?.map(att => 
+              att.id == attachmentId 
+                ? { ...att, deleted_at: new Date().toISOString() }
+                : att
+            )
+          }))
+        }
+      }
     },
     onAttachmentRestored: (attachment) => {
-      // Mark attachment as restored in messages
-      setMessages(prev => prev.map(msg => ({
-        ...msg,
-        attachments: msg.attachments?.map(att => 
-          att.id == attachment.id 
-            ? { ...att, deleted_at: null }
-            : att
-        )
-      })))
+      // Mark attachment as restored in messages and update reply_to_attachment references
+      setMessages(prev => prev.map(msg => {
+        const updatedMsg = {
+          ...msg,
+          attachments: msg.attachments?.map(att => 
+            att.id == attachment.id 
+              ? { ...att, deleted_at: null }
+              : att
+          )
+        }
+        // Also update reply_to_attachment if this message is replying to the restored attachment
+        if (msg.reply_to_attachment?.id == attachment.id) {
+          updatedMsg.reply_to_attachment = {
+            ...msg.reply_to_attachment,
+            deleted_at: null
+          }
+        }
+        return updatedMsg
+      }))
+      // Update replyingTo if the restored attachment is being replied to
+      if (replyingTo) {
+        if (replyingTo.replyAttachment?.id == attachment.id) {
+          setReplyingTo(prev => ({
+            ...prev,
+            replyAttachment: { ...prev.replyAttachment, deleted_at: null }
+          }))
+        } else if (replyingTo.attachments) {
+          setReplyingTo(prev => ({
+            ...prev,
+            attachments: prev.attachments?.map(att => 
+              att.id == attachment.id 
+                ? { ...att, deleted_at: null }
+                : att
+            )
+          }))
+        }
+      }
+    },
+    onMemberJoined: (event) => {
+      // Add membership event to messages list
+      const membershipEvent = {
+        id: `join-${event.user_id}-${event.joined_at}`,
+        item_type: 'membership_event',
+        type: 'member_joined',
+        user_id: event.user_id,
+        user_name: event.user_name,
+        team_id: event.team_id,
+        created_at: event.joined_at,
+        sent_at: event.joined_at,
+      }
+      setMessages(prev => [...prev, membershipEvent])
+    },
+    onMemberLeft: (event) => {
+      // Add membership event to messages list
+      const membershipEvent = {
+        id: `leave-${event.user_id}-${event.left_at}`,
+        item_type: 'membership_event',
+        type: 'member_left',
+        user_id: event.user_id,
+        user_name: event.user_name,
+        team_id: event.team_id,
+        created_at: event.left_at,
+        sent_at: event.left_at,
+      }
+      setMessages(prev => [...prev, membershipEvent])
     }
   })
 
@@ -1429,19 +1598,27 @@ export default function ChatEngine({
     }
   }
 
-  // Scroll to pinned message
-  const handleClickPinned = (messageId) => {
-    const messageEl = messageRefsRef.current?.[messageId]
+  // Scroll to pinned message or attachment
+  const handleClickPinned = (messageId, attachmentId = null) => {
+    const targetId = attachmentId || messageId
+    const messageEl = messageRefsRef.current?.[targetId]
     if (messageEl) {
       messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      messageEl.classList.add('ring-2', 'ring-theme-400')
-      setTimeout(() => {
-        messageEl.classList.remove('ring-2', 'ring-theme-400')
-      }, 2000)
+      if (attachmentId) {
+        messageEl.classList.add('ring-4', 'ring-theme-400', 'rounded-lg')
+        setTimeout(() => {
+          messageEl.classList.remove('ring-4', 'ring-theme-400', 'rounded-lg')
+        }, 2000)
+      } else {
+        messageEl.classList.add('ring-2', 'ring-theme-400')
+        setTimeout(() => {
+          messageEl.classList.remove('ring-2', 'ring-theme-400')
+        }, 2000)
+      }
     } else {
-      // Message not loaded, need to fetch it
+      // Message/attachment not loaded, need to fetch it
       // For now, just scroll to top and load more
-      toast.info('Loading pinned message...', {
+      toast.info(attachmentId ? 'Loading pinned attachment...' : 'Loading pinned message...', {
         toastId: 'loading-pinned',
         position: 'top-center',
         autoClose: 3000,
@@ -1661,19 +1838,48 @@ export default function ChatEngine({
       })
       
       if (response.ok) {
-        // Update local state - mark attachment as deleted
-        setMessages(prev => prev.map(msg => ({
-          ...msg,
-          attachments: msg.attachments?.map(att => 
-            att.id === attachmentId 
-              ? { ...att, deleted_at: new Date().toISOString() }
-              : att
-          )
-        })))
+        // Update local state - mark attachment as deleted and update reply_to_attachment references
+        setMessages(prev => prev.map(msg => {
+          const updatedMsg = {
+            ...msg,
+            attachments: msg.attachments?.map(att => 
+              att.id === attachmentId 
+                ? { ...att, deleted_at: new Date().toISOString() }
+                : att
+            )
+          }
+          // Also update reply_to_attachment if this message is replying to the deleted attachment
+          if (msg.reply_to_attachment?.id === attachmentId) {
+            updatedMsg.reply_to_attachment = {
+              ...msg.reply_to_attachment,
+              deleted_at: new Date().toISOString()
+            }
+          }
+          return updatedMsg
+        }))
         
         // If this was the pinned attachment, clear it
         if (pinnedAttachment?.id === attachmentId) {
           setPinnedAttachment(null)
+        }
+        
+        // Update replyingTo if the deleted attachment is being replied to
+        if (replyingTo) {
+          if (replyingTo.replyAttachment?.id === attachmentId) {
+            setReplyingTo(prev => ({
+              ...prev,
+              replyAttachment: { ...prev.replyAttachment, deleted_at: new Date().toISOString() }
+            }))
+          } else if (replyingTo.attachments) {
+            setReplyingTo(prev => ({
+              ...prev,
+              attachments: prev.attachments?.map(att => 
+                att.id === attachmentId 
+                  ? { ...att, deleted_at: new Date().toISOString() }
+                  : att
+              )
+            }))
+          }
         }
         
         toast.success('Attachment deleted', {
@@ -1717,15 +1923,44 @@ export default function ChatEngine({
       })
       
       if (response.ok) {
-        // Update local state - remove deleted_at
-        setMessages(prev => prev.map(msg => ({
-          ...msg,
-          attachments: msg.attachments?.map(att => 
-            att.id === attachmentId 
-              ? { ...att, deleted_at: null }
-              : att
-          )
-        })))
+        // Update local state - remove deleted_at and update reply_to_attachment references
+        setMessages(prev => prev.map(msg => {
+          const updatedMsg = {
+            ...msg,
+            attachments: msg.attachments?.map(att => 
+              att.id === attachmentId 
+                ? { ...att, deleted_at: null }
+                : att
+            )
+          }
+          // Also update reply_to_attachment if this message is replying to the restored attachment
+          if (msg.reply_to_attachment?.id === attachmentId) {
+            updatedMsg.reply_to_attachment = {
+              ...msg.reply_to_attachment,
+              deleted_at: null
+            }
+          }
+          return updatedMsg
+        }))
+        
+        // Update replyingTo if the restored attachment is being replied to
+        if (replyingTo) {
+          if (replyingTo.replyAttachment?.id === attachmentId) {
+            setReplyingTo(prev => ({
+              ...prev,
+              replyAttachment: { ...prev.replyAttachment, deleted_at: null }
+            }))
+          } else if (replyingTo.attachments) {
+            setReplyingTo(prev => ({
+              ...prev,
+              attachments: prev.attachments?.map(att => 
+                att.id === attachmentId 
+                  ? { ...att, deleted_at: null }
+                  : att
+              )
+            }))
+          }
+        }
         
         toast.success('Attachment restored', {
           toastId: 'attachment-restored',
@@ -1809,22 +2044,70 @@ export default function ChatEngine({
 
   // Main chat view
   return (
-    <div className="flex-1 flex flex-col bg-white">
-      <ChatHeader chat={selectedChat} chatType={chatType} />
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-dark-900">
+      <ChatHeader 
+        chat={selectedChat} 
+        chatType={chatType} 
+        onBackToSidebar={onBackToSidebar} 
+        chatPreferences={chatPreferences}
+        onChatPreferenceChange={onRefreshContacts}
+      />
+      
+      {/* WebSocket Connection Error Banner */}
+      {connectionError && !loadError && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400 dark:text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                {connectionError}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Pinned Message Banner */}
-      <PinnedMessageBanner 
-        pinnedMessage={pinnedMessage}
-        pinnedAttachment={pinnedAttachment}
-        onUnpin={handlePinMessage}
-        onUnpinAttachment={handlePinAttachment}
-        onClickPinned={handleClickPinned}
-      />
+      {!connectionError && !loadError && (pinnedMessage || pinnedAttachment) && (
+        <PinnedMessageBanner 
+          pinnedMessage={pinnedMessage}
+          pinnedAttachment={pinnedAttachment}
+          onUnpin={handlePinMessage}
+          onUnpinAttachment={handlePinAttachment}
+          onClickPinned={handleClickPinned}
+        />
+      )}
 
       {/* Messages */}
-      <div ref={messageListContainerRef} className="flex-1 overflow-y-auto px-6 py-4 relative">
+      <div ref={messageListContainerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4 relative flex flex-col">
+        {/* Error state */}
+        {loadError && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md px-6">
+              <div className="mb-4">
+                <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-600 dark:text-red-500" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-dark-50 mb-2">Chat Failed to Load</h3>
+              <p className="text-sm text-gray-500 dark:text-dark-400 mb-6">{loadError}</p>
+              <button
+                onClick={retryLoadChat}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-theme-500 hover:bg-theme-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-dark-900 focus:ring-theme-500"
+              >
+                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Load more indicator at top */}
-        {loadingMore && !loading && (() => {
+        {!loadError && loadingMore && !loading && (() => {
           const themeRgb = getComputedStyle(document.body).getPropertyValue('--theme-500').trim()
           const themeColor = themeRgb ? `rgb(${themeRgb})` : 'rgb(249, 115, 22)' // Default to orange-500
           return (
@@ -1841,13 +2124,13 @@ export default function ChatEngine({
         })()}
         
         {/* Show "No more messages" if at the top */}
-        {!hasMore && messages.length > 0 && !loading && (
-          <div className="text-center py-2 text-xs text-gray-400">
+        {!loadError && !hasMore && messages.length > 0 && !loading && (
+          <div className="text-center py-2 text-xs text-gray-400 dark:text-dark-500">
             Beginning of conversation
           </div>
         )}
         
-        <MessageList
+        {!loadError && <MessageList
           messages={getMergedMessages(messages)}
           currentUser={currentUser}
           messageReads={messageReads}
@@ -1871,13 +2154,20 @@ export default function ChatEngine({
           pinnedAttachmentId={pinnedAttachment?.id}
           onDeleteMessage={handleDeleteMessage}
           onRestoreMessage={handleRestoreMessage}
-        />
+        />}
         
-        {/* Typing indicator */}
-        <TypingIndicator typingUsers={typingUsers} />
+        {/* Spacer to push typing indicator to bottom when there are few messages */}
+        {!loadError && <div className="flex-grow"></div>}
         
-        {/* Scroll to new messages button - sticky at bottom */}
-        {unreadMessagesNotInView > 0 && (
+        {/* Typing indicator - always at bottom */}
+        {!loadError && (
+          <div className="flex-shrink-0 pb-2">
+            <TypingIndicator typingUsers={typingUsers} />
+          </div>
+        )}
+        
+        {/* Scroll to new messages button - sticky at bottom, above typing indicator */}
+        {!loadError && unreadMessagesNotInView > 0 && (
           <div className="sticky bottom-0 flex justify-center pointer-events-none">
             <div className="pointer-events-auto">
               <ScrollToNewMessages count={unreadMessagesNotInView} onClick={scrollToLastUnread} />
@@ -1892,20 +2182,22 @@ export default function ChatEngine({
       </div>
 
       {/* Message Input */}
-      <div className="px-6 py-4 border-t border-gray-200">
-        <MessageInput
-          value={newMessage}
-          onChange={setNewMessage}
-          onSubmit={handleSendMessage}
-          onTyping={sendTypingIndicator}
-          placeholder={`Message ${selectedChat.name}...`}
-          disabled={sending || isRateLimited}
-          replyingTo={replyingTo}
-          inputRef={messageInputRef}
-          onAttachmentsChange={handleAttachmentsChange}
-          clearAttachments={clearAttachmentsTrigger}
-        />
-      </div>
+      {!loadError && (
+        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-dark-700 min-h-[73px]">
+          <MessageInput
+            value={newMessage}
+            onChange={setNewMessage}
+            onSubmit={handleSendMessage}
+            onTyping={sendTypingIndicator}
+            placeholder={`Message ${selectedChat.name}...`}
+            disabled={sending || isRateLimited}
+            replyingTo={replyingTo}
+            inputRef={messageInputRef}
+            onAttachmentsChange={handleAttachmentsChange}
+            clearAttachments={clearAttachmentsTrigger}
+          />
+        </div>
+      )}
     </div>
   )
 }

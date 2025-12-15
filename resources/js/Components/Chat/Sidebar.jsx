@@ -14,7 +14,8 @@ import {
   EyeSlashIcon,
   TrashIcon,
   SpeakerXMarkIcon,
-  XMarkIcon
+  XMarkIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
 import { 
   StarIcon as StarIconSolid,
@@ -25,17 +26,19 @@ import {
 import UserIcon from './UserIcon.jsx'
 import { useUserStates } from '../Context/ActiveStateContext';
 import { differenceInMinutes } from 'date-fns'
+import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
 
 // Register the ring spinner
 ring.register()
 
-export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, lastMessageUpdate = null }) {
+export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false)
   const [teams, setTeams] = useState([])
   const [contacts, setContacts] = useState([])
+  const [rawFavorites, setRawFavorites] = useState([])
   const [favorites, setFavorites] = useState([])
   const [chatPreferences, setChatPreferences] = useState([]) // Store mute/unread states
   const [loading, setLoading] = useState(false)
@@ -47,6 +50,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     contacts: true,
     favorites: true
   })
+  const [confirmationDialog, setConfirmationDialog] = useState({ isOpen: false, type: null, item: null })
   const { userStates } = useUserStates();
 
   // Helper function to get API headers
@@ -97,6 +101,50 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       })
       .finally(() => setLoading(false))
   }, [currentUser])
+
+  // Listen for being added to a team
+  useEffect(() => {
+    if (!currentUser?.id || !window.Echo) return
+    
+    const userChannel = window.Echo.private(`chat.user.${currentUser.id}`)
+    
+    const handleTeamAdded = (e) => {
+      if (e.team) {
+        // Add the new team to the list
+        setTeams(prev => {
+          // Check if team already exists
+          if (prev.some(t => t.id === e.team.id)) {
+            return prev
+          }
+          // Add new team and sort alphabetically
+          return [...prev, e.team].sort((a, b) => a.name.localeCompare(b.name))
+        })
+      }
+    }
+    
+    const handleTeamRemoved = (e) => {
+      if (e.team_id) {
+        // Remove the team from the list
+        setTeams(prev => prev.filter(t => t.id !== e.team_id))
+        
+        // Also remove from favorites if it was favorited
+        setRawFavorites(prev => prev.filter(f => !(f.type === 'team' && f.item?.id === e.team_id)))
+        
+        // If this team was selected, deselect it
+        if (selectedChat?.id === e.team_id && chatType === 'team') {
+          onChatSelect(null, 'compose')
+        }
+      }
+    }
+    
+    userChannel.listen('.TeamMemberAdded', handleTeamAdded)
+    userChannel.listen('.TeamMemberRemoved', handleTeamRemoved)
+    
+    return () => {
+      userChannel.stopListening('.TeamMemberAdded')
+      userChannel.stopListening('.TeamMemberRemoved')
+    }
+  }, [currentUser?.id, selectedChat?.id, chatType, onChatSelect])
 
   // Fetch contacts
   const [rawContacts, setRawContacts] = useState([])
@@ -172,12 +220,52 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         }
         return res.json()
       })
-      .then(data => setFavorites(Array.isArray(data) ? data : []))
+      .then(data => setRawFavorites(Array.isArray(data) ? data : []))
       .catch((error) => {
         console.error('Error fetching favorites:', error)
-        setFavorites([])
+        setRawFavorites([])
       })
   }, [currentUser])
+
+  // Enhance favorites with active status for contacts
+  useEffect(() => {
+    if (!rawFavorites.length) {
+      setFavorites([])
+      return
+    }
+
+    const enhancedFavorites = rawFavorites.map(fav => {
+      // Only enhance user-type favorites with active status
+      if (fav.type === 'user' && fav.item) {
+        const userState = userStates ? Object.values(userStates).find(u => u.user_id === fav.item.id) : null
+        const lastActiveAt = userState?.pulse_last_active_at
+        
+        let activeStatus = 'Offline'
+        if (lastActiveAt) {
+          const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt))
+          if (minutesAgo <= 2.5) {
+            activeStatus = 'Active Now'
+          } else if (minutesAgo <= 30) {
+            activeStatus = 'Away'
+          }
+        }
+        
+        return {
+          ...fav,
+          item: {
+            ...fav.item,
+            activeStatus,
+            lastActiveAt
+          }
+        }
+      }
+      
+      // Return team favorites unchanged
+      return fav
+    })
+    
+    setFavorites(enhancedFavorites)
+  }, [rawFavorites, userStates])
 
   // Fetch chat preferences (mute/unread states)
   useEffect(() => {
@@ -222,31 +310,51 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     const { chatType: msgChatType, chatId, timestamp, incrementUnread, resetUnread } = lastMessageUpdate
 
     if (msgChatType === 'team') {
-      setTeams(prev => prev.map(team => 
-        team.id === chatId 
-          ? { 
-              ...team, 
-              ...(timestamp ? { last_message_at: timestamp } : {}),
-              unread_count: resetUnread ? 0 : (incrementUnread ? (team.unread_count || 0) + 1 : (team.unread_count || 0))
-            }
-          : team
-      ))
+      setTeams(prev => prev.map(team => {
+        if (team.id !== chatId) return team
+        
+        const updates = {}
+        if (timestamp) updates.last_message_at = timestamp
+        if (resetUnread) updates.unread_count = 0
+        else if (incrementUnread) updates.unread_count = (team.unread_count || 0) + 1
+        // If neither resetUnread nor incrementUnread, don't touch unread_count
+        
+        return { ...team, ...updates }
+      }))
     } else if (msgChatType === 'dm') {
-      setContacts(prev => prev.map(contact => 
-        contact.id === chatId 
-          ? { 
-              ...contact, 
-              ...(timestamp ? { last_message_at: timestamp } : {}),
-              unread_count: resetUnread ? 0 : (incrementUnread ? (contact.unread_count || 0) + 1 : (contact.unread_count || 0))
-            }
-          : contact
-      ))
+      setContacts(prev => prev.map(contact => {
+        if (contact.id !== chatId) return contact
+        
+        const updates = {}
+        if (timestamp) updates.last_message_at = timestamp
+        if (resetUnread) updates.unread_count = 0
+        else if (incrementUnread) updates.unread_count = (contact.unread_count || 0) + 1
+        // If neither resetUnread nor incrementUnread, don't touch unread_count
+        
+        return { ...contact, ...updates }
+      }))
     }
   }, [lastMessageUpdate])
 
+  // Helper to check if chat is hidden
+  const isChatHidden = (item, type) => {
+    return chatPreferences.some(pref => 
+      pref.chat_id === item.id && 
+      pref.chat_type === (type === 'team' ? 'team' : 'user') &&
+      pref.is_hidden
+    )
+  }
+
   // Filter items based on search and sort by most recent message
   const filteredTeams = teams
-    .filter(team => team.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(team => {
+      // If searching, show hidden chats too
+      if (searchTerm.trim()) {
+        return team.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      }
+      // Otherwise, hide hidden chats
+      return team.name?.toLowerCase().includes(searchTerm.toLowerCase()) && !isChatHidden(team, 'team')
+    })
     .sort((a, b) => {
       const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
       const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
@@ -254,7 +362,14 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     })
     
   const filteredContacts = contacts
-    .filter(contact => contact.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(contact => {
+      // If searching, show hidden chats too
+      if (searchTerm.trim()) {
+        return contact.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      }
+      // Otherwise, hide hidden chats
+      return contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) && !isChatHidden(contact, 'user')
+    })
     .sort((a, b) => {
       const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
       const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
@@ -266,6 +381,26 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       ...prev,
       [section]: !prev[section]
     }))
+  }
+
+  const handlePopout = () => {
+    if (!selectedChat || !chatType) return
+    
+    const params = new URLSearchParams()
+    params.set('type', chatType)
+    params.set('id', selectedChat.id)
+    
+    // Open chromeless window
+    const width = 1200
+    const height = 800
+    const left = (window.screen.width - width) / 2
+    const top = (window.screen.height - height) / 2
+    
+    window.open(
+      `/chat/popout?${params.toString()}`,
+      'chat-popout',
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+    )
   }
 
   // Refresh chat preferences after actions
@@ -320,7 +455,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       
       if (favData.ok) {
         const newFavorites = await favData.json()
-        setFavorites(Array.isArray(newFavorites) ? newFavorites : [])
+        setRawFavorites(Array.isArray(newFavorites) ? newFavorites : [])
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
@@ -333,6 +468,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     
     // Check current states
     const isMuted = isChatMuted(item, type)
+    const isHidden = isChatHidden(item, type)
     const isUnread = hasUnreadMessages(item, type)
     
     const handleOptionClick = async (action, e) => {
@@ -350,7 +486,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         // Handle different actions
         switch(action) {
           case 'toggleUnread':
-            response = await fetch('/api/chat/mark-unread', {
+            // Mark as unread or read
+            const endpoint = isUnread ? 'mark-read' : 'mark-unread'
+            response = await fetch(`/api/chat/preferences/${endpoint}`, {
               method: 'POST',
               credentials: 'same-origin',
               headers: getHeaders(),
@@ -358,38 +496,49 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             })
             if (response.ok) {
               const result = await response.json()
-              // Refresh data to update unread counts
-              window.location.reload() // Simple refresh for now
+              // Update unread count in local state using actual count from backend
+              const newUnreadCount = isUnread ? 0 : (result.unread_count || 1)
+              if (type === 'team') {
+                setTeams(prev => prev.map(team => 
+                  team.id === item.id ? { ...team, unread_count: newUnreadCount } : team
+                ))
+              } else {
+                setContacts(prev => prev.map(contact => 
+                  contact.id === item.id ? { ...contact, unread_count: newUnreadCount } : contact
+                ))
+              }
+              // Refresh to update unread state
+              refreshChatPreferences()
             }
             break
             
           case 'hide':
-            response = await fetch('/api/chat/hide', {
+            // Hide or unhide chat - sets/unsets is_hidden in preferences
+            response = await fetch(`/api/chat/preferences/${isHidden ? 'unhide' : 'hide'}`, {
               method: 'POST',
               credentials: 'same-origin',
               headers: getHeaders(),
               body: JSON.stringify(chatData)
             })
             if (response.ok) {
-              // TODO: Remove from current view or refresh data
+              // Refresh chat preferences to update hidden state
+              refreshChatPreferences()
             }
             break
             
           case 'removeHistory':
-            if (confirm(`Are you sure you want to remove all chat history with ${item.name}? This action cannot be undone.`)) {
-              response = await fetch('/api/chat/history', {
-                method: 'DELETE',
-                credentials: 'same-origin',
-                headers: getHeaders(),
-                body: JSON.stringify(chatData)
-              })
-              if (response.ok) {
-              }
-            }
+            // Remove chat history - stores cutoff datetime in preferences
+            setConfirmationDialog({
+              isOpen: true,
+              type: 'removeHistory',
+              item,
+              chatData
+            })
             break
             
           case 'mute':
-            response = await fetch('/api/chat/toggle-mute', {
+            // Mute or unmute - sets/unsets is_muted in preferences
+            response = await fetch(`/api/chat/preferences/${isMuted ? 'unmute' : 'mute'}`, {
               method: 'POST',
               credentials: 'same-origin',
               headers: getHeaders(),
@@ -400,6 +549,16 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               // Refresh chat preferences
               refreshChatPreferences()
             }
+            break
+            
+          case 'leaveTeam':
+            // Leave team
+            setConfirmationDialog({
+              isOpen: true,
+              type: 'leaveTeam',
+              item,
+              chatData
+            })
             break
         }
         
@@ -419,9 +578,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             e.stopPropagation()
             setIsOpen(!isOpen)
           }}
-          className={`opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 p-1 ${isItemSelected ? 'hover:bg-theme-200/50' : 'hover:bg-gray-200'} rounded`}
+          className={`opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 p-1 ${isItemSelected ? 'hover:bg-theme-200/50 dark:hover:bg-theme-800/50' : 'hover:bg-gray-200 dark:hover:bg-dark-700'} rounded`}
         >
-          <EllipsisVerticalIcon className="w-4 h-4 text-gray-400" />
+          <EllipsisVerticalIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
         </button>
         
         {isOpen && (
@@ -435,10 +594,10 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               }}
             />
             {/* Dropdown menu */}
-            <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+            <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-20">
               <button
                 onClick={(e) => handleOptionClick('toggleUnread', e)}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg flex items-center"
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg flex items-center"
               >
                 {isUnread ? (
                   <>
@@ -454,25 +613,34 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               </button>
               <button
                 onClick={(e) => handleOptionClick('hide', e)}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center"
               >
                 <EyeIcon className="w-4 h-4 mr-2" />
-                Hide
+                {isHidden ? 'Unhide' : 'Hide'}
               </button>
               <button
                 onClick={(e) => handleOptionClick('removeHistory', e)}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center"
               >
                 <TrashIcon className="w-4 h-4 mr-2" />
                 Remove Chat History
               </button>
               <button
                 onClick={(e) => handleOptionClick('mute', e)}
-                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg flex items-center"
+                className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${type === 'team' ? '' : 'rounded-b-lg'} flex items-center`}
               >
                 <SpeakerXMarkIcon className="w-4 h-4 mr-2" />
                 {isMuted ? 'Unmute' : 'Mute'}
               </button>
+              {type === 'team' && (
+                <button
+                  onClick={(e) => handleOptionClick('leaveTeam', e)}
+                  className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg flex items-center"
+                >
+                  <TrashIcon className="w-4 h-4 mr-2" />
+                  Leave Team
+                </button>
+              )}
             </div>
           </>
         )}
@@ -504,9 +672,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         ) : (
           // Not favorited - show filled on hover to indicate "favorite"
           isHovered ? (
-            <StarIconSolid className="w-4 h-4 text-yellow-400" />
+            <StarIconSolid className="w-4 h-4 text-yellow-400 dark:text-yellow-500" />
           ) : (
-            <StarIcon className="w-4 h-4 text-gray-400" />
+            <StarIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
           )
         )}
       </button>
@@ -531,7 +699,11 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
 
   // Check if chat has unread messages (based on actual unread count)
   const hasUnreadMessages = (item, type) => {
-    // Check if this chat is in the unreadChats set
+    // Check if item has unread_count property
+    if (item.unread_count && item.unread_count > 0) {
+      return true
+    }
+    // Fallback to checking unreadChats set
     const chatKey = type === 'team' ? `team-${item.id}` : `dm-${item.id}`
     return unreadChats.has(chatKey)
   }
@@ -549,7 +721,19 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
 
   // Handle chat selection with context tracking
   const handleChatClick = (chat, type, section) => {
+    // Block chat switching while another chat is loading
+    if (isLoading) {
+      return
+    }
+    
     setSelectedContext({ id: chat.id, type, section })
+    
+    // Update URL to reflect current chat
+    const params = new URLSearchParams(window.location.search)
+    params.set('type', type)
+    params.set('id', chat.id)
+    const newUrl = `${window.location.pathname}?${params.toString()}`
+    window.history.pushState({}, '', newUrl)
     
     // Reset unread count for this chat
     if (type === 'team') {
@@ -565,6 +749,29 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     onChatSelect(chat, type)
   }
 
+  // Pop out current chat into a new window
+  const handlePopOutChat = () => {
+    if (!selectedChat || !chatType) return
+    
+    const chatId = selectedChat.id
+    const type = chatType
+    const url = `/chat/popout?type=${type}&id=${chatId}`
+    
+    // Open a new window without Chrome controls
+    const features = [
+      'width=1000',
+      'height=700',
+      'menubar=no',
+      'toolbar=no',
+      'location=no',
+      'status=no',
+      'scrollbars=yes',
+      'resizable=yes'
+    ].join(',')
+    
+    window.open(url, `chat-${type}-${chatId}`, features)
+  }
+
   const renderTeamItem = (team, section = 'teams') => {
     const isUnread = hasUnreadMessages(team, 'team')
     const isMuted = isChatMuted(team, 'team')
@@ -572,30 +779,32 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     return (
       <div 
         key={`${section}-team-${team.id}`}
-        className={`flex items-center px-3 py-2 mx-2 rounded-lg cursor-pointer group transition-colors ${
+        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        } ${
           isItemSelected(team, 'team', section)
-            ? 'bg-theme-50 text-theme-900'
-            : 'hover:bg-gray-100'
+            ? 'bg-theme-50 dark:bg-theme-900/30 text-theme-900 dark:text-theme-100'
+            : 'hover:bg-gray-100 dark:hover:bg-dark-800'
         }`}
         onClick={() => handleChatClick(team, 'team', section)}
       >
         {/* Unread indicator dot */}
         <div className="w-2 mr-2 flex justify-center">
           {team.unread_count > 0 && (
-            <div className="w-2 h-2 bg-theme-500 rounded-full animate-sync-pulse"></div>
+            <div className="w-2 h-2 bg-theme-500 dark:bg-theme-400 rounded-full animate-sync-pulse"></div>
           )}
         </div>
         
-        <div className="w-8 h-8 bg-theme-500 rounded-lg flex items-center justify-center mr-3">
+        <div className="w-8 h-8 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-3">
           <UserGroupIconSolid className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium text-gray-900 truncate ${
+          <p className={`text-sm font-medium text-gray-900 dark:text-dark-50 truncate ${
             team.unread_count ? 'font-bold text-base' : ''
           }`}>
             {team.name}
           </p>
-          <p className="text-xs text-gray-500 truncate">
+          <p className="text-xs text-gray-500 dark:text-dark-400 truncate">
             {team.unread_count > 0 
               ? `${team.unread_count} new message${team.unread_count === 1 ? '' : 's'}`
               : team.description
@@ -605,7 +814,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
           {isMuted && (
-            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500" />
+            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500 dark:text-dark-400" />
           )}
           <ChatOptionsDropdown item={team} type="team" isItemSelected={isItemSelected(team, 'team', section)} />
           <FavoriteButton 
@@ -625,17 +834,19 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     return (
       <div 
         key={`${section}-contact-${contact.id}`}
-        className={`flex items-center px-3 py-2 mx-2 rounded-lg cursor-pointer group transition-colors ${
+        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        } ${
           isItemSelected(contact, 'dm', section)
-            ? 'bg-theme-50 text-theme-900'
-            : 'hover:bg-gray-100'
+            ? 'bg-theme-50 dark:bg-theme-900/30 text-theme-900 dark:text-theme-100'
+            : 'hover:bg-gray-100 dark:hover:bg-dark-800'
         }`}
         onClick={() => handleChatClick(contact, 'dm', section)}
       >
         {/* Unread indicator dot */}
         <div className="w-2 mr-2 flex justify-center">
           {contact.unread_count > 0 && (
-            <div className="w-2 h-2 bg-theme-500 rounded-full animate-sync-pulse"></div>
+            <div className="w-2 h-2 bg-theme-500 dark:bg-theme-400 rounded-full animate-sync-pulse"></div>
           )}
         </div>
         
@@ -645,19 +856,19 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium text-gray-900 truncate ${
+          <p className={`text-sm font-medium text-gray-900 dark:text-dark-50 truncate ${
             contact.unread_count ? 'font-bold text-base' : ''
           }`}>
             {contact.name}
           </p>
-          <div className="text-xs text-gray-500 truncate">
+          <div className="text-xs text-gray-500 dark:text-dark-400 truncate">
             {(typingUsers[`dm-${contact.id}`] || []).some(u => u.user_id === contact.id) ? (
               <span className="flex gap-x-1.5">
                 Typing
                 <span className="flex space-x-1 mt-2.5">
-                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 dark:bg-dark-500 rounded-full animate-bounce"></div>
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 dark:bg-dark-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-[0.175rem] h-[0.175rem] bg-gray-400 dark:bg-dark-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </span>
               </span>
             ) : contact.unread_count > 0 ? (
@@ -670,7 +881,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
           {isMuted && (
-            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500" />
+            <SpeakerXMarkIconSolid className="w-4 h-4 text-gray-500 dark:text-dark-400" />
           )}
           <ChatOptionsDropdown item={contact} isItemSelected={isItemSelected(contact, 'dm', section)} type="user" />
           <FavoriteButton 
@@ -746,20 +957,20 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       <>
         {/* Backdrop */}
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-40"
           onClick={() => setShowCreateTeamModal(false)}
         />
         
         {/* Modal */}
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-96">
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-lg shadow-xl z-50 w-96">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Create New Team</h3>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-50">Create New Team</h3>
             <button
               onClick={() => setShowCreateTeamModal(false)}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-dark-700 rounded"
             >
-              <XMarkIcon className="w-5 h-5 text-gray-400" />
+              <XMarkIcon className="w-5 h-5 text-gray-400 dark:text-dark-400" />
             </button>
           </div>
           
@@ -767,7 +978,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           <form onSubmit={handleCreateTeam} className="p-6">
             {/* Team Name */}
             <div className="mb-4">
-              <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
                 Team Name *
               </label>
               <input
@@ -776,7 +987,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Enter team name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                 required
                 autoFocus
               />
@@ -784,7 +995,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             
             {/* Team Description */}
             <div className="mb-6">
-              <label htmlFor="teamDescription" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="teamDescription" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
                 Description (Optional)
               </label>
               <textarea
@@ -793,9 +1004,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 onChange={(e) => setTeamDescription(e.target.value)}
                 placeholder="Enter team description"
                 rows="3"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
                 Describe what this team is for
               </p>
             </div>
@@ -805,7 +1016,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               <button
                 type="button"
                 onClick={() => setShowCreateTeamModal(false)}
-                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="px-4 py-2 text-sm text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg"
                 disabled={isCreating}
               >
                 Cancel
@@ -816,7 +1027,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 className={`px-4 py-2 text-sm text-white rounded-lg ${
                   teamName.trim() && !isCreating
                     ? 'bg-theme-600 hover:bg-theme-700' 
-                    : 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-gray-300 dark:bg-dark-700 cursor-not-allowed'
                 }`}
               >
                 {isCreating ? (
@@ -842,16 +1053,16 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   }
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full lg:w-80 bg-white dark:bg-dark-900 border-l border-gray-200 dark:border-dark-700 flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 dark:border-dark-700">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-semibold text-gray-900">Chat</h1>
-          <div className="flex items-center space-x-2">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-dark-50">Chat</h1>
+          <div className="flex items-center space-x-2">            
             {/* Search Toggle */}
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
             >
               <MagnifyingGlassIcon className="w-5 h-5" />
             </button>
@@ -859,7 +1070,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             {/* Compose Button */}
             <button 
               onClick={() => onChatSelect(null, 'compose')}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
             >
               <PencilSquareIcon className="w-5 h-5" />
             </button>
@@ -868,15 +1079,15 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             <div className="relative dropdown-container">
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
               >
                 <EllipsisVerticalIcon className="w-5 h-5" />
               </button>
               
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-10">
                   <button 
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg flex items-center"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg flex items-center"
                     onClick={() => {
                       setShowDropdown(false)
                       setShowCreateTeamModal(true)
@@ -886,7 +1097,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                     Create New Team
                   </button>
                   <button 
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg flex items-center"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg flex items-center"
                     onClick={() => setShowDropdown(false)}
                   >
                     <PlusIcon className="w-4 h-4 mr-2" />
@@ -895,19 +1106,21 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                 </div>
               )}
             </div>
+
+
           </div>
         </div>
         
         {/* Collapsible Search */}
         {showSearch && (
           <div className="relative mb-3">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-dark-400" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
               autoFocus
             />
           </div>
@@ -937,14 +1150,14 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               <div className="mb-2">
                 <button
                   onClick={() => toggleSection('favorites')}
-                  className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 hover:bg-gray-50 dark:hover:bg-dark-800"
                 >
                   {expandedSections.favorites ? (
                     <ChevronDownIcon className="w-4 h-4 mr-2" />
                   ) : (
                     <ChevronRightIcon className="w-4 h-4 mr-2" />
                   )}
-                  <StarIconSolid className="w-4 h-4 mr-2 text-yellow-400" />
+                  <StarIconSolid className="w-4 h-4 mr-2 text-yellow-400 dark:text-yellow-500" />
                   Favorites
                 </button>
                 {expandedSections.favorites && favorites.length > 0 && (
@@ -963,7 +1176,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             <div className="mb-2">
               <button
                 onClick={() => toggleSection('teams')}
-                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 hover:bg-gray-50 dark:hover:bg-dark-800"
               >
                 {expandedSections.teams ? (
                   <ChevronDownIcon className="w-4 h-4 mr-2" />
@@ -984,7 +1197,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             <div className="mb-2">
               <button
                 onClick={() => toggleSection('contacts')}
-                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 hover:bg-gray-50 dark:hover:bg-dark-800"
               >
                 {expandedSections.contacts ? (
                   <ChevronDownIcon className="w-4 h-4 mr-2" />
@@ -1006,6 +1219,78 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       
       {/* Create Team Modal */}
       <CreateTeamModal />
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        onClose={() => {
+          setConfirmationDialog(prev => ({ ...prev, isOpen: false }))
+          setTimeout(() => {
+            setConfirmationDialog({ isOpen: false, type: null, item: null })
+          }, 300)
+        }}
+        title={confirmationDialog.type === 'leaveTeam' ? 'Leave Team' : 'Remove Chat History'}
+        description={
+          confirmationDialog.type === 'leaveTeam'
+            ? `Are you sure you want to leave ${confirmationDialog.item?.name}?`
+            : `Are you sure you want to remove all chat history with ${confirmationDialog.item?.name}? Messages will not be deleted but won't appear in your history.`
+        }
+        isYes={async () => {
+          try {
+            if (confirmationDialog.type === 'leaveTeam') {
+              const response = await fetch(`/api/chat/teams/${confirmationDialog.item.id}/leave`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: getHeaders()
+              })
+              if (response.ok) {
+                setTeams(prev => prev.filter(team => team.id !== confirmationDialog.item.id))
+                if (selectedChat?.id === confirmationDialog.item.id && chatType === 'team') {
+                  onChatSelect(null, 'compose')
+                }
+              }
+            } else if (confirmationDialog.type === 'removeHistory') {
+              const response = await fetch('/api/chat/preferences/remove-history', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: getHeaders(),
+                body: JSON.stringify(confirmationDialog.chatData)
+              })
+              if (response.ok) {
+                // Reset unread count to zero since all history is now hidden
+                const itemId = confirmationDialog.item.id
+                const isTeam = confirmationDialog.chatData.chat_type === 'team'
+                
+                if (isTeam) {
+                  setTeams(prev => prev.map(team => 
+                    team.id === itemId ? { ...team, unread_count: 0 } : team
+                  ))
+                } else {
+                  setContacts(prev => prev.map(contact => 
+                    contact.id === itemId ? { ...contact, unread_count: 0 } : contact
+                  ))
+                }
+                
+                // If this is the currently selected chat, re-select it to refresh messages
+                // The ChatEngine will fetch fresh messages which will exclude history before the cutoff
+                if (selectedChat?.id === itemId) {
+                  const type = isTeam ? 'team' : 'dm'
+                  // Briefly deselect then reselect to force a refresh
+                  onChatSelect(null, 'compose')
+                  setTimeout(() => {
+                    onChatSelect(confirmationDialog.item, type)
+                  }, 100)
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error:', error)
+          }
+        }}
+        type="warning"
+        yesText={confirmationDialog.type === 'leaveTeam' ? 'Leave' : 'Remove'}
+        cancelText="Cancel"
+      />
     </div>
   )
 }

@@ -29,10 +29,11 @@ Broadcast::channel('chat.user.{userId}', function ($user, $userId) {
 
 // Chat team channels
 Broadcast::channel('chat.team.{teamId}', function ($user, $teamId) {
-    // Check if user is a member of this team
+    // Check if user is an active member of this team (not left)
     return \DB::connection('pulse')->table('team_user')
         ->where('team_id', $teamId)
         ->where('user_id', $user->id)
+        ->whereNull('left_at')
         ->exists();
 });
 

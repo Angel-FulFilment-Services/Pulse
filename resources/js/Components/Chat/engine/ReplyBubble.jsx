@@ -37,20 +37,20 @@ export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply 
       onClick={() => onClickReply?.(repliedMessage.id, replyToAttachment?.id)}
       className={`px-3 py-2 rounded-lg mb-2 border-l-4 ${
         isMyMessage 
-          ? 'bg-white bg-opacity-20 border-white border-opacity-40' 
-          : 'bg-gray-100 border-gray-400'
+          ? 'bg-white dark:bg-dark-800 bg-opacity-20 dark:bg-opacity-20 border-white dark:border-dark-300 border-opacity-40 dark:border-opacity-40' 
+          : 'bg-gray-100 dark:bg-dark-800 border-gray-400 dark:border-dark-600'
       } ${onClickReply ? 'cursor-pointer hover:opacity-80' : ''}`}
     >
       {isReplyToAttachment ? (
         // Replying to a specific attachment - show attachment info only
         <>
           <div className={`text-xs font-medium mb-1 ${
-            isMyMessage ? 'text-white text-opacity-90' : 'text-gray-600'
+            isMyMessage ? 'text-white dark:text-dark-50 text-opacity-90' : 'text-gray-600 dark:text-dark-400'
           }`}>
             {repliedMessage.user?.name || 'Unknown User'}
           </div>
-          <div className={`text-sm truncate ${
-            isMyMessage ? 'text-white text-opacity-75' : 'text-gray-500'
+          <div className={`text-sm truncate max-w-lg ${
+            isMyMessage ? 'text-white dark:text-dark-200 text-opacity-75' : 'text-gray-500 dark:text-dark-400'
           } ${isAttachmentDeleted ? 'italic' : ''}`}>
             {isAttachmentDeleted
               ? 'This attachment has been deleted'
@@ -63,18 +63,18 @@ export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply 
         <>
           <div className="flex items-center justify-between gap-3 mb-1">
             <div className={`text-xs font-medium ${
-              isMyMessage ? 'text-white text-opacity-90' : 'text-gray-600'
+              isMyMessage ? 'text-white dark:text-dark-50 text-opacity-90' : 'text-gray-600 dark:text-dark-400'
             }`}>
               {repliedMessage.user?.name || 'Unknown User'}
             </div>
             <div className={`text-xs ${
-              isMyMessage ? 'text-white text-opacity-70' : 'text-gray-500'
+              isMyMessage ? 'text-white dark:text-dark-200 text-opacity-70' : 'text-gray-500 dark:text-dark-500'
             }`}>
               {formatTimestamp(repliedMessage.created_at)}
             </div>
           </div>
-          <div className={`text-sm truncate ${
-            isMyMessage ? 'text-white text-opacity-75' : 'text-gray-500'
+          <div className={`text-sm truncate max-w-lg ${
+            isMyMessage ? 'text-white dark:text-dark-200 text-opacity-75' : 'text-gray-500 dark:text-dark-400'
           } ${repliedMessage.deleted_at || (isAttachmentMessage && attachment?.deleted_at) ? 'italic' : ''}`}>
             {repliedMessage.deleted_at 
               ? 'This message has been deleted' 

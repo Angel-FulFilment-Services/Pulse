@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import ReplyBubble from './ReplyBubble'
 import MessageReactions from './MessageReactions'
 import MessageReactionBubbles from './MessageReactionBubbles'
@@ -44,6 +45,17 @@ export default function MessageList({
   // Track new messages for animation
   useEffect(() => {
     if (loading) return
+    
+    // Detect if we've switched to a completely different chat
+    // If none of the current messages are in our seen set, it's a new chat
+    const currentMessageIds = new Set(messages.map(m => m.id))
+    const hasAnySeenMessages = Array.from(currentMessageIds).some(id => seenMessageIds.current.has(id))
+    
+    // Reset tracking when switching to a new chat
+    if (messages.length > 0 && !hasAnySeenMessages && !isInitialLoad.current) {
+      seenMessageIds.current.clear()
+      isInitialLoad.current = true
+    }
     
     // Mark initial load complete after first render with messages
     if (isInitialLoad.current && messages.length > 0) {
@@ -89,13 +101,24 @@ export default function MessageList({
     // If attachmentId is provided, scroll to the specific attachment
     const targetId = attachmentId || messageId
     const element = messageRefs.current[targetId]
+    console.log(targetId, element)
+
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Add a brief highlight effect to the bubble
-      element.classList.add('ring-2', 'ring-theme-400')
-      setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-theme-400')
-      }, 2000)
+
+      // Add a brief highlight effect directly to the element
+      // For attachments, also add rounded-lg to ensure the ring has rounded corners
+      if (attachmentId) {
+        element.classList.add('ring-4', 'ring-theme-400', 'rounded-lg')
+        setTimeout(() => {
+          element.classList.remove('ring-4', 'ring-theme-400', 'rounded-lg')
+        }, 2000)
+      } else {
+        element.classList.add('ring-4', 'ring-theme-400')
+        setTimeout(() => {
+          element.classList.remove('ring-4', 'ring-theme-400')
+        }, 2000)
+      }
     }
   }
 
@@ -111,8 +134,12 @@ export default function MessageList({
     }
   }
 
-  // Group messages by sender and time
-  const groupedMessages = messages
+  // Separate membership events from regular messages
+  const membershipEvents = messages.filter(item => item.item_type === 'membership_event')
+  const regularMessages = messages.filter(item => item.item_type !== 'membership_event')
+
+  // Group regular messages by sender and time
+  const groupedMessages = regularMessages
     // Filter out empty messages (no text, no attachments, not deleted)
     .filter(message => {
       const hasText = message.body && message.body.trim().length > 0
@@ -141,6 +168,75 @@ export default function MessageList({
 
     return groups
   }, [])
+  
+  // Create a unified timeline that interleaves groups and membership events
+  const timeline = []
+  let groupIndex = 0
+  let eventIndex = 0
+  
+  // Sort membership events by time
+  const sortedEvents = [...membershipEvents].sort((a, b) => 
+    new Date(a.created_at) - new Date(b.created_at)
+  )
+  
+  while (groupIndex < groupedMessages.length || eventIndex < sortedEvents.length) {
+    const currentGroup = groupedMessages[groupIndex]
+    const currentEvent = sortedEvents[eventIndex]
+    
+    if (!currentEvent) {
+      // No more events, add remaining groups
+      timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
+      groupIndex++
+    } else if (!currentGroup) {
+      // No more groups, add remaining events
+      timeline.push({ type: 'event', data: currentEvent, key: currentEvent.id })
+      eventIndex++
+    } else {
+      // Compare times - use the first message in the group
+      const groupTime = new Date(currentGroup[0].created_at)
+      const eventTime = new Date(currentEvent.created_at)
+      
+      if (groupTime <= eventTime) {
+        timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
+        groupIndex++
+      } else {
+        timeline.push({ type: 'event', data: currentEvent, key: currentEvent.id })
+        eventIndex++
+      }
+    }
+  }
+  
+  // Group consecutive membership events of the same type
+  const groupedTimeline = []
+  for (let i = 0; i < timeline.length; i++) {
+    const item = timeline[i]
+    
+    if (item.type === 'event') {
+      // Check if we can group with previous event
+      const prevItem = groupedTimeline[groupedTimeline.length - 1]
+      
+      if (prevItem?.type === 'eventGroup' && prevItem.eventType === item.data.type) {
+        // Add to existing group
+        prevItem.events.push(item.data)
+        prevItem.key = `event-group-${prevItem.events[0].id}-${item.data.id}`
+      } else if (prevItem?.type === 'event' && prevItem.data.type === item.data.type) {
+        // Convert previous single event to a group
+        const prevEvent = groupedTimeline.pop()
+        groupedTimeline.push({
+          type: 'eventGroup',
+          eventType: item.data.type,
+          events: [prevEvent.data, item.data],
+          key: `event-group-${prevEvent.data.id}-${item.data.id}`
+        })
+      } else {
+        // Add as single event
+        groupedTimeline.push(item)
+      }
+    } else {
+      // Message groups are added as-is
+      groupedTimeline.push(item)
+    }
+  }
 
   if (loading) {
     // Get theme color from CSS variable (RGB values need wrapping)
@@ -160,16 +256,119 @@ export default function MessageList({
     )
   }
 
+  // Helper to render a membership event (single)
+  const renderMembershipEvent = (event) => {
+    const isJoin = event.type === 'member_joined'
+    
+    return (
+      <div key={event.id} className="flex justify-center my-4">
+        <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-dark-700 rounded-full text-sm text-gray-600 dark:text-dark-300">
+          {isJoin ? (
+            <>
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <span><strong>{event.user_name}</strong> has joined the team</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+              </svg>
+              <span><strong>{event.user_name}</strong> has left the team</span>
+            </>
+          )}
+          <span className="text-xs text-gray-400 dark:text-dark-500">
+            {formatTime(event.created_at)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+  
+  // Helper to render a grouped membership event (multiple people)
+  // Extracted component for grouped membership events with FloatingUI tooltip
+  const GroupedMembershipEvent = ({ eventGroup, formatTime }) => {
+    const [isHovering, setIsHovering] = useState(false)
+    const isJoin = eventGroup.eventType === 'member_joined'
+    const events = eventGroup.events
+    const names = events.map(e => e.user_name)
+    const lastEvent = events[events.length - 1]
+
+    const { refs, floatingStyles } = useFloating({
+      placement: 'top',
+      middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+      whileElementsMounted: autoUpdate,
+    })
+
+    return (
+      <div className="flex justify-center my-4">
+        <div className="relative">
+          <div 
+            ref={refs.setReference}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-dark-700 rounded-full text-sm text-gray-600 dark:text-dark-300 cursor-default"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            {isJoin ? (
+              <>
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <span><strong>{events.length} people</strong> have joined the team</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                </svg>
+                <span><strong>{events.length} people</strong> have left the team</span>
+              </>
+            )}
+            <span className="text-xs text-gray-400 dark:text-dark-500">
+              {formatTime(lastEvent.created_at)}
+            </span>
+          </div>
+          
+          {/* Floating tooltip showing all names */}
+          {isHovering && (
+            <div 
+              ref={refs.setFloating}
+              style={floatingStyles}
+              className="px-3 py-2 bg-gray-800 dark:bg-dark-600 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-50"
+            >
+              <div className="flex flex-col gap-1">
+                {names.map((name, idx) => (
+                  <span key={idx} className="font-medium">{name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      {groupedMessages.map((group, groupIndex) => {
+      {groupedTimeline.map((item) => {
+        // Render grouped membership events
+        if (item.type === 'eventGroup') {
+          return <GroupedMembershipEvent key={item.key} eventGroup={item} formatTime={formatTime} />
+        }
+        
+        // Render single membership events
+        if (item.type === 'event') {
+          return renderMembershipEvent(item.data)
+        }
+        
+        // Render message groups
+        const group = item.data
         const senderId = group[0].sender_id || group[0].user_id
         const isMyGroup = senderId === currentUser?.id
-        // Use first message ID as the key for stable group identity
-        const groupKey = `group-${group[0].id}`
         
         return (
-          <div key={groupKey} className="mb-4">
+          <div key={item.key} className="mb-4">
             <div className={`flex ${isMyGroup ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[70%]`}>
                 {/* Avatar - only show for other users, aligned with name/timestamp */}
@@ -183,10 +382,10 @@ export default function MessageList({
                   {/* User name and timestamp for other users */}
                   {!isMyGroup && (
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-gray-900 text-sm">
+                      <span className="font-medium text-gray-900 dark:text-dark-50 text-sm">
                         {group[0].user?.name || 'Unknown User'}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-dark-400">
                         {formatTime(group[0].created_at)}
                       </span>
                     </div>
@@ -281,12 +480,6 @@ export default function MessageList({
                                   <div 
                                     key={attachmentKey} 
                                     className={prevAttachmentHasReactions ? 'mt-7' : 'mt-2'}
-                                    ref={el => {
-                                      // Store ref for both message and attachment
-                                      if (el && attachment.id) {
-                                        messageRefs.current[attachment.id] = el
-                                      }
-                                    }}
                                   >
                                     <AttachmentPreview
                                       attachment={attachment}
@@ -306,6 +499,12 @@ export default function MessageList({
                                       pendingReactionsRef={pendingReactionsRef}
                                       boundaryRef={messageListContainerRef}
                                       messageId={message.id}
+                                      contentRef={el => {
+                                        // Store ref to the actual attachment content
+                                        if (el && attachment.id) {
+                                          messageRefs.current[attachment.id] = el
+                                        }
+                                      }}
                                     />
                                   </div>
                                 )
@@ -315,7 +514,7 @@ export default function MessageList({
                             {message.status === 'failed' && !message.body && (
                               <button
                                 onClick={() => onRetryMessage?.(message.id)}
-                                className="p-1 text-red-500 hover:text-red-700 flex-shrink-0"
+                                className="p-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 flex-shrink-0"
                                 title="Retry sending"
                               >
                                 <ArrowPathIcon className="w-4 h-4" />
@@ -335,16 +534,16 @@ export default function MessageList({
                               }}
                               className={`relative px-4 py-2 transition-all ${
                                 isMyGroup
-                                  ? 'bg-theme-500 text-white'
-                                  : 'bg-gray-200 text-gray-900'
+                                  ? 'bg-theme-500 dark:bg-theme-600 text-white'
+                                  : 'bg-gray-200 dark:bg-dark-700 text-gray-900 dark:text-dark-50'
                               } ${
                                 isLastInGroup 
                                   ? 'rounded-[18px]' 
                                   : 'rounded-[18px]'
                               } ${
-                                isLastInGroup && isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:right-[-8px] before:h-5 before:w-5 before:bg-theme-500 before:rounded-bl-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:right-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-bl-[10px]' : ''
+                                isLastInGroup && isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:right-[-8px] before:h-5 before:w-5 before:bg-theme-500 dark:before:bg-theme-600 before:rounded-bl-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:right-[-10px] after:w-[10px] after:h-5 after:bg-white dark:after:bg-dark-900 after:rounded-bl-[10px]' : ''
                               } ${
-                                isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white after:rounded-br-[10px]' : ''
+                                isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 dark:before:bg-dark-700 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white dark:after:bg-dark-900 after:rounded-br-[10px]' : ''
                               }`}
                               style={{ wordBreak: 'break-all' }}
                               onMouseEnter={() => setHoveredMessageId(message.id)}
@@ -399,11 +598,11 @@ export default function MessageList({
                               
                               {message.deleted_at ? (
                                 <div className="flex items-center gap-3">
-                                  <p className={`italic ${isMyGroup ? 'text-white' : ''} text-gray-500`}>This message has been deleted.</p>
+                                  <p className={`italic ${isMyGroup ? 'text-white' : 'text-gray-500 dark:text-dark-400'}`}>This message has been deleted.</p>
                                   {isMyGroup && (
                                     <button
                                       onClick={() => onRestoreMessage?.(message.id)}
-                                      className="text-sm underline text-theme-50 hover:text-theme-200 font-semibold"
+                                      className="text-sm underline text-theme-600 dark:text-theme-400 hover:text-theme-700 dark:hover:text-theme-300 font-semibold"
                                     >
                                       Undo
                                     </button>
@@ -439,7 +638,7 @@ export default function MessageList({
                           {!message.deleted_at && message.status === 'failed' && (
                             <button
                               onClick={() => onRetryMessage?.(message.id)}
-                              className="mt-1 p-1 text-red-500 hover:text-red-700"
+                              className="mt-1 p-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                               title="Retry sending"
                             >
                               <ArrowPathIcon className="w-4 h-4" />
@@ -453,9 +652,9 @@ export default function MessageList({
                           <div className={`flex items-center text-xs py-1 ${hasMessageReactions && !message.deleted_at ? 'pt-8' : 'pt-1.5'}`}>
                             {isLastReadMessage && readerNames.length > 0 ? (
                               chatType === 'dm' ? (
-                                <span className="text-gray-500">Seen</span>
+                                <span className="text-gray-500 dark:text-dark-400">Seen</span>
                               ) : (
-                                <div className="group/receipt relative text-gray-500">
+                                <div className="group/receipt relative text-gray-500 dark:text-dark-400">
                                   <span className="max-w-[120px] truncate">
                                     {readerNames.length <= 2 
                                       ? `Seen by ${readerNames.join(', ')}`
@@ -463,29 +662,29 @@ export default function MessageList({
                                     }
                                   </span>
                                   {readerNames.length > 2 && (
-                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover/receipt:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover/receipt:block bg-gray-800 dark:bg-dark-700 text-white dark:text-dark-50 text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                                       {readerNames.join(', ')}
                                     </div>
                                   )}
                                 </div>
                               )
                             ) : message.status === 'failed' ? (
-                              <div className="flex items-center gap-1 text-red-600">
+                              <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
                                 <span>Not Delivered</span>
                               </div>
                             ) : message.status === 'pending' || isPending ? (
-                              <div className="flex items-center justify-center gap-1 text-gray-500">
+                              <div className="flex items-center justify-center gap-1 text-gray-500 dark:text-dark-400">
                                 <span>Sending</span>
                                 <span className="typing-dots gap-x-0.5 flex mt-1">
-                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
-                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
-                                  <span className="dot w-1 h-1 bg-gray-400 rounded-full"></span>
+                                  <span className="dot w-1 h-1 bg-gray-400 dark:bg-dark-500 rounded-full"></span>
+                                  <span className="dot w-1 h-1 bg-gray-400 dark:bg-dark-500 rounded-full"></span>
+                                  <span className="dot w-1 h-1 bg-gray-400 dark:bg-dark-500 rounded-full"></span>
                                 </span>
                               </div>
                             ) : isLastUnreadMessage ? (
-                              <div className="flex items-center gap-1 text-gray-500">
+                              <div className="flex items-center gap-1 text-gray-500 dark:text-dark-400">
                                 <span>Delivered</span>
-                                <PaperAirplaneIcon className="w-4 h-4 text-theme-600 rotate-180" title="Delivered" />
+                                <PaperAirplaneIcon className="w-4 h-4 text-theme-600 dark:text-theme-400 rotate-180" title="Delivered" />
                               </div>
                             ) : null}
                           </div>
@@ -521,7 +720,7 @@ export default function MessageList({
                     )
                     
                     return (
-                      <div className={`text-xs text-gray-500 text-right ${
+                      <div className={`text-xs text-gray-500 dark:text-dark-400 text-right ${
                         (hasMessageReactions) && !lastMsgHasStatus && !lastMsg.deleted_at ? 'mt-7' : 'mt-1'
                       }`}>
                         {formatTime(lastMsg.created_at)}

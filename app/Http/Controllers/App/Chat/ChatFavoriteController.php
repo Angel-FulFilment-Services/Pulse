@@ -14,7 +14,7 @@ class ChatFavoriteController extends Controller
         $favorites = ChatFavorite::where('user_id', $userId)->orderBy('order')->get();
         
         // Transform favorites to include the actual team/user data
-        $transformedFavorites = $favorites->map(function($favorite) {
+        $transformedFavorites = $favorites->map(function($favorite) use ($userId) {
             $favoriteData = [
                 'id' => $favorite->id,
                 'favorite_id' => $favorite->favorite_id,
@@ -26,7 +26,15 @@ class ChatFavoriteController extends Controller
             if ($favorite->type === 'team') {
                 $team = \App\Models\Chat\Team::find($favorite->favorite_id);
                 if ($team) {
-                    $favoriteData['item'] = $team;
+                    // Check if user is still an active member of this team
+                    $isActiveMember = $team->users()
+                        ->where('user_id', $userId)
+                        ->whereNull('left_at')
+                        ->exists();
+                    
+                    if ($isActiveMember) {
+                        $favoriteData['item'] = $team;
+                    }
                 }
             } else if ($favorite->type === 'user') {
                 $user = \App\Models\User\User::find($favorite->favorite_id);

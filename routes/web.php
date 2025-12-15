@@ -181,6 +181,7 @@ Route::get('/public/knowledge-base/article/{id}', [KnowledgeBaseController::clas
 |-----------------------
 */
 Route::get('/chat', [ChatController::class, 'index'])->name('chat');
+Route::get('/chat/popout', [ChatController::class, 'popout'])->name('chat.popout');
 
 /*
 |-----------------------

@@ -12,7 +12,7 @@ export default function NavButton ({ item }){
         href={item.href}
         className={classNames(
           item.current
-            ? 'text-theme-600 dark:text-theme-700 bg-gray-50 hover:bg-gray-50 dark:hover:bg-dark-800'
+            ? 'text-theme-600 dark:text-theme-700 bg-gray-50 hover:bg-gray-50 dark:bg-dark-800 dark:hover:bg-dark-800'
             : 'text-gray-700 hover:text-theme-600 hover:bg-gray-50 dark:hover:bg-dark-800 dark:hover:text-theme-700 dark:text-dark-200',
           'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Custom hook to manage real-time chat subscriptions and event handling
@@ -9,6 +9,7 @@ export function useRealtimeChat({
   currentUser,
   onMessageReceived,
   onMessageRead,
+  onMessageUnread,
   onClearTypingUser,
   onReactionAdded,
   onReactionRemoved,
@@ -21,12 +22,15 @@ export function useRealtimeChat({
   onAttachmentPinned,
   onAttachmentUnpinned,
   onAttachmentDeleted,
-  onAttachmentRestored
+  onAttachmentRestored,
+  onMemberJoined,
+  onMemberLeft
 }) {
   const echoRef = useRef(null)
   const currentUserRef = useRef(currentUser)
   const onMessageReceivedRef = useRef(onMessageReceived)
   const onMessageReadRef = useRef(onMessageRead)
+  const onMessageUnreadRef = useRef(onMessageUnread)
   const onClearTypingUserRef = useRef(onClearTypingUser)
   const onReactionAddedRef = useRef(onReactionAdded)
   const onReactionRemovedRef = useRef(onReactionRemoved)
@@ -40,12 +44,16 @@ export function useRealtimeChat({
   const onAttachmentUnpinnedRef = useRef(onAttachmentUnpinned)
   const onAttachmentDeletedRef = useRef(onAttachmentDeleted)
   const onAttachmentRestoredRef = useRef(onAttachmentRestored)
+  const onMemberJoinedRef = useRef(onMemberJoined)
+  const onMemberLeftRef = useRef(onMemberLeft)
+  const [connectionError, setConnectionError] = useState(null)
 
   // Keep refs up to date
   useEffect(() => {
     currentUserRef.current = currentUser
     onMessageReceivedRef.current = onMessageReceived
     onMessageReadRef.current = onMessageRead
+    onMessageUnreadRef.current = onMessageUnread
     onClearTypingUserRef.current = onClearTypingUser
     onReactionAddedRef.current = onReactionAdded
     onReactionRemovedRef.current = onReactionRemoved
@@ -59,10 +67,15 @@ export function useRealtimeChat({
     onAttachmentUnpinnedRef.current = onAttachmentUnpinned
     onAttachmentDeletedRef.current = onAttachmentDeleted
     onAttachmentRestoredRef.current = onAttachmentRestored
-  }, [onMessageReceived, onMessageRead, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored])
+    onMemberJoinedRef.current = onMemberJoined
+    onMemberLeftRef.current = onMemberLeft
+  }, [onMessageReceived, onMessageRead, onMessageUnread, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored, onMemberJoined, onMemberLeft])
 
   useEffect(() => {
-    if (!selectedChat || !window.Echo || chatType === 'compose') return
+    if (!selectedChat || !window.Echo || chatType === 'compose') {
+      setConnectionError(null)
+      return
+    }
 
     // Stop listening to events from previous channel
     if (echoRef.current?.channel) {
@@ -82,6 +95,8 @@ export function useRealtimeChat({
       prevChannel.stopListening('.AttachmentDeleted')
       prevChannel.stopListening('.AttachmentRestored')
       prevChannel.stopListening('.MessageRead')
+      prevChannel.stopListening('.TeamMemberJoined')
+      prevChannel.stopListening('.TeamMemberLeft')
       // NOTE: Not calling window.Echo.leave() to preserve global listeners
     }
 
@@ -95,6 +110,15 @@ export function useRealtimeChat({
 
     if (channelName) {
       const channel = window.Echo.join(channelName)
+      
+      // Clear any previous connection errors
+      setConnectionError(null)
+      
+      // Listen for connection errors
+      channel.error((error) => {
+        console.error('WebSocket channel error:', error)
+        setConnectionError('Failed to connect to real-time chat. Messages may not update automatically.')
+      })
       
       // Listen for new messages
       channel.listen('.MessageSent', (e) => {
@@ -198,6 +222,22 @@ export function useRealtimeChat({
         }
       })
       
+      // Listen for team member joined (only for team chats)
+      if (chatType === 'team') {
+        channel.listen('.TeamMemberJoined', (e) => {
+          if (onMemberJoinedRef.current) {
+            onMemberJoinedRef.current(e)
+          }
+        })
+        
+        // Listen for team member left
+        channel.listen('.TeamMemberLeft', (e) => {
+          if (onMemberLeftRef.current) {
+            onMemberLeftRef.current(e)
+          }
+        })
+      }
+      
       // Listen for typing indicators
       channel.listenForWhisper('typing', (e) => {
         // Don't show typing indicator for current user
@@ -241,12 +281,27 @@ export function useRealtimeChat({
           onMessageReadRef.current(e.message_read)
         }
       })
+      
+      // Listen for message unread events on user channel (so they receive it
+      // regardless of which chat is selected)
+      userChannel.listen('.message.unread', (e) => {
+        // Handle message unread events
+        if (e.message_ids && onMessageUnreadRef.current) {
+          onMessageUnreadRef.current({
+            message_ids: e.message_ids,
+            user_id: e.user_id,
+            chat_id: e.chat_id,
+            chat_type: e.chat_type
+          })
+        }
+      })
     }
 
     return () => {
-      // Clean up MessageRead listener from user channel
+      // Clean up listeners from user channel
       if (userChannel) {
         userChannel.stopListening('.MessageRead')
+        userChannel.stopListening('.message.unread')
       }
       // NOTE: Don't call window.Echo.leave() on these channels because that would
       // remove global listeners set up in Chat.jsx. The channels will persist across
@@ -273,5 +328,5 @@ export function useRealtimeChat({
     }
   }
 
-  return { sendTypingIndicator }
+  return { sendTypingIndicator, connectionError }
 }

@@ -8,6 +8,7 @@ use App\Models\Chat\MessageReaction;
 use App\Models\Chat\MessageAttachment;
 use App\Models\Chat\Team;
 use App\Models\Chat\DmPinnedMessage;
+use App\Models\Chat\ChatUserPreference;
 use App\Events\Chat\MessageSent;
 use App\Events\Chat\MessageNotification;
 use App\Events\Chat\NewContactMessage;
@@ -152,18 +153,61 @@ class MessageController extends Controller
     {
         $perPage = $request->input('per_page', 50);
         $beforeId = $request->input('before_id'); // Load messages before this ID
+        $beforeTimestamp = $request->input('before_timestamp'); // For membership events pagination
+        $userId = auth()->user()->id;
         
         $query = Message::query();
+        $chatType = null;
+        $chatId = null;
+        $historyRemovedAt = null;
+        $memberJoinedAt = null;
+        
         if ($request->has('team_id')) {
-            $query->where('team_id', $request->input('team_id'));
+            $chatType = 'team';
+            $chatId = $request->input('team_id');
+            $query->where('team_id', $chatId);
+            
+            // Get the user's current active membership joined_at timestamp
+            // This ensures users can only see messages from when they joined
+            $membership = \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $chatId)
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->first();
+            
+            if ($membership && $membership->joined_at) {
+                $memberJoinedAt = $membership->joined_at;
+                $query->where('created_at', '>=', $memberJoinedAt);
+            }
         } elseif ($request->has('recipient_id')) {
-            $query->where(function($q) use ($request) {
-                $q->where('sender_id', auth()->user()->id)
-                  ->where('recipient_id', $request->input('recipient_id'));
-            })->orWhere(function($q) use ($request) {
-                $q->where('sender_id', $request->input('recipient_id'))
-                  ->where('recipient_id', auth()->user()->id);
+            $chatType = 'user';
+            $chatId = $request->input('recipient_id');
+            // Wrap in a single where to avoid orWhere breaking other conditions
+            $query->where(function($q) use ($request, $userId) {
+                $q->where(function($q2) use ($userId, $request) {
+                    $q2->where('sender_id', $userId)
+                       ->where('recipient_id', $request->input('recipient_id'));
+                })->orWhere(function($q2) use ($userId, $request) {
+                    $q2->where('sender_id', $request->input('recipient_id'))
+                       ->where('recipient_id', $userId);
+                });
             });
+        }
+        
+        // Filter out messages before history_removed_at if set
+        if ($chatType && $chatId) {
+            $preference = ChatUserPreference::where('user_id', $userId)
+                ->where('chat_id', $chatId)
+                ->where('chat_type', $chatType)
+                ->first();
+            
+            if ($preference && $preference->history_removed_at) {
+                $historyRemovedAt = $preference->history_removed_at;
+                // Only apply if it's more restrictive than memberJoinedAt
+                if (!$memberJoinedAt || $historyRemovedAt > $memberJoinedAt) {
+                    $query->where('created_at', '>=', $historyRemovedAt);
+                }
+            }
         }
         
         // If before_id is provided, load messages before that ID
@@ -188,8 +232,93 @@ class MessageController extends Controller
             $hasMore = $checkQuery->where('id', '<', $oldestFetchedId)->exists();
         }
         
+        // For team chats, include membership events (joins and leaves)
+        $membershipEvents = collect([]);
+        if ($chatType === 'team') {
+            $membershipQuery = \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $chatId);
+            
+            // Determine the effective cutoff date (most restrictive of memberJoinedAt and historyRemovedAt)
+            $effectiveCutoff = $memberJoinedAt;
+            if ($historyRemovedAt && (!$effectiveCutoff || $historyRemovedAt > $effectiveCutoff)) {
+                $effectiveCutoff = $historyRemovedAt;
+            }
+            
+            // Apply cutoff filter to membership events
+            if ($effectiveCutoff) {
+                $membershipQuery->where(function($q) use ($effectiveCutoff) {
+                    $q->where('joined_at', '>=', $effectiveCutoff)
+                      ->orWhere('left_at', '>=', $effectiveCutoff);
+                });
+            }
+            
+            // Apply pagination if before_timestamp provided
+            if ($beforeTimestamp) {
+                $membershipQuery->where(function($q) use ($beforeTimestamp) {
+                    $q->where('joined_at', '<', $beforeTimestamp)
+                      ->orWhere('left_at', '<', $beforeTimestamp);
+                });
+            }
+            
+            $memberships = $membershipQuery->get();
+            
+            // Get user details for all membership records
+            $userIds = $memberships->pluck('user_id')->unique();
+            $users = \App\Models\User\User::whereIn('id', $userIds)->get()->keyBy('id');
+            
+            // Create events for each join and leave
+            foreach ($memberships as $membership) {
+                $user = $users->get($membership->user_id);
+                $userName = $user ? $user->name : 'Unknown User';
+                
+                // Add join event
+                if ($membership->joined_at) {
+                    $joinTime = \Carbon\Carbon::parse($membership->joined_at);
+                    // Filter by effective cutoff
+                    if (!$effectiveCutoff || $joinTime->gte($effectiveCutoff)) {
+                        $membershipEvents->push([
+                            'id' => 'join-' . $membership->id,
+                            'type' => 'member_joined',
+                            'user_id' => $membership->user_id,
+                            'user_name' => $userName,
+                            'team_id' => $chatId,
+                            'created_at' => $membership->joined_at,
+                            'sent_at' => $membership->joined_at,
+                        ]);
+                    }
+                }
+                
+                // Add leave event if they left
+                if ($membership->left_at) {
+                    $leftTime = \Carbon\Carbon::parse($membership->left_at);
+                    // Filter by effective cutoff
+                    if (!$effectiveCutoff || $leftTime->gte($effectiveCutoff)) {
+                        $membershipEvents->push([
+                            'id' => 'leave-' . $membership->id,
+                            'type' => 'member_left',
+                            'user_id' => $membership->user_id,
+                            'user_name' => $userName,
+                            'team_id' => $chatId,
+                            'created_at' => $membership->left_at,
+                            'sent_at' => $membership->left_at,
+                        ]);
+                    }
+                }
+            }
+        }
+        
+        // Merge messages with membership events, sorted by time
+        $combinedItems = $messages->map(function($msg) {
+            $arr = $msg->toArray();
+            $arr['item_type'] = 'message';
+            return $arr;
+        })->concat($membershipEvents->map(function($event) {
+            $event['item_type'] = 'membership_event';
+            return $event;
+        }))->sortBy('sent_at')->values();
+        
         return response()->json([
-            'messages' => $messages,
+            'messages' => $combinedItems,
             'has_more' => $hasMore,
             'per_page' => $perPage
         ]);

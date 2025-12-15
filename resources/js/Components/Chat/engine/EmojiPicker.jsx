@@ -117,17 +117,17 @@ export default function EmojiPicker({ onSelectEmoji, referenceElement, onClose, 
         backgroundColor: 'transparent',
       }}
     >
-      <div className={`bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden`} style={{ width: Math.max(referenceWidth || 277, 277) }}>
+      <div className={`bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden`} style={{ width: Math.max(referenceWidth || 277, 277) }}>
         {/* Search bar */}
-        <div className="p-3 border-b border-gray-200">
+        <div className="p-3 border-b border-gray-200 dark:border-dark-700">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-dark-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Find something fun"
-              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
               autoFocus
             />
           </div>
@@ -136,13 +136,13 @@ export default function EmojiPicker({ onSelectEmoji, referenceElement, onClose, 
         {/* Reactions grid */}
         <div className="max-h-80 overflow-y-auto p-3">
           {Object.keys(filteredReactions).length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
+            <div className="text-center py-8 text-gray-400 dark:text-dark-500 text-sm">
               No emojis found
             </div>
           ) : (
             Object.entries(filteredReactions).map(([category, reactions]) => (
               <div key={category} className="mb-4 last:mb-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-dark-400 uppercase mb-2">
                   {category}
                 </h3>
                 <div className="grid grid-cols-7 gap-1">
@@ -150,8 +150,8 @@ export default function EmojiPicker({ onSelectEmoji, referenceElement, onClose, 
                     <button
                       key={reaction.name}
                       onClick={() => handleEmojiClick(reaction)}
-                      className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors text-xl ${
-                        hasUserReacted(reaction.emoji) ? 'bg-gray-200' : ''
+                      className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-xl ${
+                        hasUserReacted(reaction.emoji) ? 'bg-gray-200 dark:bg-dark-700' : ''
                       }`}
                       title={reaction.label}
                     >

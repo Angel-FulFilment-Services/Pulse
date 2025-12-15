@@ -17,4 +17,9 @@ class ChatController extends Controller
     {
         return Inertia::render('Chat');
     }
+
+    public function popout(Request $request)
+    {
+        return Inertia::render('ChatPopout');
+    }
 }

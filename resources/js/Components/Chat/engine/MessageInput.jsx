@@ -291,7 +291,7 @@ export default function MessageInput({
       {/* Chat window drag container */}
       {isDragging && !attachments.length && (
         <div 
-          className="fixed top-0 left-0 h-screen z-50 bg-theme-800/10 border-2 border-dashed border-theme-500 rounded-lg flex items-center justify-center"
+          className="fixed top-0 left-0 h-screen z-50 bg-theme-800/10 dark:bg-theme-800/20 border-2 border-dashed border-theme-500 dark:border-theme-400 rounded-lg flex items-center justify-center"
           style={dragOverlayStyle}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -299,8 +299,8 @@ export default function MessageInput({
           onDrop={handleDrop}
         >
           <div className="text-center">
-            <PhotoIcon className="w-12 h-12 mx-auto text-theme-600 mb-2" />
-            <p className="text-theme-600 font-medium">Drop files here</p>
+            <PhotoIcon className="w-12 h-12 mx-auto text-theme-600 dark:text-theme-400 mb-2" />
+            <p className="text-theme-600 dark:text-theme-400 font-medium">Drop files here</p>
           </div>
         </div>
       )}
@@ -315,19 +315,19 @@ export default function MessageInput({
 
         {/* Attachment previews */}
         {attachments.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 relative">
+          <div className="bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg p-3 mb-3 relative">
             {/* Drag overlay */}
             {isDragging && (
-                <div className="absolute inset-0 z-50 bg-theme-500/10 border-2 border-dashed border-theme-500 rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 z-50 bg-theme-500/10 dark:bg-theme-500/20 border-2 border-dashed border-theme-500 dark:border-theme-400 rounded-lg flex items-center justify-center">
                   <div className="text-center">
-                    <PhotoIcon className="w-12 h-12 mx-auto text-theme-600 mb-2" />
-                    <p className="text-theme-600 font-medium">Drop files here</p>
+                    <PhotoIcon className="w-12 h-12 mx-auto text-theme-600 dark:text-theme-400 mb-2" />
+                    <p className="text-theme-600 dark:text-theme-400 font-medium">Drop files here</p>
                   </div>
                 </div>
             )}
             <div className='flex items-center space-x-2 mb-3'>
-              <PaperClipIcon className="w-4 h-4 text-gray-500" />
-              <h4 className="text-sm text-gray-600 font-medium">Attachments ({attachments.length})</h4>
+              <PaperClipIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+              <h4 className="text-sm text-gray-600 dark:text-dark-300 font-medium">Attachments ({attachments.length})</h4>
             </div>
             <div className="flex flex-wrap items-end gap-2">
               {attachments.map(attachment => (
@@ -352,7 +352,7 @@ export default function MessageInput({
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 placeholder={effectivePlaceholder}
-                className="w-full px-4 py-1.5 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                className="w-full px-4 py-1.5 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
                 rows={1}
                 style={{ minHeight: '24px', maxHeight: '120px' }}
               />
@@ -371,7 +371,7 @@ export default function MessageInput({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
             >
               <PaperClipIcon className="w-5 h-5" />
             </button>
@@ -379,14 +379,14 @@ export default function MessageInput({
               ref={emojiButtonRef}
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 relative"
+              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 relative"
             >
               <FaceSmileIcon className="w-5 h-5" />
             </button>
             <button
               type="submit"
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className="p-2 text-white bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="p-2 text-white bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 dark:disabled:bg-dark-700 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
             </button>

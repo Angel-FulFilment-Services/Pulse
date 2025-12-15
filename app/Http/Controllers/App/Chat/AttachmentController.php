@@ -140,10 +140,11 @@ class AttachmentController extends Controller
                     abort(404, 'Team not found');
                 }
                 
-                // Check if user is a member of the team
+                // Check if user is an active member of the team (not left)
                 $hasAccess = \DB::connection('pulse')->table('team_user')
                     ->where('team_id', $message->team_id)
                     ->where('user_id', $userId)
+                    ->whereNull('left_at')
                     ->exists();
             } else {
                 // Check if user is sender or recipient

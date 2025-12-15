@@ -15,12 +15,14 @@ class ChatUserPreference extends Model
         'chat_type', // 'team' or 'user'
         'is_muted',
         'is_hidden',
-        'last_read_at'
+        'last_read_at',
+        'history_removed_at'
     ];
 
     protected $casts = [
         'is_muted' => 'boolean',
         'is_hidden' => 'boolean',
-        'last_read_at' => 'datetime'
+        'last_read_at' => 'datetime',
+        'history_removed_at' => 'datetime'
     ];
 }
