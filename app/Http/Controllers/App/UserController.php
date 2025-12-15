@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Log;
 use App\Models\Rota\Shift;
 use App\Models\Rota\Event;
+use App\Models\User\UserStatus;
 
 class UserController extends Controller
 {
@@ -26,7 +27,8 @@ class UserController extends Controller
         // Fetch employees with their latest timesheet record
         $users = Employee::leftJoin('apex_data.timesheet_today as tt', 'hr_details.hr_id', '=', 'tt.hr_id')
             ->leftJoin('wings_config.users', 'hr_details.user_id', '=', 'users.id')
-            ->select('hr_details.hr_id', 'hr_details.rank', 'hr_details.user_id', 'hr_details.profile_photo', 'tt.off_time', DB::raw('MAX(tt.on_time) as latest_on_time'), 'users.name', 'hr_details.job_title', 'hr_details.start_date')
+            ->leftJoin('pulse.user_statuses', 'hr_details.user_id', '=', 'user_statuses.user_id')
+            ->select('hr_details.hr_id', 'hr_details.rank', 'hr_details.user_id', 'hr_details.profile_photo', 'user_statuses.last_active_at', 'tt.off_time', DB::raw('MAX(tt.on_time) as latest_on_time'), 'users.name', 'hr_details.job_title', 'hr_details.start_date')
             ->groupBy('hr_details.hr_id', 'tt.off_time')
             ->orderBy('tt.unq_id', 'asc')
             ->get();
@@ -46,6 +48,7 @@ class UserController extends Controller
                 'job_title' => $user->job_title,
                 'profile_photo' => $user->profile_photo,
                 'last_active_at' => $lastActiveAt,
+                'pulse_last_active_at' => $user->last_active_at ?? null,
                 'rank' => $user->rank,
                 'new' => Carbon::parse($user->start_date)->diffInDays(Carbon::now()) <= 30,
             ];

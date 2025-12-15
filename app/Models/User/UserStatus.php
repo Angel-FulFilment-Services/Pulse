@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Models\Chat;
+namespace App\Models\User;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User\User;
 
 class UserStatus extends Model
 {
@@ -14,6 +15,6 @@ class UserStatus extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User\User::class);
+        return $this->belongsTo(User::class);
     }
 }

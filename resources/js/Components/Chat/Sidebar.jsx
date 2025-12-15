@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { ring } from 'ldrs'
 import { 
   MagnifyingGlassIcon,
@@ -23,6 +23,8 @@ import {
   UserIcon as UserIconSolid,
 } from '@heroicons/react/24/solid'
 import UserIcon from './UserIcon.jsx'
+import { useUserStates } from '../Context/ActiveStateContext';
+import { differenceInMinutes } from 'date-fns'
 
 // Register the ring spinner
 ring.register()
@@ -45,6 +47,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     contacts: true,
     favorites: true
   })
+  const { userStates } = useUserStates();
 
   // Helper function to get API headers
   const getHeaders = () => {
@@ -585,7 +588,18 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const renderContactItem = (contact, section = 'contacts') => {
     const isUnread = hasUnreadMessages(contact, 'user')
     const isMuted = isChatMuted(contact, 'user')
+    const lastActiveAt = userStates ? Object.values(userStates).find(u => u.user_id === contact.id)?.pulse_last_active_at : null;
     
+    let activeStatus = 'Offline';
+    if (lastActiveAt) {
+      const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt));
+      if (minutesAgo <= 2.5) {
+        activeStatus = 'Online';
+      } else if (minutesAgo <= 30) {
+        activeStatus = 'Away';
+      }
+    }
+
     return (
       <div 
         key={`${section}-contact-${contact.id}`}
@@ -627,7 +641,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             ) : contact.unread_count > 0 ? (
               `${contact.unread_count} new message${contact.unread_count === 1 ? '' : 's'}`
             ) : (
-              contact.is_online ? 'Active' : 'Away'
+              `${activeStatus}`
             )}
           </div>
         </div>

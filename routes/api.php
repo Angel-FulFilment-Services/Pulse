@@ -8,7 +8,6 @@ use App\Http\Controllers\App\Chat\TeamController;
 use App\Http\Controllers\App\Chat\MessageController;
 use App\Http\Controllers\App\Chat\MessageReadController;
 use App\Http\Controllers\App\Chat\AttachmentController;
-use App\Http\Controllers\App\Chat\UserStatusController;
 use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\CallRecordingController;
@@ -136,11 +135,7 @@ Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers']
 |-----------------------
 */
 
-Route::prefix('chat')->group(function () {
-    // User Status
-    Route::get('user-status', [UserStatusController::class, 'index']);
-    Route::post('user-status', [UserStatusController::class, 'update']);
-    
+Route::prefix('chat')->group(function () {    
     // Messages
     Route::get('messages', [MessageController::class, 'index']);
     Route::post('messages', [MessageController::class, 'store']);

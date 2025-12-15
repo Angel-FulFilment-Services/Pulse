@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Chat\UserStatus;
+use App\Models\User\UserStatus;
 use Symfony\Component\HttpFoundation\Response;
 
 class UpdateActivity
@@ -21,7 +21,6 @@ class UpdateActivity
             UserStatus::updateOrCreate(
                 ['user_id' => $request->user()->id],
                 [
-                    'status' => 'online',
                     'last_active_at' => now()
                 ]
             );

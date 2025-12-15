@@ -2,6 +2,7 @@ import { UserIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
 import React, { memo, useMemo } from 'react';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
+import { useUserStates } from '../Context/ActiveStateContext';
 
 const UserItem = ({ size = 'large', contact }) => {
   const sizeClasses = {
@@ -21,12 +22,22 @@ const UserItem = ({ size = 'large', contact }) => {
     }
   };
 
+  const { userStates } = useUserStates();
+
+    // Memoize userState to avoid recalculating it unnecessarily
+  const userState = useMemo(() => {
+    if (contact?.id && userStates && typeof userStates === 'object') {
+      return Object.values(userStates).find(u => u.user_id === contact.id);
+    }
+    return undefined;
+  }, [userStates, contact?.id]);
+  
   const selectedSizeClass = sizeClasses.icon[size] || sizeClasses.icon.medium;
   const selectedActivitySizeClass = sizeClasses.activity[size] || sizeClasses.activity.medium;
 
   // Memoize profilePhoto and lastActiveAt
-  const profilePhoto = useMemo(() => contact?.profile_photo || null, [contact]);
-  const lastActiveAt = useMemo(() => contact?.last_active_at || null, [contact]);
+  const profilePhoto = useMemo(() => userState?.profile_photo || null, [userState]);
+  const lastActiveAt = useMemo(() => userState?.pulse_last_active_at || null, [userState]);
 
   // Memoize activeIndicatorColor
   const activeIndicatorColor = useMemo(() => {
@@ -41,7 +52,6 @@ const UserItem = ({ size = 'large', contact }) => {
       return 'bg-gray-300 dark:bg-gray-400';
     }
   }, [lastActiveAt]);
-
 
   return (
     <>

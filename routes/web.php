@@ -28,6 +28,7 @@ use App\Http\Controllers\App\ProxyController;
 use App\Http\Controllers\App\AccountController;
 use App\Http\Controllers\App\UserController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -222,6 +223,7 @@ Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name(
 */
 
 Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware('log.access');
+Route::get('/users/pulse/active-status', [UserController::class, 'pulseActiveStates']);
 Route::get('/users', [UserController::class, 'users'])->name('users');
 
 /*

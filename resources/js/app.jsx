@@ -164,11 +164,11 @@ createInertiaApp({
           <AppWrapper>
             {({ theme, mode, handleSetTheme, handleSetMode }) => (
               <ActiveStateProvider>
-                <ToastContainer />
-                <NavBar
-                  page={page}
-                  theme={theme}
-                  mode={mode}
+                  <ToastContainer />
+                  <NavBar
+                    page={page}
+                    theme={theme}
+                    mode={mode}
                   handleSetTheme={handleSetTheme}
                   handleSetMode={handleSetMode}
                 />
