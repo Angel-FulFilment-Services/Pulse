@@ -1,10 +1,12 @@
 import { UserIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 import { useUserStates } from '../Context/ActiveStateContext';
 
 const UserItem = ({ size = 'large', contact }) => {
+  const [imageError, setImageError] = useState(false);
+  
   const sizeClasses = {
     "icon": {
       'extra-small': 'h-6 w-6',
@@ -56,11 +58,12 @@ const UserItem = ({ size = 'large', contact }) => {
   return (
     <>
       <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass}`}>
-        {profilePhoto ? (
+        {profilePhoto && !imageError ? (
           <img
-            src={`https://pulse.cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+            src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
             className={`w-full h-full select-none rounded-full brightness-95`}
             alt="User profile"
+            onError={() => setImageError(true)}
           />
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />

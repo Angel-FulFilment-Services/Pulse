@@ -1,19 +1,20 @@
 import React from 'react'
-import { UserIcon, UserGroupIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
+import { UserGroupIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
+import UserIcon from '../UserIcon.jsx'
 
 export default function ChatHeader({ chat, chatType }) {
   return (
     <div className="px-6 py-4 border-b border-gray-200 bg-white min-h-[5.31rem]">
       <div className="flex items-center justify-between">
         <div className="flex items-center h-full">
-          <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
+          <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center mr-6">
             {chatType === 'team' ? (
               <UserGroupIcon className="w-5 h-5 text-gray-600" />
             ) : (
               chat.avatar ? (
                 <img src={chat.avatar} alt="" className="w-10 h-10 rounded-lg" />
               ) : (
-                <UserIcon className="w-5 h-5 text-gray-600" />
+                <UserIcon size="large" contact={chat} />
               )
             )}
           </div>
@@ -24,7 +25,7 @@ export default function ChatHeader({ chat, chatType }) {
             )}
             {chatType === 'dm' && (
               <p className="text-sm text-gray-500">
-                {chat.is_online ? 'Active now' : 'Away'}
+                {chat.activeStatus ?? 'Offline'}
               </p>
             )}
           </div>

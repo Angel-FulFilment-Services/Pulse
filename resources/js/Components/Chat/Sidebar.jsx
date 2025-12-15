@@ -99,6 +99,8 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   }, [currentUser])
 
   // Fetch contacts
+  const [rawContacts, setRawContacts] = useState([])
+  
   useEffect(() => {
     if (!currentUser) return
     
@@ -115,12 +117,43 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         }
         return res.json()
       })
-      .then(data => setContacts(Array.isArray(data) ? data : []))
+      .then(data => setRawContacts(Array.isArray(data) ? data : []))
       .catch((error) => {
         console.error('Error fetching contacts:', error)
-        setContacts([])
+        setRawContacts([])
       })
   }, [currentUser, refreshKey])
+
+  // Enhance contacts with active status
+  useEffect(() => {
+    if (!rawContacts.length) {
+      setContacts([])
+      return
+    }
+
+    const enhancedContacts = rawContacts.map(contact => {
+      const userState = userStates ? Object.values(userStates).find(u => u.user_id === contact.id) : null
+      const lastActiveAt = userState?.pulse_last_active_at
+      
+      let activeStatus = 'Offline'
+      if (lastActiveAt) {
+        const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt))
+        if (minutesAgo <= 2.5) {
+          activeStatus = 'Active Now'
+        } else if (minutesAgo <= 30) {
+          activeStatus = 'Away'
+        }
+      }
+      
+      return {
+        ...contact,
+        activeStatus,
+        lastActiveAt
+      }
+    })
+    
+    setContacts(enhancedContacts)
+  }, [rawContacts, userStates])
 
   // Fetch favorites
   useEffect(() => {
@@ -588,17 +621,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const renderContactItem = (contact, section = 'contacts') => {
     const isUnread = hasUnreadMessages(contact, 'user')
     const isMuted = isChatMuted(contact, 'user')
-    const lastActiveAt = userStates ? Object.values(userStates).find(u => u.user_id === contact.id)?.pulse_last_active_at : null;
-    
-    let activeStatus = 'Offline';
-    if (lastActiveAt) {
-      const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt));
-      if (minutesAgo <= 2.5) {
-        activeStatus = 'Online';
-      } else if (minutesAgo <= 30) {
-        activeStatus = 'Away';
-      }
-    }
 
     return (
       <div 
@@ -641,7 +663,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             ) : contact.unread_count > 0 ? (
               `${contact.unread_count} new message${contact.unread_count === 1 ? '' : 's'}`
             ) : (
-              `${activeStatus}`
+              contact.activeStatus || 'Offline'
             )}
           </div>
         </div>

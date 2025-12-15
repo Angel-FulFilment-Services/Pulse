@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { 
   PaperAirplaneIcon,
-  UserIcon,
   UserGroupIcon,
   MagnifyingGlassIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
+import UserIcon from '../UserIcon.jsx'
 import MessageInput from './MessageInput'
 
 export default function ComposeMode({ 
@@ -152,7 +152,7 @@ export default function ComposeMode({
                                   {user.avatar ? (
                                     <img src={user.avatar} alt="" className="w-6 h-6 rounded-full" />
                                   ) : (
-                                    <UserIcon className="w-3 h-3 text-gray-600" />
+                                    <UserIcon size="extra-small" contact={user} />
                                   )}
                                 </div>
                                 <span className="text-sm text-gray-900">{user.name}</span>
@@ -204,11 +204,11 @@ export default function ComposeMode({
             {/* Selected Recipient Display */}
             <div className="px-6 py-4 bg-theme-50 border-b border-theme-200">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-theme-500 rounded-lg flex items-center justify-center mr-3">
+                <div className="w-8 h-8 bg-theme-500 rounded-lg flex items-center justify-center mr-4">
                   {composeRecipient.type === 'team' ? (
                     <UserGroupIcon className="w-4 h-4 text-white" />
                   ) : (
-                    <UserIcon className="w-4 h-4 text-white" />
+                    <UserIcon size="medium" contact={composeRecipient} />
                   )}
                 </div>
                 <div>

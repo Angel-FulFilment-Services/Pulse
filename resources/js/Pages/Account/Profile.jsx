@@ -159,7 +159,7 @@ export default function Profile({ employee, user }) {
                             <div className="size-20 relative flex items-center justify-center">
                                 <div className="size-16 ring-2 rounded-full absolute ring-gray-700/20 dark:ring-dark-300/50"></div>
                                 {employee.profile_photo ?
-                                    <img src={`https://pulse.cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90 flex-shrink-0" />
+                                    <img src={`https://pulse-cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90 flex-shrink-0" />
                                 :
                                     <UserCircleIcon aria-hidden="true" className="size-20 text-gray-300 dark:text-dark-500 absolute" />
                                 }
