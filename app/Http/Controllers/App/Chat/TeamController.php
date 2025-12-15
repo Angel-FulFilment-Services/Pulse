@@ -75,6 +75,7 @@ class TeamController extends Controller
         $members = $team->getMembers();
         $teamArr = $team->toArray();
         $teamArr['members'] = $members;
+        $teamArr['current_user_role'] = $team->getCurrentUserRole();
         return response()->json($teamArr);
     }
     // Update (edit) a team
@@ -173,6 +174,20 @@ class TeamController extends Controller
             'updated_at' => $now,
         ]);
         
+        // Broadcast to the creator's channel so their sidebar updates in real-time
+        // (in case they have multiple tabs/windows open)
+        broadcast(new \App\Events\Chat\TeamMemberAdded(
+            (int) auth()->user()->id,
+            [
+                'id' => $team->id,
+                'name' => $team->name,
+                'description' => $team->description,
+                'owner_id' => $team->owner_id,
+                'unread_count' => 0,
+                'last_message_at' => null,
+            ]
+        ));
+        
         return response()->json($team, 201);
     }
 
@@ -233,6 +248,19 @@ class TeamController extends Controller
     {
         $team = Team::findOrFail($teamId);
         $user = User::findOrFail($userId);
+        $currentUserId = auth()->user()->id;
+        
+        // Check if current user is admin or owner
+        $currentUserMembership = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $currentUserId)
+            ->whereNull('left_at')
+            ->first();
+        
+        if (!$currentUserMembership || !in_array($currentUserMembership->role, ['admin', 'owner'])) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        
         $now = now();
         
         // Mark the active membership as left instead of deleting
@@ -260,6 +288,93 @@ class TeamController extends Controller
         ));
             
         return response()->json(['message' => 'User removed.']);
+    }
+    
+    public function updateMemberRole(Request $request, $teamId, $userId)
+    {
+        $data = $request->validate([
+            'role' => 'required|string|in:member,admin,owner',
+        ]);
+        
+        $team = Team::findOrFail($teamId);
+        $user = User::findOrFail($userId);
+        $currentUserId = auth()->user()->id;
+        $now = now();
+        
+        // Check if current user is admin or owner
+        $currentUserMembership = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $currentUserId)
+            ->whereNull('left_at')
+            ->first();
+        
+        if (!$currentUserMembership || !in_array($currentUserMembership->role, ['admin', 'owner'])) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        
+        // Only owner can transfer ownership
+        if ($data['role'] === 'owner' && $currentUserMembership->role !== 'owner') {
+            return response()->json(['error' => 'Only the owner can transfer ownership'], 403);
+        }
+        
+        // Get the target user's current membership
+        $targetMembership = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->first();
+        
+        if (!$targetMembership) {
+            return response()->json(['error' => 'User is not a member of this team'], 404);
+        }
+        
+        $oldRole = $targetMembership->role ?? 'member';
+        $newOwnerId = null;
+        
+        // If transferring ownership
+        if ($data['role'] === 'owner') {
+            // Update team owner
+            $team->owner_id = $userId;
+            $team->save();
+            $newOwnerId = $userId;
+            
+            // Demote current owner to admin
+            \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $teamId)
+                ->where('user_id', $currentUserId)
+                ->whereNull('left_at')
+                ->update([
+                    'role' => 'admin',
+                    'updated_at' => $now,
+                ]);
+        }
+        
+        // Update the target user's role
+        \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->update([
+                'role' => $data['role'],
+                'updated_at' => $now,
+            ]);
+        
+        // Broadcast role change event
+        broadcast(new \App\Events\Chat\TeamMemberRoleChanged(
+            (int) $teamId,
+            (int) $userId,
+            $user->name,
+            $oldRole,
+            $data['role'],
+            $newOwnerId
+        ));
+        
+        return response()->json([
+            'message' => 'Role updated.',
+            'user_id' => $userId,
+            'role' => $data['role'],
+            'new_owner_id' => $newOwnerId,
+        ]);
     }
 
     // Mark all messages as read for a team for the current user

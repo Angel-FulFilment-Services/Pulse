@@ -182,6 +182,7 @@ Route::prefix('chat')->group(function () {
     Route::delete('teams/{teamId}', [TeamController::class, 'destroy']);
     Route::post('teams/{teamId}/members', [TeamController::class, 'addMember']);
     Route::delete('teams/{teamId}/members/{userId}', [TeamController::class, 'removeMember']);
+    Route::put('teams/{teamId}/members/{userId}/role', [TeamController::class, 'updateMemberRole']);
     Route::post('teams/{teamId}/mark-read', [TeamController::class, 'markRead']);
     Route::post('teams/{teamId}/typing', [TeamController::class, 'typing']);
     Route::post('teams/{teamId}/leave', [TeamController::class, 'leave']);

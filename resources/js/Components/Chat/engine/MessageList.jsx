@@ -169,74 +169,92 @@ export default function MessageList({
     return groups
   }, [])
   
-  // Create a unified timeline that interleaves groups and membership events
-  const timeline = []
-  let groupIndex = 0
-  let eventIndex = 0
-  
   // Sort membership events by time
   const sortedEvents = [...membershipEvents].sort((a, b) => 
     new Date(a.created_at) - new Date(b.created_at)
   )
   
-  while (groupIndex < groupedMessages.length || eventIndex < sortedEvents.length) {
-    const currentGroup = groupedMessages[groupIndex]
-    const currentEvent = sortedEvents[eventIndex]
+  // Pre-group membership events that are within 5 minutes of each other and of the same type
+  const preGroupedEvents = []
+  for (const event of sortedEvents) {
+    const lastGroup = preGroupedEvents[preGroupedEvents.length - 1]
     
-    if (!currentEvent) {
-      // No more events, add remaining groups
+    if (lastGroup && lastGroup.eventType === event.type) {
+      // Check if within 5 minutes of the last event in the group
+      const lastEventTime = new Date(lastGroup.events[lastGroup.events.length - 1].created_at)
+      const currentEventTime = new Date(event.created_at)
+      const timeDiff = currentEventTime - lastEventTime
+      
+      if (timeDiff < 5 * 60 * 1000) { // 5 minutes
+        // Add to existing group
+        lastGroup.events.push(event)
+        continue
+      }
+    }
+    
+    // Start a new group
+    preGroupedEvents.push({
+      eventType: event.type,
+      events: [event],
+      // Use the first event's timestamp for timeline positioning
+      created_at: event.created_at
+    })
+  }
+  
+  // Now interleave message groups with pre-grouped events
+  const timeline = []
+  let groupIndex = 0
+  let eventGroupIndex = 0
+  
+  while (groupIndex < groupedMessages.length || eventGroupIndex < preGroupedEvents.length) {
+    const currentGroup = groupedMessages[groupIndex]
+    const currentEventGroup = preGroupedEvents[eventGroupIndex]
+    
+    if (!currentEventGroup) {
+      // No more events, add remaining message groups
       timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
       groupIndex++
     } else if (!currentGroup) {
-      // No more groups, add remaining events
-      timeline.push({ type: 'event', data: currentEvent, key: currentEvent.id })
-      eventIndex++
+      // No more message groups, add remaining event groups
+      const eg = currentEventGroup
+      if (eg.events.length === 1) {
+        timeline.push({ type: 'event', data: eg.events[0], key: eg.events[0].id })
+      } else {
+        timeline.push({
+          type: 'eventGroup',
+          eventType: eg.eventType,
+          events: eg.events,
+          key: `event-group-${eg.events[0].id}-${eg.events[eg.events.length - 1].id}`
+        })
+      }
+      eventGroupIndex++
     } else {
-      // Compare times - use the first message in the group
+      // Compare times - use the first message in the group vs first event in event group
       const groupTime = new Date(currentGroup[0].created_at)
-      const eventTime = new Date(currentEvent.created_at)
+      const eventTime = new Date(currentEventGroup.created_at)
       
       if (groupTime <= eventTime) {
         timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
         groupIndex++
       } else {
-        timeline.push({ type: 'event', data: currentEvent, key: currentEvent.id })
-        eventIndex++
+        const eg = currentEventGroup
+        if (eg.events.length === 1) {
+          timeline.push({ type: 'event', data: eg.events[0], key: eg.events[0].id })
+        } else {
+          timeline.push({
+            type: 'eventGroup',
+            eventType: eg.eventType,
+            events: eg.events,
+            key: `event-group-${eg.events[0].id}-${eg.events[eg.events.length - 1].id}`
+          })
+        }
+        eventGroupIndex++
       }
     }
   }
   
-  // Group consecutive membership events of the same type
-  const groupedTimeline = []
-  for (let i = 0; i < timeline.length; i++) {
-    const item = timeline[i]
-    
-    if (item.type === 'event') {
-      // Check if we can group with previous event
-      const prevItem = groupedTimeline[groupedTimeline.length - 1]
-      
-      if (prevItem?.type === 'eventGroup' && prevItem.eventType === item.data.type) {
-        // Add to existing group
-        prevItem.events.push(item.data)
-        prevItem.key = `event-group-${prevItem.events[0].id}-${item.data.id}`
-      } else if (prevItem?.type === 'event' && prevItem.data.type === item.data.type) {
-        // Convert previous single event to a group
-        const prevEvent = groupedTimeline.pop()
-        groupedTimeline.push({
-          type: 'eventGroup',
-          eventType: item.data.type,
-          events: [prevEvent.data, item.data],
-          key: `event-group-${prevEvent.data.id}-${item.data.id}`
-        })
-      } else {
-        // Add as single event
-        groupedTimeline.push(item)
-      }
-    } else {
-      // Message groups are added as-is
-      groupedTimeline.push(item)
-    }
-  }
+  // Timeline is now ready - no need for secondary grouping
+  const groupedTimeline = timeline
 
   if (loading) {
     // Get theme color from CSS variable (RGB values need wrapping)

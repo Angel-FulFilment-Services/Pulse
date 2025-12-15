@@ -1,11 +1,55 @@
-import React, { useState } from 'react'
-import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline'
+import React, { useState, useEffect, useRef } from 'react'
+import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon, UserPlusIcon, XMarkIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
+import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
 
-export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [] }) {
+export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated }) {
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showMembersPanel, setShowMembersPanel] = useState(false)
+  const [showAddUserPopover, setShowAddUserPopover] = useState(false)
+  const [showCreateTeamDropdown, setShowCreateTeamDropdown] = useState(false)
+  const [teamMembers, setTeamMembers] = useState([])
+  const [allUsers, setAllUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [currentUserRole, setCurrentUserRole] = useState(null)
+  const [roleDropdownMemberId, setRoleDropdownMemberId] = useState(null)
   const [confirmationDialog, setConfirmationDialog] = useState({ isOpen: false, type: null })
+  
+  // Ref for create team button
+  const createTeamButtonRef = useRef(null)
+  
+  // FloatingUI for members popover
+  const { refs: membersRefs, floatingStyles: membersFloatingStyles } = useFloating({
+    placement: 'bottom-end',
+    middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  })
+  
+  // FloatingUI for add user popover (attached to add member button, same width as parent)
+  const { refs: addUserRefs, floatingStyles: addUserFloatingStyles } = useFloating({
+    placement: 'bottom',
+    middleware: [offset(15), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  })
+  
+  // FloatingUI for role dropdown
+  const { refs: roleRefs, floatingStyles: roleFloatingStyles } = useFloating({
+    placement: 'bottom-end',
+    middleware: [offset(4), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  })
+  
+  // Helper to check if current user can change a member's role
+  const canChangeRole = (member) => {
+    if (!currentUserRole || member.id === currentUser?.id) return false
+    const roleHierarchy = { owner: 3, admin: 2, member: 1 }
+    const myLevel = roleHierarchy[currentUserRole] || 0
+    const theirLevel = roleHierarchy[member.role] || 0
+    // Can only change roles of users below you
+    return myLevel > theirLevel
+  }
   
   // Check current states
   const isMuted = chatPreferences.some(pref => 
@@ -33,6 +77,214 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
       ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken })
     }
   }
+  
+  // Fetch current user's role in team on mount (for showing/hiding management button)
+  useEffect(() => {
+    if (chatType === 'team' && chat?.id) {
+      fetch(`/api/chat/teams/${chat.id}`, { 
+        credentials: 'same-origin',
+        headers: getHeaders()
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.current_user_role) {
+            setCurrentUserRole(data.current_user_role)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [chat?.id, chatType])
+  
+  // Fetch team members when panel opens
+  useEffect(() => {
+    if (showMembersPanel && chatType === 'team' && chat?.id) {
+      fetch(`/api/chat/teams/${chat.id}`, { 
+        credentials: 'same-origin',
+        headers: getHeaders()
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.members) {
+            setTeamMembers(data.members)
+          }
+          if (data?.current_user_role) {
+            setCurrentUserRole(data.current_user_role)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [showMembersPanel, chat?.id, chatType])
+  
+  // Fetch all users when add user popover opens
+  useEffect(() => {
+    if (showAddUserPopover) {
+      fetch('/api/chat/users/all', { 
+        credentials: 'same-origin',
+        headers: getHeaders()
+      })
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setAllUsers(Array.isArray(data) ? data : []))
+        .catch(() => setAllUsers([]))
+    }
+  }, [showAddUserPopover])
+  
+  // Listen for role changes
+  useEffect(() => {
+    if (chatType !== 'team' || !chat?.id || !window.Echo) return
+    
+    const teamChannel = window.Echo.join(`chat.team.${chat.id}`)
+    
+    const handleRoleChanged = (event) => {
+      // Update member role in local state
+      setTeamMembers(prev => prev.map(m => 
+        m.id === event.user_id ? { ...m, role: event.new_role } : m
+      ))
+      
+      // If current user's role changed, update it
+      if (event.user_id === currentUser?.id) {
+        setCurrentUserRole(event.new_role)
+      }
+      
+      // If ownership transferred, trigger refresh
+      if (event.new_owner_id) {
+        onMembersChange?.()
+      }
+    }
+    
+    teamChannel.listen('.TeamMemberRoleChanged', handleRoleChanged)
+    
+    return () => {
+      teamChannel.stopListening('.TeamMemberRoleChanged')
+    }
+  }, [chat?.id, chatType, currentUser?.id, onMembersChange])
+  
+  // Filter users - exclude current team members
+  const memberIds = teamMembers.map(m => m.id)
+  const filteredUsers = allUsers.filter(user => 
+    !memberIds.includes(user.id) &&
+    user.name?.toLowerCase().includes(userSearch.toLowerCase())
+  )
+  
+  // Add member to team
+  const handleAddMember = async (userId) => {
+    try {
+      const response = await fetch(`/api/chat/teams/${chat.id}/members`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: getHeaders(),
+        body: JSON.stringify({ user_id: userId })
+      })
+      
+      if (response.ok) {
+        // Refresh members list
+        const teamResponse = await fetch(`/api/chat/teams/${chat.id}`, { 
+          credentials: 'same-origin',
+          headers: getHeaders()
+        })
+        if (teamResponse.ok) {
+          const data = await teamResponse.json()
+          if (data?.members) {
+            setTeamMembers(data.members)
+          }
+        }
+        setShowAddUserPopover(false)
+        setUserSearch('')
+        onMembersChange?.()
+      }
+    } catch (error) {
+      console.error('Error adding member:', error)
+    }
+  }
+  
+  // Remove member from team
+  const handleRemoveMember = async (userId) => {
+    try {
+      const response = await fetch(`/api/chat/teams/${chat.id}/members/${userId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: getHeaders()
+      })
+      
+      if (response.ok) {
+        setTeamMembers(prev => prev.filter(m => m.id !== userId))
+        onMembersChange?.()
+      }
+    } catch (error) {
+      console.error('Error removing member:', error)
+    }
+  }
+  
+  // Update member role
+  const handleUpdateRole = async (userId, newRole) => {
+    // If changing to owner, show confirmation
+    if (newRole === 'owner') {
+      const member = teamMembers.find(m => m.id === userId)
+      setConfirmationDialog({
+        isOpen: true,
+        type: 'transferOwnership',
+        member: member,
+        newRole: newRole
+      })
+      setRoleDropdownMemberId(null)
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/chat/teams/${chat.id}/members/${userId}/role`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: getHeaders(),
+        body: JSON.stringify({ role: newRole })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        // Update local state
+        setTeamMembers(prev => prev.map(m => 
+          m.id === userId ? { ...m, role: newRole } : m
+        ))
+        setRoleDropdownMemberId(null)
+        onMembersChange?.()
+      }
+    } catch (error) {
+      console.error('Error updating role:', error)
+    }
+  }
+  
+  // Execute ownership transfer
+  const executeOwnershipTransfer = async (userId) => {
+    try {
+      const response = await fetch(`/api/chat/teams/${chat.id}/members/${userId}/role`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: getHeaders(),
+        body: JSON.stringify({ role: 'owner' })
+      })
+      
+      if (response.ok) {
+        // Refresh members from server to get accurate state
+        const teamResponse = await fetch(`/api/chat/teams/${chat.id}`, { 
+          credentials: 'same-origin',
+          headers: getHeaders()
+        })
+        if (teamResponse.ok) {
+          const teamData = await teamResponse.json()
+          if (teamData?.members) {
+            setTeamMembers(teamData.members)
+          }
+          if (teamData?.current_user_role) {
+            setCurrentUserRole(teamData.current_user_role)
+          }
+        }
+        onMembersChange?.()
+      }
+    } catch (error) {
+      console.error('Error transferring ownership:', error)
+    }
+  }
+  
+  // Check if current user can manage members (admin or owner)
+  const canManageMembers = currentUserRole === 'admin' || currentUserRole === 'owner'
   
   const handleOptionClick = async (action) => {
     setShowDropdown(false)
@@ -181,6 +433,248 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Team Members Button - only show for teams and admins/owners */}
+          {chatType === 'team' && canManageMembers && (
+            <div className="relative">
+              <button
+                ref={membersRefs.setReference}
+                onClick={() => {
+                  setShowMembersPanel(!showMembersPanel)
+                  if (showMembersPanel) setShowAddUserPopover(false)
+                }}
+                className={`p-2 rounded-lg ${showMembersPanel ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'}`}
+                title="Manage team members"
+              >
+                <UserGroupIcon className="w-5 h-5" />
+              </button>
+              
+              {/* Members Popover */}
+              {showMembersPanel && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => {
+                      setShowMembersPanel(false)
+                      setShowAddUserPopover(false)
+                    }}
+                  />
+                  
+                  <div
+                    ref={membersRefs.setFloating}
+                    style={membersFloatingStyles}
+                    className="w-80 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-xl z-50"
+                  >
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-dark-700 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-50">Team Members</h3>
+                      <button
+                        onClick={() => {
+                          setShowMembersPanel(false)
+                          setShowAddUserPopover(false)
+                        }}
+                        className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    {/* Members List */}
+                    <div className="max-h-64 overflow-y-auto">
+                      {teamMembers.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-dark-400">
+                          No members found
+                        </div>
+                      ) : (
+                        <div className="py-1">
+                          {teamMembers.map(member => (
+                            <div 
+                              key={member.id}
+                              className="px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-dark-700"
+                            >
+                              <div className="flex items-center gap-3">
+                                <UserIcon contact={member} size="small" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-dark-50">{member.name}</p>
+                                  <span className={`text-xs ${
+                                    member.role === 'owner' 
+                                      ? 'text-theme-600 dark:text-theme-400' 
+                                      : member.role === 'admin'
+                                        ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-gray-500 dark:text-dark-400'
+                                  }`}>
+                                    {member.role === 'owner' ? 'Owner' : member.role === 'admin' ? 'Admin' : 'Member'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Role and Remove buttons - only show for admins/owners */}
+                              {canManageMembers && member.id !== currentUser?.id && (
+                                <div className="flex items-center gap-1">
+                                  {/* Role dropdown - only show for members you can change */}
+                                  {canChangeRole(member) && (
+                                    <button
+                                      ref={roleDropdownMemberId === member.id ? roleRefs.setReference : null}
+                                      onClick={() => setRoleDropdownMemberId(
+                                        roleDropdownMemberId === member.id ? null : member.id
+                                      )}
+                                      className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-200 rounded hover:bg-gray-100 dark:hover:bg-dark-600"
+                                      title="Change role"
+                                    >
+                                      <ChevronDownIcon className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  
+                                  {/* Remove button - don't show for owner */}
+                                  {member.role !== 'owner' && (
+                                    <button
+                                      onClick={() => setConfirmationDialog({
+                                        isOpen: true,
+                                        type: 'removeMember',
+                                        member: member
+                                      })}
+                                      className="p-1 text-gray-400 dark:text-dark-400 hover:text-red-500 dark:hover:text-red-400 rounded hover:bg-gray-100 dark:hover:bg-dark-600"
+                                      title="Remove from team"
+                                    >
+                                      <XMarkIcon className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Add User Section */}
+                    <div className="px-3 py-2 border-t border-gray-200 dark:border-dark-700">
+                      <button
+                        ref={addUserRefs.setReference}
+                        onClick={() => setShowAddUserPopover(!showAddUserPopover)}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-700 text-white text-sm rounded-lg transition-colors"
+                      >
+                        <UserPlusIcon className="w-4 h-4" />
+                        <span>Add Member</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Add User Popover - positioned outside the members popover */}
+                  {showAddUserPopover && (
+                    <div
+                      ref={addUserRefs.setFloating}
+                      style={addUserFloatingStyles}
+                      className="w-80 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-xl z-[60]"
+                    >
+                      {/* Search Input */}
+                      <div className="p-2 border-b border-gray-200 dark:border-dark-700">
+                        <div className="relative">
+                          <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-dark-500" />
+                          <input
+                            type="text"
+                            placeholder="Search users..."
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* User List */}
+                      <div className="max-h-48 overflow-y-auto">
+                        {filteredUsers.length === 0 ? (
+                          <div className="px-3 py-4 text-sm text-gray-500 dark:text-dark-400 text-center">
+                            {userSearch ? `No users found` : 'No users available'}
+                          </div>
+                        ) : (
+                          filteredUsers.map(user => (
+                            <button
+                              key={user.id}
+                              onClick={() => handleAddMember(user.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-dark-700 text-left"
+                            >
+                              <UserIcon contact={user} size="extra-small" />
+                              <span className="text-sm text-gray-900 dark:text-dark-50">{user.name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Role Dropdown Popover */}
+                  {roleDropdownMemberId && (
+                    <>
+                      {/* Backdrop */}
+                      <div 
+                        className="fixed inset-0 z-[65]"
+                        onClick={() => setRoleDropdownMemberId(null)}
+                      />
+                      <div
+                        ref={roleRefs.setFloating}
+                        style={roleFloatingStyles}
+                        className="w-36 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-xl z-[70] py-1"
+                      >
+                        {(() => {
+                          const member = teamMembers.find(m => m.id === roleDropdownMemberId)
+                          if (!member) return null
+                          return (
+                            <>
+                              <button
+                                onClick={() => handleUpdateRole(member.id, 'member')}
+                                disabled={member.role === 'member'}
+                                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-dark-700 ${
+                                  member.role === 'member' 
+                                    ? 'text-gray-400 dark:text-dark-500 cursor-not-allowed' 
+                                    : 'text-gray-700 dark:text-dark-200'
+                                }`}
+                              >
+                                Member
+                              </button>
+                              <button
+                                onClick={() => handleUpdateRole(member.id, 'admin')}
+                                disabled={member.role === 'admin'}
+                                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-dark-700 ${
+                                  member.role === 'admin' 
+                                    ? 'text-gray-400 dark:text-dark-500 cursor-not-allowed' 
+                                    : 'text-gray-700 dark:text-dark-200'
+                                }`}
+                              >
+                                Admin
+                              </button>
+                              {currentUserRole === 'owner' && (
+                                <button
+                                  onClick={() => handleUpdateRole(member.id, 'owner')}
+                                  className="w-full text-left px-3 py-1.5 text-sm text-theme-600 dark:text-theme-400 hover:bg-gray-100 dark:hover:bg-dark-700"
+                                >
+                                  Transfer Ownership
+                                </button>
+                              )}
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* Create Team Button - only show for DM chats */}
+          {chatType === 'dm' && (
+            <button
+              ref={createTeamButtonRef}
+              onClick={() => setShowCreateTeamDropdown(true)}
+              className={`p-2 rounded-lg ${showCreateTeamDropdown ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'}`}
+              title="Create team with this user"
+            >
+              <UserPlusIcon className="w-5 h-5" />
+            </button>
+          )}
+          
           {!isPopout && (
             <button
               onClick={handlePopout}
@@ -259,13 +753,22 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
         onClose={() => {
           setConfirmationDialog(prev => ({ ...prev, isOpen: false }))
           setTimeout(() => {
-            setConfirmationDialog({ isOpen: false, type: null })
+            setConfirmationDialog({ isOpen: false, type: null, member: null, newRole: null })
           }, 300)
         }}
-        title={confirmationDialog.type === 'leaveTeam' ? 'Leave Team' : 'Remove Chat History'}
+        title={
+          confirmationDialog.type === 'leaveTeam' ? 'Leave Team' 
+          : confirmationDialog.type === 'removeMember' ? 'Remove Member'
+          : confirmationDialog.type === 'transferOwnership' ? 'Transfer Ownership'
+          : 'Remove Chat History'
+        }
         description={
           confirmationDialog.type === 'leaveTeam'
             ? `Are you sure you want to leave ${chat?.name}?`
+            : confirmationDialog.type === 'removeMember'
+            ? `Are you sure you want to remove ${confirmationDialog.member?.name} from ${chat?.name}?`
+            : confirmationDialog.type === 'transferOwnership'
+            ? `Are you sure you want to transfer ownership of ${chat?.name} to ${confirmationDialog.member?.name}? You will become an admin.`
             : `Are you sure you want to remove all chat history with ${chat?.name}? Messages will not be deleted but won't appear in your history.`
         }
         isYes={async () => {
@@ -284,6 +787,10 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
               if (response.ok) {
                 window.location.href = '/chat'
               }
+            } else if (confirmationDialog.type === 'removeMember' && confirmationDialog.member) {
+              await handleRemoveMember(confirmationDialog.member.id)
+            } else if (confirmationDialog.type === 'transferOwnership' && confirmationDialog.member) {
+              await executeOwnershipTransfer(confirmationDialog.member.id)
             } else if (confirmationDialog.type === 'removeHistory') {
               const response = await fetch('/api/chat/preferences/remove-history', {
                 method: 'POST',
@@ -300,9 +807,27 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           }
         }}
         type="warning"
-        yesText={confirmationDialog.type === 'leaveTeam' ? 'Leave' : 'Remove'}
+        yesText={
+          confirmationDialog.type === 'leaveTeam' ? 'Leave' 
+          : confirmationDialog.type === 'transferOwnership' ? 'Transfer'
+          : 'Remove'
+        }
         cancelText="Cancel"
       />
+      
+      {/* Create Team Dropdown for DM chats */}
+      {chatType === 'dm' && (
+        <CreateTeamDropdown
+          isOpen={showCreateTeamDropdown}
+          onClose={() => setShowCreateTeamDropdown(false)}
+          triggerRef={createTeamButtonRef}
+          placement="bottom-end"
+          initialMember={chat}
+          onTeamCreated={(newTeam) => {
+            onTeamCreated?.(newTeam)
+          }}
+        />
+      )}
     </div>
   )
 }

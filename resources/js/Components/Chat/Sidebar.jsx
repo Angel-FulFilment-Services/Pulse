@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { ring } from 'ldrs'
 import { 
   MagnifyingGlassIcon,
@@ -27,6 +27,8 @@ import UserIcon from './UserIcon.jsx'
 import { useUserStates } from '../Context/ActiveStateContext';
 import { differenceInMinutes } from 'date-fns'
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
+import CreateTeamDropdown from './CreateTeamDropdown.jsx'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 
 // Register the ring spinner
 ring.register()
@@ -35,8 +37,20 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false)
+  const [showCreateTeamDropdown, setShowCreateTeamDropdown] = useState(false)
+  const [createTeamTrigger, setCreateTeamTrigger] = useState(null) // 'header' or 'section'
   const [teams, setTeams] = useState([])
+  
+  // Refs for create team dropdown triggers
+  const headerDropdownButtonRef = useRef(null)
+  const sectionCreateTeamRef = useRef(null)
+  
+  // FloatingUI for header dropdown menu
+  const { refs: headerDropdownRefs, floatingStyles: headerDropdownStyles } = useFloating({
+    placement: 'bottom-end',
+    middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  })
   const [contacts, setContacts] = useState([])
   const [rawFavorites, setRawFavorites] = useState([])
   const [favorites, setFavorites] = useState([])
@@ -290,18 +304,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         setChatPreferences([])
       })
   }, [currentUser])
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showDropdown && !event.target.closest('.dropdown-container')) {
-        setShowDropdown(false)
-      }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showDropdown])
 
   // Update last_message_at when a new message is sent or received
   useEffect(() => {
@@ -894,164 +896,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     )
   }
 
-  // Create Team Modal Component
-  const CreateTeamModal = () => {
-    const [teamName, setTeamName] = useState('')
-    const [teamDescription, setTeamDescription] = useState('')
-    const [isCreating, setIsCreating] = useState(false)
-    
-    const handleCreateTeam = async (e) => {
-      e.preventDefault()
-      if (!teamName.trim() || isCreating) return
-      
-      setIsCreating(true)
-      
-      try {
-        const response = await fetch('/api/chat/teams', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: getHeaders(),
-          body: JSON.stringify({
-            name: teamName.trim(),
-            description: teamDescription.trim() || null
-          })
-        })
-        
-        if (response.ok) {
-          const newTeam = await response.json()
-          
-          // Refresh teams list
-          const teamsResponse = await fetch('/api/chat/teams', { 
-            credentials: 'same-origin',
-            headers: getHeaders()
-          })
-          
-          if (teamsResponse.ok) {
-            const updatedTeams = await teamsResponse.json()
-            setTeams(Array.isArray(updatedTeams) ? updatedTeams : [])
-            
-            // Open the new team chat
-            handleChatClick(newTeam, 'team', 'teams')
-          }
-          
-          // Close modal and reset form
-          setShowCreateTeamModal(false)
-          setTeamName('')
-          setTeamDescription('')
-        } else {
-          const errorData = await response.json()
-          console.error('Error creating team:', errorData)
-          alert('Failed to create team. Please try again.')
-        }
-      } catch (error) {
-        console.error('Error creating team:', error)
-        alert('Failed to create team. Please try again.')
-      } finally {
-        setIsCreating(false)
-      }
-    }
-    
-    if (!showCreateTeamModal) return null
-    
-    return (
-      <>
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-40"
-          onClick={() => setShowCreateTeamModal(false)}
-        />
-        
-        {/* Modal */}
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-lg shadow-xl z-50 w-96">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-50">Create New Team</h3>
-            <button
-              onClick={() => setShowCreateTeamModal(false)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-dark-700 rounded"
-            >
-              <XMarkIcon className="w-5 h-5 text-gray-400 dark:text-dark-400" />
-            </button>
-          </div>
-          
-          {/* Content */}
-          <form onSubmit={handleCreateTeam} className="p-6">
-            {/* Team Name */}
-            <div className="mb-4">
-              <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
-                Team Name *
-              </label>
-              <input
-                type="text"
-                id="teamName"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="Enter team name"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
-                required
-                autoFocus
-              />
-            </div>
-            
-            {/* Team Description */}
-            <div className="mb-6">
-              <label htmlFor="teamDescription" className="block text-sm font-medium text-gray-700 dark:text-dark-300 mb-2">
-                Description (Optional)
-              </label>
-              <textarea
-                id="teamDescription"
-                value={teamDescription}
-                onChange={(e) => setTeamDescription(e.target.value)}
-                placeholder="Enter team description"
-                rows="3"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-900 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent resize-none"
-              />
-              <p className="text-xs text-gray-500 dark:text-dark-400 mt-1">
-                Describe what this team is for
-              </p>
-            </div>
-            
-            {/* Footer */}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCreateTeamModal(false)}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg"
-                disabled={isCreating}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!teamName.trim() || isCreating}
-                className={`px-4 py-2 text-sm text-white rounded-lg ${
-                  teamName.trim() && !isCreating
-                    ? 'bg-theme-600 hover:bg-theme-700' 
-                    : 'bg-gray-300 dark:bg-dark-700 cursor-not-allowed'
-                }`}
-              >
-                {isCreating ? (
-                  <div className="flex items-center gap-2">
-                    <l-ring
-                      size="16"
-                      stroke="2"
-                      bg-opacity="0"
-                      speed="2"
-                      color="white"
-                    ></l-ring>
-                    Creating...
-                  </div>
-                ) : (
-                  'Create Team'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </>
-    )
-  }
-
   return (
     <div className="w-full lg:w-80 bg-white dark:bg-dark-900 border-l border-gray-200 dark:border-dark-700 flex flex-col">
       {/* Header */}
@@ -1076,8 +920,12 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             </button>
             
             {/* Dropdown Menu */}
-            <div className="relative dropdown-container">
+            <div className="relative">
               <button
+                ref={(el) => {
+                  headerDropdownButtonRef.current = el
+                  headerDropdownRefs.setReference(el)
+                }}
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
               >
@@ -1085,25 +933,33 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               </button>
               
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-10">
-                  <button 
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg flex items-center"
+                <>
+                  {/* Backdrop - don't close if create team dropdown is open */}
+                  <div 
+                    className="fixed inset-0 z-40"
                     onClick={() => {
-                      setShowDropdown(false)
-                      setShowCreateTeamModal(true)
+                      if (!showCreateTeamDropdown) {
+                        setShowDropdown(false)
+                      }
                     }}
+                  />
+                  <div 
+                    ref={headerDropdownRefs.setFloating}
+                    style={headerDropdownStyles}
+                    className="w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-50"
                   >
-                    <UserGroupIcon className="w-4 h-4 mr-2" />
-                    Create New Team
-                  </button>
-                  <button 
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg flex items-center"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    Join Team
-                  </button>
-                </div>
+                    <button 
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
+                      onClick={() => {
+                        setCreateTeamTrigger('header')
+                        setShowCreateTeamDropdown(true)
+                      }}
+                    >
+                      <UserGroupIcon className="w-4 h-4 mr-2" />
+                      Create New Team
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1174,18 +1030,32 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
 
             {/* Teams */}
             <div className="mb-2">
-              <button
-                onClick={() => toggleSection('teams')}
-                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-dark-300 hover:bg-gray-50 dark:hover:bg-dark-800"
-              >
-                {expandedSections.teams ? (
-                  <ChevronDownIcon className="w-4 h-4 mr-2" />
-                ) : (
-                  <ChevronRightIcon className="w-4 h-4 mr-2" />
-                )}
-                <UserGroupIcon className="w-4 h-4 mr-2" />
-                Teams ({filteredTeams.length})
-              </button>
+              <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-800">
+                <button
+                  onClick={() => toggleSection('teams')}
+                  className="flex items-center text-sm font-medium text-gray-700 dark:text-dark-300"
+                >
+                  {expandedSections.teams ? (
+                    <ChevronDownIcon className="w-4 h-4 mr-2" />
+                  ) : (
+                    <ChevronRightIcon className="w-4 h-4 mr-2" />
+                  )}
+                  <UserGroupIcon className="w-4 h-4 mr-2" />
+                  Teams ({filteredTeams.length})
+                </button>
+                <button
+                  ref={sectionCreateTeamRef}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCreateTeamTrigger('section')
+                    setShowCreateTeamDropdown(true)
+                  }}
+                  className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700 rounded"
+                  title="Create new team"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                </button>
+              </div>
               {expandedSections.teams && filteredTeams.length > 0 && (
                 <div className="pb-2">
                   {filteredTeams.map(team => renderTeamItem(team, 'teams'))}
@@ -1217,8 +1087,39 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         )}
       </div>
       
-      {/* Create Team Modal */}
-      <CreateTeamModal />
+      {/* Create Team Dropdown */}
+      <CreateTeamDropdown
+        isOpen={showCreateTeamDropdown}
+        onClose={() => {
+          setShowCreateTeamDropdown(false)
+          setShowDropdown(false)
+          setCreateTeamTrigger(null)
+        }}
+        triggerRef={createTeamTrigger === 'header' ? headerDropdownButtonRef : sectionCreateTeamRef}
+        placement={createTeamTrigger === 'header' ? 'bottom-end' : 'bottom-start'}
+        onTeamCreated={async (newTeam) => {
+          // Close dropdowns
+          setShowDropdown(false)
+          
+          // Refresh teams list
+          try {
+            const teamsResponse = await fetch('/api/chat/teams', { 
+              credentials: 'same-origin',
+              headers: getHeaders()
+            })
+            
+            if (teamsResponse.ok) {
+              const updatedTeams = await teamsResponse.json()
+              setTeams(Array.isArray(updatedTeams) ? updatedTeams : [])
+            }
+          } catch (error) {
+            console.error('Error refreshing teams:', error)
+          }
+          
+          // Switch to the new team
+          handleChatClick(newTeam, 'team', 'teams')
+        }}
+      />
       
       {/* Confirmation Dialog */}
       <ConfirmationDialog

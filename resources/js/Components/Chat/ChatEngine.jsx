@@ -2051,6 +2051,10 @@ export default function ChatEngine({
         onBackToSidebar={onBackToSidebar} 
         chatPreferences={chatPreferences}
         onChatPreferenceChange={onRefreshContacts}
+        currentUser={currentUser}
+        onTeamCreated={(newTeam) => {
+          onChatSelect?.(newTeam, 'team')
+        }}
       />
       
       {/* WebSocket Connection Error Banner */}

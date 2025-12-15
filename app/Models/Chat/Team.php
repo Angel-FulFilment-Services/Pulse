@@ -20,12 +20,37 @@ class Team extends Model
 
     public function getMembers()
     {
-        $userIds = \DB::connection('pulse')->table('team_user')
+        $memberships = \DB::connection('pulse')->table('team_user')
             ->where('team_id', $this->id)
             ->whereNull('left_at')
-            ->pluck('user_id');
+            ->get(['user_id', 'role']);
         
-        return \App\Models\User\User::whereIn('id', $userIds)->get();
+        $userIds = $memberships->pluck('user_id');
+        $rolesMap = $memberships->pluck('role', 'user_id');
+        
+        $users = \App\Models\User\User::whereIn('id', $userIds)->get();
+        
+        // Add role to each user
+        return $users->map(function($user) use ($rolesMap) {
+            $user->role = $rolesMap[$user->id] ?? 'member';
+            return $user;
+        });
+    }
+    
+    /**
+     * Get the current user's role in this team
+     */
+    public function getCurrentUserRole()
+    {
+        $userId = auth()->user()->id;
+        
+        $membership = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $this->id)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->first(['role']);
+        
+        return $membership ? ($membership->role ?? 'member') : null;
     }
 
     public function messages(): HasMany
