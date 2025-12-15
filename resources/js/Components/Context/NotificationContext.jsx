@@ -254,7 +254,9 @@ export function NotificationProvider({ children }) {
 
   // Navigate to chat
   const navigateToChat = useCallback((chatId, chatType) => {
-    const url = `/chat?type=${chatType}&id=${chatId}`
+    // Map internal chatType to URL type - 'user' becomes 'dm' for URLs
+    const urlType = chatType === 'user' ? 'dm' : chatType
+    const url = `/chat?type=${urlType}&id=${chatId}`
     window.location.href = url
   }, [])
 
