@@ -39,6 +39,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ClearOldCookies::class, // Temporarily clear old domain cookies
             \App\Http\Middleware\UpdateActivity::class, // Update user activity timestamp
+            \App\Http\Middleware\TeamsEmbed::class,
         ],
 
         'api' => [
@@ -75,6 +76,7 @@ class Kernel extends HttpKernel
         'twofactor' => \App\Http\Middleware\TwoFactorMiddleware::class,
         'whitelistedIp' => \App\Http\Middleware\WhitelistedIp::class,
         'ipInRange' => \App\Http\Middleware\IpInRange::class,
+        'teams.embed' => \App\Http\Middleware\TeamsEmbed::class,
         'update.activity' => \App\Http\Middleware\UpdateActivity::class,
     ];
 }
