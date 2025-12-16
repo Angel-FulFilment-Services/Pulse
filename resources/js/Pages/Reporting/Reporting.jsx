@@ -5,6 +5,7 @@ import rotaReportsConfig from '../../Config/RotaReportsConfig.jsx';
 import assetsReportsConfig from '../../Config/AssetsReportsConfig.jsx';
 import systemReportsConfig from '../../Config/SystemReportsConfig.jsx';
 import siteReportsConfig from '../../Config/SiteReportsConfig.jsx';
+import chatReportsConfig from '../../Config/ChatReportsConfig.jsx';
 import ReportingHeader from '../../Components/Reporting/ReportingHeader.jsx';
 import ReportingTable from '../../Components/Reporting/ReportingTable.jsx';
 import FilterControl from '../../Components/Controls/FilterControl.jsx';
@@ -37,6 +38,7 @@ const Reporting = () => {
         { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false },
         { id: 'system', label: 'System', path: '/reporting/system', current: false },
         { id: 'site', label: 'Site', path: '/reporting/site', current: false },
+        { id: 'chat', label: 'Chat', path: '/reporting/chat', current: false },
     ];
 
     const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
@@ -65,6 +67,9 @@ const Reporting = () => {
                 break;
             case 'site':
                 setReport(siteReportsConfig.find((r) => r.id === report.value));
+                break;
+            case 'chat':
+                setReport(chatReportsConfig.find((r) => r.id === report.value));
                 break;
             default:
                 setReport([]);
@@ -387,6 +392,15 @@ const Reporting = () => {
                     })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
                 );
                 break;
+            case 'chat':
+                setReports(
+                    chatReportsConfig.map((report) => ({
+                        id: report.id,
+                        value: report.id,
+                        displayValue: report.label,
+                    })).sort((a, b) => a.displayValue.localeCompare(b.displayValue))
+                );
+                break;
             default:
                 setReports([]);
                 break;
@@ -437,13 +451,18 @@ const Reporting = () => {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Date Selected</h1>
                     <p className="mt-4 text-gray-500 dark:text-dark-500">Select a date from the date selector above to view.</p>
                 </div>
-            ) : reportData && reportData.length === 0 ? (
+            ) : isGenerating ? (
                 <div className="flex flex-col items-center justify-center py-56 w-full">
                     <div className="flex gap-3 justify-center">
                         <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader"></div>
                         <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-200"></div>
                         <div className="w-5 h-5 bg-gray-300 dark:bg-dark-500 rounded-full animate-loader animation-delay-[400ms]"></div>
                     </div>
+                </div>
+            ) : reportData && reportData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-56 w-full">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-50">No Data Found</h1>
+                    <p className="mt-4 text-gray-500 dark:text-dark-500">No records found for the selected date range.</p>
                 </div>
             ) : (
                 <div ref={tableRef} className="px-6 py-2 h-full">

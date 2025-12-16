@@ -146,6 +146,15 @@ Route::get('/reporting/reports/generate/audit-log', [ReportingController::class,
 Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
 Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog']);
 
+// Chat Audit Reports
+Route::get('/reporting/reports/generate/chat-message-log', [ReportingController::class, 'chatMessageLog']);
+Route::get('/reporting/reports/generate/chat-activity-summary', [ReportingController::class, 'chatActivitySummary']);
+Route::get('/reporting/reports/generate/team-chat-activity', [ReportingController::class, 'teamChatActivity']);
+Route::get('/reporting/reports/generate/dm-activity', [ReportingController::class, 'dmActivity']);
+Route::get('/reporting/reports/generate/chat-attachment-log', [ReportingController::class, 'chatAttachmentLog']);
+Route::get('/reporting/reports/generate/chat-forwarded-messages', [ReportingController::class, 'chatForwardedMessages']);
+Route::get('/reporting/reports/generate/chat-deleted-messages', [ReportingController::class, 'chatDeletedMessages']);
+
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
 Route::get('/reporting/targets/utilisation', [ReportingController::class, 'utilisationTargets'])->withoutMiddleware('has.permission:pulse_view_reporting', 'log.access');
