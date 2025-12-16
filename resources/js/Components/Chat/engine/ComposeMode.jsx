@@ -25,7 +25,6 @@ export default function ComposeMode({
 
   // Track when attachments change
   const handleAttachmentsChange = (attachments) => {
-    console.log('ComposeMode received attachments:', { count: attachments.length, attachments })
     setComposeAttachments(attachments)
   }
 
@@ -87,14 +86,11 @@ export default function ComposeMode({
   // Handle sending message in compose mode
   const handleComposeMessageSend = async (e) => {
     e?.preventDefault()
-    console.log('ComposeMode sending message:', { message: newMessage, attachmentsCount: composeAttachments.length })
     if (!composeRecipient || (!newMessage.trim() && composeAttachments.length === 0)) return
     
     const success = await onMessageSend(newMessage, composeRecipient, composeRecipient.type, composeAttachments)
     
-    console.log('ComposeMode send result:', { success })
     if (success) {
-      console.log('Clearing compose state and toggling clearAttachmentsTrigger')
       setNewMessage('')
       setComposeAttachments([])
       setClearAttachmentsTrigger(prev => !prev) // Toggle to trigger MessageInput cleanup

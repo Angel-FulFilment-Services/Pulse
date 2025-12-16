@@ -1,5 +1,5 @@
 import { UserIcon } from '@heroicons/react/24/solid';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 
 const Icon = ({ size = 'large', profilePhoto }) => {
   const [imageError, setImageError] = useState(false);

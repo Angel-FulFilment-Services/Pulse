@@ -15,11 +15,11 @@ class ChatController extends Controller
 
     public function index(Request $request)
     {
-        return Inertia::render('Chat');
+        return Inertia::render('Chat/Chat');
     }
 
     public function popout(Request $request)
     {
-        return Inertia::render('ChatPopout');
+        return Inertia::render('Chat/ChatPopout');
     }
 }

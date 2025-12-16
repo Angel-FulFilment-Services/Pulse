@@ -4,14 +4,15 @@ namespace App\Services\Chat;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
-use Intervention\Image\Facades\Image;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Illuminate\Support\Str;
 
 class AttachmentService
 {
     // File upload limits
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB total per message
+    const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB per file
+    const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB total per message
     const MAX_FILES_PER_MESSAGE = 10;
     
     // Image settings
@@ -19,6 +20,13 @@ class AttachmentService
     const IMAGE_MAX_HEIGHT = 1080;
     const THUMBNAIL_WIDTH = 300;
     const THUMBNAIL_HEIGHT = 300;
+    
+    protected ImageManager $imageManager;
+    
+    public function __construct()
+    {
+        $this->imageManager = new ImageManager(new Driver());
+    }
     
     /**
      * Determine file type from mime type
@@ -71,35 +79,32 @@ class AttachmentService
         $thumbnailPath = null;
         $processedFile = $file;
         
-        // Process images
-        if ($isImage) {
+        // Check if this is a GIF - skip processing to preserve animation
+        $isGif = strtolower($extension) === 'gif' || $mimeType === 'image/gif';
+        
+        // Process images (except GIFs)
+        if ($isImage && !$isGif) {
             try {
-                // Load image and strip EXIF data
-                $image = Image::make($file->getRealPath());
+                // Load image using Intervention Image v3
+                $image = $this->imageManager->read($file->getRealPath());
                 
-                // Remove EXIF data for privacy
-                $image->orientate(); // Auto-rotate based on EXIF
-                
-                // Resize if too large
-                $image->resize(self::IMAGE_MAX_WIDTH, self::IMAGE_MAX_HEIGHT, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
+                // Auto-orient based on EXIF and resize if too large
+                $image->orient();
+                $image->scaleDown(self::IMAGE_MAX_WIDTH, self::IMAGE_MAX_HEIGHT);
                 
                 // Convert to WebP for better compression
                 $webpFilename = Str::uuid() . '.webp';
                 $storagePath = "{$basePath}/images/{$webpFilename}";
                 $tempPath = sys_get_temp_dir() . '/' . $webpFilename;
                 
-                $image->encode('webp', 85)->save($tempPath);
+                $image->toWebp(85)->save($tempPath);
                 
-                // Create thumbnail
-                $thumbnailImage = Image::make($tempPath);
-                $thumbnailImage->fit(self::THUMBNAIL_WIDTH, self::THUMBNAIL_HEIGHT);
+                // Create thumbnail (same dimensions, lower quality for faster loading)
                 $thumbnailFilename = 'thumb_' . $webpFilename;
                 $thumbnailPath = "{$basePath}/thumbnails/{$thumbnailFilename}";
                 $thumbnailTempPath = sys_get_temp_dir() . '/' . $thumbnailFilename;
-                $thumbnailImage->encode('webp', 80)->save($thumbnailTempPath);
+                // Re-encode at lower quality - same size, smaller file
+                $image->toWebp(40)->save($thumbnailTempPath);
                 
                 // Upload to R2 or local storage
                 $storageDriver = $this->uploadToStorage($tempPath, $storagePath);
@@ -126,7 +131,7 @@ class AttachmentService
             }
         }
         
-        // Regular file upload (non-images or failed image processing)
+        // Regular file upload (non-images, GIFs, or failed image processing)
         $storageDriver = $this->uploadToStorage($file->getRealPath(), $storagePath);
         
         return [
@@ -206,27 +211,29 @@ class AttachmentService
                 return $content;
             }
             
-            // Fallback: try the opposite driver (r2 <-> local)
-            $fallbackDriver = $driver === 'r2' ? 'local' : 'r2';
-            \Log::info('File not found, trying fallback driver', [
+            // Fallback: try other drivers
+            $fallbackDrivers = array_filter(['r2', 'local', 'public'], fn($d) => $d !== $driver);
+            \Log::info('File not found, trying fallback drivers', [
                 'original_driver' => $driver,
-                'fallback_driver' => $fallbackDriver,
+                'fallback_drivers' => $fallbackDrivers,
                 'path' => $storagePath
             ]);
             
-            if (Storage::disk($fallbackDriver)->exists($storagePath)) {
-                $content = Storage::disk($fallbackDriver)->get($storagePath);
-                \Log::info('File retrieved from fallback driver', [
-                    'path' => $storagePath,
-                    'driver' => $fallbackDriver,
-                    'size' => strlen($content)
-                ]);
-                return $content;
+            foreach ($fallbackDrivers as $fallbackDriver) {
+                if (Storage::disk($fallbackDriver)->exists($storagePath)) {
+                    $content = Storage::disk($fallbackDriver)->get($storagePath);
+                    \Log::info('File retrieved from fallback driver', [
+                        'path' => $storagePath,
+                        'driver' => $fallbackDriver,
+                        'size' => strlen($content)
+                    ]);
+                    return $content;
+                }
             }
             
             \Log::warning('File does not exist in any storage', [
                 'path' => $storagePath,
-                'tried_drivers' => [$driver, $fallbackDriver]
+                'tried_drivers' => array_merge([$driver], $fallbackDrivers)
             ]);
             return null;
             

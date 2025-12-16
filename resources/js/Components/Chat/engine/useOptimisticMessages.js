@@ -27,7 +27,6 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
             // Remove messages that have attachments (File objects are lost after refresh)
             const hasAttachments = msg.attachments && msg.attachments.length > 0
             if (hasAttachments) {
-              console.log('Removing message with attachments after page refresh:', msg.id, msg.body)
               return false
             }
             
@@ -40,13 +39,11 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
           .map(msg => {
             // Mark any pending messages as failed on page load - they need manual retry
             if (msg.status === 'pending') {
-              console.log('Converting pending message to failed on page load:', msg.id, msg.body)
               return { ...msg, status: 'failed' }
             }
             return msg
           })
         
-        console.log('Loaded optimistic messages from storage:', validMessages.map(m => ({ id: m.id, status: m.status, body: m.body })))
         setOptimisticQueue(validMessages)
         
         // Clean up expired and invalid messages from storage
@@ -193,15 +190,6 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
         const attachmentOnlyMatch = isAttachmentOnly && sameAttachmentCount > 0 && sameSender && withinTimeWindow
         
         const matches = (sameBody && sameSender && sameReply && withinTimeWindow && sameAttachmentCount) || attachmentOnlyMatch
-        
-        if (matches) {
-          console.log('Found duplicate message:', {
-            optimistic: { id: msg.id, body: msg.body, attachments: optimisticAttachmentCount },
-            server: { id: sm.id, body: sm.body, attachments: serverAttachmentCount },
-            timeDiff,
-            attachmentOnly: isAttachmentOnly
-          })
-        }
         
         return matches
       })

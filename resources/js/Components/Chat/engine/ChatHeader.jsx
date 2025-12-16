@@ -6,9 +6,12 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
-import { hasPermission } from '../../../Utils/Permissions.jsx'
+import { usePermission } from '../../../Utils/Permissions.jsx'
 
 export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange }) {
+  // Permission checks - must be at top level before any conditional returns
+  const canCreateTeams = usePermission('pulse_chat_create_teams')
+  
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMembersPanel, setShowMembersPanel] = useState(false)
   const [showAddUserPopover, setShowAddUserPopover] = useState(false)
@@ -824,7 +827,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           )}
           
           {/* Create Team Button - only show for DM chats */}
-          {chatType === 'dm' && hasPermission('pulse_chat_create_teams') && (
+          {chatType === 'dm' && canCreateTeams && (
             <button
               ref={createTeamButtonRef}
               onClick={() => setShowCreateTeamDropdown(true)}

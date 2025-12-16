@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import Sidebar from '../Components/Chat/Sidebar'
-import ChatEngine from '../Components/Chat/ChatEngine'
-import NotificationToast from '../Components/Chat/NotificationToast'
+import Sidebar from '../../Components/Chat/Sidebar'
+import ChatEngine from '../../Components/Chat/ChatEngine'
+import NotificationToast from '../../Components/Chat/NotificationToast'
 
 export default function Chat() {
   const [selectedChat, setSelectedChat] = useState(null) // Can be team or user
@@ -38,7 +38,7 @@ export default function Chat() {
       fetch('/api/user', { credentials: 'same-origin' })
         .then(res => res.json())
         .then(setCurrentUser)
-        .catch(console.error)
+        .catch(() => {})
     }
   }, [])
 
@@ -63,7 +63,7 @@ export default function Chat() {
             setChatType(chatType)
           }
         })
-        .catch(console.error)
+        .catch(() => {})
     }
   }, [])
 

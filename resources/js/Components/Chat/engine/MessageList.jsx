@@ -106,7 +106,6 @@ export default function MessageList({
     // If attachmentId is provided, scroll to the specific attachment
     const targetId = attachmentId || messageId
     const element = messageRefs.current[targetId]
-    console.log(targetId, element)
 
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })

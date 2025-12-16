@@ -125,7 +125,7 @@ createInertiaApp({
           </AppWrapper>
         );
         break;
-      case name.startsWith('ChatPopout'):
+      case name.startsWith('Chat/ChatPopout'):
         page.default.layout = (page) => (
           <AppWrapper>
             {({ theme, mode, handleSetTheme, handleSetMode }) => (

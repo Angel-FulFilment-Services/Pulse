@@ -31,12 +31,15 @@ import { differenceInMinutes } from 'date-fns'
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from './CreateTeamDropdown.jsx'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
-import { hasPermission } from '../../Utils/Permissions.jsx'
+import { usePermission } from '../../Utils/Permissions.jsx'
 
 // Register the ring spinner
 ring.register()
 
 export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, teamsRefreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange, currentUser }) {
+  // Permission checks - must be at top level before any conditional returns
+  const canCreateTeams = usePermission('pulse_chat_create_teams')
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -142,16 +145,13 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     const userChannel = window.Echo.private(`chat.user.${currentUser.id}`)
     
     const handleTeamAdded = (e) => {
-      console.log('[TeamMemberAdded] Received event:', e)
       if (e.team) {
         // Add the new team to the list
         setTeams(prev => {
           // Check if team already exists
           if (prev.some(t => t.id === e.team.id)) {
-            console.log('[TeamMemberAdded] Team already exists, skipping')
             return prev
           }
-          console.log('[TeamMemberAdded] Adding team to list:', e.team.name)
           // Add new team and sort alphabetically
           return [...prev, e.team].sort((a, b) => a.name.localeCompare(b.name))
         })
@@ -159,7 +159,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     }
     
     const handleTeamRemoved = (e) => {
-      console.log('[TeamMemberRemoved] Received event:', e)
       if (e.team_id) {
         // Remove the team from the list
         setTeams(prev => prev.filter(t => t.id !== e.team_id))
@@ -174,12 +173,10 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       }
     }
     
-    console.log('[TeamMember] Subscribing to channel:', `chat.user.${currentUser.id}`)
     userChannel.listen('.TeamMemberAdded', handleTeamAdded)
     userChannel.listen('.TeamMemberRemoved', handleTeamRemoved)
     
     return () => {
-      console.log('[TeamMember] Unsubscribing from channel')
       userChannel.stopListening('.TeamMemberAdded')
       userChannel.stopListening('.TeamMemberRemoved')
     }
@@ -1176,7 +1173,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                   <UserGroupIcon className="w-4 h-4 mr-2" />
                   Teams ({filteredTeams.length})
                 </button>
-                {hasPermission('pulse_chat_create_teams') && (
+                {canCreateTeams && (
                   <button
                     ref={sectionCreateTeamRef}
                     onClick={(e) => {

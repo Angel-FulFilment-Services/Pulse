@@ -17,7 +17,7 @@ import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
 import { useRestrictedWords } from './engine/useRestrictedWords'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import { hasPermission } from '../../Utils/Permissions.jsx'
+import { usePermission } from '../../Utils/Permissions.jsx'
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 10000 // 10 seconds
@@ -37,6 +37,9 @@ export default function ChatEngine({
   onBackToSidebar,
   chatPreferences = []
 }) {
+  // Permission checks - must be at top level before any conditional returns
+  const canSendAttachments = usePermission('pulse_chat_send_attachments')
+  
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1651,8 +1654,6 @@ export default function ChatEngine({
         }
       })
       
-      console.log('Delete response:', response.status, response.statusText)
-      
       if (response.ok) {
         // Update local state
         setMessages(prev => prev.map(msg => 
@@ -1705,8 +1706,6 @@ export default function ChatEngine({
   const handleRestoreMessage = async (messageId) => {
     if (!selectedChat) return
     
-    console.log('Restoring message:', messageId)
-    
     try {
       const response = await fetch(`/api/chat/messages/${messageId}/restore`, {
         method: 'POST',
@@ -1716,11 +1715,8 @@ export default function ChatEngine({
         }
       })
       
-      console.log('Restore response:', response.status, response.statusText)
-      
       if (response.ok) {
         const data = await response.json()
-        console.log('Restore data:', data)
         // Update local state - use the full message data from response to restore attachments too
         setMessages(prev => prev.map(msg => 
           msg.id == messageId 
@@ -2368,7 +2364,7 @@ export default function ChatEngine({
             inputRef={messageInputRef}
             onAttachmentsChange={handleAttachmentsChange}
             clearAttachments={clearAttachmentsTrigger}
-            allowAttachments={hasPermission('pulse_chat_send_attachments')}
+            allowAttachments={canSendAttachments}
           />
         </div>
       )}

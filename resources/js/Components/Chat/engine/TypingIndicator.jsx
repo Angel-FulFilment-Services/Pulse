@@ -1,8 +1,6 @@
 import React from 'react'
 
 export default function TypingIndicator({ typingUsers = [] }) {
-  console.log('TypingIndicator received:', typingUsers)
-  
   // Always render with minimal fixed height to prevent layout shift
   return (
     <div className="min-h-[24px] flex items-center space-x-2 text-sm text-gray-500 dark:text-dark-400">

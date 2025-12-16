@@ -14,6 +14,7 @@ use App\Events\Chat\MessageNotification;
 use App\Events\Chat\NewContactMessage;
 use App\Events\Chat\NewChatMessage;
 use App\Models\User\User;
+use App\Services\Chat\AttachmentService;
 
 class MessageController extends Controller
 {
@@ -365,29 +366,18 @@ class MessageController extends Controller
         $uploadedAttachments = [];
         if ($request->hasFile('attachments')) {
             \Log::info('Processing file uploads', ['count' => count($request->file('attachments'))]);
+            $attachmentService = app(AttachmentService::class);
+            
             foreach ($request->file('attachments') as $file) {
-                // Store the file
-                $path = $file->store('chat/attachments', 'public');
-                
-                // Create thumbnail for images
-                $thumbnailPath = null;
-                $isImage = str_starts_with($file->getMimeType(), 'image/');
-                
-                if ($isImage) {
-                    // You can add thumbnail generation logic here if needed
-                    $thumbnailPath = $path; // For now, use the same path
+                // Validate file
+                $errors = $attachmentService->validateFile($file);
+                if (!empty($errors)) {
+                    \Log::warning('File validation failed', ['errors' => $errors, 'file' => $file->getClientOriginalName()]);
+                    continue;
                 }
                 
-                $uploadedAttachments[] = [
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_type' => $this->determineFileType($file->getMimeType()),
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                    'storage_path' => $path,
-                    'thumbnail_path' => $thumbnailPath,
-                    'is_image' => $isImage,
-                    'storage_driver' => 'public',
-                ];
+                // Upload using AttachmentService (handles R2 with local fallback)
+                $uploadedAttachments[] = $attachmentService->uploadAttachment($file, auth()->user()->id);
             }
         }
         
