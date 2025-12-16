@@ -19,11 +19,6 @@ class SendTwoFactorEmail implements ShouldQueue
     private $user;
 
     /**
-     * The queue the job should be sent to.
-     */
-    public $queue = 'pulse';
-
-    /**
      * The number of times the job may be attempted.
      *
      * @var int
