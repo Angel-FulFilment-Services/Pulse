@@ -196,7 +196,8 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    // Use SameSite=none for Teams subdomain to allow iframe embedding
+    'same_site' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'teams.') ? 'none' : env('SESSION_SAME_SITE', 'lax'),
 
     /*
     |--------------------------------------------------------------------------
@@ -209,6 +210,7 @@ return [
     |
     */
 
-    'partitioned' => env('SESSION_PARTITIONED', false),
+    // Enable partitioned cookies for Teams subdomain
+    'partitioned' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'teams.') ? true : env('SESSION_PARTITIONED', false),
 
 ];

@@ -14,18 +14,4 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         //
     ];
-
-    /**
-     * Determine if the request has a valid CSRF token.
-     * Skip CSRF for Teams embedded requests.
-     */
-    protected function tokensMatch($request)
-    {
-        // Skip CSRF verification for Teams embedded requests
-        if ($request->query('teams') === 'true' || $request->cookie('in_teams') === 'true') {
-            return true;
-        }
-
-        return parent::tokensMatch($request);
-    }
 }
