@@ -181,25 +181,27 @@ class RotaController extends Controller
             $request->validate($rules, $messages);
 
             // Validate that an event hasn't been created between this time period for this user already.
-            $existingEvent = Event::where('hr_id', $request->hrID)
-                ->whereDate('date', date("Y-m-d", strtotime($request->date)))
-                ->whereIn('category', ['Sick', 'Late', 'AWOL', 'Absent'])
-                ->where(function ($query) use ($request) {
-                    $query->whereBetween(DB::raw("TIME(on_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])
-                          ->orWhereBetween(DB::raw("TIME(off_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])
-                          ->orWhere(function ($q) use ($request) {
-                              $q->where(DB::raw("TIME(on_time)"), '<=', $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00')
-                                ->where(DB::raw("TIME(off_time)"), '>=', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00');
-                          });
-                })
-                ->when($request->eventID, function ($query) use ($request) {
-                    return $query->where('id', '<>', $request->eventID);
-                })
-                ->first();
+            if(!in_array($request->flagType, ['Note'])){
+                $existingEvent = Event::where('hr_id', $request->hrID)
+                    ->whereDate('date', date("Y-m-d", strtotime($request->date)))
+                    ->whereIn('category', ['Sick', 'Late', 'AWOL', 'Absent'])
+                    ->where(function ($query) use ($request) {
+                        $query->whereBetween(DB::raw("TIME(on_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])
+                            ->orWhereBetween(DB::raw("TIME(off_time)"), [$request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00'])
+                            ->orWhere(function ($q) use ($request) {
+                                $q->where(DB::raw("TIME(on_time)"), '<=', $request->startTime['hour'] . ':' . $request->startTime['minute'] . ':00')
+                                    ->where(DB::raw("TIME(off_time)"), '>=', $request->endTime['hour'] . ':' . $request->endTime['minute'] . ':00');
+                            });
+                    })
+                    ->when($request->eventID, function ($query) use ($request) {
+                        return $query->where('id', '<>', $request->eventID);
+                    })
+                    ->first();
 
-            if ($existingEvent) {
-                return response()->json(['message' => 'An event already exists for this user during the specified time period.'], 422);
-            }  
+                if ($existingEvent) {
+                    return response()->json(['message' => 'An event already exists for this user during the specified time period.'], 422);
+                } 
+            } 
 
             // // Add conditional validation for meetingTime if requiresAction is true
             // if ($request->requiresAction) {
