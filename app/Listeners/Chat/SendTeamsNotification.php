@@ -5,10 +5,26 @@ namespace App\Listeners\Chat;
 use App\Events\Chat\MessageSent;
 use App\Services\TeamsNotificationService;
 use App\Models\Chat\TeamUser;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
-class SendTeamsNotification
+class SendTeamsNotification implements ShouldQueue
 {
+    /**
+     * The name of the queue the job should be sent to.
+     */
+    public string $queue = 'pulse';
+
+    /**
+     * The number of times the job may be attempted.
+     */
+    public int $tries = 3;
+
+    /**
+     * The number of seconds to wait before retrying the job.
+     */
+    public int $backoff = 10;
+
     protected TeamsNotificationService $teamsService;
 
     public function __construct(TeamsNotificationService $teamsService)
