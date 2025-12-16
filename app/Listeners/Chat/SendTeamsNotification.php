@@ -13,17 +13,17 @@ class SendTeamsNotification implements ShouldQueue
     /**
      * The name of the queue the job should be sent to.
      */
-    public string $queue = 'pulse';
+    public $queue = 'pulse';
 
     /**
      * The number of times the job may be attempted.
      */
-    public int $tries = 3;
+    public $tries = 3;
 
     /**
      * The number of seconds to wait before retrying the job.
      */
-    public int $backoff = 10;
+    public $backoff = 10;
 
     protected TeamsNotificationService $teamsService;
 
