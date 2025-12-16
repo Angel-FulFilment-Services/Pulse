@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import rotaReportsConfig from '../../Config/RotaReportsConfig.jsx';
@@ -14,6 +14,7 @@ import {exportTableToExcel} from '../../Utils/Exports.jsx'
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { set } from 'date-fns';
+import { hasPermission } from '../../Utils/Permissions.jsx';
 
 const Reporting = () => {
     const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
@@ -33,15 +34,20 @@ const Reporting = () => {
     const hasChangesRef = useRef(false);
     const tableRef = useRef(null);
 
-    const tabs = [
-        { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true },
-        { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false },
-        { id: 'system', label: 'System', path: '/reporting/system', current: false },
-        { id: 'site', label: 'Site', path: '/reporting/site', current: false },
-        { id: 'chat', label: 'Chat', path: '/reporting/chat', current: false },
+    const allTabs = [
+        { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true, permission: 'pulse_report_rota' },
+        { id: 'assets', label: 'Assets', path: '/reporting/assets', current: false, permission: 'pulse_report_assets' },
+        { id: 'system', label: 'System', path: '/reporting/system', current: false, permission: 'pulse_report_system' },
+        { id: 'site', label: 'Site', path: '/reporting/site', current: false, permission: 'pulse_report_site' },
+        { id: 'chat', label: 'Chat', path: '/reporting/chat', current: false, permission: 'pulse_report_chat' },
     ];
 
-    const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0].id;
+    // Filter tabs based on user permissions
+    const tabs = useMemo(() => 
+        allTabs.filter(tab => !tab.permission || hasPermission(tab.permission)),
+    []);
+
+    const activeTab = tabs.find((tab) => location.pathname.includes(tab.id))?.id || tabs[0]?.id;
 
     const handleTabClick = (path) => {
         setReport([]);

@@ -46,8 +46,28 @@ use App\Http\Controllers\App\UserController;
 |-----------------------
 */
 Route::get('/administration', [AdministrationController::class, 'index'])->name('administration');
+
+// Free Gifts routes (with permission)
+Route::get('/administration/free-gifts/configurations', [AdministrationController::class, 'angelGiftConfigurations'])
+    ->middleware(['has.permission:pulse_view_free_gifts'])
+    ->name('administration.settings.angel_gift_configurations');
+
+// Restricted Words API CRUD (with permission)
+Route::get('/api/administration/restricted-words', [AdministrationController::class, 'restrictedWords'])
+    ->middleware(['has.permission:pulse_view_restricted_words'])
+    ->name('administration.restricted_words.index');
+Route::post('/api/administration/restricted-words', [AdministrationController::class, 'storeRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.store');
+Route::put('/api/administration/restricted-words/{id}', [AdministrationController::class, 'updateRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.update');
+Route::delete('/api/administration/restricted-words/{id}', [AdministrationController::class, 'destroyRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.destroy');
+
+// Wildcard route for SPA navigation (must come after specific routes)
 Route::get('/administration/{page}', [AdministrationController::class, 'index'])->name('administration.page');
-Route::get('/administration/free-gifts/configurations', [AdministrationController::class, 'angelGiftConfigurations'])->name('administration.settings.angel_gift_configurations');
 
 
 /*
@@ -136,24 +156,47 @@ Route::get('/user/rota/calls', [UserController::class, 'calls'])->withoutMiddlew
 Route::get('/reporting', [ReportingController::class, 'index'])->name('reporting');
 Route::get('/reporting/{page}', [ReportingController::class, 'index'])->name('reporting');
 
-Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
-Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);
-Route::get('/reporting/reports/generate/event-log', [ReportingController::class, 'eventLog']);
-Route::get('/reporting/reports/generate/technical-support-log', [ReportingController::class, 'technicalSupportLog']);
-Route::get('/reporting/reports/generate/kit-details', [ReportingController::class, 'kitDetailsReport']);
-Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog']);
-Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
-Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
-Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog']);
+// Rota Reports
+Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])
+    ->middleware(['has.permission:pulse_report_rota']);
+Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport'])
+    ->middleware(['has.permission:pulse_report_rota']);
+Route::get('/reporting/reports/generate/event-log', [ReportingController::class, 'eventLog'])
+    ->middleware(['has.permission:pulse_report_rota']);
+
+// Assets Reports
+Route::get('/reporting/reports/generate/technical-support-log', [ReportingController::class, 'technicalSupportLog'])
+    ->middleware(['has.permission:pulse_report_assets']);
+Route::get('/reporting/reports/generate/kit-details', [ReportingController::class, 'kitDetailsReport'])
+    ->middleware(['has.permission:pulse_report_assets']);
+
+// System Reports
+Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+
+// Site Reports
+Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog'])
+    ->middleware(['has.permission:pulse_report_site']);
 
 // Chat Audit Reports
-Route::get('/reporting/reports/generate/chat-message-log', [ReportingController::class, 'chatMessageLog']);
-Route::get('/reporting/reports/generate/chat-activity-summary', [ReportingController::class, 'chatActivitySummary']);
-Route::get('/reporting/reports/generate/team-chat-activity', [ReportingController::class, 'teamChatActivity']);
-Route::get('/reporting/reports/generate/dm-activity', [ReportingController::class, 'dmActivity']);
-Route::get('/reporting/reports/generate/chat-attachment-log', [ReportingController::class, 'chatAttachmentLog']);
-Route::get('/reporting/reports/generate/chat-forwarded-messages', [ReportingController::class, 'chatForwardedMessages']);
-Route::get('/reporting/reports/generate/chat-deleted-messages', [ReportingController::class, 'chatDeletedMessages']);
+Route::get('/reporting/reports/generate/chat-message-log', [ReportingController::class, 'chatMessageLog'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-activity-summary', [ReportingController::class, 'chatActivitySummary'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/team-chat-activity', [ReportingController::class, 'teamChatActivity'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/dm-activity', [ReportingController::class, 'dmActivity'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-attachment-log', [ReportingController::class, 'chatAttachmentLog'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-forwarded-messages', [ReportingController::class, 'chatForwardedMessages'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-deleted-messages', [ReportingController::class, 'chatDeletedMessages'])
+    ->middleware(['has.permission:pulse_report_chat']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 

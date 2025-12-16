@@ -14,7 +14,8 @@ export default function MessageInput({
   replyingTo = null,
   inputRef = null,
   onAttachmentsChange,
-  clearAttachments = false // New prop to trigger clearing attachments
+  clearAttachments = false, // New prop to trigger clearing attachments
+  allowAttachments = true // Permission-based prop to control attachment functionality
 }) {
   const typingTimeoutRef = useRef(null)
   const lastTypingTimeRef = useRef(0)
@@ -249,6 +250,8 @@ export default function MessageInput({
     e.stopPropagation()
     setIsDragging(false)
     
+    if (!allowAttachments) return
+    
     const files = e.dataTransfer.files
     if (files.length > 0) {
       handleFileSelect(files)
@@ -257,6 +260,8 @@ export default function MessageInput({
 
   // Handle paste
   const handlePaste = (e) => {
+    if (!allowAttachments) return
+    
     const items = e.clipboardData?.items
     if (!items) return
     
@@ -289,7 +294,7 @@ export default function MessageInput({
   return (
     <>
       {/* Chat window drag container */}
-      {isDragging && !attachments.length && (
+      {allowAttachments && isDragging && !attachments.length && (
         <div 
           className="fixed top-0 left-0 h-screen z-50 bg-theme-800/10 dark:bg-theme-800/20 border-2 border-dashed border-theme-500 dark:border-theme-400 rounded-lg flex items-center justify-center"
           style={dragOverlayStyle}
@@ -306,10 +311,10 @@ export default function MessageInput({
       )}
       <div
         ref={containerRef}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        onDragEnter={allowAttachments ? handleDragEnter : undefined}
+        onDragLeave={allowAttachments ? handleDragLeave : undefined}
+        onDragOver={allowAttachments ? handleDragOver : undefined}
+        onDrop={allowAttachments ? handleDrop : undefined}
         className="relative"
       >
 
@@ -360,21 +365,25 @@ export default function MessageInput({
           </div>
           
           <div className="flex items-center space-x-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={(e) => handleFileSelect(e.target.files)}
-              className="hidden"
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
-            >
-              <PaperClipIcon className="w-5 h-5" />
-            </button>
+            {allowAttachments && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  className="hidden"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
+                >
+                  <PaperClipIcon className="w-5 h-5" />
+                </button>
+              </>
+            )}
             <button
               ref={emojiButtonRef}
               type="button"

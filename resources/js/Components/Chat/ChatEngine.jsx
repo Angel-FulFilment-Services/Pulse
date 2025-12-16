@@ -17,6 +17,7 @@ import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
 import { useRestrictedWords } from './engine/useRestrictedWords'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { hasPermission } from '../../Utils/Permissions.jsx'
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 10000 // 10 seconds
@@ -50,6 +51,7 @@ export default function ChatEngine({
   const [pendingAttachments, setPendingAttachments] = useState([]) // Attachments waiting to be sent
   const [uploadedAttachmentData, setUploadedAttachmentData] = useState([]) // Uploaded attachment metadata
   const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false) // Trigger to clear MessageInput attachments
+  const [currentUserRole, setCurrentUserRole] = useState(null) // Current user's role in the team
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
@@ -2213,6 +2215,7 @@ export default function ChatEngine({
           onRefreshTeams?.()
           onChatSelect?.(newTeam, 'team')
         }}
+        onUserRoleChange={setCurrentUserRole}
       />
       
       {/* WebSocket Connection Error Banner */}
@@ -2323,6 +2326,7 @@ export default function ChatEngine({
           }}
           onForwardMessage={handleForwardMessage}
           onForwardAttachment={handleForwardAttachment}
+          canDeleteOthersMessages={chatType === 'team' && (currentUserRole === 'admin' || currentUserRole === 'owner')}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}
@@ -2364,6 +2368,7 @@ export default function ChatEngine({
             inputRef={messageInputRef}
             onAttachmentsChange={handleAttachmentsChange}
             clearAttachments={clearAttachmentsTrigger}
+            allowAttachments={hasPermission('pulse_chat_send_attachments')}
           />
         </div>
       )}

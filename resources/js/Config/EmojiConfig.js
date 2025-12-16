@@ -146,7 +146,6 @@ export const ALL_REACTIONS = {
     { emoji: '👈', name: 'backhand_index_pointing_left', label: 'Point Left' },
     { emoji: '👉', name: 'backhand_index_pointing_right', label: 'Point Right' },
     { emoji: '👆', name: 'backhand_index_pointing_up', label: 'Point Up' },
-    { emoji: '🖕', name: 'middle_finger', label: 'Middle Finger' },
     { emoji: '👇', name: 'backhand_index_pointing_down', label: 'Point Down' },
     { emoji: '☝️', name: 'index_pointing_up', label: 'Index Up' },
     { emoji: '👍', name: 'thumbs_up', label: 'Thumbs Up' },

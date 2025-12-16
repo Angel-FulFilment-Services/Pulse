@@ -673,7 +673,29 @@ class MessageController extends Controller
     public function destroy(Request $request, $id)
     {
         $message = Message::findOrFail($id);
-        if (auth()->user()->id !== $message->sender_id) {
+        $userId = auth()->user()->id;
+        
+        // Check if user can delete this message
+        $canDelete = false;
+        
+        // User can always delete their own messages
+        if ($userId == $message->sender_id) {
+            $canDelete = true;
+        }
+        // For team messages, admins and owners can delete any message
+        elseif ($message->team_id) {
+            $membership = \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $message->team_id)
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->first(['role']);
+            
+            if ($membership && in_array($membership->role, ['admin', 'owner'])) {
+                $canDelete = true;
+            }
+        }
+        
+        if (!$canDelete) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         

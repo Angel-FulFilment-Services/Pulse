@@ -6,8 +6,9 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
+import { hasPermission } from '../../../Utils/Permissions.jsx'
 
-export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false }) {
+export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange }) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMembersPanel, setShowMembersPanel] = useState(false)
   const [showAddUserPopover, setShowAddUserPopover] = useState(false)
@@ -18,6 +19,11 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
   const [currentUserRole, setCurrentUserRole] = useState(null)
   const [roleDropdownMemberId, setRoleDropdownMemberId] = useState(null)
   const [confirmationDialog, setConfirmationDialog] = useState({ isOpen: false, type: null })
+  
+  // Notify parent when currentUserRole changes
+  useEffect(() => {
+    onUserRoleChange?.(currentUserRole)
+  }, [currentUserRole, onUserRoleChange])
   
   // Ref for create team button
   const createTeamButtonRef = useRef(null)
@@ -818,7 +824,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           )}
           
           {/* Create Team Button - only show for DM chats */}
-          {chatType === 'dm' && (
+          {chatType === 'dm' && hasPermission('pulse_chat_create_teams') && (
             <button
               ref={createTeamButtonRef}
               onClick={() => setShowCreateTeamDropdown(true)}

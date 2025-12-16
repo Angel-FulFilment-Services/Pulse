@@ -31,6 +31,7 @@ import { differenceInMinutes } from 'date-fns'
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from './CreateTeamDropdown.jsx'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
+import { hasPermission } from '../../Utils/Permissions.jsx'
 
 // Register the ring spinner
 ring.register()
@@ -1175,18 +1176,20 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                   <UserGroupIcon className="w-4 h-4 mr-2" />
                   Teams ({filteredTeams.length})
                 </button>
-                <button
-                  ref={sectionCreateTeamRef}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCreateTeamTrigger('section')
-                    setShowCreateTeamDropdown(true)
-                  }}
-                  className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700 rounded"
-                  title="Create new team"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                </button>
+                {hasPermission('pulse_chat_create_teams') && (
+                  <button
+                    ref={sectionCreateTeamRef}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCreateTeamTrigger('section')
+                      setShowCreateTeamDropdown(true)
+                    }}
+                    className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700 rounded"
+                    title="Create new team"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               {expandedSections.teams && filteredTeams.length > 0 && (
                 <div className="pb-2">

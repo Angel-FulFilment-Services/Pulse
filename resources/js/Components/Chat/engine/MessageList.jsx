@@ -35,7 +35,8 @@ export default function MessageList({
   onRestoreMessage,
   onQuickMessage,
   onForwardMessage,
-  onForwardAttachment
+  onForwardAttachment,
+  canDeleteOthersMessages = false
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -697,6 +698,7 @@ export default function MessageList({
                               onReplyClick={onReplyClick}
                               isDeleted={!!message.deleted_at}
                               onForwardMessage={onForwardMessage}
+                              canDeleteOthersMessages={canDeleteOthersMessages}
                             />
                           )}
                           

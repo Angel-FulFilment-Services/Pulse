@@ -6,7 +6,7 @@ import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Confi
 import EmojiPicker from './EmojiPicker'
 import ForwardDropdown from './ForwardDropdown'
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage, canDeleteOthersMessages = false }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(message.id).startsWith('temp-') || message.isPending
   if (isOptimistic) {
@@ -278,8 +278,8 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
                 </>
               )}
               
-              {/* Delete button - only show for own messages that aren't already deleted */}
-              {isMyMessage && !isDeleted && (
+              {/* Delete button - show for own messages or for admins/owners in teams */}
+              {(isMyMessage || canDeleteOthersMessages) && !isDeleted && (
                 <>
                   <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
                   <button
