@@ -108,16 +108,15 @@ class TeamsNotificationService
                 ->post("https://graph.microsoft.com/v1.0/users/{$teamsUserId}/teamwork/sendActivityNotification", [
                     'topic' => [
                         'source' => 'text',
-                        'value' => $previewMessage,
+                        'value' => 'Pulse Chat',
                         'webUrl' => $teamsDeepLink,
                     ],
                     'activityType' => 'newMessage',
                     'previewText' => [
-                        'content' => "{$senderName} sent you a message"
+                        'content' => $previewMessage
                     ],
                     'templateParameters' => [
                         ['name' => 'sender', 'value' => $senderName],
-                        ['name' => 'message', 'value' => $previewMessage],
                     ],
                 ]);
 
