@@ -68,6 +68,19 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const [globalSettings, setGlobalSettings] = useState({ global_mute: false, global_hide_preview: false })
   const { userStates } = useUserStates();
   
+  // Sync selectedContext when selectedChat/chatType change from props (URL navigation, compose mode, etc.)
+  useEffect(() => {
+    if (selectedChat && chatType && chatType !== 'compose') {
+      // Find which section contains this item
+      const inFavorites = favorites.some(f => f.item?.id === selectedChat.id && f.type === chatType)
+      const section = inFavorites ? 'favorites' : (chatType === 'team' ? 'teams' : 'contacts')
+      
+      setSelectedContext({ id: selectedChat.id, type: chatType, section })
+    } else {
+      setSelectedContext(null)
+    }
+  }, [selectedChat?.id, chatType, favorites])
+  
   // Track loading states for initial data
   const [teamsLoaded, setTeamsLoaded] = useState(false)
   const [contactsLoaded, setContactsLoaded] = useState(false)
@@ -812,13 +825,6 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     
     setSelectedContext({ id: chat.id, type, section })
     
-    // Update URL to reflect current chat
-    const params = new URLSearchParams(window.location.search)
-    params.set('type', type)
-    params.set('id', chat.id)
-    const newUrl = `${window.location.pathname}?${params.toString()}`
-    window.history.pushState({}, '', newUrl)
-    
     // Reset unread count for this chat
     if (type === 'team') {
       setTeams(prev => prev.map(team => 
@@ -830,6 +836,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       ))
     }
     
+    // Parent will handle URL update
     onChatSelect(chat, type)
   }
 

@@ -242,6 +242,18 @@ export default function Chat() {
       setShowMobileSidebar(false)
     }
     
+    // Update URL to reflect current chat (for non-compose selections)
+    if (chat && type && type !== 'compose') {
+      const params = new URLSearchParams(window.location.search)
+      params.set('type', type)
+      params.set('id', chat.id)
+      const newUrl = `${window.location.pathname}?${params.toString()}`
+      window.history.pushState({}, '', newUrl)
+    } else if (type === 'compose' || !chat) {
+      // Clear URL params when entering compose mode or deselecting
+      window.history.pushState({}, '', window.location.pathname)
+    }
+    
     // Clear unread indicator for this chat (only if chat exists, not for compose mode)
     if (chat && type !== 'compose') {
       const chatKey = type === 'team' ? `team-${chat.id}` : `dm-${chat.id}`
