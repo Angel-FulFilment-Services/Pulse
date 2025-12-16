@@ -779,7 +779,7 @@ export default function MessageList({
         )
       })}
       
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} style={{ overflowAnchor: 'auto' }} />
       
       {/* Image Lightbox */}
       {lightboxImage && (

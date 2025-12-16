@@ -220,6 +220,7 @@ export default function AttachmentPreview({
       <div 
         ref={containerRef}
         className="cursor-pointer max-w-sm relative"
+        style={{ overflowAnchor: 'none' }}
         onClick={() => !isDeletable && onImageClick?.(attachment)}
       >
         {isDeletable ? (
@@ -296,6 +297,7 @@ export default function AttachmentPreview({
       <div 
         ref={containerRef} 
         className={`max-w-sm relative ${!isDeletable ? 'cursor-pointer' : ''}`}
+        style={{ overflowAnchor: 'none' }}
         onClick={() => !isDeletable && onPdfClick?.(attachment)}
       >
         {error ? (
@@ -371,7 +373,7 @@ export default function AttachmentPreview({
     const videoUrl = attachment.url || (attachment.file ? URL.createObjectURL(attachment.file) : null)
     
     return wrapWithReactions(
-      <div ref={containerRef} className="max-w-sm relative">
+      <div ref={containerRef} className="max-w-sm relative" style={{ overflowAnchor: 'none' }}>
         {error ? (
           <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
             <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
@@ -448,7 +450,7 @@ export default function AttachmentPreview({
     const audioUrl = attachment.url || (attachment.file ? URL.createObjectURL(attachment.file) : null)
     
     return wrapWithReactions(
-      <div ref={containerRef} className="max-w-sm relative">
+      <div ref={containerRef} className="max-w-sm relative" style={{ overflowAnchor: 'none' }}>
         {error ? (
           <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
             <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
@@ -522,7 +524,7 @@ export default function AttachmentPreview({
 
   // Render generic file attachment (non-previewable)
   return wrapWithReactions(
-    <div ref={containerRef} className="max-w-sm relative">
+    <div ref={containerRef} className="max-w-sm relative" style={{ overflowAnchor: 'none' }}>
       <div className="bg-white dark:bg-dark-800 rounded-lg overflow-hidden">
         <div className={`${isDeletable || isMyMessage ? 'bg-theme-500/80 border-theme-500/95 text-theme-50/95' : 'bg-gray-200 dark:bg-dark-700 border-gray-300 dark:border-dark-600 text-gray-900 dark:text-dark-50'} min-w-56 px-3 py-2 flex space-x-4 rounded-lg border-2`} style={{ backdropFilter: 'blur(4px)' }}>
             <div className="flex-1 min-w-0">
