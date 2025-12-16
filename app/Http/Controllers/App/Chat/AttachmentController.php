@@ -165,13 +165,6 @@ class AttachmentController extends Controller
             $isThumbnail = $request->has('thumbnail') && $attachment->thumbnail_path;
             $storagePath = $isThumbnail ? $attachment->thumbnail_path : $attachment->storage_path;
             
-            \Log::info('Serving attachment', [
-                'attachment_id' => $id,
-                'is_thumbnail' => $isThumbnail,
-                'storage_path' => $storagePath,
-                'storage_driver' => $attachment->storage_driver
-            ]);
-            
             // Get file from storage
             $fileContent = $this->attachmentService->getFile($storagePath, $attachment->storage_driver);
             

@@ -40,13 +40,6 @@ Broadcast::channel('chat.team.{teamId}', function ($user, $teamId) {
 // Chat DM channels
 Broadcast::channel('chat.dm.{userId1}.{userId2}', function ($user, $userId1, $userId2) {
     // User can access if they're one of the participants
-    \Log::info('Channel authorization attempt', [
-        'user_id' => $user->id,
-        'userId1' => $userId1,
-        'userId2' => $userId2,
-        'authorized' => ((int) $user->id === (int) $userId1 || (int) $user->id === (int) $userId2)
-    ]);
-    
     // For presence channels, we need to return user info
     if ((int) $user->id === (int) $userId1 || (int) $user->id === (int) $userId2) {
         return ['id' => $user->id, 'name' => $user->name];

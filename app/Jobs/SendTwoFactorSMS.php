@@ -19,7 +19,7 @@ class SendTwoFactorSMS implements ShouldQueue
 
     private $user;
 
-    public string $queue = 'pulse';
+    public $queue = 'pulse';
 
     /**
      * The number of times the job may be attempted.

@@ -192,42 +192,17 @@ class AttachmentService
     public function getFile(string $storagePath, string $driver = 'r2'): ?string
     {
         try {
-            \Log::info('Attempting to get file from storage', [
-                'path' => $storagePath,
-                'driver' => $driver
-            ]);
-            
             // Try the specified driver first
-            $exists = Storage::disk($driver)->exists($storagePath);
-            \Log::info('File exists check', ['exists' => $exists, 'path' => $storagePath, 'driver' => $driver]);
-            
-            if ($exists) {
-                $content = Storage::disk($driver)->get($storagePath);
-                \Log::info('File retrieved successfully', [
-                    'path' => $storagePath,
-                    'driver' => $driver,
-                    'size' => strlen($content)
-                ]);
-                return $content;
+            if (Storage::disk($driver)->exists($storagePath)) {
+                return Storage::disk($driver)->get($storagePath);
             }
             
             // Fallback: try other drivers
             $fallbackDrivers = array_filter(['r2', 'local', 'public'], fn($d) => $d !== $driver);
-            \Log::info('File not found, trying fallback drivers', [
-                'original_driver' => $driver,
-                'fallback_drivers' => $fallbackDrivers,
-                'path' => $storagePath
-            ]);
             
             foreach ($fallbackDrivers as $fallbackDriver) {
                 if (Storage::disk($fallbackDriver)->exists($storagePath)) {
-                    $content = Storage::disk($fallbackDriver)->get($storagePath);
-                    \Log::info('File retrieved from fallback driver', [
-                        'path' => $storagePath,
-                        'driver' => $fallbackDriver,
-                        'size' => strlen($content)
-                    ]);
-                    return $content;
+                    return Storage::disk($fallbackDriver)->get($storagePath);
                 }
             }
             

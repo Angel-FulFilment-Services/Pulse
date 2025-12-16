@@ -328,12 +328,6 @@ class MessageController extends Controller
 
     public function store(Request $request)
     {
-        \Log::info('MessageController store called', [
-            'has_files' => $request->hasFile('attachments'),
-            'files_count' => $request->hasFile('attachments') ? count($request->file('attachments')) : 0,
-            'all_input' => $request->except(['attachments']),
-        ]);
-        
         $validationRules = [
             'team_id' => 'nullable|integer',
             'recipient_id' => 'nullable|integer',
@@ -360,12 +354,9 @@ class MessageController extends Controller
             throw $e;
         }
         
-        \Log::info('Validation passed', ['data_keys' => array_keys($data)]);
-        
         // Handle file uploads if present
         $uploadedAttachments = [];
         if ($request->hasFile('attachments')) {
-            \Log::info('Processing file uploads', ['count' => count($request->file('attachments'))]);
             $attachmentService = app(AttachmentService::class);
             
             foreach ($request->file('attachments') as $file) {
@@ -416,15 +407,6 @@ class MessageController extends Controller
         try {
             $ids = [$message->sender_id, $message->recipient_id];
             sort($ids);
-            \Log::info('Broadcasting message', [
-                'message_id' => $message->id,
-                'team_id' => $message->team_id,
-                'sender_id' => $message->sender_id,
-                'recipient_id' => $message->recipient_id,
-                'channel' => $message->team_id 
-                    ? 'chat.team.' . $message->team_id 
-                    : 'chat.dm.' . implode('.', $ids),
-            ]);
             broadcast(new MessageSent($message))->toOthers();
             
             // Trigger Teams notification listener
@@ -522,8 +504,6 @@ class MessageController extends Controller
                 })
                 ->whereNotNull('recipient_id');
         })->with('employee:user_id,profile_photo')->get();
-        
-        \Log::debug('Fetched contacts for user', ['contacts_count' => $contacts->toArray()]);
 
         return response()->json($contacts);
     }
@@ -567,42 +547,15 @@ class MessageController extends Controller
         ]);
         $userId = auth()->user()->id;
         
-        \Log::info('ADD REACTION REQUEST', [
-            'messageId' => $messageId,
-            'userId' => $userId,
-            'emoji' => $data['emoji'],
-            'name' => $data['name'] ?? null,
-        ]);
-        
         // Check if reaction already exists
         $existingReaction = MessageReaction::where('message_id', $messageId)
             ->where('user_id', $userId)
             ->where('emoji', $data['emoji'])
             ->first();
         
-        // Get all reactions for this user/message to debug
-        $allUserReactions = MessageReaction::where('message_id', $messageId)
-            ->where('user_id', $userId)
-            ->get();
-        
-        \Log::info('EXISTING REACTION CHECK', [
-            'searchingFor' => $data['emoji'],
-            'searchingForHex' => bin2hex($data['emoji']),
-            'exists' => $existingReaction ? true : false,
-            'existingId' => $existingReaction?->id,
-            'existingEmoji' => $existingReaction?->emoji,
-            'existingEmojiHex' => $existingReaction ? bin2hex($existingReaction->emoji) : null,
-            'allUserReactions' => $allUserReactions->map(fn($r) => [
-                'id' => $r->id,
-                'emoji' => $r->emoji,
-                'emojiHex' => bin2hex($r->emoji)
-            ])->toArray()
-        ]);
-        
         if ($existingReaction) {
             // Remove reaction if it exists (toggle off)
             $existingReaction->delete();
-            \Log::info('REMOVED REACTION', ['emoji' => $data['emoji']]);
             broadcast(new \App\Events\Chat\MessageReactionRemoved($messageId, $userId, $data['emoji']))->toOthers();
         } else {
             // Add new reaction
@@ -612,7 +565,6 @@ class MessageController extends Controller
                 'emoji' => $data['emoji'],
                 'name' => $data['name'] ?? null,
             ]);
-            \Log::info('CREATED REACTION', ['id' => $reaction->id, 'emoji' => $data['emoji']]);
             // Load user and message relationships for broadcasting
             $reaction->load(['user', 'message']);
             broadcast(new \App\Events\Chat\MessageReactionAdded($reaction))->toOthers();
