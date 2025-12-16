@@ -39,6 +39,7 @@ class LoginController extends Controller
         Log::debug('Environment: ' . app()->environment());
         Log::debug('Allowed Long IP Range: ' . (3232235520 . ' - ' . 3232301055));
         Log::debug('Allowed IP Range: ' . (long2ip(3232235520) . ' - ' . long2ip(3232301055)));
+        Log::debug('Cloudflare Connecting IP: ' . ($request->server('HTTP_CF_CONNECTING_IP') ?? 'Not available'));
 
         $this->validate($request, [
             'email' => 'required|email',
