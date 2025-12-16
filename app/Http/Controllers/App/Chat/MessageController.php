@@ -427,6 +427,9 @@ class MessageController extends Controller
             ]);
             broadcast(new MessageSent($message))->toOthers();
             
+            // Trigger Teams notification listener
+            event(new MessageSent($message));
+            
             // Also broadcast notification event for sidebar updates
             $channelName = $message->team_id 
                 ? 'chat.team.' . $message->team_id 
@@ -1118,6 +1121,9 @@ class MessageController extends Controller
             sort($ids);
             
             broadcast(new MessageSent($message))->toOthers();
+            
+            // Trigger Teams notification listener
+            event(new MessageSent($message));
             
             // Broadcast notification event for sidebar updates
             $channelName = $message->team_id 
