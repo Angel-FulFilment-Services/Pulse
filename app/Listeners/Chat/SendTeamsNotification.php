@@ -5,16 +5,10 @@ namespace App\Listeners\Chat;
 use App\Events\Chat\MessageSent;
 use App\Services\TeamsNotificationService;
 use App\Models\Chat\TeamUser;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
-class SendTeamsNotification implements ShouldQueue
+class SendTeamsNotification
 {
-    use InteractsWithQueue;
-
-    public string $queue = 'pulse';
-
     protected TeamsNotificationService $teamsService;
 
     public function __construct(TeamsNotificationService $teamsService)
