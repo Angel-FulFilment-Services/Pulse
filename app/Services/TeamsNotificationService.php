@@ -108,7 +108,7 @@ class TeamsNotificationService
                 ->post("https://graph.microsoft.com/v1.0/users/{$teamsUserId}/teamwork/sendActivityNotification", [
                     'topic' => [
                         'source' => 'text',
-                        'value' => 'Pulse Chat',
+                        'value' => $previewMessage,
                         'webUrl' => $teamsDeepLink,
                     ],
                     'activityType' => 'newMessage',
@@ -136,7 +136,6 @@ class TeamsNotificationService
                 return false;
             }
 
-            Log::info("Teams notification sent to {$recipientEmail}");
             return true;
 
         } catch (\Exception $e) {

@@ -37,17 +37,8 @@ class SendTeamsNotification implements ShouldQueue
      */
     public function handle(MessageSent $event): void
     {
-        Log::info('SendTeamsNotification: Listener triggered');
-        
         $message = $event->message;
         $sender = $message->sender;
-
-        Log::info('SendTeamsNotification: Processing message', [
-            'message_id' => $message->id,
-            'sender_id' => $sender?->id,
-            'team_id' => $message->team_id,
-            'recipient_id' => $message->recipient_id,
-        ]);
 
         if (!$sender) {
             Log::warning('MessageSent event has no sender', ['message_id' => $message->id]);
