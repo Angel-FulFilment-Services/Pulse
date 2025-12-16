@@ -569,4 +569,100 @@ class TeamController extends Controller
             'message' => 'You have left the team successfully.'
         ]);
     }
+    
+    /**
+     * Get the nearest shift for a user (closest to current date/time)
+     */
+    public function getUserShift(Request $request, $userId)
+    {
+        $user = User::findOrFail($userId);
+        
+        // Get hr_id from hr_details for this user
+        $hrDetails = \DB::table('wings_data.hr_details')
+            ->where('user_id', $userId)
+            ->first();
+        
+        if (!$hrDetails || !$hrDetails->hr_id) {
+            return response()->json(['shift' => null]);
+        }
+        
+        $hrId = $hrDetails->hr_id;
+        $now = \Carbon\Carbon::now();
+        $today = $now->format('Y-m-d');
+        
+        // First, try to find a shift that's currently happening (today, and current time is within shift hours)
+        $currentShift = \DB::connection('halo_rota')
+            ->table('shifts2')
+            ->where('hr_id', $hrId)
+            ->where('shiftdate', $today)
+            ->whereRaw('? BETWEEN shiftstart AND shiftend', [$now->format('H:i:s')])
+            ->first();
+        
+        if ($currentShift) {
+            return response()->json([
+                'shift' => [
+                    'date' => $currentShift->shiftdate,
+                    'start' => $currentShift->shiftstart,
+                    'end' => $currentShift->shiftend,
+                    'is_current' => true,
+                ]
+            ]);
+        }
+        
+        // Find the next upcoming shift (today or future)
+        $upcomingShift = \DB::connection('halo_rota')
+            ->table('shifts2')
+            ->where('hr_id', $hrId)
+            ->where(function($query) use ($today, $now) {
+                $query->where('shiftdate', '>', $today)
+                    ->orWhere(function($q) use ($today, $now) {
+                        $q->where('shiftdate', $today)
+                          ->where('shiftstart', '>', $now->format('H:i:s'));
+                    });
+            })
+            ->orderBy('shiftdate', 'asc')
+            ->orderBy('shiftstart', 'asc')
+            ->first();
+        
+        if ($upcomingShift) {
+            return response()->json([
+                'shift' => [
+                    'date' => $upcomingShift->shiftdate,
+                    'start' => $upcomingShift->shiftstart,
+                    'end' => $upcomingShift->shiftend,
+                    'is_current' => false,
+                    'is_upcoming' => true,
+                ]
+            ]);
+        }
+        
+        // If no upcoming shift, find the most recent past shift
+        $pastShift = \DB::connection('halo_rota')
+            ->table('shifts2')
+            ->where('hr_id', $hrId)
+            ->where(function($query) use ($today, $now) {
+                $query->where('shiftdate', '<', $today)
+                    ->orWhere(function($q) use ($today, $now) {
+                        $q->where('shiftdate', $today)
+                          ->where('shiftend', '<', $now->format('H:i:s'));
+                    });
+            })
+            ->orderBy('shiftdate', 'desc')
+            ->orderBy('shiftend', 'desc')
+            ->first();
+        
+        if ($pastShift) {
+            return response()->json([
+                'shift' => [
+                    'date' => $pastShift->shiftdate,
+                    'start' => $pastShift->shiftstart,
+                    'end' => $pastShift->shiftend,
+                    'is_current' => false,
+                    'is_past' => true,
+                ]
+            ]);
+        }
+        
+        return response()->json(['shift' => null]);
+    }
 }

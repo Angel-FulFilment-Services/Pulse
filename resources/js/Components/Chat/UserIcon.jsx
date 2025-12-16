@@ -3,8 +3,9 @@ import { differenceInMinutes } from 'date-fns';
 import React, { memo, useMemo, useState } from 'react';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 import { useUserStates } from '../Context/ActiveStateContext';
+import ContactCard from './ContactCard';
 
-const UserItem = ({ size = 'large', contact }) => {
+const UserItem = ({ size = 'large', contact, showContactCard = false, onSendMessage, contactCardPlacement = 'right-start' }) => {
   const [imageError, setImageError] = useState(false);
   
   const sizeClasses = {
@@ -55,25 +56,38 @@ const UserItem = ({ size = 'large', contact }) => {
     }
   }, [lastActiveAt]);
 
-  return (
-    <>
-      <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass}`}>
-        {profilePhoto && !imageError ? (
-          <img
-            src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
-            className={`w-full h-full select-none rounded-full brightness-95`}
-            alt="User profile"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />
-        )}
-        <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-20">
-            <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
-        </span>
+  const iconContent = (
+    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass}`}>
+      {profilePhoto && !imageError ? (
+        <img
+          src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+          className={`w-full h-full select-none rounded-full brightness-95`}
+          alt="User profile"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />
+      )}
+      <span className="absolute bottom-[14%] right-[14%] block translate-x-1/2 translate-y-1/2 transform rounded-full border-2 border-white dark:border-dark-900 z-20">
+          <span className={`block ${selectedActivitySizeClass} rounded-full ${activeIndicatorColor}`} />
       </span>
-    </>
+    </span>
   );
+
+  // Wrap with ContactCard if enabled
+  if (showContactCard && contact) {
+    return (
+      <ContactCard 
+        contact={contact} 
+        onSendMessage={onSendMessage}
+        placement={contactCardPlacement}
+      >
+        {iconContent}
+      </ContactCard>
+    );
+  }
+
+  return iconContent;
 };
 
 // Wrap the component in React.memo

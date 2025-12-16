@@ -3,6 +3,7 @@ import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/rea
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import ReplyBubble from './ReplyBubble'
+import ForwardedMessageBubble from './ForwardedMessageBubble'
 import MessageReactions from './MessageReactions'
 import MessageReactionBubbles from './MessageReactionBubbles'
 import UserIcon from '../UserIcon'
@@ -31,7 +32,10 @@ export default function MessageList({
   pinnedMessageId,
   pinnedAttachmentId,
   onDeleteMessage,
-  onRestoreMessage
+  onRestoreMessage,
+  onQuickMessage,
+  onForwardMessage,
+  onForwardAttachment
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -145,14 +149,15 @@ export default function MessageList({
 
   // Group regular messages by sender and time
   const groupedMessages = regularMessages
-    // Filter out empty messages (no text, no attachments, not deleted)
+    // Filter out empty messages (no text, no attachments, not deleted, not forwarded)
     .filter(message => {
       const hasText = message.body && message.body.trim().length > 0
       const hasAttachments = message.attachments && message.attachments.length > 0
       const isDeleted = message.deleted_at
+      const isForwarded = message.forwarded_from_message_id || message.forwarded_from_message
       
-      // Keep message if it has text, attachments, or is deleted
-      return hasText || hasAttachments || isDeleted
+      // Keep message if it has text, attachments, is deleted, or is forwarded
+      return hasText || hasAttachments || isDeleted || isForwarded
     })
     .reduce((groups, message, index, filteredMessages) => {
     const prevMessage = filteredMessages[index - 1]
@@ -419,7 +424,13 @@ export default function MessageList({
                 {/* Avatar - only show for other users, aligned with name/timestamp */}
                 {!isMyGroup && (
                   <div className="-mt-[10px]">
-                    <UserIcon contact={group[0].user} size="medium" />
+                    <UserIcon 
+                      contact={group[0].user} 
+                      size="medium" 
+                      showContactCard={true}
+                      onSendMessage={onQuickMessage}
+                      contactCardPlacement="right-start"
+                    />
                   </div>
                 )}
                 
@@ -539,6 +550,7 @@ export default function MessageList({
                                       onDeleteAttachment={onDeleteAttachment}
                                       onRestoreAttachment={onRestoreAttachment}
                                       onReplyClick={onReplyClick}
+                                      onForwardAttachment={onForwardAttachment}
                                       isPinned={pinnedAttachmentId === attachment.id}
                                       isDeleted={attachment.deleted_at != null}
                                       pendingReactionsRef={pendingReactionsRef}
@@ -568,8 +580,8 @@ export default function MessageList({
                           </div>
                         )}
                         
-                        {/* Container for bubble, reactions, and reply button - only show if there's text or it's deleted */}
-                        {(message.body || message.deleted_at) && (
+                        {/* Container for bubble, reactions, and reply button - only show if there's text, it's deleted, or it's a forwarded message */}
+                        {(message.body || message.deleted_at || message.forwarded_from_message) && (
                           <div className={`group/message peer relative flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${newMessageIds.has(message.id) ? (isMyGroup ? 'animate-message-slide-in-sent' : 'animate-message-slide-in-received') : ''}`}>
                             {/* Message bubble */}
                             <div 
@@ -641,6 +653,14 @@ export default function MessageList({
                                 )
                               })()}
                               
+                              {/* Show forwarded message context if this is a forwarded message and not deleted */}
+                              {message.forwarded_from_message && !message.deleted_at && (
+                                <ForwardedMessageBubble 
+                                  forwardedMessage={message.forwarded_from_message} 
+                                  isMyMessage={isMyGroup}
+                                />
+                              )}
+                              
                               {message.deleted_at ? (
                                 <div className="flex items-center gap-3">
                                   <p className={`italic ${isMyGroup ? 'text-white' : 'text-gray-500 dark:text-dark-400'}`}>This message has been deleted.</p>
@@ -676,6 +696,7 @@ export default function MessageList({
                               onDeleteMessage={onDeleteMessage}
                               onReplyClick={onReplyClick}
                               isDeleted={!!message.deleted_at}
+                              onForwardMessage={onForwardMessage}
                             />
                           )}
                           

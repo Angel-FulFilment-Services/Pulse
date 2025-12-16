@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Config/EmojiConfig'
 import EmojiPicker from './EmojiPicker'
+import ForwardDropdown from './ForwardDropdown'
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(message.id).startsWith('temp-') || message.isPending
   if (isOptimistic) {
@@ -14,8 +15,10 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
   
   const [showQuickReactions, setShowQuickReactions] = useState(false)
   const [showAllReactions, setShowAllReactions] = useState(false)
+  const [showForwardDropdown, setShowForwardDropdown] = useState(false)
   const closeTimeoutRef = useRef(null)
   const reactionsControlRef = useRef(null)
+  const forwardButtonRef = useRef(null)
   
   // Helper to check if user has already reacted with this emoji
   const hasUserReacted = (emoji) => {
@@ -80,7 +83,7 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
   
   // Failsafe: Close popover if mouse is outside both bubble and popover
   useEffect(() => {
-    if (!showQuickReactions || showAllReactions) return
+    if (!showQuickReactions || showAllReactions || showForwardDropdown) return
     
     const handleMouseMove = (e) => {
       // Get the popover element
@@ -125,13 +128,23 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
       clearTimeout(timeoutId)
       document.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [showQuickReactions, showAllReactions, bubbleRef, refs])
+  }, [showQuickReactions, showAllReactions, showForwardDropdown, bubbleRef, refs])
 
   // Show quick reactions when message is hovered
   useEffect(() => {
     // Don't show reactions for failed or pending messages
     if (messageStatus === 'failed' || messageStatus === 'pending') {
       setShowQuickReactions(false)
+      return
+    }
+    
+    // Keep reactions open when forward dropdown is showing
+    if (showForwardDropdown) {
+      setShowQuickReactions(true)
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
       return
     }
     
@@ -162,7 +175,7 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
         clearTimeout(closeTimeoutRef.current)
       }
     }
-  }, [isMessageHovered, isHoveringPopover, showAllReactions, messageStatus])
+  }, [isMessageHovered, isHoveringPopover, showAllReactions, messageStatus, showForwardDropdown])
 
   const handleReactionClick = (reaction) => {
     onAddReaction?.(message.id, reaction)
@@ -250,6 +263,21 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
                 </>
               )}
               
+              {/* Forward button - hide on already forwarded messages */}
+              {onForwardMessage && !isDeleted && !message.forwarded_from_message_id && !message.forwarded_from_message && (
+                <>
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
+                  <button
+                    ref={forwardButtonRef}
+                    onClick={() => setShowForwardDropdown(true)}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-400"
+                    title="Forward"
+                  >
+                    <ArrowRightIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+              
               {/* Delete button - only show for own messages that aren't already deleted */}
               {isMyMessage && !isDeleted && (
                 <>
@@ -277,6 +305,21 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
           userReactions={message.reactions?.filter(r => r.user_id === currentUser?.id).map(r => r.emoji) || []}
         />
       )}
+      
+      {/* Forward dropdown */}
+      <ForwardDropdown
+        isOpen={showForwardDropdown}
+        onClose={() => setShowForwardDropdown(false)}
+        triggerRef={forwardButtonRef}
+        isMyMessage={isMyMessage}
+        forwardType="message"
+        itemToForward={message}
+        onForward={(target) => {
+          onForwardMessage?.(message, target)
+          setShowForwardDropdown(false)
+          setShowQuickReactions(false)
+        }}
+      />
     </>
   )
 }

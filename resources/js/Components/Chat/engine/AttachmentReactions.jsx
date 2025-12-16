@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Config/EmojiConfig'
 import EmojiPicker from './EmojiPicker'
+import ForwardDropdown from './ForwardDropdown'
 
-export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId }) {
+export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId, onForwardAttachment }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(messageId).startsWith('temp-')
   if (isOptimistic) {
@@ -14,8 +15,10 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
   
   const [showQuickReactions, setShowQuickReactions] = useState(false)
   const [showAllReactions, setShowAllReactions] = useState(false)
+  const [showForwardDropdown, setShowForwardDropdown] = useState(false)
   const closeTimeoutRef = useRef(null)
   const reactionsControlRef = useRef(null)
+  const forwardButtonRef = useRef(null)
   
   // Helper to check if user has already reacted with this emoji
   const hasUserReacted = (emoji) => {
@@ -80,7 +83,7 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
   
   // Failsafe: Close popover if mouse is outside both attachment and popover
   useEffect(() => {
-    if (!showQuickReactions || showAllReactions) return
+    if (!showQuickReactions || showAllReactions || showForwardDropdown) return
     
     const handleMouseMove = (e) => {
       // Get the popover element
@@ -125,10 +128,20 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
       clearTimeout(timeoutId)
       document.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [showQuickReactions, showAllReactions, attachmentRef, refs])
+  }, [showQuickReactions, showAllReactions, showForwardDropdown, attachmentRef, refs])
 
   // Show quick reactions when attachment is hovered
   useEffect(() => {
+    // Keep reactions open when forward dropdown is showing
+    if (showForwardDropdown) {
+      setShowQuickReactions(true)
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+      return
+    }
+    
     if (isAttachmentHovered && !showAllReactions) {
       setShowQuickReactions(true)
       // Clear any pending close timeout
@@ -156,7 +169,7 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
         clearTimeout(closeTimeoutRef.current)
       }
     }
-  }, [isAttachmentHovered, isHoveringPopover, showAllReactions])
+  }, [isAttachmentHovered, isHoveringPopover, showAllReactions, showForwardDropdown])
 
   const handleReactionClick = (reaction) => {
     onAddReaction?.(attachment.id, reaction)
@@ -246,6 +259,21 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
                 </>
               )}
               
+              {/* Forward button - hide on already forwarded attachments */}
+              {onForwardAttachment && !isDeleted && !attachment.forwarded_from_attachment_id && !attachment.forwarded_from_attachment && (
+                <>
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
+                  <button
+                    ref={forwardButtonRef}
+                    onClick={() => setShowForwardDropdown(true)}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-300"
+                    title="Forward"
+                  >
+                    <ArrowRightIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+              
               {/* Delete button - only show for own attachments that aren't already deleted */}
               {isMyMessage && !isDeleted && (
                 <>
@@ -273,6 +301,21 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
           userReactions={attachment.reactions?.filter(r => r.user_id === currentUser?.id).map(r => r.emoji) || []}
         />
       )}
+      
+      {/* Forward dropdown */}
+      <ForwardDropdown
+        isOpen={showForwardDropdown}
+        onClose={() => setShowForwardDropdown(false)}
+        triggerRef={forwardButtonRef}
+        isMyMessage={isMyMessage}
+        forwardType="attachment"
+        itemToForward={attachment}
+        onForward={(target) => {
+          onForwardAttachment?.(attachment, target)
+          setShowForwardDropdown(false)
+          setShowQuickReactions(false)
+        }}
+      />
     </>
   )
 }

@@ -18,6 +18,7 @@ export default function AttachmentPreview({
   onDeleteAttachment = null,
   onRestoreAttachment = null,
   onReplyClick = null,
+  onForwardAttachment = null,
   isPinned = false,
   isDeleted = false,
   pendingReactionsRef = null,
@@ -191,6 +192,7 @@ export default function AttachmentPreview({
           isDeleted={isDeleted}
           showReactionButtons={showReactions}
           messageId={messageId}
+          onForwardAttachment={onForwardAttachment}
         />
       </div>
     )

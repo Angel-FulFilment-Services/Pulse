@@ -162,6 +162,10 @@ Route::prefix('chat')->group(function () {
     Route::delete('attachments/{attachmentId}', [MessageController::class, 'deleteAttachment']);
     Route::post('attachments/{attachmentId}/restore', [MessageController::class, 'restoreAttachment']);
     
+    // Forwarding
+    Route::post('messages/{messageId}/forward', [MessageController::class, 'forwardMessage']);
+    Route::post('attachments/{attachmentId}/forward', [MessageController::class, 'forwardAttachment']);
+    
     // Message Read Status
     Route::post('messages/read', [MessageReadController::class, 'store']);
     Route::post('messages/read-batch', [MessageReadController::class, 'storeBatch']);
@@ -188,6 +192,7 @@ Route::prefix('chat')->group(function () {
     Route::post('teams/{teamId}/leave', [TeamController::class, 'leave']);
     Route::get('users/all', [TeamController::class, 'allUsers']);
     Route::get('users', [TeamController::class, 'users']);
+    Route::get('users/{userId}/shift', [TeamController::class, 'getUserShift']);
     
     // Favorites
     Route::get('favorites', [ChatFavoriteController::class, 'index']);

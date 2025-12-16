@@ -1767,6 +1767,114 @@ export default function ChatEngine({
     }
   }
 
+  // Forward a message to another chat
+  const handleForwardMessage = async (message, target) => {
+    try {
+      const requestBody = {}
+      if (target.type === 'team') {
+        requestBody.team_id = target.teamId
+      } else {
+        requestBody.recipient_id = target.recipientId
+      }
+      
+      const response = await fetch(`/api/chat/messages/${message.id}/forward`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (response.ok) {
+        toast.success(`Message forwarded to ${target.recipientName || target.teamName}`, {
+          toastId: 'message-forwarded',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+        // Refresh contacts in case this was a new conversation
+        onRefreshContacts?.()
+      } else {
+        throw new Error('Forward failed')
+      }
+    } catch (error) {
+      console.error('Error forwarding message:', error)
+      toast.error('Failed to forward message', {
+        toastId: 'forward-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    }
+  }
+
+  // Forward an attachment to another chat
+  const handleForwardAttachment = async (attachment, target) => {
+    try {
+      const requestBody = {}
+      if (target.type === 'team') {
+        requestBody.team_id = target.teamId
+      } else {
+        requestBody.recipient_id = target.recipientId
+      }
+      
+      const response = await fetch(`/api/chat/attachments/${attachment.id}/forward`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (response.ok) {
+        toast.success(`Attachment forwarded to ${target.recipientName || target.teamName}`, {
+          toastId: 'attachment-forwarded',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+        // Refresh contacts in case this was a new conversation
+        onRefreshContacts?.()
+      } else {
+        throw new Error('Forward failed')
+      }
+    } catch (error) {
+      console.error('Error forwarding attachment:', error)
+      toast.error('Failed to forward attachment', {
+        toastId: 'forward-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    }
+  }
+
   // Pin/Unpin attachment
   const handlePinAttachment = async (attachmentId) => {
     if (!selectedChat) return
@@ -2208,6 +2316,13 @@ export default function ChatEngine({
           pinnedAttachmentId={pinnedAttachment?.id}
           onDeleteMessage={handleDeleteMessage}
           onRestoreMessage={handleRestoreMessage}
+          onQuickMessage={(user) => {
+            // Refresh contacts to include the new conversation, then select the chat
+            onRefreshContacts?.()
+            onChatSelect?.(user, 'dm')
+          }}
+          onForwardMessage={handleForwardMessage}
+          onForwardAttachment={handleForwardAttachment}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}

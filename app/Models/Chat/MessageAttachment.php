@@ -21,6 +21,7 @@ class MessageAttachment extends Model
         'thumbnail_path',
         'is_image',
         'storage_driver',
+        'forwarded_from_attachment_id',
     ];
 
     protected $casts = [
@@ -100,5 +101,13 @@ class MessageAttachment extends Model
     public function getExtension(): string
     {
         return pathinfo($this->file_name, PATHINFO_EXTENSION);
+    }
+    
+    /**
+     * Get the original attachment this was forwarded from
+     */
+    public function forwardedFromAttachment(): BelongsTo
+    {
+        return $this->belongsTo(MessageAttachment::class, 'forwarded_from_attachment_id');
     }
 }

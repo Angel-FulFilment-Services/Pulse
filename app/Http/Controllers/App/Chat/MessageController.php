@@ -117,7 +117,7 @@ class MessageController extends Controller
             $team = Team::find($teamId);
             if ($team) {
                 if ($team->pinned_message_id) {
-                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])
                         ->find($team->pinned_message_id);
                 }
                 if ($team->pinned_attachment_id) {
@@ -135,7 +135,7 @@ class MessageController extends Controller
                 
             if ($dmPinned) {
                 if ($dmPinned->pinned_message_id) {
-                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user'])
+                    $pinnedMessage = Message::with(['user', 'reactions.user', 'replyToMessage.user', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])
                         ->find($dmPinned->pinned_message_id);
                 }
                 if ($dmPinned->pinned_attachment_id) {
@@ -219,7 +219,7 @@ class MessageController extends Controller
         // Clone query to check for more messages
         $checkQuery = clone $query;
         
-        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment'])
+        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])
             ->orderBy('sent_at', 'desc')
             ->limit($perPage)
             ->get()
@@ -515,7 +515,7 @@ class MessageController extends Controller
             // Log broadcast failure but don't stop message from being sent
             \Log::warning('Failed to broadcast message: ' . $e->getMessage());
         }
-        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment']), 201);
+        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments']), 201);
     }
     // List direct message contacts for the current user
     public function contacts(Request $request)
@@ -769,7 +769,7 @@ class MessageController extends Controller
         MessageAttachment::where('message_id', $id)->update(['deleted_at' => null]);
         
         // Reload with relationships including attachments
-        $message = Message::with(['user', 'reactions.user', 'replyToMessage.user', 'attachments'])->find($id);
+        $message = Message::with(['user', 'reactions.user', 'replyToMessage.user', 'attachments', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])->find($id);
         
         // Determine chat type and ID for broadcasting
         if ($message->team_id) {
@@ -882,7 +882,7 @@ class MessageController extends Controller
     // Pin an attachment (which pins the entire message)
     public function pinAttachment(Request $request, $attachmentId)
     {
-        $attachment = MessageAttachment::with('message')->findOrFail($attachmentId);
+        $attachment = MessageAttachment::with('message.user')->findOrFail($attachmentId);
         $message = $attachment->message;
         
         // Authorization check - only allow in team/DM chats where user belongs
@@ -1021,6 +1021,152 @@ class MessageController extends Controller
         
         return response()->json(['status' => 'ok', 'attachment' => $attachment]);
     }
+    
+    // Forward a message to another chat
+    public function forwardMessage(Request $request, $messageId)
+    {
+        $data = $request->validate([
+            'team_id' => 'nullable|integer',
+            'recipient_id' => 'nullable|integer',
+            'body' => 'nullable|string', // Optional additional message
+        ]);
+        
+        // Get the original message with its attachments
+        $originalMessage = Message::with(['user', 'attachments'])->findOrFail($messageId);
+        
+        // Create the forwarded message
+        $forwardedMessage = Message::create([
+            'team_id' => $data['team_id'] ?? null,
+            'sender_id' => auth()->id(),
+            'recipient_id' => $data['recipient_id'] ?? null,
+            'body' => $data['body'] ?? null,
+            'type' => 'message',
+            'sent_at' => now(),
+            'forwarded_from_message_id' => $originalMessage->id,
+        ]);
+        
+        // Load the forwarded message with relationships
+        $forwardedMessage->load(['user', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments']);
+        
+        // Broadcast the message
+        $this->broadcastMessage($forwardedMessage);
+        
+        return response()->json($forwardedMessage);
+    }
+    
+    // Forward an attachment to another chat
+    public function forwardAttachment(Request $request, $attachmentId)
+    {
+        $data = $request->validate([
+            'team_id' => 'nullable|integer',
+            'recipient_id' => 'nullable|integer',
+        ]);
+        
+        // Get the original attachment
+        $originalAttachment = MessageAttachment::with('message.user')->findOrFail($attachmentId);
+        
+        // Create a new message with the forwarded attachment
+        $message = Message::create([
+            'team_id' => $data['team_id'] ?? null,
+            'sender_id' => auth()->id(),
+            'recipient_id' => $data['recipient_id'] ?? null,
+            'body' => null,
+            'type' => 'message',
+            'sent_at' => now(),
+        ]);
+        
+        // Create a new attachment that references the original
+        $forwardedAttachment = MessageAttachment::create([
+            'message_id' => $message->id,
+            'file_name' => $originalAttachment->file_name,
+            'file_type' => $originalAttachment->file_type,
+            'file_size' => $originalAttachment->file_size,
+            'mime_type' => $originalAttachment->mime_type,
+            'storage_path' => $originalAttachment->storage_path,
+            'thumbnail_path' => $originalAttachment->thumbnail_path,
+            'is_image' => $originalAttachment->is_image,
+            'storage_driver' => $originalAttachment->storage_driver,
+            'forwarded_from_attachment_id' => $originalAttachment->id,
+        ]);
+        
+        // Load the message with relationships
+        $message->load(['user', 'attachments']);
+        
+        // Broadcast the message
+        $this->broadcastMessage($message);
+        
+        return response()->json($message);
+    }
+    
+    // Helper method to broadcast a message
+    private function broadcastMessage(Message $message)
+    {
+        try {
+            $ids = [$message->sender_id, $message->recipient_id];
+            sort($ids);
+            
+            broadcast(new MessageSent($message))->toOthers();
+            
+            // Broadcast notification event for sidebar updates
+            $channelName = $message->team_id 
+                ? 'chat.team.' . $message->team_id 
+                : 'chat.dm.' . implode('.', $ids);
+            broadcast(new MessageNotification(
+                $message->sender_id,
+                $message->created_at,
+                $channelName
+            ))->toOthers();
+            
+            // For DMs, broadcast to recipient's private channel
+            if (!$message->team_id && $message->recipient_id) {
+                event(new class($message->sender_id, $message->created_at, $message->recipient_id) implements \Illuminate\Contracts\Broadcasting\ShouldBroadcastNow {
+                    use \Illuminate\Broadcasting\InteractsWithSockets;
+                    use \Illuminate\Foundation\Events\Dispatchable;
+                    
+                    public $sender_id;
+                    public $timestamp;
+                    public $recipient_id;
+                    
+                    public function __construct($sender_id, $timestamp, $recipient_id) {
+                        $this->sender_id = $sender_id;
+                        $this->timestamp = $timestamp;
+                        $this->recipient_id = $recipient_id;
+                    }
+                    
+                    public function broadcastOn() {
+                        return new \Illuminate\Broadcasting\PrivateChannel('user.' . $this->recipient_id);
+                    }
+                    
+                    public function broadcastWith() {
+                        return [
+                            'sender_id' => $this->sender_id,
+                            'timestamp' => $this->timestamp,
+                        ];
+                    }
+                    
+                    public function broadcastAs() {
+                        return 'MessageNotification';
+                    }
+                });
+            }
+            
+            // Broadcast NewChatMessage for notification system
+            $sender = auth()->user();
+            if ($message->team_id) {
+                $team = Team::find($message->team_id);
+                if ($team) {
+                    $members = $team->getMembers();
+                    foreach ($members as $member) {
+                        if ($member->id != $sender->id) {
+                            broadcast(new NewChatMessage($member->id, $message, $sender));
+                        }
+                    }
+                }
+            } elseif ($message->recipient_id) {
+                broadcast(new NewChatMessage($message->recipient_id, $message, $sender));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error broadcasting forwarded message', ['error' => $e->getMessage()]);
+        }
+    }
 }
-
-

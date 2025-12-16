@@ -1,6 +1,6 @@
 import React from 'react'
 import { XMarkIcon } from '@heroicons/react/24/solid'
-import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon } from '@heroicons/react/24/outline'
+import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 
 export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, onUnpin, onUnpinAttachment, onClickPinned }) {
@@ -29,7 +29,7 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
 
   const getAttachmentDescription = (attachment) => {
     const fileName = attachment.file_name || 'Attachment'
-    const type = attachment.type
+    const type = attachment.type || attachment.mime_type
     if (type?.startsWith('image/')) return `📷 ${fileName}`
     if (type?.startsWith('video/')) return `🎥 ${fileName}`
     if (type?.startsWith('audio/')) return `🎵 ${fileName}`
@@ -40,6 +40,40 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
   const displayItem = hasPinnedMessage ? pinnedMessage : pinnedAttachment
   const isAttachment = !hasPinnedMessage && hasPinnedAttachment
   const message = isAttachment ? pinnedAttachment.message : pinnedMessage
+  
+  // Check if this is a forwarded message
+  const isForwarded = hasPinnedMessage && (pinnedMessage.forwarded_from_message_id || pinnedMessage.forwarded_from_message)
+  const forwardedMessage = isForwarded ? pinnedMessage.forwarded_from_message : null
+  
+  // Get the original sender name for forwarded messages
+  const originalSenderName = forwardedMessage?.user?.name || 'Unknown'
+  
+  // Determine the display content
+  const getDisplayContent = () => {
+    if (isAttachment) {
+      return getAttachmentDescription(pinnedAttachment)
+    }
+    
+    if (isForwarded && forwardedMessage) {
+      // Show forwarded message content with original sender
+      const prefix = `From ${originalSenderName}: `
+      if (forwardedMessage.body) {
+        return prefix + forwardedMessage.body
+      }
+      // Check for attachments in forwarded message
+      if (forwardedMessage.attachments && forwardedMessage.attachments.length > 0) {
+        return prefix + getAttachmentDescription(forwardedMessage.attachments[0])
+      }
+      return prefix + 'Message'
+    }
+    
+    // If forwarded but forwardedMessage not loaded, show indicator
+    if (isForwarded && !forwardedMessage) {
+      return 'Forwarded message'
+    }
+    
+    return pinnedMessage.body || 'Message'
+  }
 
   return (
     <div className="bg-theme-50 dark:bg-theme-900/30 border-b border-theme-200 dark:border-theme-800 px-6 py-2">
@@ -55,9 +89,18 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
               <span>{message.user?.name || 'Someone'}</span>
               <span className="text-theme-400 dark:text-theme-600">•</span>
               <span>{formatTime(message.created_at)}</span>
+              {isForwarded && (
+                <>
+                  <span className="text-theme-400 dark:text-theme-600">•</span>
+                  <span className="flex items-center gap-1">
+                    <ArrowRightIcon className="w-3 h-3" />
+                    Forwarded
+                  </span>
+                </>
+              )}
             </div>
             <p className="text-sm text-gray-700 dark:text-dark-300 truncate">
-              {isAttachment ? getAttachmentDescription(pinnedAttachment) : (pinnedMessage.body || 'Message')}
+              {getDisplayContent()}
             </p>
           </div>
         </button>
