@@ -224,8 +224,11 @@ export default function ContactCard({
         setIsOpen(false)
         // Optionally notify parent that a message was sent
         onSendMessage?.(contact, message.trim())
+      } else {
+        console.error('Failed to send message')
       }
     } catch (error) {
+      console.error('Error sending message:', error)
     } finally {
       setIsSending(false)
     }

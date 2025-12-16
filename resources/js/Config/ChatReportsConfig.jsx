@@ -941,7 +941,7 @@ const chatReportsConfig = [
                     allowTarget: false,
                     control: (row) => (
                         <a 
-                            href={`/chat/attachment/${row.id}`} 
+                            href={`/reporting/chat/attachment/${row.id}/download`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center p-1.5 rounded-md text-theme-600 hover:text-theme-700 hover:bg-theme-50 dark:text-theme-500 dark:hover:text-theme-400 dark:hover:bg-dark-700 transition-colors"

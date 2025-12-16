@@ -1156,4 +1156,25 @@ class ReportingController extends Controller
 
         return response()->json(['data' => $data]);
     }
+
+    /**
+     * Download chat attachment from reporting
+     * This bypasses the normal chat access check and uses pulse_report_chat permission instead
+     */
+    public function downloadChatAttachment(Request $request, $id)
+    {
+        $attachment = \App\Models\Chat\MessageAttachment::findOrFail($id);
+        
+        // Get file from storage using the AttachmentService
+        $attachmentService = app(\App\Services\Chat\AttachmentService::class);
+        $fileContent = $attachmentService->getFile($attachment->storage_path, $attachment->storage_driver);
+        
+        if (!$fileContent) {
+            abort(404, 'File not found');
+        }
+        
+        return response($fileContent, 200)
+            ->header('Content-Type', $attachment->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="' . $attachment->file_name . '"');
+    }
 }

@@ -38,7 +38,7 @@ export default function ChatPopout() {
       fetch('/api/user', { credentials: 'same-origin' })
         .then(res => res.json())
         .then(setCurrentUser)
-        .catch(() => {})
+        .catch(console.error)
     }
   }, [])
 
@@ -67,7 +67,7 @@ export default function ChatPopout() {
             document.title = 'Chat Not Found'
           }
         })
-        .catch(() => {})
+        .catch(console.error)
     }
   }, [])
 

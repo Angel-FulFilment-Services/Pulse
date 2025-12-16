@@ -38,7 +38,7 @@ export default function Chat() {
       fetch('/api/user', { credentials: 'same-origin' })
         .then(res => res.json())
         .then(setCurrentUser)
-        .catch(() => {})
+        .catch(console.error)
     }
   }, [])
 
@@ -63,7 +63,7 @@ export default function Chat() {
             setChatType(chatType)
           }
         })
-        .catch(() => {})
+        .catch(console.error)
     }
   }, [])
 

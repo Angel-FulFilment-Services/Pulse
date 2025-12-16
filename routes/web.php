@@ -197,6 +197,8 @@ Route::get('/reporting/reports/generate/chat-forwarded-messages', [ReportingCont
     ->middleware(['has.permission:pulse_report_chat']);
 Route::get('/reporting/reports/generate/chat-deleted-messages', [ReportingController::class, 'chatDeletedMessages'])
     ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/chat/attachment/{id}/download', [ReportingController::class, 'downloadChatAttachment'])
+    ->middleware(['has.permission:pulse_report_chat']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
