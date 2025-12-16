@@ -13,7 +13,6 @@ use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
-use App\Http\Controllers\Api\TeamsBotController;
 
 use App\Helper\T2SMS;
 
@@ -27,9 +26,6 @@ use App\Helper\T2SMS;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
-// Teams Bot Webhook (no auth - Microsoft validates via token)
-Route::post('/teams/bot', [TeamsBotController::class, 'handle']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

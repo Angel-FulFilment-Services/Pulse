@@ -108,12 +108,12 @@ class TeamsNotificationService
                 ->post("https://graph.microsoft.com/v1.0/users/{$teamsUserId}/teamwork/sendActivityNotification", [
                     'topic' => [
                         'source' => 'text',
-                        'value' => 'New Message',
+                        'value' => $previewMessage,
                         'webUrl' => $teamsDeepLink,
                     ],
                     'activityType' => 'newMessage',
                     'previewText' => [
-                        'content' => "{$senderName}: {$previewMessage}"
+                        'content' => "{$senderName} sent you a message"
                     ],
                     'templateParameters' => [
                         ['name' => 'sender', 'value' => $senderName],
@@ -122,10 +122,18 @@ class TeamsNotificationService
                 ]);
 
             if ($response->failed()) {
-                Log::error('Failed to send Teams notification', [
-                    'user' => $recipientEmail,
-                    'error' => $response->json()
-                ]);
+                $error = $response->json();
+                $errorCode = $error['error']['code'] ?? 'Unknown';
+                
+                // Don't log as error if user simply doesn't have the app installed
+                if ($errorCode === 'Forbidden') {
+                    Log::debug("Teams app not installed for user: {$recipientEmail}");
+                } else {
+                    Log::error('Failed to send Teams notification', [
+                        'user' => $recipientEmail,
+                        'error' => $error
+                    ]);
+                }
                 return false;
             }
 
