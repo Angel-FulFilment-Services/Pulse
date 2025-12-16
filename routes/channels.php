@@ -16,3 +16,41 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+// User private channel (for notifications)
+Broadcast::channel('user.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// Chat user private channel (for read receipts)
+Broadcast::channel('chat.user.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// Chat team channels
+Broadcast::channel('chat.team.{teamId}', function ($user, $teamId) {
+    // Check if user is an active member of this team (not left)
+    return \DB::connection('pulse')->table('team_user')
+        ->where('team_id', $teamId)
+        ->where('user_id', $user->id)
+        ->whereNull('left_at')
+        ->exists();
+});
+
+// Chat DM channels
+Broadcast::channel('chat.dm.{userId1}.{userId2}', function ($user, $userId1, $userId2) {
+    // User can access if they're one of the participants
+    \Log::info('Channel authorization attempt', [
+        'user_id' => $user->id,
+        'userId1' => $userId1,
+        'userId2' => $userId2,
+        'authorized' => ((int) $user->id === (int) $userId1 || (int) $user->id === (int) $userId2)
+    ]);
+    
+    // For presence channels, we need to return user info
+    if ((int) $user->id === (int) $userId1 || (int) $user->id === (int) $userId2) {
+        return ['id' => $user->id, 'name' => $user->name];
+    }
+    
+    return false;
+});

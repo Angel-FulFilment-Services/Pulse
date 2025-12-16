@@ -16,6 +16,11 @@ class twofactorMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
+        // Allow broadcasting auth without 2FA
+        if ($request->is('broadcasting/auth')) {
+            return $next($request);
+        }
+        
         $user = auth()->user();
         if (auth()->check() && (Permissions::hasPermission('email_2fa_enabled') || Permissions::hasPermission('sms_2fa_enabled')) && $user->pulse_two_factor_code) {
             if ($user->pulse_two_factor_expires_at < now()) {

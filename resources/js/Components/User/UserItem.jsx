@@ -2,7 +2,7 @@ import { UserIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/solid';
 import { differenceInMinutes } from 'date-fns';
 import { useUserStates } from '../Context/ActiveStateContext';
 import ClickedModal from '../Modals/ClickedModal';
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import UserFlyoutLayout from './UserFlyoutLayout';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 
@@ -23,6 +23,8 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
       'extra-large': 'h-3.5 w-3.5',
     }
   };
+
+  const [imageError, setImageError] = useState(false);
 
   const selectedSizeClass = sizeClasses.icon[size] || sizeClasses.icon.medium;
   const selectedActivitySizeClass = sizeClasses.activity[size] || sizeClasses.activity.medium;
@@ -80,11 +82,12 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
           </div>
         </ClickedModal>)}
 
-        {profilePhoto ? (
+        {profilePhoto && !imageError ? (
           <img
             src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
             className={`w-full h-full select-none rounded-full brightness-95`}
             alt="User profile"
+            onError={() => setImageError(true)}
           />
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />

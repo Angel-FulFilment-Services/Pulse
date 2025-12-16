@@ -16,15 +16,20 @@ import {
   Bars3Icon,
   CalendarIcon,
   ChartPieIcon,
+  ChartBarIcon,
   DocumentDuplicateIcon,
   FolderIcon,
   AcademicCapIcon,
   HomeIcon,
+  ChatBubbleOvalLeftIcon,
   UsersIcon,
+  UserIcon,
+  UserGroupIcon,
   CubeIcon,
   BanknotesIcon,
   XMarkIcon,
   Cog6ToothIcon,
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 
 export default function NavBar({ page }) {
@@ -42,8 +47,9 @@ export default function NavBar({ page }) {
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
-    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
+    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_chat' },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
 ], [currentPath]);
 
@@ -272,7 +278,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-screen">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

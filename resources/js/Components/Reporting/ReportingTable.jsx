@@ -388,7 +388,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                       >
                         <div className={`${column.cellClass || ''}`}>
                           {(() => {
-                            if (column.dataType === 'integer' || column.dataType === 'float') {
+                            if (column.dataType === 'integer' || column.dataType === 'float' || column.dataType === 'number') {
                               if (column.suffix === '%' && column.numeratorId && column.denominatorId) {
                                 // Calculate weighted average for percentage columns
                                 const totalNumerator = sortedData.reduce(

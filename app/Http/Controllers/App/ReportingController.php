@@ -952,4 +952,229 @@ class ReportingController extends Controller
             'outbound_calls' => $call_data['data']['tot_out_channels'],
         ]);
     }
+
+    // ==================== CHAT AUDIT REPORTS ====================
+
+    public function chatMessageLog(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.body,
+                IFNULL(attachments.count, 0) AS attachment_count,
+                IF(messages.forwarded_from_message_id IS NOT NULL, 1, 0) AS is_forwarded,
+                IF(messages.deleted_at IS NOT NULL, 1, 0) AS is_deleted,
+                messages.sent_at
+            "))
+            ->orderBy('messages.sent_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatActivitySummary(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users', 'users.id', '=', 'messages.sender_id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->leftJoin(DB::raw('(SELECT user_id, COUNT(*) as count FROM pulse.message_reactions GROUP BY user_id) as reactions'), 'reactions.user_id', '=', 'messages.sender_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                users.name AS user_name,
+                COUNT(*) AS total_messages,
+                SUM(IF(messages.team_id IS NOT NULL, 1, 0)) AS team_messages,
+                SUM(IF(messages.team_id IS NULL, 1, 0)) AS dm_messages,
+                SUM(IFNULL(attachments.count, 0)) AS attachments_sent,
+                MAX(IFNULL(reactions.count, 0)) AS reactions_given,
+                SUM(IF(messages.forwarded_from_message_id IS NOT NULL, 1, 0)) AS messages_forwarded,
+                SUM(IF(messages.deleted_at IS NOT NULL, 1, 0)) AS messages_deleted
+            "))
+            ->groupBy('users.id', 'users.name')
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function teamChatActivity(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        // Calculate number of days for average
+        $days = max(1, (strtotime($endDate) - strtotime($startDate)) / 86400);
+
+        $data = DB::connection('pulse')
+            ->table('teams')
+            ->leftJoin('pulse.messages', function($join) use ($startDate, $endDate) {
+                $join->on('teams.id', '=', 'messages.team_id')
+                     ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            })
+            ->leftJoin(DB::raw('(SELECT team_id, COUNT(DISTINCT user_id) as count FROM pulse.team_user WHERE left_at IS NULL GROUP BY team_id) as members'), 'members.team_id', '=', 'teams.id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->whereNull('teams.deleted_at')
+            ->select(DB::raw("
+                teams.id,
+                teams.name AS team_name,
+                IFNULL(members.count, 0) AS member_count,
+                COUNT(messages.id) AS total_messages,
+                COUNT(DISTINCT messages.sender_id) AS unique_senders,
+                SUM(IFNULL(attachments.count, 0)) AS attachments_shared,
+                ROUND(COUNT(messages.id) / {$days}, 1) AS avg_messages_per_day
+            "))
+            ->groupBy('teams.id', 'teams.name', 'members.count')
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function dmActivity(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->whereNull('messages.team_id')
+            ->whereNotNull('messages.recipient_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                LEAST(sender.name, recipient.name) AS user1_name,
+                GREATEST(sender.name, recipient.name) AS user2_name,
+                COUNT(*) AS total_messages,
+                SUM(IF(sender.name = LEAST(sender.name, recipient.name), 1, 0)) AS user1_sent,
+                SUM(IF(sender.name = GREATEST(sender.name, recipient.name), 1, 0)) AS user2_sent,
+                MIN(messages.sent_at) AS first_message,
+                MAX(messages.sent_at) AS last_message
+            "))
+            ->groupBy(DB::raw('LEAST(sender.name, recipient.name), GREATEST(sender.name, recipient.name)'))
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatAttachmentLog(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('message_attachments')
+            ->leftJoin('pulse.messages', 'messages.id', '=', 'message_attachments.message_id')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereBetween('message_attachments.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                message_attachments.id,
+                sender.name AS sender_name,
+                message_attachments.file_name,
+                CASE 
+                    WHEN message_attachments.mime_type LIKE 'image/%' THEN 'image'
+                    WHEN message_attachments.mime_type LIKE 'video/%' THEN 'video'
+                    WHEN message_attachments.mime_type LIKE 'audio/%' THEN 'audio'
+                    WHEN message_attachments.mime_type = 'application/pdf' THEN 'pdf'
+                    ELSE 'file'
+                END AS file_type,
+                message_attachments.file_size,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                IF(message_attachments.forwarded_from_attachment_id IS NOT NULL, 1, 0) AS is_forwarded,
+                message_attachments.created_at
+            "))
+            ->orderBy('message_attachments.created_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatForwardedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->join('pulse.messages as original', 'messages.forwarded_from_message_id', '=', 'original.id')
+            ->leftJoin('wings_config.users as forwarder', 'forwarder.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as original_sender', 'original_sender.id', '=', 'original.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereNotNull('messages.forwarded_from_message_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                forwarder.name AS forwarded_by,
+                original_sender.name AS original_sender,
+                original.body AS original_message,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS forwarded_to_type,
+                COALESCE(teams.name, recipient.name) AS forwarded_to_name,
+                messages.sent_at AS forwarded_at
+            "))
+            ->orderBy('messages.sent_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatDeletedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereNotNull('messages.deleted_at')
+            ->whereBetween('messages.deleted_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                messages.body,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.sent_at,
+                messages.deleted_at
+            "))
+            ->orderBy('messages.deleted_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Download chat attachment from reporting
+     * This bypasses the normal chat access check and uses pulse_report_chat permission instead
+     */
+    public function downloadChatAttachment(Request $request, $id)
+    {
+        $attachment = \App\Models\Chat\MessageAttachment::findOrFail($id);
+        
+        // Get file from storage using the AttachmentService
+        $attachmentService = app(\App\Services\Chat\AttachmentService::class);
+        $fileContent = $attachmentService->getFile($attachment->storage_path, $attachment->storage_driver);
+        
+        if (!$fileContent) {
+            abort(404, 'File not found');
+        }
+        
+        return response($fileContent, 200)
+            ->header('Content-Type', $attachment->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="' . $attachment->file_name . '"');
+    }
 }

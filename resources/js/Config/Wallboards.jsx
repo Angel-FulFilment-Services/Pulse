@@ -84,6 +84,28 @@ export const wallboards = {
         ],
     },
 
+        // Example: Slideshow with 15 second intervals
+    "senior-management-dashboard": {
+        name: 'Senior Management Wallboard',
+        layout: 'slideshow',
+        layout_name: 'Slideshow',
+        refreshInterval: 3600, // Refresh every 1 hour
+        permission: 'pulse_view_administration', // Restrict to users with this permission
+        slideInterval: 10, // Global default time in seconds for each slide
+        sources: [
+            {
+                source: 'https://wings.angelfs.co.uk/dashboard/group/senior',
+                title: 'Wings Senior Management Dashboard',
+                slideInterval: 10
+            },
+            {
+                source: 'https://bigin.zoho.eu/bigin/org20105936927/Home?#/deals/kanban/847845000000597221?pipeline=847845000000595862&sub_pipeline=847845000000597207',
+                title: 'Bigin Pipeline',
+                slideInterval: 10
+            },
+        ],
+    },
+
     // Example: Slideshow with 15 second intervals
     "it-dashboard": {
         name: 'IT Dashboard Slideshow',

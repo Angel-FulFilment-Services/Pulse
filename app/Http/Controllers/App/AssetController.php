@@ -1262,7 +1262,7 @@ class AssetController extends Controller
                     'pat_earth_cont' => $row[11] ?? '',
                     'pat_leakage' => $row[12] ?? '',
                     'pat_continuity' => $row[13] ?? '',
-                    'pat_result' => in_array(strtoupper($row[14]), ['PASSED', 'PASS', 'Y']) ? true : false,
+                    'pat_result' => in_array(strtoupper($row[14]), ['PASSED', 'PASS', 'Y']) ? 'Pass' : 'Fail',
                 ];
 
                 try {

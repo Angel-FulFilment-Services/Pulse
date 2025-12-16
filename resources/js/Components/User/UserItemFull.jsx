@@ -3,6 +3,7 @@ import UserItem from './UserItem';
 import { getStatus } from '../../Utils/Rota'; // Import the external getStatus function
 import { useUserStates } from '../Context/ActiveStateContext';
 import { format } from 'date-fns';
+import { random } from 'lodash';
 
 const sizeClasses = { 
   'extra-small': 'h-6 w-6',
