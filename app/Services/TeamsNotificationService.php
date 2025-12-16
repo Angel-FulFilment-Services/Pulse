@@ -92,10 +92,16 @@ class TeamsNotificationService
         // Truncate message for preview
         $previewMessage = strlen($message) > 100 ? substr($message, 0, 97) . '...' : $message;
 
-        // Build the deep link URL to open the chat in Teams
-        $chatUrl = $teamId 
-            ? "https://pulse.angelfs.co.uk/chat/team/{$teamId}?teams=true"
-            : "https://pulse.angelfs.co.uk/chat/dm/{$recipientId}?teams=true";
+        // Build the deep link URL to open the chat in your Teams app
+        // Format: https://teams.microsoft.com/l/entity/{appId}/{entityId}?context={context}
+        $entityId = $teamId ? "chat-team-{$teamId}" : "chat-dm-{$recipientId}";
+        $subEntityId = $teamId ? "team-{$teamId}" : "dm-{$recipientId}";
+        
+        $context = json_encode([
+            'subEntityId' => $subEntityId,
+        ]);
+        
+        $teamsDeepLink = "https://teams.microsoft.com/l/entity/{$this->teamsAppId}/{$entityId}?context=" . urlencode($context);
 
         try {
             $response = Http::withToken($this->getAccessToken())
@@ -103,7 +109,7 @@ class TeamsNotificationService
                     'topic' => [
                         'source' => 'text',
                         'value' => 'New Message',
-                        'webUrl' => $chatUrl,
+                        'webUrl' => $teamsDeepLink,
                     ],
                     'activityType' => 'newMessage',
                     'previewText' => [
