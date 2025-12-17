@@ -18,6 +18,7 @@ export default function ChatPopout() {
   const [chatLoading, setChatLoading] = useState(false) // Track when a chat is loading
   const [showMobileSidebar, setShowMobileSidebar] = useState(true) // Track mobile view state
   const [chatPreferences, setChatPreferences] = useState([]) // Track chat preferences for all chats
+  const [teamsDeepLinkChat, setTeamsDeepLinkChat] = useState(null) // Deep link from Teams notification
   
   // Use refs to track current selected chat without causing re-subscriptions
   const selectedChatRef = useRef(selectedChat)
@@ -29,6 +30,58 @@ export default function ChatPopout() {
     selectedChatRef.current = selectedChat
     chatTypeRef.current = chatType
   }, [selectedChat, chatType])
+
+  // Initialize Microsoft Teams SDK and handle deep linking from notifications
+  useEffect(() => {
+    const initTeamsContext = async () => {
+      // Check if we're in Teams context (query param or cookie)
+      const params = new URLSearchParams(window.location.search)
+      const inTeams = params.get('teams') === 'true' || document.cookie.includes('in_teams=true')
+      
+      if (!inTeams) return
+
+      // Dynamically load Teams SDK if not already loaded
+      if (!window.microsoftTeams) {
+        try {
+          const script = document.createElement('script')
+          script.src = 'https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js'
+          script.async = true
+          await new Promise((resolve, reject) => {
+            script.onload = resolve
+            script.onerror = reject
+            document.head.appendChild(script)
+          })
+        } catch (error) {
+          console.error('Failed to load Teams SDK:', error)
+          return
+        }
+      }
+
+      try {
+        // Initialize the Teams SDK
+        await window.microsoftTeams.app.initialize()
+
+        // Get context to check for deep link (subPageId = subEntityId from notification)
+        const context = await window.microsoftTeams.app.getContext()
+        
+        if (context.page?.subPageId) {
+          // Parse the subPageId format: "team-{id}" or "dm-{id}"
+          const match = context.page.subPageId.match(/^(team|dm)-(\d+)$/)
+          if (match) {
+            const [, type, id] = match
+            setTeamsDeepLinkChat({ type, id: parseInt(id) })
+          }
+        }
+
+        // Notify Teams that app loaded successfully
+        window.microsoftTeams.app.notifySuccess()
+      } catch (error) {
+        console.error('Teams SDK initialization error:', error)
+      }
+    }
+
+    initTeamsContext()
+  }, [])
 
   // Fetch current user
   useEffect(() => {
@@ -70,6 +123,34 @@ export default function ChatPopout() {
         .catch(console.error)
     }
   }, [])
+
+  // Handle Teams deep link navigation when contacts/teams are loaded
+  useEffect(() => {
+    if (!teamsDeepLinkChat || !currentUser) return
+
+    const { type, id } = teamsDeepLinkChat
+    
+    // Fetch the specific chat based on deep link
+    const endpoint = type === 'team' ? '/api/chat/teams' : '/api/chat/users'
+    
+    fetch(endpoint, { credentials: 'same-origin' })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const items = Array.isArray(data) ? data : []
+        const chat = items.find(item => item.id === id)
+        
+        if (chat) {
+          setSelectedChat(chat)
+          setChatType(type)
+          setShowMobileSidebar(false) // Show the chat, not sidebar
+          document.title = `Chat - ${chat.name}`
+          
+          // Clear the deep link so we don't keep re-navigating
+          setTeamsDeepLinkChat(null)
+        }
+      })
+      .catch(console.error)
+  }, [teamsDeepLinkChat, currentUser])
 
   // Fetch contacts and teams for global typing listeners
   useEffect(() => {

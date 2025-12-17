@@ -93,15 +93,15 @@ class TeamsNotificationService
         $previewMessage = strlen($message) > 100 ? substr($message, 0, 97) . '...' : $message;
 
         // Build the deep link URL to open the chat in your Teams app
-        // Format: https://teams.microsoft.com/l/entity/{appId}/{entityId}?context={context}
-        $entityId = $teamId ? "chat-team-{$teamId}" : "chat-dm-{$recipientId}";
+        // entityId must match the staticTab entityId in manifest.json
+        // Use subEntityId to pass the specific chat info to the app
         $subEntityId = $teamId ? "team-{$teamId}" : "dm-{$recipientId}";
         
         $context = json_encode([
             'subEntityId' => $subEntityId,
         ]);
         
-        $teamsDeepLink = "https://teams.microsoft.com/l/entity/{$this->teamsAppId}/{$entityId}?context=" . urlencode($context);
+        $teamsDeepLink = "https://teams.microsoft.com/l/entity/{$this->teamsAppId}/pulse-main?context=" . urlencode($context);
 
         try {
             $response = Http::withToken($this->getAccessToken())
