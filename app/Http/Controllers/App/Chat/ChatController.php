@@ -11,7 +11,7 @@ class ChatController extends Controller
     public function __construct(){
         $this->middleware(['auth', 'twofactor']);
         $this->middleware(['log.access']);
-        $this->middleware(['permission:pulse_view_chat']);
+        $this->middleware(['has.permission:pulse_view_chat']);
     }
 
     public function index(Request $request)
