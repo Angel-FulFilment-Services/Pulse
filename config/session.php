@@ -197,7 +197,7 @@ return [
     */
 
     // Use SameSite=none for Teams subdomain to allow iframe embedding
-    'same_site' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'teams.') ? 'none' : env('SESSION_SAME_SITE', 'lax'),
+    'same_site' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'pulse-teams.') ? 'none' : env('SESSION_SAME_SITE', 'lax'),
 
     /*
     |--------------------------------------------------------------------------
@@ -211,6 +211,6 @@ return [
     */
 
     // Enable partitioned cookies for Teams subdomain
-    'partitioned' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'teams.') ? true : env('SESSION_PARTITIONED', false),
+    'partitioned' => str_contains($_SERVER['HTTP_HOST'] ?? '', 'pulse-teams.') ? true : env('SESSION_PARTITIONED', false),
 
 ];
