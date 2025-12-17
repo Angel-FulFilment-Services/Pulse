@@ -36,7 +36,8 @@ export default function MessageList({
   onQuickMessage,
   onForwardMessage,
   onForwardAttachment,
-  canDeleteOthersMessages = false
+  canDeleteOthersMessages = false,
+  canPinMessages = false
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -556,6 +557,7 @@ export default function MessageList({
                                       pendingReactionsRef={pendingReactionsRef}
                                       boundaryRef={messageListContainerRef}
                                       messageId={message.id}
+                                      canPinMessages={canPinMessages}
                                       contentRef={el => {
                                         // Store ref to the actual attachment content
                                         if (el && attachment.id) {
@@ -698,6 +700,7 @@ export default function MessageList({
                               isDeleted={!!message.deleted_at}
                               onForwardMessage={onForwardMessage}
                               canDeleteOthersMessages={canDeleteOthersMessages}
+                              canPinMessages={canPinMessages}
                             />
                           )}
                           

@@ -3,14 +3,19 @@ import { toast } from 'react-toastify'
 import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon, UserPlusIcon, XMarkIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { UserGroupIcon as UserGroupIconSolid } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
+import { differenceInMinutes } from 'date-fns'
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
 import { usePermission } from '../../../Utils/Permissions.jsx'
+import { useUserStates } from '../../Context/ActiveStateContext'
 
 export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
+  
+  // Get user states for active status
+  const { userStates } = useUserStates()
   
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMembersPanel, setShowMembersPanel] = useState(false)
@@ -74,6 +79,34 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
     pref.chat_type === (chatType === 'team' ? 'team' : 'user') &&
     pref.is_hidden
   )
+  
+  const isHidePreview = chatPreferences.some(pref => 
+    pref.chat_id === chat?.id && 
+    pref.chat_type === (chatType === 'team' ? 'team' : 'user') &&
+    pref.hide_preview
+  )
+  
+  // Compute active status from userStates for DM chats
+  const activeStatus = (() => {
+    if (chatType !== 'dm' || !chat?.id) return null
+    
+    // First check if the chat already has activeStatus (from sidebar selection)
+    if (chat.activeStatus) return chat.activeStatus
+    
+    // Otherwise compute from userStates
+    const userState = userStates ? Object.values(userStates).find(u => u.user_id === chat.id) : null
+    const lastActiveAt = userState?.pulse_last_active_at
+    
+    if (lastActiveAt) {
+      const minutesAgo = differenceInMinutes(new Date(), new Date(lastActiveAt))
+      if (minutesAgo <= 2.5) {
+        return 'Active Now'
+      } else if (minutesAgo <= 30) {
+        return 'Away'
+      }
+    }
+    return 'Offline'
+  })()
   
   // Check if we're already in popout mode
   const isPopout = window.location.pathname === '/chat/popout'
@@ -512,6 +545,21 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           }
           break
           
+        case 'hidePreview':
+          response = await fetch('/api/chat/preferences/hide-preview', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: getHeaders(),
+            body: JSON.stringify({
+              ...chatData,
+              hide_preview: !isHidePreview
+            })
+          })
+          if (response.ok) {
+            onChatPreferenceChange?.()
+          }
+          break
+          
         case 'leaveTeam':
           setConfirmationDialog({
             isOpen: true,
@@ -588,7 +636,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             )}
             {chatType === 'dm' && (
               <p className="text-sm text-gray-500 dark:text-dark-400">
-                {chat.activeStatus ?? 'Offline'}
+                {activeStatus ?? 'Offline'}
               </p>
             )}
           </div>
@@ -892,12 +940,19 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                   </button>
                   <button
                     onClick={() => handleOptionClick('mute')}
-                    className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${chatType !== 'team' ? 'rounded-b-lg' : ''} flex items-center`}
+                    className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center"
                   >
                     <SpeakerXMarkIcon className="w-4 h-4 mr-2" />
                     {isMuted ? 'Unmute' : 'Mute'}
                   </button>
-                  {chatType === 'team' && (
+                  <button
+                    onClick={() => handleOptionClick('hidePreview')}
+                    className={`w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${chatType !== 'team' || !canCreateTeams ? 'rounded-b-lg' : ''} flex items-center`}
+                  >
+                    <EyeSlashIcon className="w-4 h-4 mr-2" />
+                    {isHidePreview ? 'Show Previews' : 'Hide Previews'}
+                  </button>
+                  {chatType === 'team' && canCreateTeams && (
                     <button
                       onClick={() => handleOptionClick('leaveTeam')}
                       className={`w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-700 ${currentUserRole !== 'owner' ? 'rounded-b-lg' : ''} flex items-center`}
@@ -976,7 +1031,9 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                 })
                 window.location.href = '/chat'
               } else {
-                toast.error('Failed to leave team', {
+                const errorData = await response.json().catch(() => ({}))
+                const errorMessage = errorData.message || errorData.error || 'Failed to leave team'
+                toast.error(errorMessage, {
                   toastId: 'team-leave-failed',
                   position: 'top-center',
                   autoClose: 3000,

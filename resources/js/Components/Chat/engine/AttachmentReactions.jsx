@@ -6,7 +6,7 @@ import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Confi
 import EmojiPicker from './EmojiPicker'
 import ForwardDropdown from './ForwardDropdown'
 
-export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId, onForwardAttachment }) {
+export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId, onForwardAttachment, canPinMessages = false }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(messageId).startsWith('temp-')
   if (isOptimistic) {
@@ -235,20 +235,22 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
             
             {/* Pin control */}
             <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
-              <button
-                onClick={() => onPinAttachment?.(attachment.id)}
-                className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors ${
-                  isPinned ? 'text-theme-600 dark:text-theme-400' : 'text-gray-600 dark:text-dark-300'
-                }`}
-                title={isPinned ? 'Unpin attachment' : 'Pin attachment'}
-              >
-                <PinIcon className="w-5 h-5 text-gray-500 dark:text-dark-400" filled={isPinned} />
-              </button>
+              {canPinMessages && (
+                <button
+                  onClick={() => onPinAttachment?.(attachment.id)}
+                  className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors ${
+                    isPinned ? 'text-theme-600 dark:text-theme-400' : 'text-gray-600 dark:text-dark-300'
+                  }`}
+                  title={isPinned ? 'Unpin attachment' : 'Pin attachment'}
+                >
+                  <PinIcon className="w-5 h-5 text-gray-500 dark:text-dark-400" filled={isPinned} />
+                </button>
+              )}
               
               {/* Reply button */}
               {onReplyClick && (
                 <>
-                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
+                  {canPinMessages && <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />}
                   <button
                     onClick={() => onReplyClick({ id: messageId, attachmentId: attachment.id })}
                     className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-300"

@@ -39,6 +39,7 @@ export default function ChatEngine({
 }) {
   // Permission checks - must be at top level before any conditional returns
   const canSendAttachments = usePermission('pulse_chat_send_attachments')
+  const canPinMessages = usePermission('pulse_chat_pin_messages')
   
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
@@ -51,6 +52,7 @@ export default function ChatEngine({
   const [replyingTo, setReplyingTo] = useState(null)
   const [pinnedMessage, setPinnedMessage] = useState(null)
   const [pinnedAttachment, setPinnedAttachment] = useState(null)
+  const [pinnedLoaded, setPinnedLoaded] = useState(false) // Track when pinned message fetch is complete
   const [pendingAttachments, setPendingAttachments] = useState([]) // Attachments waiting to be sent
   const [uploadedAttachmentData, setUploadedAttachmentData] = useState([]) // Uploaded attachment metadata
   const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false) // Trigger to clear MessageInput attachments
@@ -239,6 +241,9 @@ export default function ChatEngine({
       loadedMessageIdsRef.current.clear() // Clear loaded IDs when changing chats
       onLoadingChange?.(false)
       setLoadError(null)
+      setPinnedMessage(null)
+      setPinnedAttachment(null)
+      setPinnedLoaded(true)
       return
     }
 
@@ -246,19 +251,34 @@ export default function ChatEngine({
     setLoadError(null)
     onLoadingChange?.(true)
     loadedMessageIdsRef.current.clear() // Clear for new chat
+    setPinnedMessage(null)
+    setPinnedAttachment(null)
+    setPinnedLoaded(false)
     
-    let url = ''
+    let messagesUrl = ''
+    let pinnedUrl = ''
+    const params = new URLSearchParams()
+    
     if (chatType === 'team') {
-      url = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
+      messagesUrl = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
+      params.append('team_id', selectedChat.id)
     } else if (chatType === 'dm') {
-      url = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
+      messagesUrl = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
+      params.append('recipient_id', selectedChat.id)
     }
+    pinnedUrl = `/api/chat/messages/pinned?${params}`
 
-    fetch(url, { credentials: 'same-origin' })
-      .then(res => res.ok ? res.json() : { messages: [], has_more: false })
-      .then(data => {
-        const messageList = Array.isArray(data) ? data : (data.messages || [])
-        const hasMoreMessages = data.has_more !== undefined ? data.has_more : false
+    // Fetch both messages and pinned message in parallel
+    Promise.all([
+      fetch(messagesUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : { messages: [], has_more: false }),
+      fetch(pinnedUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : null)
+        .catch(() => null)
+    ])
+      .then(([messagesData, pinnedData]) => {
+        const messageList = Array.isArray(messagesData) ? messagesData : (messagesData.messages || [])
+        const hasMoreMessages = messagesData.has_more !== undefined ? messagesData.has_more : false
         
         setMessages(messageList)
         setHasMore(hasMoreMessages)
@@ -277,11 +297,19 @@ export default function ChatEngine({
         })
         setMessageReads(reads)
         
-        // Always scroll to bottom when opening a chat
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
-          isUserScrolledUpRef.current = false
-        }, 50)
+        // Set pinned message/attachment
+        setPinnedMessage(pinnedData?.message || null)
+        setPinnedAttachment(pinnedData?.attachment || null)
+        setPinnedLoaded(true)
+        
+        // Scroll to bottom after both messages and pinned banner are rendered
+        // Use requestAnimationFrame to ensure DOM is painted before scrolling
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+            isUserScrolledUpRef.current = false
+          })
+        })
       })
       .catch((error) => {
         console.error('Failed to load chat:', error)
@@ -289,6 +317,7 @@ export default function ChatEngine({
         setLoading(false)
         setLoadError('Failed to load chat messages. Please try again.')
         onLoadingChange?.(false)
+        setPinnedLoaded(true)
       })
   }, [selectedChat, chatType])
 
@@ -299,19 +328,32 @@ export default function ChatEngine({
     setLoadError(null)
     setLoading(true)
     onLoadingChange?.(true)
+    setPinnedLoaded(false)
     
-    let url = ''
+    let messagesUrl = ''
+    let pinnedUrl = ''
+    const params = new URLSearchParams()
+    
     if (chatType === 'team') {
-      url = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
+      messagesUrl = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
+      params.append('team_id', selectedChat.id)
     } else if (chatType === 'dm') {
-      url = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
+      messagesUrl = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
+      params.append('recipient_id', selectedChat.id)
     }
+    pinnedUrl = `/api/chat/messages/pinned?${params}`
 
-    fetch(url, { credentials: 'same-origin' })
-      .then(res => res.ok ? res.json() : { messages: [], has_more: false })
-      .then(data => {
-        const messageList = Array.isArray(data) ? data : (data.messages || [])
-        const hasMoreMessages = data.has_more !== undefined ? data.has_more : false
+    // Fetch both messages and pinned message in parallel
+    Promise.all([
+      fetch(messagesUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : { messages: [], has_more: false }),
+      fetch(pinnedUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : null)
+        .catch(() => null)
+    ])
+      .then(([messagesData, pinnedData]) => {
+        const messageList = Array.isArray(messagesData) ? messagesData : (messagesData.messages || [])
+        const hasMoreMessages = messagesData.has_more !== undefined ? messagesData.has_more : false
         
         setMessages(messageList)
         setHasMore(hasMoreMessages)
@@ -330,11 +372,18 @@ export default function ChatEngine({
         })
         setMessageReads(reads)
         
-        // Always scroll to bottom when opening a chat
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
-          isUserScrolledUpRef.current = false
-        }, 50)
+        // Set pinned message/attachment
+        setPinnedMessage(pinnedData?.message || null)
+        setPinnedAttachment(pinnedData?.attachment || null)
+        setPinnedLoaded(true)
+        
+        // Scroll to bottom after both messages and pinned banner are rendered
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+            isUserScrolledUpRef.current = false
+          })
+        })
       })
       .catch((error) => {
         console.error('Failed to load chat:', error)
@@ -342,6 +391,7 @@ export default function ChatEngine({
         setLoading(false)
         setLoadError('Failed to load chat messages. Please try again.')
         onLoadingChange?.(false)
+        setPinnedLoaded(true)
       })
   }
 
@@ -2141,44 +2191,6 @@ export default function ChatEngine({
     }
   }
 
-  // Fetch pinned message
-  useEffect(() => {
-    // Clear pinned message immediately when chat changes
-    setPinnedMessage(null)
-    
-    if (!selectedChat || chatType === 'compose') {
-      return
-    }
-    
-    const fetchPinnedMessage = async () => {
-      try {
-        const params = new URLSearchParams()
-        if (chatType === 'team') {
-          params.append('team_id', selectedChat.id)
-        } else {
-          params.append('recipient_id', selectedChat.id)
-        }
-        
-        const response = await fetch(`/api/chat/messages/pinned?${params}`, {
-          credentials: 'same-origin'
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setPinnedMessage(data?.message || null)
-          setPinnedAttachment(data?.attachment || null)
-        } else {
-          setPinnedMessage(null)
-          setPinnedAttachment(null)
-        }
-      } catch (error) {
-        console.error('Error fetching pinned message:', error)
-      }
-    }
-    
-    fetchPinnedMessage()
-  }, [selectedChat, chatType])
-
   // Compose mode
   if (chatType === 'compose') {
     return (
@@ -2240,6 +2252,7 @@ export default function ChatEngine({
           onUnpin={handlePinMessage}
           onUnpinAttachment={handlePinAttachment}
           onClickPinned={handleClickPinned}
+          canPinMessages={canPinMessages}
         />
       )}
 
@@ -2323,6 +2336,7 @@ export default function ChatEngine({
           onForwardMessage={handleForwardMessage}
           onForwardAttachment={handleForwardAttachment}
           canDeleteOthersMessages={chatType === 'team' && (currentUserRole === 'admin' || currentUserRole === 'owner')}
+          canPinMessages={canPinMessages}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}

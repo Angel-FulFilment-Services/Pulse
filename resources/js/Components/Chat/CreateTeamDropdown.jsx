@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import { ring } from 'ldrs'
 import { XMarkIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
+import { useRestrictedWords } from './engine/useRestrictedWords'
 
 // Register the ring spinner
 ring.register()
@@ -19,6 +20,9 @@ export default function CreateTeamDropdown({
   const [teamDescription, setTeamDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const inputRef = useRef(null)
+  
+  // Restricted words hook
+  const { containsRestrictedWords, ensureWordsLoaded } = useRestrictedWords()
   
   // FloatingUI setup
   const { refs, floatingStyles } = useFloating({
@@ -40,6 +44,13 @@ export default function CreateTeamDropdown({
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [isOpen])
+  
+  // Load restricted words when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      ensureWordsLoaded()
+    }
+  }, [isOpen, ensureWordsLoaded])
   
   // Reset form when closed
   useEffect(() => {
@@ -63,6 +74,25 @@ export default function CreateTeamDropdown({
   const handleCreateTeam = async (e) => {
     e.preventDefault()
     if (!teamName.trim() || isCreating) return
+    
+    // Check for restricted words in team name and description
+    const nameHasRestricted = containsRestrictedWords(teamName.trim())
+    const descHasRestricted = teamDescription.trim() && containsRestrictedWords(teamDescription.trim())
+    
+    if (nameHasRestricted || descHasRestricted) {
+      toast.error('Team name or description contains restricted words. Please revise and try again.', {
+        toastId: 'team-restricted-words',
+        position: 'top-center',
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+      return
+    }
     
     setIsCreating(true)
     

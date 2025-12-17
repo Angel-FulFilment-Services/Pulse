@@ -54,7 +54,7 @@ Route::get('/administration/free-gifts/configurations', [AdministrationControlle
 
 // Restricted Words API CRUD (with permission)
 Route::get('/api/administration/restricted-words', [AdministrationController::class, 'restrictedWords'])
-    ->middleware(['has.permission:pulse_view_restricted_words'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
     ->name('administration.restricted_words.index');
 Route::post('/api/administration/restricted-words', [AdministrationController::class, 'storeRestrictedWord'])
     ->middleware(['has.permission:pulse_manage_restricted_words'])

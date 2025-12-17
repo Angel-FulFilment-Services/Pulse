@@ -122,7 +122,7 @@ class MessageController extends Controller
                         ->find($team->pinned_message_id);
                 }
                 if ($team->pinned_attachment_id) {
-                    $pinnedAttachment = MessageAttachment::with('message.user')
+                    $pinnedAttachment = MessageAttachment::with(['message.user', 'forwardedFromAttachment'])
                         ->find($team->pinned_attachment_id);
                 }
             }
@@ -140,7 +140,7 @@ class MessageController extends Controller
                         ->find($dmPinned->pinned_message_id);
                 }
                 if ($dmPinned->pinned_attachment_id) {
-                    $pinnedAttachment = MessageAttachment::with('message.user')
+                    $pinnedAttachment = MessageAttachment::with(['message.user', 'forwardedFromAttachment'])
                         ->find($dmPinned->pinned_attachment_id);
                 }
             }
@@ -220,7 +220,7 @@ class MessageController extends Controller
         // Clone query to check for more messages
         $checkQuery = clone $query;
         
-        $messages = $query->with(['attachments.reactions.user', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])
+        $messages = $query->with(['attachments.reactions.user', 'attachments.forwardedFromAttachment', 'reads.user', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments'])
             ->orderBy('sent_at', 'desc')
             ->limit($perPage)
             ->get()
@@ -490,7 +490,7 @@ class MessageController extends Controller
             // Log broadcast failure but don't stop message from being sent
             \Log::warning('Failed to broadcast message: ' . $e->getMessage());
         }
-        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments']), 201);
+        return response()->json($message->load(['attachments.reactions.user', 'attachments.forwardedFromAttachment', 'reads', 'reactions.user', 'user', 'replyToMessage.user', 'replyToAttachment', 'forwardedFromMessage.user', 'forwardedFromMessage.attachments']), 201);
     }
     // List direct message contacts for the current user
     public function contacts(Request $request)
@@ -611,7 +611,7 @@ class MessageController extends Controller
         $message->is_edited = true;
         $message->save();
         broadcast(new \App\Events\Chat\MessageSent($message))->toOthers();
-        return response()->json($message->load(['attachments.reactions.user', 'reads', 'reactions.user', 'user']));
+        return response()->json($message->load(['attachments.reactions.user', 'attachments.forwardedFromAttachment', 'reads', 'reactions.user', 'user']));
     }
 
     // Delete a message
@@ -1057,7 +1057,7 @@ class MessageController extends Controller
         ]);
         
         // Load the message with relationships
-        $message->load(['user', 'attachments']);
+        $message->load(['user', 'attachments.forwardedFromAttachment']);
         
         // Broadcast the message
         $this->broadcastMessage($message);

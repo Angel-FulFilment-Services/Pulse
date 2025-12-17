@@ -5,6 +5,8 @@ namespace App\Listeners\Chat;
 use App\Events\Chat\MessageSent;
 use App\Services\TeamsNotificationService;
 use App\Models\Chat\TeamUser;
+use App\Models\Chat\ChatUserPreference;
+use App\Models\System\ChatNotificationSettings;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -67,18 +69,42 @@ class SendTeamsNotification implements ShouldQueue
         // Get all user IDs and fetch users from wings_config database
         $userIds = $teamUsers->pluck('user_id')->toArray();
         $users = \App\Models\User\User::whereIn('id', $userIds)->get()->keyBy('id');
+        
+        // Fetch notification preferences for all users in this team chat
+        $preferences = ChatUserPreference::where('chat_id', $message->team_id)
+            ->where('chat_type', 'team')
+            ->whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
+        
+        // Fetch global notification settings for all users
+        $globalSettings = ChatNotificationSettings::whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
 
         foreach ($teamUsers as $teamUser) {
             $user = $users->get($teamUser->user_id);
             
             if ($user && $user->email) {
+                // Check if user has muted this chat or has global mute enabled
+                $userPrefs = $preferences->get($teamUser->user_id);
+                $userGlobalSettings = $globalSettings->get($teamUser->user_id);
+                
+                // Skip if globally muted or this specific chat is muted
+                if ($userGlobalSettings?->global_mute || $userPrefs?->is_muted) {
+                    continue;
+                }
+                
+                // Check if preview should be hidden
+                $hidePreview = $userGlobalSettings?->global_hide_preview || $userPrefs?->hide_preview;
+                
                 // Use ad_email if set, otherwise fall back to regular email
                 $recipientEmail = $user->ad_email ?: $user->email;
                 
                 $this->teamsService->sendChatNotification(
                     recipientEmail: $recipientEmail,
                     senderName: $sender->name ?? $sender->email,
-                    message: $this->getMessagePreview($message),
+                    message: $hidePreview ? 'Message content hidden' : $this->getMessagePreview($message),
                     teamId: $message->team_id
                 );
             }
@@ -98,13 +124,29 @@ class SendTeamsNotification implements ShouldQueue
             return;
         }
 
+        // Check if user has muted this chat or has global mute enabled
+        $userPrefs = ChatUserPreference::where('user_id', $message->recipient_id)
+            ->where('chat_id', $sender->id)
+            ->where('chat_type', 'user')
+            ->first();
+        
+        $userGlobalSettings = ChatNotificationSettings::where('user_id', $message->recipient_id)->first();
+        
+        // Skip if globally muted or this specific chat is muted
+        if ($userGlobalSettings?->global_mute || $userPrefs?->is_muted) {
+            return;
+        }
+        
+        // Check if preview should be hidden
+        $hidePreview = $userGlobalSettings?->global_hide_preview || $userPrefs?->hide_preview;
+
         // Use ad_email if set, otherwise fall back to regular email
         $recipientEmail = $recipient->ad_email ?: $recipient->email;
 
         $this->teamsService->sendChatNotification(
             recipientEmail: $recipientEmail,
             senderName: $sender->name ?? $sender->email,
-            message: $this->getMessagePreview($message),
+            message: $hidePreview ? 'Message content hidden' : $this->getMessagePreview($message),
             recipientId: $sender->id // Pass sender ID so the recipient can click to open the DM
         );
     }

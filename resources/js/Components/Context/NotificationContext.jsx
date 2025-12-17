@@ -323,6 +323,7 @@ export function NotificationProvider({ children }) {
         hideProgressBar: true,
         closeOnClick: false,
         pauseOnHover: true,
+        pauseOnFocusLoss: false,
         draggable: true,
         closeButton: false,
         className: 'chat-notification-toast',

@@ -537,8 +537,8 @@ class TeamController extends Controller
         $userId = $user->id;
         $team = Team::findOrFail($teamId);
         
-        // Don't allow leaving if user is the owner
-        if ($team->owner_id === $userId) {
+        // Don't allow leaving if user is the owner (cast to int for comparison)
+        if ((int) $team->owner_id === (int) $userId) {
             return response()->json([
                 'error' => 'Team owner cannot leave the team. Please transfer ownership or delete the team instead.'
             ], 403);

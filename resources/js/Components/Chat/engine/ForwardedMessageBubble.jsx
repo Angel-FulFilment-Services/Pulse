@@ -31,7 +31,7 @@ export default function ForwardedMessageBubble({ forwardedMessage, isMyMessage }
   return (
     <div className="mb-2">
       {/* Forwarded label */}
-      <div className={`flex items-center gap-1 text-xs mb-1 ${
+      <div className={`flex items-center gap-1 text-xs mb-2 ${
         isMyMessage ? 'text-white dark:text-dark-200 text-opacity-70' : 'text-gray-500 dark:text-dark-400'
       }`}>
         <ArrowRightIcon className="w-3 h-3" />

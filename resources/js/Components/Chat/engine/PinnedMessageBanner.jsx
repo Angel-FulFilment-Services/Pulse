@@ -3,7 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/solid'
 import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 
-export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, onUnpin, onUnpinAttachment, onClickPinned }) {
+export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, onUnpin, onUnpinAttachment, onClickPinned, canPinMessages = false }) {
   // Show pinned message OR pinned attachment
   const hasPinnedMessage = pinnedMessage && pinnedMessage.id
   const hasPinnedAttachment = pinnedAttachment && pinnedAttachment.id
@@ -42,8 +42,14 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
   const message = isAttachment ? pinnedAttachment.message : pinnedMessage
   
   // Check if this is a forwarded message
-  const isForwarded = hasPinnedMessage && (pinnedMessage.forwarded_from_message_id || pinnedMessage.forwarded_from_message)
-  const forwardedMessage = isForwarded ? pinnedMessage.forwarded_from_message : null
+  const isForwardedMessage = hasPinnedMessage && (pinnedMessage.forwarded_from_message_id || pinnedMessage.forwarded_from_message)
+  const forwardedMessage = isForwardedMessage ? pinnedMessage.forwarded_from_message : null
+  
+  // Check if this is a forwarded attachment
+  const isForwardedAttachment = hasPinnedAttachment && (pinnedAttachment.forwarded_from_attachment_id || pinnedAttachment.forwarded_from_attachment)
+  
+  // Combined check for any forwarded content
+  const isForwarded = isForwardedMessage || isForwardedAttachment
   
   // Get the original sender name for forwarded messages
   const originalSenderName = forwardedMessage?.user?.name || 'Unknown'
@@ -51,10 +57,14 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
   // Determine the display content
   const getDisplayContent = () => {
     if (isAttachment) {
-      return getAttachmentDescription(pinnedAttachment)
+      const description = getAttachmentDescription(pinnedAttachment)
+      if (isForwardedAttachment) {
+        return `Forwarded: ${description}`
+      }
+      return description
     }
     
-    if (isForwarded && forwardedMessage) {
+    if (isForwardedMessage && forwardedMessage) {
       // Show forwarded message content with original sender
       const prefix = `From ${originalSenderName}: `
       if (forwardedMessage.body) {
@@ -67,8 +77,8 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
       return prefix + 'Message'
     }
     
-    // If forwarded but forwardedMessage not loaded, show indicator
-    if (isForwarded && !forwardedMessage) {
+    // If forwarded message but forwardedMessage not loaded, show indicator
+    if (isForwardedMessage && !forwardedMessage) {
       return 'Forwarded message'
     }
     
@@ -105,13 +115,15 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
           </div>
         </button>
         
-        <button
-          onClick={() => isAttachment ? onUnpinAttachment(pinnedAttachment.id) : onUnpin(pinnedMessage.id)}
-          className="p-1 hover:bg-theme-200 dark:hover:bg-theme-800/50 rounded transition-colors flex-shrink-0"
-          title={isAttachment ? "Unpin attachment" : "Unpin message"}
-        >
-          <XMarkIcon className="w-4 h-4 text-theme-600 dark:text-theme-400" />
-        </button>
+{canPinMessages && (
+          <button
+            onClick={() => isAttachment ? onUnpinAttachment(pinnedAttachment.id) : onUnpin(pinnedMessage.id)}
+            className="p-1 hover:bg-theme-200 dark:hover:bg-theme-800/50 rounded transition-colors flex-shrink-0"
+            title={isAttachment ? "Unpin attachment" : "Unpin message"}
+          >
+            <XMarkIcon className="w-4 h-4 text-theme-600 dark:text-theme-400" />
+          </button>
+        )}
       </div>
     </div>
   )

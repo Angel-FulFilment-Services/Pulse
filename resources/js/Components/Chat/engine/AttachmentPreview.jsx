@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowDownTrayIcon, DocumentIcon, PhotoIcon, PlayIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ArrowDownTrayIcon, DocumentIcon, PhotoIcon, PlayIcon, XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import AttachmentReactionBubbles from './AttachmentReactionBubbles'
 import AttachmentReactions from './AttachmentReactions'
 
@@ -24,6 +24,7 @@ export default function AttachmentPreview({
   pendingReactionsRef = null,
   boundaryRef = null,
   messageId = null,
+  canPinMessages = false,
   contentRef = null // Ref callback to expose the content container to parent
 }) {
   // Show deleted state if attachment has been deleted
@@ -139,12 +140,29 @@ export default function AttachmentPreview({
   }
   
   const fileType = determineFileType()
+  
+  // Check if this is a forwarded attachment
+  const isForwarded = attachment.forwarded_from_attachment_id || attachment.forwarded_from_attachment
 
   // Helper function to wrap content with reactions/controls
   const wrapWithReactions = (content) => {
     // Only wrap if we have controls to show and it's not in composer mode
     const hasControls = onPinAttachment || onDeleteAttachment || onAddReaction
     if (!hasControls || isDeletable) {
+      // Still show forwarded label even without controls
+      if (isForwarded) {
+        return (
+          <div className={isMyMessage ? 'flex flex-col items-end' : ''}>
+            <div className={`flex items-center gap-1 text-xs mb-2 ${
+              isMyMessage ? 'text-gray-500 dark:text-dark-400' : 'text-gray-500 dark:text-dark-400'
+            }`}>
+              <ArrowRightIcon className="w-3 h-3" />
+              <span>Forwarded attachment</span>
+            </div>
+            {content}
+          </div>
+        )
+      }
       return content
     }
 
@@ -158,10 +176,20 @@ export default function AttachmentPreview({
           // Also call the contentRef callback if provided
           if (contentRef) contentRef(el)
         }}
-        className="relative" 
+        className={`relative ${isForwarded && isMyMessage ? 'flex flex-col items-end' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Forwarded attachment label */}
+        {isForwarded && (
+          <div className={`flex items-center gap-1 text-xs mb-2 ${
+            isMyMessage ? 'text-gray-500 dark:text-dark-400' : 'text-gray-500 dark:text-dark-400'
+          }`}>
+            <ArrowRightIcon className="w-3 h-3" />
+            <span>Forwarded attachment</span>
+          </div>
+        )}
+        
         {content}
         
         {/* Reaction bubbles - only shown when reactions exist and showReactions is true */}
@@ -193,6 +221,7 @@ export default function AttachmentPreview({
           showReactionButtons={showReactions}
           messageId={messageId}
           onForwardAttachment={onForwardAttachment}
+          canPinMessages={canPinMessages}
         />
       </div>
     )

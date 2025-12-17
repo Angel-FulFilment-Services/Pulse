@@ -17,7 +17,7 @@ const Reporting = () => {
 
     const allTabs = [
         { id: 'free_gifts', label: 'Free Gifts', path: '/administration/free-gifts', current: true, permission: 'pulse_view_free_gifts' },
-        { id: 'restricted_words', label: 'Restricted Words', path: '/administration/restricted-words', current: false, permission: 'pulse_view_restricted_words' },
+        { id: 'restricted_words', label: 'Restricted Words', path: '/administration/restricted-words', current: false, permission: 'pulse_manage_restricted_words' },
     ];
 
     // Filter tabs based on user permissions

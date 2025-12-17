@@ -6,7 +6,7 @@ import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Confi
 import EmojiPicker from './EmojiPicker'
 import ForwardDropdown from './ForwardDropdown'
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage, canDeleteOthersMessages = false }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage, canDeleteOthersMessages = false, canPinMessages = false }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(message.id).startsWith('temp-') || message.isPending
   if (isOptimistic) {
@@ -239,20 +239,22 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
             
             {/* Pin control */}
             <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
-              <button
-                onClick={() => onPinMessage?.(message.id)}
-                className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors ${
-                  isPinned ? 'text-theme-600 dark:text-theme-400' : 'text-gray-600 dark:text-dark-400'
-                }`}
-                title={isPinned ? 'Unpin message' : 'Pin message'}
-              >
-                <PinIcon className="w-5 h-5 text-gray-500 dark:text-dark-400" filled={isPinned} />
-              </button>
+              {canPinMessages && (
+                <button
+                  onClick={() => onPinMessage?.(message.id)}
+                  className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors ${
+                    isPinned ? 'text-theme-600 dark:text-theme-400' : 'text-gray-600 dark:text-dark-400'
+                  }`}
+                  title={isPinned ? 'Unpin message' : 'Pin message'}
+                >
+                  <PinIcon className="w-5 h-5 text-gray-500 dark:text-dark-400" filled={isPinned} />
+                </button>
+              )}
               
               {/* Reply button */}
               {onReplyClick && (
                 <>
-                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
+                  {canPinMessages && <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />}
                   <button
                     onClick={() => onReplyClick(message)}
                     className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-400"
