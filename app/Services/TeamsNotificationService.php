@@ -113,7 +113,7 @@ class TeamsNotificationService
                     ],
                     'activityType' => 'newMessage',
                     'previewText' => [
-                        'content' => $previewMessage
+                        'content' => $senderName
                     ],
                     'templateParameters' => [
                         ['name' => 'sender', 'value' => $senderName],
