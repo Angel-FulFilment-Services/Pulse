@@ -71,9 +71,19 @@ class SendTeamsNotification implements ShouldQueue
         foreach ($teamUsers as $teamUser) {
             $user = $users->get($teamUser->user_id);
             
+            Log::info('Teams notification: fetched user for team message', [
+                'user_id' => $teamUser->user_id,
+                'user_found' => $user ? true : false,
+                'email' => $user?->email,
+                'ad_email' => $user?->ad_email,
+                'all_attributes' => $user?->getAttributes(),
+            ]);
+            
             if ($user && $user->email) {
                 // Use ad_email if set, otherwise fall back to regular email
                 $recipientEmail = $user->ad_email ?: $user->email;
+                
+                Log::info('Teams notification: sending to', ['recipientEmail' => $recipientEmail]);
                 
                 $this->teamsService->sendChatNotification(
                     recipientEmail: $recipientEmail,
@@ -92,6 +102,14 @@ class SendTeamsNotification implements ShouldQueue
     {
         // Fetch recipient directly from wings_config database to get ad_email
         $recipient = \App\Models\User\User::find($message->recipient_id);
+        
+        Log::info('Teams notification: fetched user for DM', [
+            'recipient_id' => $message->recipient_id,
+            'recipient_found' => $recipient ? true : false,
+            'email' => $recipient?->email,
+            'ad_email' => $recipient?->ad_email,
+            'all_attributes' => $recipient?->getAttributes(),
+        ]);
 
         if (!$recipient || !$recipient->email) {
             Log::warning('DM has no recipient', ['message_id' => $message->id]);
@@ -100,6 +118,8 @@ class SendTeamsNotification implements ShouldQueue
 
         // Use ad_email if set, otherwise fall back to regular email
         $recipientEmail = $recipient->ad_email ?: $recipient->email;
+        
+        Log::info('Teams notification: sending DM to', ['recipientEmail' => $recipientEmail]);
 
         $this->teamsService->sendChatNotification(
             recipientEmail: $recipientEmail,
