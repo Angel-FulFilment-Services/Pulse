@@ -311,6 +311,41 @@ export const convertFromMarkdown = (markdownContent, soundfiles = []) => {
     htmlContent = htmlContent.replace(/^\*\*\*+\s*$/gim, '<hr>');
     htmlContent = htmlContent.replace(/^___+\s*$/gim, '<hr>');
     
+    // Links [text](url) - but not audio which uses [audio:name](url)
+    htmlContent = htmlContent.replace(/\[(?!audio:)([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Convert hyphenated/bulleted lists before line break processing
+    // Process the content line by line to handle lists properly
+    const lines = htmlContent.split('\n');
+    let inList = false;
+    let processedLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const listMatch = line.match(/^[\s]*[-*+]\s+(.+)$/);
+        
+        if (listMatch) {
+            if (!inList) {
+                processedLines.push('<ul>');
+                inList = true;
+            }
+            processedLines.push(`<li>${listMatch[1]}</li>`);
+        } else {
+            if (inList) {
+                processedLines.push('</ul>');
+                inList = false;
+            }
+            processedLines.push(line);
+        }
+    }
+    
+    // Close any unclosed list at the end
+    if (inList) {
+        processedLines.push('</ul>');
+    }
+    
+    htmlContent = processedLines.join('\n');
+    
     // Bold **text** or __text__
     htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     htmlContent = htmlContent.replace(/__(.*?)__/g, '<strong>$1</strong>');
