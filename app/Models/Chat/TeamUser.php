@@ -24,6 +24,14 @@ class TeamUser extends Model
     }
     
     /**
+     * Get the user relationship (for eager loading)
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User\User::class, 'user_id');
+    }
+    
+    /**
      * Get the team associated with this membership
      */
     public function team()
