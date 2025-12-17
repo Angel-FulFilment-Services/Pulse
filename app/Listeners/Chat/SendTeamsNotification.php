@@ -67,8 +67,11 @@ class SendTeamsNotification implements ShouldQueue
 
         foreach ($teamUsers as $teamUser) {
             if ($teamUser->user && $teamUser->user->email) {
+                // Use ad_email if set, otherwise fall back to regular email
+                $recipientEmail = $teamUser->user->ad_email ?: $teamUser->user->email;
+                
                 $this->teamsService->sendChatNotification(
-                    recipientEmail: $teamUser->user->email,
+                    recipientEmail: $recipientEmail,
                     senderName: $sender->name ?? $sender->email,
                     message: $this->getMessagePreview($message),
                     teamId: $message->team_id
@@ -89,8 +92,11 @@ class SendTeamsNotification implements ShouldQueue
             return;
         }
 
+        // Use ad_email if set, otherwise fall back to regular email
+        $recipientEmail = $recipient->ad_email ?: $recipient->email;
+
         $this->teamsService->sendChatNotification(
-            recipientEmail: $recipient->email,
+            recipientEmail: $recipientEmail,
             senderName: $sender->name ?? $sender->email,
             message: $this->getMessagePreview($message),
             recipientId: $sender->id // Pass sender ID so the recipient can click to open the DM
