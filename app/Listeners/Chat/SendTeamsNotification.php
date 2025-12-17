@@ -62,13 +62,18 @@ class SendTeamsNotification implements ShouldQueue
     {
         $teamUsers = TeamUser::where('team_id', $message->team_id)
             ->where('user_id', '!=', $sender->id)
-            ->with('user')
             ->get();
 
+        // Get all user IDs and fetch users from wings_config database
+        $userIds = $teamUsers->pluck('user_id')->toArray();
+        $users = \App\Models\User\User::whereIn('id', $userIds)->get()->keyBy('id');
+
         foreach ($teamUsers as $teamUser) {
-            if ($teamUser->user && $teamUser->user->email) {
+            $user = $users->get($teamUser->user_id);
+            
+            if ($user && $user->email) {
                 // Use ad_email if set, otherwise fall back to regular email
-                $recipientEmail = $teamUser->user->ad_email ?: $teamUser->user->email;
+                $recipientEmail = $user->ad_email ?: $user->email;
                 
                 $this->teamsService->sendChatNotification(
                     recipientEmail: $recipientEmail,
@@ -85,7 +90,8 @@ class SendTeamsNotification implements ShouldQueue
      */
     protected function notifyDirectMessageRecipient($message, $sender): void
     {
-        $recipient = $message->recipient;
+        // Fetch recipient directly from wings_config database to get ad_email
+        $recipient = \App\Models\User\User::find($message->recipient_id);
 
         if (!$recipient || !$recipient->email) {
             Log::warning('DM has no recipient', ['message_id' => $message->id]);
