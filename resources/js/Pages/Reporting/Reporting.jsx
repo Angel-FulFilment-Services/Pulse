@@ -33,6 +33,7 @@ const Reporting = () => {
     const pollingIntervalRef = useRef(null);
     const hasChangesRef = useRef(false);
     const tableRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     const allTabs = [
         { id: 'rota', label: 'Rota', path: '/reporting/rota', current: true, permission: 'pulse_report_rota' },
@@ -163,8 +164,17 @@ const Reporting = () => {
 
     const generateReport = async (dateRange, report, updateTargets = true) => {
         setIsGenerating(true);
+
+        // Abort any ongoing request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        // Create a new controller for this request
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            const reports = await report.generate({ dateRange, report });
+            const reports = await report.generate({ dateRange, report }, controller);
             const reportData = reports.data;
             if(updateTargets) {
                 generateTargets(reports.targets);
@@ -173,6 +183,10 @@ const Reporting = () => {
             setReportData(reportData);
             setReportError(false);
         } catch (error) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError') {
+                // Request was aborted, do not set error state
+                return;
+            }
             console.error('Error generating report:', error);
             setReportError(true);
         }
@@ -302,6 +316,14 @@ const Reporting = () => {
             }
         }
     }, [dateRange])
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (report && report.parameters && report.parameters.filters) {
