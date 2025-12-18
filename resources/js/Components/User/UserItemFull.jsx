@@ -68,6 +68,10 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
               {shift.shiftloc}
             </div>
           )}
+
+          {/* Border between shift category and location */}
+          <div className="w-px bg-gray-200 dark:bg-dark-700 h-6" />
+
           {shift && timesheets && (
             <div
               className={classNames(

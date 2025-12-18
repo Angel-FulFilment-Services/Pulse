@@ -297,7 +297,7 @@ export default function ListView({ setView, viewType }) {
       <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white dark:bg-dark-900 transition-all duration-500 ease-in-out items-center">
         <div className="flex max-w-full flex-none flex-col sm:max-w-none w-full md:max-w-full">
           <div className="overflow-hidden">
-            <div className="mx-auto max-w-7xl xl:max-w-none lg:w-4/5 px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl xl:max-w-none lg:w-full px-4 sm:px-6 lg:px-8">
               <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
                 <table className="w-full text-left">
                   <tbody className="relative overflow-y-auto">
@@ -320,7 +320,7 @@ export default function ListView({ setView, viewType }) {
                               <td className="relative py-2 pr-6 w-4/5 sm:w-1/3">
                                 <UserItemFull isLoading={true} />
                               </td>
-                              <td className="hidden py-2 sm:table-cell pr-6 w-96 xl:w-[30rem]">
+                              <td className="hidden py-2 xl:table-cell pr-6 w-96 xl:w-[30rem]">
                                 <ShiftProgressBar isLoading={true} />
                               </td>
                               <td className="py-2 text-right w-20">
@@ -390,7 +390,7 @@ export default function ListView({ setView, viewType }) {
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
-                                          <td className="hidden py-2 lg:table-cell pr-6 w-96 xl:w-[30rem]">
+                                          <td className="hidden py-2 xl:table-cell pr-6 w-96 xl:w-[30rem]">
                                             <ShiftProgressBar
                                               shift={shift}
                                               timesheets={relevantTimesheets}
