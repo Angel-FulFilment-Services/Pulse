@@ -100,6 +100,39 @@ export default function ListView({ setView, viewType }) {
             }))
             .sort((a, b) => a.label.localeCompare(b.label));
         })(),
+      },
+      {
+        id: 'shiftloc',
+        name: 'Shift Location',
+        expression: (shift, userStates) => (filterValue) => {
+          return shift.shiftloc === filterValue;
+        },
+        options: (() => {
+          const seen = new Set();
+
+          if(!shifts || shifts.length === 0) {
+            return [
+              {
+                value: 'All',
+                label: 'All',
+                checked: false,
+              }
+            ];
+          }
+
+          return shifts
+            .filter(item => {
+              if (!item.shiftloc || seen.has(item.shiftloc)) return false;
+              seen.add(item.shiftloc);
+              return true;
+            })
+            .map(item => ({
+              value: item.shiftloc,
+              label: item.shiftloc,
+              checked: false,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+        })(),
       }
     ];
   });
@@ -114,27 +147,51 @@ export default function ListView({ setView, viewType }) {
     if (shifts && shifts.length > 0) {
       setFilters(prevFilters => {
         return prevFilters.map(filter => {
-          if (filter.id === 'shiftcat') {
-            const seen = new Set();
-            const existingChecked = new Set(
-              filter.options.filter(opt => opt.checked).map(opt => opt.value)
-            );
-            
-            const newOptions = shifts
-              .filter(item => {
-                if (!item.shiftcat || seen.has(item.shiftcat)) return false;
-                seen.add(item.shiftcat);
-                return true;
-              })
-              .map(item => ({
-                value: item.shiftcat,
-                label: item.shiftcat,
-                checked: existingChecked.has(item.shiftcat),
-              }))
-              .sort((a, b) => a.label.localeCompare(b.label));
-            
-            return { ...filter, options: newOptions };
+          switch (filter.id) {
+            case 'shiftcat':
+                const seen = new Set();
+                const existingChecked = new Set(
+                  filter.options.filter(opt => opt.checked).map(opt => opt.value)
+                );
+                
+                const newOptions = shifts
+                  .filter(item => {
+                    if (!item.shiftcat || seen.has(item.shiftcat)) return false;
+                    seen.add(item.shiftcat);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.shiftcat,
+                    label: item.shiftcat,
+                    checked: existingChecked.has(item.shiftcat),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+                
+                return { ...filter, options: newOptions };              
+            case 'shiftloc':
+                const seenLoc = new Set();
+                const existingCheckedLoc = new Set(
+                  filter.options.filter(opt => opt.checked).map(opt => opt.value)
+                );
+                
+                const newOptionsLoc = shifts
+                  .filter(item => {
+                    if (!item.shiftloc || seenLoc.has(item.shiftloc)) return false;
+                    seenLoc.add(item.shiftloc);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.shiftloc,
+                    label: item.shiftloc,
+                    checked: existingCheckedLoc.has(item.shiftloc),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+                
+                return { ...filter, options: newOptionsLoc };
+            default:
+              break;
           }
+
           return filter;
         });
       });

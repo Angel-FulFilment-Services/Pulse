@@ -86,16 +86,24 @@ const ShiftProgressBar = ({ shift, timesheets, events, calls, rank, isLoading = 
   const shiftStartDisplayTime = earliestOnTime ? earliestOnTime : shiftStartDate;
   const shiftStarted = earliestOnTime ? true : false;
 
-  const totalCallTime = calls.filter((record) => {
-    const time = new Date(record.date_time);
+  const totalDailyLoggedOnSeconds = useMemo(() => {
+    return timesheets.filter(timesheet => timesheet.category === 'PBX Import' && timesheet.date === shift.shiftdate).reduce((total, timesheet) => {
 
-    // Filter records to include only those entries that fall within an hour before the shift start and an hour after the shift end
-    return (
-      (time >= new Date(shiftStartDate.getTime() - 60 * 60 * 1000) && time <= shiftEndDate) && ( record.ddi != '6111' || rank )
-    );
-  }).reduce((total, call) => total + Number(call.time || 0), 0);
+      if(timesheet.category !== 'PBX Import') 
+        return total; // Skip none PBX Import records
 
-  const utilisationPercentage = totalLoggedOnSeconds ? Math.round(((totalCallTime + (rank ? totalAdditionalSeconds : 0)) / totalLoggedOnSeconds) * 100) : 0;
+      const onTime = timesheet.on_time ? new Date(timesheet.on_time) : null;
+      const offTime = timesheet.off_time ? new Date(timesheet.off_time) : null;
+
+      if (!onTime || !offTime) return total;
+
+      // Count Overall Daily Logged On Time
+      return total + differenceInSeconds(offTime, onTime);
+    }, 0);
+  }, [timesheets]);
+
+  const totalCallTime = calls.filter(call => call.date_time?.slice(0, 10) === shift.shiftdate).reduce((total, call) => total + Number(call.time || 0), 0);
+  const utilisationPercentage = totalDailyLoggedOnSeconds ? Math.round((totalCallTime / totalDailyLoggedOnSeconds) * 100) : 0;
 
   const targets = useUtilisationTargets();
   const colour = utilisationPercentage > targets?.utilisation

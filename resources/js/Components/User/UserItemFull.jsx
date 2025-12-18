@@ -58,6 +58,16 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
               {shift.shiftcat}
             </div>
           )}
+          {shift?.shiftloc && (
+            <div
+              className={classNames(
+                'text-theme-600 bg-theme-50 ring-theme-500/10 dark:text-theme-900 dark:bg-theme-100/85 dark:ring-theme-800/10',
+                'rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset text-nowrap',
+              )}
+            >
+              {shift.shiftloc}
+            </div>
+          )}
           {shift && timesheets && (
             <div
               className={classNames(
