@@ -62,7 +62,7 @@ class LoginController extends Controller
         }
 
         // sign in user
-        if (!auth()->attempt(['email' => STR::lower($request->email), 'password' => $request->password, 'active' => 1],$request->remember)){                            
+        if (!auth()->attempt(['email' => STR::lower($request->email), 'password' => $request->password, 'active' => 1], true)){                            
             if ($user) {
                 // Increment the login_attempt counter
                 $user->increment('login_attempt');

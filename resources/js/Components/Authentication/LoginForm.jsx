@@ -107,7 +107,7 @@ export default function LoginForm () {
                             </div>
                         </div>
                             
-                        <div className="mt-5 gap-x-6 gap-y-8">
+                        {/* <div className="mt-5 gap-x-6 gap-y-8">
                             <div className="flex flex-row justify-between sm:col-span-4">
                                 <div className="flex items-center">
                                     <input 
@@ -120,9 +120,8 @@ export default function LoginForm () {
                                     />
                                     <label htmlFor="remember" className="text-xs text-gray-900 dark:text-dark-100">Remember Me</label>
                                 </div>
-                                {/* <Link href="/forgot" className="cursor-pointer text-xs text-theme-500 focus:outline-none focus:underline focus:text-theme-600 hover:text-theme-600">Forgot Password?</Link> */}
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="gap-x-6 gap-y-8 pb-10 pt-5">
                             <div className="sm:col-span-4">
