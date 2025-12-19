@@ -604,7 +604,7 @@ export default function MessageList({
                               } ${
                                 isLastInGroup && !isMyGroup ? 'before:content-[""] before:absolute before:z-0 before:bottom-0 before:left-[-8px] before:h-5 before:w-5 before:bg-gray-200 dark:before:bg-dark-700 before:rounded-br-[15px] after:content-[""] after:absolute after:z-[1] after:bottom-0 after:left-[-10px] after:w-[10px] after:h-5 after:bg-white dark:after:bg-dark-900 after:rounded-br-[10px]' : ''
                               }`}
-                              style={{ wordBreak: 'break-all' }}
+                              style={{ overflowWrap: 'break-word', wordBreak: 'normal' }}
                               onMouseEnter={() => setHoveredMessageId(message.id)}
                               onMouseLeave={() => setHoveredMessageId(null)}
                             >
