@@ -643,8 +643,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Team Members Button - only show for teams and admins/owners */}
-          {chatType === 'team' && canManageMembers && (
+          {/* Team Members Button - show for all team members */}
+          {chatType === 'team' && (
             <div className="relative">
               <button
                 ref={membersRefs.setReference}
@@ -654,7 +654,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                 }}
                 disabled={loading}
                 className={`p-2 rounded-lg ${showMembersPanel ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="Manage team members"
+                title={canManageMembers ? "Manage team members" : "View team members"}
               >
                 <UserGroupIcon className="w-5 h-5" />
               </button>
@@ -719,8 +719,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                                 </div>
                               </div>
                               
-                              {/* Role and Remove buttons - only show for admins/owners */}
-                              {canManageMembers && member.id !== currentUser?.id && (
+                              {/* Role and Remove buttons - only show for admins/owners managing other members */}
+                              {canManageMembers && member.id !== currentUser?.id && member.role !== 'owner' && (
                                 <div className="flex items-center gap-1">
                                   {/* Role dropdown - only show for members you can change */}
                                   {canChangeRole(member) && (
@@ -736,20 +736,18 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                                     </button>
                                   )}
                                   
-                                  {/* Remove button - don't show for owner */}
-                                  {member.role !== 'owner' && (
-                                    <button
-                                      onClick={() => setConfirmationDialog({
-                                        isOpen: true,
-                                        type: 'removeMember',
-                                        member: member
-                                      })}
-                                      className="p-1 text-gray-400 dark:text-dark-400 hover:text-red-500 dark:hover:text-red-400 rounded hover:bg-gray-100 dark:hover:bg-dark-600"
-                                      title="Remove from team"
-                                    >
-                                      <XMarkIcon className="w-4 h-4" />
-                                    </button>
-                                  )}
+                                  {/* Remove button */}
+                                  <button
+                                    onClick={() => setConfirmationDialog({
+                                      isOpen: true,
+                                      type: 'removeMember',
+                                      member: member
+                                    })}
+                                    className="p-1 text-gray-400 dark:text-dark-400 hover:text-red-500 dark:hover:text-red-400 rounded hover:bg-gray-100 dark:hover:bg-dark-600"
+                                    title="Remove from team"
+                                  >
+                                    <XMarkIcon className="w-4 h-4" />
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -758,17 +756,19 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                       )}
                     </div>
                     
-                    {/* Add User Section */}
-                    <div className="px-3 py-2 border-t border-gray-200 dark:border-dark-700">
-                      <button
-                        ref={addUserRefs.setReference}
-                        onClick={() => setShowAddUserPopover(!showAddUserPopover)}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-700 text-white text-sm rounded-lg transition-colors"
-                      >
-                        <UserPlusIcon className="w-4 h-4" />
-                        <span>Add Member</span>
-                      </button>
-                    </div>
+                    {/* Add User Section - only show for admins/owners */}
+                    {canManageMembers && (
+                      <div className="px-3 py-2 border-t border-gray-200 dark:border-dark-700">
+                        <button
+                          ref={addUserRefs.setReference}
+                          onClick={() => setShowAddUserPopover(!showAddUserPopover)}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-theme-500 hover:bg-theme-600 dark:bg-theme-600 dark:hover:bg-theme-700 text-white text-sm rounded-lg transition-colors"
+                        >
+                          <UserPlusIcon className="w-4 h-4" />
+                          <span>Add Member</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Add User Popover - positioned outside the members popover */}
