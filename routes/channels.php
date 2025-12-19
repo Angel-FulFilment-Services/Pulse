@@ -29,12 +29,23 @@ Broadcast::channel('chat.user.{userId}', function ($user, $userId) {
 
 // Chat team channels
 Broadcast::channel('chat.team.{teamId}', function ($user, $teamId) {
+    // Check if user has monitor permission (can view all teams)
+    if ($user->hasPermission('pulse_monitor_all_teams')) {
+        return ['id' => $user->id, 'name' => $user->name, 'role' => 'monitor'];
+    }
+    
     // Check if user is an active member of this team (not left)
-    return \DB::connection('pulse')->table('team_user')
+    $membership = \DB::connection('pulse')->table('team_user')
         ->where('team_id', $teamId)
         ->where('user_id', $user->id)
         ->whereNull('left_at')
-        ->exists();
+        ->first();
+    
+    if ($membership) {
+        return ['id' => $user->id, 'name' => $user->name, 'role' => $membership->role];
+    }
+    
+    return false;
 });
 
 // Chat DM channels
