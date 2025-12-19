@@ -42,10 +42,15 @@ const getStatusColor = (lastActiveAt) => {
   }
 }
 
-// Format shift time (HH:MM:SS to HH:MM)
+// Format shift time (handles HH:MM:SS, HH:MM, or HHMM formats)
 const formatShiftTime = (time) => {
   if (!time) return ''
-  return time.substring(0, 5)
+  // If already has colon, just take HH:MM
+  if (time.includes(':')) {
+    return time.substring(0, 5)
+  }
+  // Otherwise assume HHMM format, insert colon
+  return `${time.substring(0, 2)}:${time.substring(2, 4)}`
 }
 
 // Format shift info for display
