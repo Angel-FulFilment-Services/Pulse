@@ -15,22 +15,38 @@ class TeamController extends Controller
     {
         $q = $request->input('q');
         $userId = auth()->user()->id;
+        $user = auth()->user();
         
-        // Get team IDs that the user is a member of using a direct query
-        $teamIds = \DB::connection('pulse')->table('team_user')
-            ->where('user_id', $userId)
-            ->whereNull('left_at')
-            ->pluck('team_id');
+        // Check if user has monitor all teams permission
+        $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
         
-        $teams = Team::whereIn('id', $teamIds)
-            ->where(function($query) use ($q) {
-                $query->where('name', 'like', "%$q%")
-                      ->orWhere('description', 'like', "%$q%")
-                      ->orWhere('id', $q);
-            })
-            ->orderBy('name', 'asc')
-            ->limit(10)
-            ->get(['id', 'name', 'description']);
+        if ($hasMonitorPermission) {
+            // User can search all teams
+            $teams = Team::where(function($query) use ($q) {
+                    $query->where('name', 'like', "%$q%")
+                          ->orWhere('description', 'like', "%$q%")
+                          ->orWhere('id', $q);
+                })
+                ->orderBy('name', 'asc')
+                ->limit(10)
+                ->get(['id', 'name', 'description']);
+        } else {
+            // Get team IDs that the user is a member of using a direct query
+            $teamIds = \DB::connection('pulse')->table('team_user')
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->pluck('team_id');
+            
+            $teams = Team::whereIn('id', $teamIds)
+                ->where(function($query) use ($q) {
+                    $query->where('name', 'like', "%$q%")
+                          ->orWhere('description', 'like', "%$q%")
+                          ->orWhere('id', $q);
+                })
+                ->orderBy('name', 'asc')
+                ->limit(10)
+                ->get(['id', 'name', 'description']);
+        }
 
         // Get users that have had conversations with the current user for search
         $userIdsWithConversations = \DB::connection('pulse')
@@ -72,10 +88,25 @@ class TeamController extends Controller
     public function show(Request $request, $teamId)
     {
         $team = Team::findOrFail($teamId);
+        $userId = auth()->user()->id;
+        $user = auth()->user();
+        
+        // Check if user has monitor permission or is a team member
+        $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
+        $isMember = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->exists();
+        
+        if (!$hasMonitorPermission && !$isMember) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
         $members = $team->getMembers();
         $teamArr = $team->toArray();
         $teamArr['members'] = $members;
-        $teamArr['current_user_role'] = $team->getCurrentUserRole();
+        $teamArr['current_user_role'] = $hasMonitorPermission && !$isMember ? 'monitor' : $team->getCurrentUserRole();
         return response()->json($teamArr);
     }
     // Update (edit) a team
@@ -125,16 +156,26 @@ class TeamController extends Controller
     public function index(Request $request)
     {
         $userId = auth()->user()->id;
+        $user = auth()->user();
         
-        // Get team IDs that the user is a member of using a direct query
-        $teamIds = \DB::connection('pulse')->table('team_user')
-            ->where('user_id', $userId)
-            ->whereNull('left_at')
-            ->pluck('team_id');
+        // Check if user has monitor all teams permission
+        $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
         
-        $teams = Team::whereIn('id', $teamIds)
-            ->orderBy('name', 'asc')
-            ->get();
+        if ($hasMonitorPermission) {
+            // User can see all teams
+            $teams = Team::orderBy('name', 'asc')->get();
+            $teamIds = $teams->pluck('id');
+        } else {
+            // Get team IDs that the user is a member of using a direct query
+            $teamIds = \DB::connection('pulse')->table('team_user')
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->pluck('team_id');
+            
+            $teams = Team::whereIn('id', $teamIds)
+                ->orderBy('name', 'asc')
+                ->get();
+        }
         
         // Get user's chat preferences for history_removed_at filtering
         $preferences = ChatUserPreference::where('user_id', $userId)

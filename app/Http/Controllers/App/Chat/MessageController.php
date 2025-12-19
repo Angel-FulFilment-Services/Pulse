@@ -157,6 +157,10 @@ class MessageController extends Controller
         $beforeId = $request->input('before_id'); // Load messages before this ID
         $beforeTimestamp = $request->input('before_timestamp'); // For membership events pagination
         $userId = auth()->user()->id;
+        $user = auth()->user();
+        
+        // Check if user has monitor all teams permission
+        $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
         
         $query = Message::query();
         $chatType = null;
@@ -177,10 +181,17 @@ class MessageController extends Controller
                 ->whereNull('left_at')
                 ->first();
             
-            if ($membership && $membership->joined_at) {
-                $memberJoinedAt = $membership->joined_at;
-                $query->where('created_at', '>=', $memberJoinedAt);
+            // If user has monitor permission, they can see all messages regardless of membership
+            if (!$hasMonitorPermission) {
+                if (!$membership) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+                if ($membership->joined_at) {
+                    $memberJoinedAt = $membership->joined_at;
+                    $query->where('created_at', '>=', $memberJoinedAt);
+                }
             }
+            // Monitor users see all messages (no date restriction)
         } elseif ($request->has('recipient_id')) {
             $chatType = 'user';
             $chatId = $request->input('recipient_id');
@@ -855,8 +866,9 @@ class MessageController extends Controller
         // Authorization check - only allow in team/DM chats where user belongs
         if ($message->team_id) {
             $team = Team::findOrFail($message->team_id);
-            // Check if user is team member
-            if (!$team->members()->where('user_id', auth()->id())->exists()) {
+            // Check if user has monitor permission or is team member
+            $hasMonitorPermission = auth()->user()->hasPermission('pulse_monitor_all_teams');
+            if (!$hasMonitorPermission && !$team->members()->where('user_id', auth()->id())->exists()) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
             // Pin only this attachment

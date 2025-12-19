@@ -80,6 +80,11 @@ Route::get('/reporting/wallboard-statistics', [ReportingController::class, 'tota
 ->withoutMiddleware('twofactor')
 ->withoutMiddleware('has.permission:pulse_view_reporting');
 
+Route::post('/call/convert', [CallRecordingController::class, 'convertCall'])
+->withoutMiddleware('throttle:api')
+->middleware('throttle:10,1')
+->middleware('auth:api');
+
 /*
 |-----------------------
 | T2 SMS Handler

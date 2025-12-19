@@ -127,6 +127,10 @@ class AttachmentController extends Controller
             }
             
             $userId = $request->user()->id;
+            $user = $request->user();
+            
+            // Check if user has monitor all teams permission (bypass team membership)
+            $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
             
             // Check if user is part of the conversation
             $hasAccess = false;
@@ -140,14 +144,14 @@ class AttachmentController extends Controller
                     abort(404, 'Team not found');
                 }
                 
-                // Check if user is an active member of the team (not left)
-                $hasAccess = \DB::connection('pulse')->table('team_user')
+                // Allow access if user has monitor permission or is an active member of the team
+                $hasAccess = $hasMonitorPermission || \DB::connection('pulse')->table('team_user')
                     ->where('team_id', $message->team_id)
                     ->where('user_id', $userId)
                     ->whereNull('left_at')
                     ->exists();
             } else {
-                // Check if user is sender or recipient
+                // Check if user is sender or recipient (monitor permission only applies to teams)
                 $hasAccess = ($message->sender_id === $userId || $message->recipient_id === $userId);
             }
             
@@ -205,11 +209,17 @@ class AttachmentController extends Controller
         // Check if user has access
         $message = $attachment->message;
         $userId = $request->user()->id;
+        $user = $request->user();
+        
+        // Check if user has monitor all teams permission (bypass team membership)
+        $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
         
         $hasAccess = false;
         if ($message->team_id) {
-            $hasAccess = $message->team->members()->where('user_id', $userId)->exists();
+            // Allow access if user has monitor permission or is a team member
+            $hasAccess = $hasMonitorPermission || $message->team->members()->where('user_id', $userId)->exists();
         } else {
+            // Monitor permission only applies to teams, not DMs
             $hasAccess = ($message->sender_id === $userId || $message->recipient_id === $userId);
         }
         
