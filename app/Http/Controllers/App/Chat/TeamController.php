@@ -442,6 +442,20 @@ class TeamController extends Controller
     {
         $userId = auth()->user()->id;
         $team = Team::findOrFail($teamId);
+        
+        // Check if user is actually a team member
+        // Monitor users should not mark messages as read (they're just observing)
+        $isMember = \DB::connection('pulse')->table('team_user')
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->exists();
+        
+        if (!$isMember) {
+            // User is monitoring, not actually in the team - don't mark as read
+            return response()->json(['status' => 'monitoring']);
+        }
+        
         $messages = $team->messages()
             ->whereDoesntHave('reads', function($q) use ($userId) {
                 $q->where('user_id', $userId);

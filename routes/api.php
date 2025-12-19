@@ -80,10 +80,9 @@ Route::get('/reporting/wallboard-statistics', [ReportingController::class, 'tota
 ->withoutMiddleware('twofactor')
 ->withoutMiddleware('has.permission:pulse_view_reporting');
 
-Route::post('/call/convert', [CallRecordingController::class, 'convertCall'])
+Route::post('/call/convert', [CallRecordingController::class, 'convertCall'])->name('api.call.convert')
 ->withoutMiddleware('throttle:api')
-->middleware('throttle:10,1')
-->middleware('auth:api');
+->middleware('throttle:100,1');
 
 /*
 |-----------------------

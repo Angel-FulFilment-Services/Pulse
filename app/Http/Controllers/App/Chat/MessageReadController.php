@@ -21,9 +21,26 @@ class MessageReadController extends Controller
             return response()->json(['error' => 'Message not found'], 404);
         }
         
+        $userId = $request->user()->id;
+        
+        // If this is a team message, check if user is actually a team member
+        // Monitor users should not mark messages as read (they're just observing)
+        if ($message->team_id) {
+            $isMember = \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $message->team_id)
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->exists();
+            
+            if (!$isMember) {
+                // User is monitoring, not actually in the team - don't mark as read
+                return response()->json(['status' => 'monitoring']);
+            }
+        }
+        
         $read = MessageRead::firstOrCreate([
             'message_id' => $data['message_id'],
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
         ], [
             'read_at' => now(),
         ]);
@@ -42,6 +59,7 @@ class MessageReadController extends Controller
             'message_ids.*' => 'integer',
         ]);
         
+        $userId = $request->user()->id;
         $reads = [];
         
         // Process in reverse order (latest to oldest) so the "seen" marker doesn't jump around
@@ -52,9 +70,23 @@ class MessageReadController extends Controller
                 continue; // Skip invalid messages
             }
             
+            // If this is a team message, check if user is actually a team member
+            // Monitor users should not mark messages as read (they're just observing)
+            if ($message->team_id) {
+                $isMember = \DB::connection('pulse')->table('team_user')
+                    ->where('team_id', $message->team_id)
+                    ->where('user_id', $userId)
+                    ->whereNull('left_at')
+                    ->exists();
+                
+                if (!$isMember) {
+                    continue; // Skip - user is monitoring, not actually in the team
+                }
+            }
+            
             $read = MessageRead::firstOrCreate([
                 'message_id' => $messageId,
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
             ], [
                 'read_at' => now(),
             ]);

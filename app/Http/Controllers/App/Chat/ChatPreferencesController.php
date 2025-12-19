@@ -257,6 +257,21 @@ class ChatPreferencesController extends Controller
 
         $userId = auth()->user()->id;
         
+        // If this is a team chat, check if user is actually a team member
+        // Monitor users should not mark messages as read (they're just observing)
+        if ($data['chat_type'] === 'team') {
+            $isMember = \DB::connection('pulse')->table('team_user')
+                ->where('team_id', $data['chat_id'])
+                ->where('user_id', $userId)
+                ->whereNull('left_at')
+                ->exists();
+            
+            if (!$isMember) {
+                // User is monitoring, not actually in the team - don't mark as read
+                return response()->json(['status' => 'monitoring']);
+            }
+        }
+        
         try {
             // Get all message IDs in this chat
             $messageIds = [];
