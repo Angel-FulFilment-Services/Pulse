@@ -47,12 +47,16 @@ export default function MessageInput({
   // URL tracking state
   const [trackedUrls, setTrackedUrls] = useState([]) // { url, metadata, isLoading }
   const urlFetchTimeoutRef = useRef(null)
+  const prevInitialLinksRef = useRef(initialLinks)
   
   // Use provided ref or internal ref
   const effectiveInputRef = inputRef || textareaRef
 
   // Populate trackedUrls from initialLinks when editing a message
   useEffect(() => {
+    const prevLinks = prevInitialLinksRef.current
+    prevInitialLinksRef.current = initialLinks
+    
     if (initialLinks && initialLinks.length > 0) {
       // Add links with loading state and fetch metadata
       const loadingUrls = initialLinks.map(url => ({ url, metadata: null, isLoading: true }))
@@ -67,10 +71,12 @@ export default function MessageInput({
       ).then(urlsWithMetadata => {
         setTrackedUrls(urlsWithMetadata)
       })
-    } else {
-      // Clear tracked URLs if no initial links
+    } else if (prevLinks && prevLinks.length > 0) {
+      // Only clear if we're transitioning from having initial links to not having them
+      // (i.e., cancelling edit mode)
       setTrackedUrls([])
     }
+    // Don't clear if initialLinks was already empty - user might have added URLs manually
   }, [initialLinks])
 
   // Clear attachments when parent requests it
