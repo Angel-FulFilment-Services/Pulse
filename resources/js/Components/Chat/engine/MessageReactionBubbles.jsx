@@ -284,7 +284,7 @@ export default function MessageReactionBubbles({ reactions, isMyMessage, current
         >
           <span className="text-md leading-none">{group.emoji}</span>
           {group.count > 1 && (
-            <span className="text-xs text-gray-600 font-medium leading-none">
+            <span className="text-xs text-gray-600 dark:text-dark-400 font-medium leading-none">
               {group.count}
             </span>
           )}
@@ -306,7 +306,7 @@ export default function MessageReactionBubbles({ reactions, isMyMessage, current
             setHoveredOverflow(false)
           }}
         >
-          <span className="text-xs text-gray-600 font-medium leading-none">
+          <span className="text-xs text-gray-600 dark:text-dark-400 font-medium leading-none">
             +{overflowReactions.length}
           </span>
         </div>

@@ -283,7 +283,7 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
         >
           <span className="text-md leading-none">{group.emoji}</span>
           {group.count > 1 && (
-            <span className="text-xs text-gray-600 font-medium leading-none">
+            <span className="text-xs text-gray-600 dark:text-dark-400 font-medium leading-none">
               {group.count}
             </span>
           )}
@@ -305,7 +305,7 @@ export default function AttachmentReactionBubbles({ reactions, isMyMessage, curr
             setHoveredOverflow(false)
           }}
         >
-          <span className="text-xs text-gray-600 font-medium leading-none">
+          <span className="text-xs text-gray-600 dark:text-dark-400 font-medium leading-none">
             +{overflowReactions.length}
           </span>
         </div>
