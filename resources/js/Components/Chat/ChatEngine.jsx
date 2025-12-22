@@ -1567,14 +1567,25 @@ export default function ChatEngine({
   const handleCancelEdit = () => {
     setEditingMessage(null)
     setNewMessage('')
+    setPendingLinks([])
   }
 
   // Handle edit message submit
-  const handleEditMessage = async () => {
-    if (!editingMessage || !newMessage.trim()) return
+  const handleEditMessage = async (e) => {
+    e?.preventDefault()
+    
+    // Allow editing if there's text OR pending links
+    if (!editingMessage || (!newMessage.trim() && pendingLinks.length === 0)) return
+    
+    // Build the full message with URLs appended
+    let messageWithLinks = newMessage.trim()
+    if (pendingLinks.length > 0) {
+      const linksText = pendingLinks.join(' ')
+      messageWithLinks = messageWithLinks ? `${messageWithLinks} ${linksText}` : linksText
+    }
     
     // Don't submit if message hasn't changed
-    if (newMessage.trim() === editingMessage.body) {
+    if (messageWithLinks === editingMessage.body) {
       handleCancelEdit()
       return
     }
@@ -1590,7 +1601,7 @@ export default function ChatEngine({
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         },
-        body: JSON.stringify({ body: newMessage.trim() })
+        body: JSON.stringify({ body: messageWithLinks })
       })
       
       if (response.ok) {
