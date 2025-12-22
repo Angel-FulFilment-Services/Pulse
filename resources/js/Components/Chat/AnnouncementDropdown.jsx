@@ -220,7 +220,7 @@ export default function AnnouncementDropdown({
         <button
           type="submit"
           disabled={!message.trim() || isSubmitting}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-md shadow-sm transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 dark:disabled:bg-dark-600 disabled:cursor-not-allowed text-white font-medium rounded-md shadow-sm transition-colors"
         >
           {isSubmitting ? (
             <>
