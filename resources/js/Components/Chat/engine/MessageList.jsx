@@ -799,9 +799,19 @@ export default function MessageList({
                                 <>
                                   {message.body && <MessageBody body={message.body} isMyMessage={isMyGroup} teamMembers={teamMembers} />}
                                   {/* Link preview cards for URLs in the message */}
-                                  {message.body && extractUrls(message.body).map((url, idx) => (
-                                    <LinkPreviewCard key={`link-${idx}`} url={url} isMyMessage={isMyGroup} />
-                                  ))}
+                                  {message.body && (() => {
+                                    const urls = extractUrls(message.body)
+                                    // Check if there's non-URL content
+                                    let textWithoutUrls = message.body
+                                    urls.forEach(url => {
+                                      textWithoutUrls = textWithoutUrls.replace(url, '').replace(/  +/g, ' ')
+                                    })
+                                    const hasNonUrlContent = textWithoutUrls.trim().length > 0
+                                    
+                                    return urls.map((url, idx) => (
+                                      <LinkPreviewCard key={`link-${idx}`} url={url} isMyMessage={isMyGroup} hasContent={hasNonUrlContent} />
+                                    ))
+                                  })()}
                                 </>
                               )}
                             </div>

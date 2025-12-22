@@ -68,7 +68,7 @@ export function extractUrls(text) {
 }
 
 // Link preview card component for underneath message bubbles
-export function LinkPreviewCard({ url, isMyMessage = false }) {
+export function LinkPreviewCard({ url, isMyMessage = false, hasContent = true }) {
   const [metadata, setMetadata] = useState(null)
   const [imageError, setImageError] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
@@ -96,7 +96,7 @@ export function LinkPreviewCard({ url, isMyMessage = false }) {
   if (isLoading) {
     return (
       <div
-        className={`block mt-2 rounded-lg overflow-hidden border max-w-xs w-80 animate-pulse ${
+        className={`block ${hasContent ? 'mt-2' : ''} rounded-lg overflow-hidden border max-w-xs w-80 animate-pulse ${
           isMyMessage 
             ? 'bg-white/10 border-white/20' 
             : 'bg-gray-100 dark:bg-dark-800 border-gray-300/75 dark:border-dark-500/50'
@@ -132,7 +132,7 @@ export function LinkPreviewCard({ url, isMyMessage = false }) {
       href={linkUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className={`block mt-2 rounded-lg overflow-hidden border transition-colors max-w-xs ${
+      className={`block ${hasContent ? 'mt-2' : ''} rounded-lg overflow-hidden border transition-colors max-w-xs ${
         isMyMessage 
           ? 'bg-white/10 border-white/20 hover:bg-white/20' 
           : 'bg-gray-100 dark:bg-dark-800 border-gray-300/75 dark:border-dark-500/50 hover:bg-gray-100/50 dark:hover:bg-dark-800/50'

@@ -22,7 +22,8 @@ export default function MessageInput({
   chatType = null, // 'team' or 'dm' - mentions only work in teams
   currentUserId = null, // Current user ID to exclude from mentions
   onMentionsChange = null, // Callback to track mentions for sending
-  onLinksChange = null // Callback to track links for sending
+  onLinksChange = null, // Callback to track links for sending
+  initialLinks = [] // Initial links when editing a message
 }) {
   const typingTimeoutRef = useRef(null)
   const lastTypingTimeRef = useRef(0)
@@ -44,11 +45,33 @@ export default function MessageInput({
   const backdropRef = useRef(null) // Ref for the formatted overlay
   
   // URL tracking state
-  const [trackedUrls, setTrackedUrls] = useState([]) // { url, metadata }
+  const [trackedUrls, setTrackedUrls] = useState([]) // { url, metadata, isLoading }
   const urlFetchTimeoutRef = useRef(null)
   
   // Use provided ref or internal ref
   const effectiveInputRef = inputRef || textareaRef
+
+  // Populate trackedUrls from initialLinks when editing a message
+  useEffect(() => {
+    if (initialLinks && initialLinks.length > 0) {
+      // Add links with loading state and fetch metadata
+      const loadingUrls = initialLinks.map(url => ({ url, metadata: null, isLoading: true }))
+      setTrackedUrls(loadingUrls)
+      
+      // Fetch metadata for all initial links
+      Promise.all(
+        initialLinks.map(async (url) => {
+          const metadata = await fetchLinkMetadata(url)
+          return { url, metadata, isLoading: false }
+        })
+      ).then(urlsWithMetadata => {
+        setTrackedUrls(urlsWithMetadata)
+      })
+    } else {
+      // Clear tracked URLs if no initial links
+      setTrackedUrls([])
+    }
+  }, [initialLinks])
 
   // Clear attachments when parent requests it
   React.useEffect(() => {

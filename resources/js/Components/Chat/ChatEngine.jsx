@@ -7,6 +7,7 @@ import ChatHeader from './engine/ChatHeader'
 ring.register()
 import MessageList from './engine/MessageList'
 import MessageInput from './engine/MessageInput'
+import { extractUrls } from './engine/LinkPreview'
 import TypingIndicator from './engine/TypingIndicator'
 import ScrollToNewMessages from './engine/ScrollToNewMessages'
 import EmptyState from './engine/EmptyState'
@@ -1539,9 +1540,22 @@ export default function ChatEngine({
     // Clear any reply state
     setReplyingTo(null)
     
+    // Extract URLs from the message body
+    const urls = extractUrls(message.body)
+    
+    // Strip URLs from the message text for the input
+    let messageText = message.body
+    urls.forEach(url => {
+      messageText = messageText.replace(url, '').replace(/  +/g, ' ')
+    })
+    messageText = messageText.trim()
+    
     // Set the message being edited and populate the input
     setEditingMessage(message)
-    setNewMessage(message.body)
+    setNewMessage(messageText)
+    
+    // Set pending links from extracted URLs
+    setPendingLinks(urls)
     
     // Focus the message input
     setTimeout(() => {
@@ -2710,6 +2724,7 @@ export default function ChatEngine({
               currentUserId={currentUser?.id}
               onMentionsChange={setPendingMentions}
               onLinksChange={setPendingLinks}
+              initialLinks={editingMessage ? pendingLinks : []}
               editingMessage={editingMessage}
               onCancelEdit={handleCancelEdit}
             />
