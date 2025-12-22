@@ -11,7 +11,7 @@ import AnnouncementDropdown from '../AnnouncementDropdown.jsx'
 import { usePermission } from '../../../Utils/Permissions.jsx'
 import { useUserStates } from '../../Context/ActiveStateContext'
 
-export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange }) {
+export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange, isMember = true }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
   const canMakeTeamAnnouncements = usePermission('pulse_chat_team_announcements')
@@ -891,8 +891,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             </button>
           )}
           
-          {/* Team Announcement Button - only show for team chats */}
-          {chatType === 'team' && canMakeTeamAnnouncements && (
+          {/* Team Announcement Button - only show for team chats where user is a member */}
+          {chatType === 'team' && canMakeTeamAnnouncements && isMember && (
             <button
               ref={teamAnnouncementButtonRef}
               onClick={() => setShowTeamAnnouncementDropdown(!showTeamAnnouncementDropdown)}
@@ -915,7 +915,8 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             </button>
           )}
           
-          {/* Options Dropdown */}
+          {/* Options Dropdown - only show for members */}
+          {isMember && (
           <div className="relative">
             <button 
               onClick={() => setShowDropdown(!showDropdown)}
@@ -991,6 +992,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
               </>
             )}
           </div>
+          )}
         </div>
       </div>
       

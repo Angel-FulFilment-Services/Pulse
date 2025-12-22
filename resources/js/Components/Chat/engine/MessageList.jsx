@@ -114,7 +114,8 @@ export default function MessageList({
   onForwardAttachment,
   canDeleteOthersMessages = false,
   canPinMessages = false,
-  teamMembers = []
+  teamMembers = [],
+  isMember = true
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -619,8 +620,8 @@ export default function MessageList({
                                       attachment={attachment}
                                       onImageClick={setLightboxImage}
                                       onPdfClick={setLightboxPdf}
-                                      // Always show reaction buttons on all attachments
-                                      showReactions={true}
+                                      // Only show reaction buttons for members
+                                      showReactions={isMember}
                                       isMyMessage={isMyGroup}
                                       currentUserId={currentUser?.id}
                                       onAddReaction={onAddAttachmentReaction}
@@ -688,7 +689,7 @@ export default function MessageList({
                             {/* Gradient overlay for depth */}
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.01] pointer-events-none rounded-[18px]" />
                             
-                            {/* Reaction bubbles - hide for deleted messages */}
+                            {/* Reaction bubbles - hide for deleted messages and non-members */}
                             {!message.deleted_at && (
                               <MessageReactionBubbles 
                                 reactions={message.reactions}
@@ -760,8 +761,8 @@ export default function MessageList({
                             </div>
                           </div>
                           
-                          {/* Reactions tooltip - hide for deleted messages */}
-                          {!message.deleted_at && (
+                          {/* Reactions tooltip - hide for deleted messages and non-members */}
+                          {!message.deleted_at && isMember && (
                             <MessageReactions 
                               message={message}
                               isMyMessage={isMyGroup}

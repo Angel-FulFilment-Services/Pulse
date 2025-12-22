@@ -158,19 +158,23 @@ class TeamController extends Controller
         $userId = auth()->user()->id;
         $user = auth()->user();
         
-        // Check if user has monitor all teams permission
+        // Check if user has monitor all teams permission AND has requested all teams (spy mode)
         $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
+        $wantsAllTeams = $request->boolean('all', false);
         
-        if ($hasMonitorPermission) {
-            // User can see all teams
+        // Get team IDs that the user is a member of
+        $memberTeamIds = \DB::connection('pulse')->table('team_user')
+            ->where('user_id', $userId)
+            ->whereNull('left_at')
+            ->pluck('team_id')
+            ->toArray();
+        
+        if ($hasMonitorPermission && $wantsAllTeams) {
+            // User can see all teams (spy mode enabled)
             $teams = Team::orderBy('name', 'asc')->get();
             $teamIds = $teams->pluck('id');
         } else {
-            // Get team IDs that the user is a member of using a direct query
-            $teamIds = \DB::connection('pulse')->table('team_user')
-                ->where('user_id', $userId)
-                ->whereNull('left_at')
-                ->pluck('team_id');
+            $teamIds = collect($memberTeamIds);
             
             $teams = Team::whereIn('id', $teamIds)
                 ->orderBy('name', 'asc')
@@ -184,8 +188,8 @@ class TeamController extends Controller
             ->get()
             ->keyBy('chat_id');
 
-        // Add unread_count and last_message_at for each team
-        $teams = $teams->map(function($team) use ($userId, $preferences) {
+        // Add unread_count, last_message_at, and is_member for each team
+        $teams = $teams->map(function($team) use ($userId, $preferences, $memberTeamIds) {
             $query = $team->messages()
                 ->whereDoesntHave('reads', function($q) use ($userId) {
                     $q->where('user_id', $userId);
@@ -203,6 +207,9 @@ class TeamController extends Controller
             // Get the last message timestamp for sorting
             $lastMessage = $team->messages()->latest('created_at')->first();
             $team->last_message_at = $lastMessage ? $lastMessage->created_at : null;
+            
+            // Add is_member flag
+            $team->is_member = in_array($team->id, $memberTeamIds);
             
             return $team;
         });

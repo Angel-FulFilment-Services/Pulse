@@ -6,6 +6,13 @@ const restrictedWordsCache = {
   lastFetchTime: null,
 }
 
+// Dictionary cache for legitimate words
+const dictionaryCache = {
+  words: null, // Will be a Set for O(1) lookup
+  loaded: false,
+  loading: false,
+}
+
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 
 // Leet speak / number substitution map
@@ -109,6 +116,37 @@ const normalizeLeetSpeak = (text) => {
 }
 
 /**
+ * Check if a word exists in the English dictionary
+ * @param {string} word - The word to check
+ * @returns {boolean} - True if word is in dictionary
+ */
+const isLegitimateWord = (word) => {
+  if (!dictionaryCache.loaded || !dictionaryCache.words) {
+    return true // If dictionary not loaded, assume legitimate to avoid false positives
+  }
+  return dictionaryCache.words.has(word.toLowerCase())
+}
+
+/**
+ * Load the English dictionary for word validation
+ */
+const loadDictionary = async () => {
+  if (dictionaryCache.loaded || dictionaryCache.loading) return
+  
+  dictionaryCache.loading = true
+  try {
+    const response = await axios.get('/js/data/english-dictionary.json')
+    dictionaryCache.words = new Set(response.data)
+    dictionaryCache.loaded = true
+  } catch (error) {
+    console.error('Failed to load dictionary:', error)
+    // Continue without dictionary - will only use word boundary matching
+  } finally {
+    dictionaryCache.loading = false
+  }
+}
+
+/**
  * Hook for managing restricted words filtering
  */
 export function useRestrictedWords() {
@@ -138,6 +176,9 @@ export function useRestrictedWords() {
     if (shouldRefetch) {
       await fetchRestrictedWords()
     }
+    
+    // Also load dictionary if not already loaded
+    await loadDictionary()
   }
 
   /**
@@ -200,26 +241,48 @@ export function useRestrictedWords() {
       }
       
       // For phrases, match anywhere; for single words, use word boundaries
+      // Word boundaries ensure we only match whole words, not substrings
+      // e.g., "ass" won't match "assigned", "class", "assessment", etc.
       const regexPattern = isPhrase ? pattern : `\\b${pattern}\\b`
       const regex = new RegExp(regexPattern, 'gi')
       
-      // Also check for restricted word with alphanumeric characters attached (bypass attempts)
-      // This catches things like "shitbag" but not "scunthorpe" (which has the restricted word in middle)
-      const embeddedPattern = `\\b\\w*${pattern}\\w+|\\w+${pattern}\\w*\\b`
-      const embeddedRegex = new RegExp(embeddedPattern, 'gi')
-      
-      // Check if the word/phrase exists in the text
+      // Check if the word/phrase exists in the text (exact match)
       const hasMatch = regex.test(text)
-      const hasEmbedded = !isPhrase && embeddedRegex.test(text)
       
-      if (hasMatch || hasEmbedded) {
+      // Also check for compound words containing the restricted word
+      // but only flag if the compound word is NOT in the dictionary
+      let hasEmbeddedBypass = false
+      if (!isPhrase && dictionaryCache.loaded) {
+        // Find words that contain the restricted pattern
+        const embeddedPattern = `\\b(\\w*${pattern}\\w*|\\w+${pattern}|${pattern}\\w+)\\b`
+        const embeddedRegex = new RegExp(embeddedPattern, 'gi')
+        const matches = text.match(embeddedRegex) || []
+        
+        for (const match of matches) {
+          // Skip if it's an exact match (already handled above)
+          if (match.toLowerCase() === normalizedWord) continue
+          
+          // Check if this compound word is in the dictionary
+          if (!isLegitimateWord(match)) {
+            hasEmbeddedBypass = true
+            break
+          }
+        }
+      }
+      
+      // Build the pattern for replacement - include embedded pattern if bypass detected
+      const effectivePattern = hasEmbeddedBypass 
+        ? `\\b(\\w*${pattern}\\w*|\\w+${pattern}|${pattern}\\w+)\\b`
+        : regexPattern
+      
+      if (hasMatch || hasEmbeddedBypass) {
         if (level === 3) {
-          level3Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
+          level3Words.push({ word, substitution, pattern: effectivePattern })
           blockedWords.push(word)
         } else if (level === 2) {
-          level2Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
+          level2Words.push({ word, substitution, pattern: effectivePattern })
         } else {
-          level1Words.push({ word, substitution, pattern: hasEmbedded ? embeddedPattern : regexPattern })
+          level1Words.push({ word, substitution, pattern: effectivePattern })
         }
       }
     })

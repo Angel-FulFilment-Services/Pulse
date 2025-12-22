@@ -34,6 +34,7 @@ import CreateTeamDropdown from './CreateTeamDropdown.jsx'
 import AnnouncementDropdown from './AnnouncementDropdown.jsx'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { usePermission } from '../../Utils/Permissions.jsx'
+import { RiSpyLine } from '@remixicon/react'
 
 // Register the ring spinner
 ring.register()
@@ -42,6 +43,16 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
   const canMakeGlobalAnnouncements = usePermission('pulse_chat_global_announcements')
+  const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
+  
+  // Spy mode state - defaults to true, persisted in localStorage
+  const [spyMode, setSpyMode] = useState(() => {
+    const stored = localStorage.getItem('chat_spy_mode')
+    return stored !== null ? stored === 'true' : true // Default to true
+  })
+  
+  // Ensure spy mode is off if user doesn't have permission
+  const effectiveSpyMode = canMonitorAllTeams ? spyMode : false
   
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -109,12 +120,48 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     }
   }
 
+  // Toggle spy mode and persist to localStorage
+  const toggleSpyMode = () => {
+    const newValue = !spyMode
+    setSpyMode(newValue)
+    localStorage.setItem('chat_spy_mode', String(newValue))
+  }
+
+  // Helper functions for spy mode read tracking (localStorage-based since we can't create read receipts)
+  const getSpyModeLastRead = (teamId) => {
+    const stored = localStorage.getItem(`spy_mode_last_read_${teamId}`)
+    return stored ? new Date(stored) : null
+  }
+
+  const setSpyModeLastRead = (teamId) => {
+    localStorage.setItem(`spy_mode_last_read_${teamId}`, new Date().toISOString())
+  }
+
+  // Process teams after fetching to apply spy mode read tracking
+  const processTeamsWithSpyModeReads = (teamsData) => {
+    return teamsData.map(team => {
+      // For non-member teams, check localStorage for last read time
+      if (team.is_member === false) {
+        const lastRead = getSpyModeLastRead(team.id)
+        if (lastRead && team.last_message_at) {
+          // If we've read this team after the last message, mark as read
+          const lastMessageTime = new Date(team.last_message_at)
+          if (lastRead >= lastMessageTime) {
+            return { ...team, unread_count: 0 }
+          }
+        }
+      }
+      return team
+    })
+  }
+
   // Fetch teams
   useEffect(() => {
     if (!currentUser) return
     
     setTeamsLoaded(false)
-    fetch('/api/chat/teams', { 
+    const url = effectiveSpyMode ? '/api/chat/teams?all=true' : '/api/chat/teams'
+    fetch(url, { 
       credentials: 'same-origin',
       headers: getHeaders()
     })
@@ -124,13 +171,18 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         }
         return res.json()
       })
-      .then(data => setTeams(Array.isArray(data) ? data : []))
+      .then(data => {
+        const teamsArray = Array.isArray(data) ? data : []
+        // Apply spy mode read tracking for non-member teams
+        const processedTeams = processTeamsWithSpyModeReads(teamsArray)
+        setTeams(processedTeams)
+      })
       .catch((error) => {
         console.error('Error fetching teams:', error)
         setTeams([])
       })
       .finally(() => setTeamsLoaded(true))
-  }, [currentUser, teamsRefreshKey])
+  }, [currentUser, teamsRefreshKey, effectiveSpyMode])
 
   // Listen for being added to a team
   // Use refs to access current values without causing re-subscriptions
@@ -830,6 +882,10 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     
     // Reset unread count for this chat
     if (type === 'team') {
+      // For non-member teams (spy mode), save read timestamp to localStorage
+      if (chat.is_member === false) {
+        setSpyModeLastRead(chat.id)
+      }
       setTeams(prev => prev.map(team => 
         team.id === chat.id ? { ...team, unread_count: 0 } : team
       ))
@@ -869,6 +925,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const renderTeamItem = (team, section = 'teams') => {
     const isUnread = hasUnreadMessages(team, 'team')
     const isMuted = isChatMuted(team, 'team')
+    const isMember = team.is_member !== false // Default to true for backwards compatibility
     
     return (
       <div 
@@ -889,7 +946,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           )}
         </div>
         
-        <div className="h-9 w-9 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-3">
+        <div className={`h-9 w-9 rounded-lg flex items-center justify-center mr-3 bg-theme-500 dark:bg-theme-600`}>
           <UserGroupIconSolid className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1 min-w-0">
@@ -899,23 +956,29 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             {team.name}
           </p>
           <p className="text-xs text-gray-500 dark:text-dark-400 truncate">
-            {team.unread_count > 0 
-              ? `${team.unread_count} new message${team.unread_count === 1 ? '' : 's'}`
-              : team.description
+            {!isMember && isItemSelected(team, 'team', section) 
+              ? 'Viewing as spy'
+              : team.unread_count > 0 
+                ? `${team.unread_count} new message${team.unread_count === 1 ? '' : 's'}`
+                : team.description
             }
           </p>
         </div>
         <div className="flex items-center space-x-1">
-          {/* Mute indicator */}
-          {isMuted && (
-            <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+          {/* Only show mute indicator, options and favorite for members */}
+          {isMember && (
+            <>
+              {isMuted && (
+                <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+              )}
+              <ChatOptionsDropdown item={team} type="team" isItemSelected={isItemSelected(team, 'team', section)} />
+              <FavoriteButton 
+                item={team} 
+                type="team" 
+                isFavorited={isFavorite(team, 'team')} 
+              />
+            </>
           )}
-          <ChatOptionsDropdown item={team} type="team" isItemSelected={isItemSelected(team, 'team', section)} />
-          <FavoriteButton 
-            item={team} 
-            type="team" 
-            isFavorited={isFavorite(team, 'team')} 
-          />
         </div>
       </div>
     )
@@ -1190,20 +1253,35 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                   <UserGroupIcon className="w-4 h-4 mr-2" />
                   Teams ({filteredTeams.length})
                 </button>
-                {canCreateTeams && (
-                  <button
-                    ref={sectionCreateTeamRef}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCreateTeamTrigger('section')
-                      setShowCreateTeamDropdown(true)
-                    }}
-                    className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700 rounded"
-                    title="Create new team"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                  </button>
-                )}
+                <div className='flex gap-x-1'>
+                  {canMonitorAllTeams && (
+                    <button 
+                      onClick={toggleSpyMode}
+                      className={`p-1 rounded transition-colors ${
+                        effectiveSpyMode 
+                          ? 'text-theme-500 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30 hover:bg-theme-200 dark:hover:bg-theme-800/50' 
+                          : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700'
+                      }`}
+                      title={effectiveSpyMode ? 'Spy mode: ON - Viewing all teams' : 'Spy mode: OFF - Viewing only your teams'}
+                    >
+                      <RiSpyLine className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canCreateTeams && (
+                    <button
+                      ref={sectionCreateTeamRef}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCreateTeamTrigger('section')
+                        setShowCreateTeamDropdown(true)
+                      }}
+                      className="p-1 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-200 dark:hover:bg-dark-700 rounded"
+                      title="Create new team"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               {expandedSections.teams && filteredTeams.length > 0 && (
                 <div className="pb-2">

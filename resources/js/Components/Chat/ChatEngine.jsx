@@ -82,6 +82,10 @@ export default function ChatEngine({
   
   // Track pending reactions to prevent double-clicks
   const pendingReactionsRef = useRef(new Set())
+  
+  // Determine if user is a member of the current team (for spy mode)
+  // For DMs, always consider as member. For teams, check is_member flag
+  const isMember = chatType !== 'team' || selectedChat?.is_member !== false
 
   // Use optimistic messages hook
   const {
@@ -2346,6 +2350,7 @@ export default function ChatEngine({
           onChatSelect?.(newTeam, 'team')
         }}
         onUserRoleChange={setCurrentUserRole}
+        isMember={isMember}
       />
       
       {/* WebSocket Connection Error Banner */}
@@ -2476,6 +2481,7 @@ export default function ChatEngine({
           canDeleteOthersMessages={chatType === 'team' && (currentUserRole === 'admin' || currentUserRole === 'owner')}
           canPinMessages={canPinMessages}
           teamMembers={chatType === 'team' ? teamMembers : []}
+          isMember={isMember}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}
@@ -2506,23 +2512,29 @@ export default function ChatEngine({
       {/* Message Input */}
       {!loadError && (
         <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-dark-700 min-h-[73px]">
-          <MessageInput
-            value={newMessage}
-            onChange={setNewMessage}
-            onSubmit={handleSendMessage}
-            onTyping={sendTypingIndicator}
-            placeholder={`Message ${selectedChat.name}...`}
-            disabled={sending || isRateLimited}
-            replyingTo={replyingTo}
-            inputRef={messageInputRef}
-            onAttachmentsChange={handleAttachmentsChange}
-            clearAttachments={clearAttachmentsTrigger}
-            allowAttachments={canSendAttachments}
-            teamMembers={chatType === 'team' ? teamMembers : []}
-            chatType={chatType}
-            currentUserId={currentUser?.id}
-            onMentionsChange={setPendingMentions}
-          />
+          {isMember ? (
+            <MessageInput
+              value={newMessage}
+              onChange={setNewMessage}
+              onSubmit={handleSendMessage}
+              onTyping={sendTypingIndicator}
+              placeholder={`Message ${selectedChat.name}...`}
+              disabled={sending || isRateLimited}
+              replyingTo={replyingTo}
+              inputRef={messageInputRef}
+              onAttachmentsChange={handleAttachmentsChange}
+              clearAttachments={clearAttachmentsTrigger}
+              allowAttachments={canSendAttachments}
+              teamMembers={chatType === 'team' ? teamMembers : []}
+              chatType={chatType}
+              currentUserId={currentUser?.id}
+              onMentionsChange={setPendingMentions}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-2 text-gray-500 dark:text-dark-400 text-sm">
+              <span>You are viewing this team in spy mode. Join the team to send messages.</span>
+            </div>
+          )}
         </div>
       )}
     </div>
