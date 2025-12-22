@@ -157,11 +157,11 @@ export default function MentionPicker({
         visibility: isPositioned ? 'visible' : 'hidden',
         transition: 'opacity 0.1s ease-out'
       }}
-      className="w-72 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-xl z-50 flex flex-col"
+      className="w-72 bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-lg shadow-xl z-50 flex flex-col"
     >
       {/* Header */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-750">
-        <p className="text-xs font-medium text-gray-500 dark:text-dark-400">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-700">
+        <p className="text-xs font-medium text-gray-500 dark:text-dark-300">
           Mention someone
         </p>
       </div>
@@ -224,8 +224,8 @@ export default function MentionPicker({
       </div>
       
       {/* Footer hint */}
-      <div className="flex-shrink-0 px-3 py-1.5 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-750">
-        <p className="text-xs text-gray-400 dark:text-dark-500">
+      <div className="flex-shrink-0 px-3 py-1.5 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-700">
+        <p className="text-xs text-gray-400 dark:text-dark-300">
           <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-dark-600 rounded text-xs">↑↓</kbd> to navigate,{' '}
           <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-dark-600 rounded text-xs">Enter</kbd> to select,{' '}
           <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-dark-600 rounded text-xs">Esc</kbd> to dismiss

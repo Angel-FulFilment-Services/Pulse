@@ -1,7 +1,50 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import { SpeakerXMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import { QUICK_REACTIONS } from '../../Config/EmojiConfig'
 import UserIcon from './UserIcon'
+
+// Helper to render message body with mentions highlighted
+function MessageBodyWithMentions({ body }) {
+  const renderWithMentions = useMemo(() => {
+    if (!body) return null
+    
+    // Simple regex to match @mentions
+    const mentionRegex = /@(\w+(?:\s+\w+)*)/g
+    
+    const parts = []
+    let lastIndex = 0
+    let match
+    let keyIndex = 0
+    
+    while ((match = mentionRegex.exec(body)) !== null) {
+      // Add text before the mention
+      if (match.index > lastIndex) {
+        parts.push(<span key={keyIndex++}>{body.slice(lastIndex, match.index)}</span>)
+      }
+      
+      // Add the mention with bold styling
+      parts.push(
+        <span 
+          key={keyIndex++} 
+          className="font-bold text-theme-500 dark:text-theme-600"
+        >
+          {match[0]}
+        </span>
+      )
+      
+      lastIndex = match.index + match[0].length
+    }
+    
+    // Add remaining text after last mention
+    if (lastIndex < body.length) {
+      parts.push(<span key={keyIndex++}>{body.slice(lastIndex)}</span>)
+    }
+    
+    return parts.length > 0 ? parts : body
+  }, [body])
+  
+  return <>{renderWithMentions}</>
+}
 
 export default function ChatNotificationToast({
   message,
@@ -9,6 +52,7 @@ export default function ChatNotificationToast({
   chatId,
   chatType,
   hidePreview,
+  isMentioned = false,
   onReply,
   onReact,
   onNavigate,
@@ -84,18 +128,27 @@ export default function ChatNotificationToast({
         {/* Header */}
         <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-dark-700">
           <UserIcon contact={sender} size="small" />
-          <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="font-semibold text-gray-900 dark:text-dark-50 text-sm truncate">
-              {sender.name}
-            </span>
-            {chatType === 'team' && teamName && (
-              <span className="text-xs text-gray-500 dark:text-dark-400 truncate mt-0.5">
-                in {teamName}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900 dark:text-dark-50 text-sm truncate">
+                {sender.name}
               </span>
-            )}
-            <span className="text-xs text-gray-400 dark:text-dark-500 mt-0.5">
-              {formatTime(message.created_at)}
-            </span>
+              {isMentioned && (
+                <span className="text-xs font-medium text-theme-600 dark:text-theme-400">
+                  mentioned you
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {chatType === 'team' && teamName && (
+                <span className="text-xs text-gray-500 dark:text-dark-400 truncate">
+                  in {teamName}
+                </span>
+              )}
+              <span className="text-xs text-gray-400 dark:text-dark-500">
+                {formatTime(message.created_at)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -110,7 +163,7 @@ export default function ChatNotificationToast({
                     <>
                     {message.body && (
                         <p className="text-gray-900 dark:text-dark-50 text-sm line-clamp-3">
-                        {message.body}
+                          <MessageBodyWithMentions body={message.body} />
                         </p>
                     )}
                     {message.attachments?.length > 0 && !message.body && (

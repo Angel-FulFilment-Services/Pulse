@@ -312,6 +312,7 @@ export function NotificationProvider({ children }) {
         chatId={chatId}
         chatType={chatType}
         hidePreview={hidePreview}
+        isMentioned={isMentioned}
         onReply={(replyText) => sendQuickReply(replyText, chatId, chatType)}
         onReact={(emoji, name) => addQuickReaction(message.id, emoji, name)}
         onNavigate={() => navigateToChat(chatId, chatType)}
