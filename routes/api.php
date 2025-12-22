@@ -140,7 +140,10 @@ Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers']
 |-----------------------
 */
 
-Route::prefix('chat')->group(function () {    
+Route::prefix('chat')
+    ->withoutMiddleware('throttle:api')
+    ->middleware('throttle:10000,1')
+    ->group(function () {    
     // Messages
     Route::get('messages', [MessageController::class, 'index']);
     Route::post('messages', [MessageController::class, 'store']);
