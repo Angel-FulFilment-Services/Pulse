@@ -98,7 +98,7 @@ export function LinkPreviewCard({ url, isMyMessage = false, hasContent = true })
       <div
         className={`block ${hasContent ? 'mt-2' : ''} rounded-lg overflow-hidden border max-w-xs w-80 animate-pulse ${
           isMyMessage 
-            ? 'bg-white/10 border-white/20' 
+            ? 'bg-white/20 border-white/20' 
             : 'bg-gray-100 dark:bg-dark-800 border-gray-300/75 dark:border-dark-500/50'
         }`}
       >
@@ -134,8 +134,8 @@ export function LinkPreviewCard({ url, isMyMessage = false, hasContent = true })
       rel="noopener noreferrer"
       className={`block ${hasContent ? 'mt-2' : ''} rounded-lg overflow-hidden border transition-colors max-w-xs ${
         isMyMessage 
-          ? 'bg-white/10 border-white/20 hover:bg-white/20' 
-          : 'bg-gray-100 dark:bg-dark-800 border-gray-300/75 dark:border-dark-500/50 hover:bg-gray-100/50 dark:hover:bg-dark-800/50'
+          ? 'bg-white/20 border-white/20 hover:bg-white/25' 
+          : 'bg-gray-100 dark:bg-dark-800 border-gray-300/75 dark:border-dark-500/50 hover:bg-gray-100/75 dark:hover:bg-dark-800/50'
       }`}
       onClick={(e) => e.stopPropagation()}
     >
