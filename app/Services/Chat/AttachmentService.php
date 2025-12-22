@@ -110,6 +110,9 @@ class AttachmentService
                 $storageDriver = $this->uploadToStorage($tempPath, $storagePath);
                 $this->uploadToStorage($thumbnailTempPath, $thumbnailPath, $storageDriver);
                 
+                // Get file size before cleaning up temp files
+                $processedFileSize = file_exists($tempPath) ? filesize($tempPath) : $file->getSize();
+                
                 // Clean up temp files
                 @unlink($tempPath);
                 @unlink($thumbnailTempPath);
@@ -117,7 +120,7 @@ class AttachmentService
                 return [
                     'file_name' => $file->getClientOriginalName(),
                     'file_type' => $fileType,
-                    'file_size' => filesize(sys_get_temp_dir() . '/' . $webpFilename) ?: $file->getSize(),
+                    'file_size' => $processedFileSize,
                     'mime_type' => 'image/webp',
                     'storage_path' => $storagePath,
                     'thumbnail_path' => $thumbnailPath,

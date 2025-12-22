@@ -56,7 +56,6 @@ class TeamsNotificationService
                 ->get("https://graph.microsoft.com/v1.0/users/{$email}");
 
             if ($response->failed()) {
-                Log::warning("Could not find Teams user for email: {$email}", $response->json());
                 return null;
             }
 
@@ -126,7 +125,7 @@ class TeamsNotificationService
                 
                 // Don't log as error if user simply doesn't have the app installed
                 if ($errorCode === 'Forbidden') {
-                    Log::debug("Teams app not installed for user: {$recipientEmail}");
+
                 } else {
                     Log::error('Failed to send Teams notification', [
                         'user' => $recipientEmail,
