@@ -28,6 +28,7 @@ import {
 } from '@heroicons/react/24/solid'
 import UserIcon from './UserIcon.jsx'
 import { useUserStates } from '../Context/ActiveStateContext';
+import { useNotifications } from '../Context/NotificationContext';
 import { differenceInMinutes } from 'date-fns'
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from './CreateTeamDropdown.jsx'
@@ -44,6 +45,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const canCreateTeams = usePermission('pulse_chat_create_teams')
   const canMakeGlobalAnnouncements = usePermission('pulse_chat_global_announcements')
   const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
+  
+  // Get NotificationContext to sync preferences
+  const { fetchChatPreferences: fetchNotificationPreferences } = useNotifications()
   
   // Spy mode state - defaults to true, persisted in localStorage
   const [spyMode, setSpyMode] = useState(() => {
@@ -536,6 +540,9 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         const data = await response.json()
         setChatPreferences(Array.isArray(data) ? data : [])
       }
+      
+      // Also refresh NotificationContext preferences so notifications respect the change
+      fetchNotificationPreferences?.()
     } catch (error) {
       console.error('Error refreshing chat preferences:', error)
     }

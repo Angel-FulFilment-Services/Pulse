@@ -10,6 +10,7 @@ import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
 import AnnouncementDropdown from '../AnnouncementDropdown.jsx'
 import { usePermission } from '../../../Utils/Permissions.jsx'
 import { useUserStates } from '../../Context/ActiveStateContext'
+import { useNotifications } from '../../Context/NotificationContext'
 
 export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange, isMember = true }) {
   // Permission checks - must be at top level before any conditional returns
@@ -18,6 +19,9 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
   
   // Get user states for active status
   const { userStates } = useUserStates()
+  
+  // Get NotificationContext to sync preferences
+  const { fetchChatPreferences: fetchNotificationPreferences } = useNotifications()
   
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMembersPanel, setShowMembersPanel] = useState(false)
@@ -478,6 +482,12 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
   // Check if current user can manage members (admin or owner)
   const canManageMembers = currentUserRole === 'admin' || currentUserRole === 'owner'
   
+  // Helper to sync preferences after changes
+  const syncPreferences = () => {
+    onChatPreferenceChange?.()
+    fetchNotificationPreferences?.()
+  }
+  
   const handleOptionClick = async (action) => {
     setShowDropdown(false)
     
@@ -498,7 +508,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             body: JSON.stringify(chatData)
           })
           if (response.ok) {
-            onChatPreferenceChange?.()
+            syncPreferences()
           }
           break
           
@@ -510,7 +520,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             body: JSON.stringify(chatData)
           })
           if (response.ok) {
-            onChatPreferenceChange?.()
+            syncPreferences()
           }
           break
           
@@ -522,7 +532,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             body: JSON.stringify(chatData)
           })
           if (response.ok) {
-            onChatPreferenceChange?.()
+            syncPreferences()
             // Navigate away if hiding
             if (!isHidden) {
               window.location.href = '/chat'
@@ -545,7 +555,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             body: JSON.stringify(chatData)
           })
           if (response.ok) {
-            onChatPreferenceChange?.()
+            syncPreferences()
           }
           break
           
@@ -560,7 +570,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             })
           })
           if (response.ok) {
-            onChatPreferenceChange?.()
+            syncPreferences()
           }
           break
           
