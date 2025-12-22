@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowUturnLeftIcon, ArrowRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Config/EmojiConfig'
 import EmojiPicker from './EmojiPicker'
 import ForwardDropdown from './ForwardDropdown'
 
-export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onReplyClick, isDeleted, onForwardMessage, canDeleteOthersMessages = false, canPinMessages = false }) {
+export default function MessageReactions({ message, isMyMessage, onAddReaction, isHovered: isMessageHovered, bubbleRef, currentUser, messageStatus, onPinMessage, isPinned, onDeleteMessage, onEditMessage, onReplyClick, isDeleted, onForwardMessage, canDeleteOthersMessages = false, canPinMessages = false }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(message.id).startsWith('temp-') || message.isPending
   if (isOptimistic) {
@@ -276,6 +276,20 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
                     title="Forward"
                   >
                     <ArrowRightIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+              
+              {/* Edit button - only show for own messages that have body text */}
+              {isMyMessage && !isDeleted && message.body && onEditMessage && (
+                <>
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600" />
+                  <button
+                    onClick={() => onEditMessage?.(message)}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-gray-600 dark:text-dark-400"
+                    title="Edit message"
+                  >
+                    <PencilIcon className="w-5 h-5" />
                   </button>
                 </>
               )}

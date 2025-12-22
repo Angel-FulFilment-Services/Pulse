@@ -1,5 +1,19 @@
 import React from 'react'
-import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon } from '@heroicons/react/24/outline'
+import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, LinkIcon } from '@heroicons/react/24/outline'
+import { extractUrls } from './LinkPreview'
+
+// Helper to strip URLs from text and return display text + link count
+function formatTextWithLinkCount(text) {
+  if (!text) return { displayText: '', linkCount: 0 }
+  const urls = extractUrls(text)
+  if (urls.length === 0) return { displayText: text, linkCount: 0 }
+  
+  let strippedText = text
+  urls.forEach(url => {
+    strippedText = strippedText.replace(url, '').replace(/  +/g, ' ')
+  })
+  return { displayText: strippedText.trim(), linkCount: urls.length }
+}
 
 export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply }) {
   if (!repliedMessage) return null
@@ -73,17 +87,27 @@ export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply 
               {formatTimestamp(repliedMessage.created_at)}
             </div>
           </div>
-          <div className={`text-sm truncate max-w-lg ${
+          <div className={`text-sm truncate max-w-lg flex items-center gap-1.5 ${
             isMyMessage ? 'text-white dark:text-dark-200 text-opacity-75' : 'text-gray-500 dark:text-dark-400'
           } ${repliedMessage.deleted_at || (isAttachmentMessage && attachment?.deleted_at) ? 'italic' : ''}`}>
-            {repliedMessage.deleted_at 
-              ? 'This message has been deleted' 
-              : (isAttachmentMessage && attachment?.deleted_at)
-                ? 'This attachment has been deleted'
-                : isAttachmentMessage 
-                  ? getAttachmentDescription(attachment)
-                  : repliedMessage.body
-            }
+            {(() => {
+              if (repliedMessage.deleted_at) return 'This message has been deleted'
+              if (isAttachmentMessage && attachment?.deleted_at) return 'This attachment has been deleted'
+              if (isAttachmentMessage) return getAttachmentDescription(attachment)
+              
+              const { displayText, linkCount } = formatTextWithLinkCount(repliedMessage.body)
+              return (
+                <>
+                  <span className="truncate">{displayText || 'Link'}</span>
+                  {linkCount > 0 && (
+                    <span className={`inline-flex items-center gap-0.5 flex-shrink-0 ${isMyMessage ? 'text-theme-200' : 'text-theme-600 dark:text-theme-400'}`}>
+                      <LinkIcon className="w-3 h-3" />
+                      <span className="text-xs">+{linkCount}</span>
+                    </span>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </>
       )}

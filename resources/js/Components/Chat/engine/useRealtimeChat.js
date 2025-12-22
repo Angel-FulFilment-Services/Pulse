@@ -19,6 +19,7 @@ export function useRealtimeChat({
   onMessageUnpinned,
   onMessageDeleted,
   onMessageRestored,
+  onMessageEdited,
   onAttachmentPinned,
   onAttachmentUnpinned,
   onAttachmentDeleted,
@@ -42,6 +43,7 @@ export function useRealtimeChat({
   const onMessageUnpinnedRef = useRef(onMessageUnpinned)
   const onMessageDeletedRef = useRef(onMessageDeleted)
   const onMessageRestoredRef = useRef(onMessageRestored)
+  const onMessageEditedRef = useRef(onMessageEdited)
   const onAttachmentPinnedRef = useRef(onAttachmentPinned)
   const onAttachmentUnpinnedRef = useRef(onAttachmentUnpinned)
   const onAttachmentDeletedRef = useRef(onAttachmentDeleted)
@@ -67,6 +69,7 @@ export function useRealtimeChat({
     onMessageUnpinnedRef.current = onMessageUnpinned
     onMessageDeletedRef.current = onMessageDeleted
     onMessageRestoredRef.current = onMessageRestored
+    onMessageEditedRef.current = onMessageEdited
     onAttachmentPinnedRef.current = onAttachmentPinned
     onAttachmentUnpinnedRef.current = onAttachmentUnpinned
     onAttachmentDeletedRef.current = onAttachmentDeleted
@@ -75,7 +78,7 @@ export function useRealtimeChat({
     onMemberLeftRef.current = onMemberLeft
     onAnnouncementCreatedRef.current = onAnnouncementCreated
     onAnnouncementDismissedRef.current = onAnnouncementDismissed
-  }, [onMessageReceived, onMessageRead, onMessageUnread, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored, onMemberJoined, onMemberLeft, onAnnouncementCreated, onAnnouncementDismissed])
+  }, [onMessageReceived, onMessageRead, onMessageUnread, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onMessageEdited, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored, onMemberJoined, onMemberLeft, onAnnouncementCreated, onAnnouncementDismissed])
 
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') {
@@ -96,6 +99,7 @@ export function useRealtimeChat({
       prevChannel.stopListening('.MessageUnpinned')
       prevChannel.stopListening('.MessageDeleted')
       prevChannel.stopListening('.MessageRestored')
+      prevChannel.stopListening('.MessageEdited')
       prevChannel.stopListening('.AttachmentPinned')
       prevChannel.stopListening('.AttachmentUnpinned')
       prevChannel.stopListening('.AttachmentDeleted')
@@ -197,6 +201,13 @@ export function useRealtimeChat({
       channel.listen('.MessageRestored', (e) => {
         if (onMessageRestoredRef.current && e.message) {
           onMessageRestoredRef.current(e.message)
+        }
+      })
+      
+      // Listen for message edited
+      channel.listen('.MessageEdited', (e) => {
+        if (onMessageEditedRef.current && e.message) {
+          onMessageEditedRef.current(e.message)
         }
       })
       

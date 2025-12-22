@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
-import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import ReplyBubble from './ReplyBubble'
@@ -10,81 +10,122 @@ import UserIcon from '../UserIcon'
 import AttachmentPreview from './AttachmentPreview'
 import ImageLightbox from './ImageLightbox'
 import PDFLightbox from './PDFLightbox'
+import { URL_REGEX, extractUrls, LinkPreviewCard, normalizeUrl } from './LinkPreview'
 
-// Helper component to render message body with mentions highlighted
+// Helper component to render message body with mentions and URLs highlighted
 function MessageBody({ body, isMyMessage, teamMembers = [] }) {
-  // Parse @mentions in the message and render them bold
-  const renderWithMentions = useMemo(() => {
+  // Parse @mentions and URLs in the message
+  const renderContent = useMemo(() => {
     if (!body) return null
     
     // Build list of valid mention names from team members
     const validMentions = ['everyone', ...teamMembers.map(m => m.name?.toLowerCase()).filter(Boolean)]
     
-    if (validMentions.length === 0) {
-      return body
+    // First, find all URLs in the body
+    const urlMatches = []
+    let urlMatch
+    const urlRegex = new RegExp(URL_REGEX.source, 'gi')
+    while ((urlMatch = urlRegex.exec(body)) !== null) {
+      urlMatches.push({
+        type: 'url',
+        start: urlMatch.index,
+        end: urlMatch.index + urlMatch[0].length,
+        text: urlMatch[0]
+      })
     }
     
-    const parts = []
-    let remaining = body
-    let keyIndex = 0
-    
-    while (remaining.length > 0) {
-      // Find the next @ symbol
-      const atIndex = remaining.indexOf('@')
-      
-      if (atIndex === -1) {
-        // No more @, add the rest as plain text
-        parts.push(remaining)
-        break
-      }
-      
-      // Add text before the @
-      if (atIndex > 0) {
-        parts.push(remaining.slice(0, atIndex))
-      }
-      
-      // Check if this @ matches any valid mention
-      const afterAt = remaining.slice(atIndex + 1)
-      let matchedMention = null
-      let matchLength = 0
-      
-      for (const mentionName of validMentions) {
-        if (afterAt.toLowerCase().startsWith(mentionName)) {
-          // Check that the mention ends at a word boundary
-          const endIndex = mentionName.length
-          const charAfter = afterAt[endIndex]
-          if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
-            // Found a valid mention - use the longest match
-            if (mentionName.length > matchLength) {
-              matchedMention = afterAt.slice(0, mentionName.length)
-              matchLength = mentionName.length
+    // Find all mentions
+    const mentionMatches = []
+    if (validMentions.length > 0) {
+      let searchIndex = 0
+      while (searchIndex < body.length) {
+        const atIndex = body.indexOf('@', searchIndex)
+        if (atIndex === -1) break
+        
+        const afterAt = body.slice(atIndex + 1).toLowerCase()
+        let matchedMention = null
+        let matchLength = 0
+        
+        for (const mentionName of validMentions) {
+          if (afterAt.startsWith(mentionName)) {
+            const endIndex = mentionName.length
+            const charAfter = afterAt[endIndex]
+            if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
+              if (mentionName.length > matchLength) {
+                matchedMention = body.slice(atIndex + 1, atIndex + 1 + mentionName.length)
+                matchLength = mentionName.length
+              }
             }
           }
         }
-      }
-      
-      if (matchedMention) {
-        // Add the mention with bold styling
-        parts.push(
-          <span 
-            key={keyIndex++} 
-            className={`font-bold ${isMyMessage ? 'text-white' : 'text-theme-500 dark:text-theme-600'}`}
-          >
-            @{matchedMention}
-          </span>
-        )
-        remaining = remaining.slice(atIndex + 1 + matchLength)
-      } else {
-        // Not a valid mention, add the @ as plain text and continue
-        parts.push('@')
-        remaining = remaining.slice(atIndex + 1)
+        
+        if (matchedMention) {
+          mentionMatches.push({
+            type: 'mention',
+            start: atIndex,
+            end: atIndex + 1 + matchLength,
+            text: '@' + matchedMention
+          })
+          searchIndex = atIndex + 1 + matchLength
+        } else {
+          searchIndex = atIndex + 1
+        }
       }
     }
     
-    return parts.length > 0 ? parts : body
+    // Combine and sort all highlights
+    const allHighlights = [...urlMatches, ...mentionMatches].sort((a, b) => a.start - b.start)
+    
+    // Remove overlapping highlights (keep the first one)
+    const nonOverlapping = []
+    let lastEnd = 0
+    allHighlights.forEach(h => {
+      if (h.start >= lastEnd) {
+        nonOverlapping.push(h)
+        lastEnd = h.end
+      }
+    })
+    
+    if (nonOverlapping.length === 0) {
+      return body
+    }
+    
+    // Build the parts
+    const parts = []
+    let lastIndex = 0
+    
+    nonOverlapping.forEach((highlight, idx) => {
+      // Add text before
+      if (highlight.start > lastIndex) {
+        parts.push(<span key={`text-${idx}`}>{body.slice(lastIndex, highlight.start)}</span>)
+      }
+      
+      if (highlight.type === 'mention') {
+        parts.push(
+          <span 
+            key={`mention-${idx}`} 
+            className={`font-bold ${isMyMessage ? 'text-white' : 'text-theme-500 dark:text-theme-600'}`}
+          >
+            {highlight.text}
+          </span>
+        )
+      } else if (highlight.type === 'url') {
+        // Don't render URL text - preview card shown separately underneath the message
+        // Just skip the URL text entirely
+      }
+      
+      lastIndex = highlight.end
+    })
+    
+    // Add remaining text
+    if (lastIndex < body.length) {
+      parts.push(<span key="text-end">{body.slice(lastIndex)}</span>)
+    }
+    
+    return parts
   }, [body, isMyMessage, teamMembers])
   
-  return <p>{renderWithMentions}</p>
+  return <p className="break-words">{renderContent}</p>
 }
 
 export default function MessageList({ 
@@ -109,6 +150,7 @@ export default function MessageList({
   pinnedAttachmentId,
   onDeleteMessage,
   onRestoreMessage,
+  onEditMessage,
   onQuickMessage,
   onForwardMessage,
   onForwardAttachment,
@@ -589,7 +631,7 @@ export default function MessageList({
                     return (
                       <div 
                         key={message.id} 
-                        className={`mb-1 ${prevHasReactions ? 'mt-5' : ''} ${isMyGroup ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}
+                        className={`mb-1 ${prevHasReactions && !prevMessage.is_edited ? 'mt-5' : ''} ${isMyGroup ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}
                       >
                         {/* Attachments above the bubble */}
                         {!message.deleted_at && message.attachments?.length > 0 && (
@@ -600,7 +642,7 @@ export default function MessageList({
                                 messageRefs.current[message.id] = el
                               }
                             }}
-                            className={`flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${hasAttachmentReactions ? 'mb-7' : 'mb-2'} ${newMessageIds.has(message.id) ? (isMyGroup ? 'animate-message-slide-in-sent' : 'animate-message-slide-in-received') : ''}`}
+                            className={`flex items-center gap-2 max-w-5xl ${isMyGroup ? 'flex-row-reverse' : 'flex-row'} ${hasAttachmentReactions ? 'mb-5' : 'mb-2'} ${newMessageIds.has(message.id) ? (isMyGroup ? 'animate-message-slide-in-sent' : 'animate-message-slide-in-received') : ''}`}
                           >
                             <div>
                               {message.attachments.map((attachment, index) => {
@@ -756,6 +798,10 @@ export default function MessageList({
                               ) : (
                                 <>
                                   {message.body && <MessageBody body={message.body} isMyMessage={isMyGroup} teamMembers={teamMembers} />}
+                                  {/* Link preview cards for URLs in the message */}
+                                  {message.body && extractUrls(message.body).map((url, idx) => (
+                                    <LinkPreviewCard key={`link-${idx}`} url={url} isMyMessage={isMyGroup} />
+                                  ))}
                                 </>
                               )}
                             </div>
@@ -774,6 +820,7 @@ export default function MessageList({
                               onPinMessage={onPinMessage}
                               isPinned={message.id === pinnedMessageId}
                               onDeleteMessage={onDeleteMessage}
+                              onEditMessage={onEditMessage}
                               onReplyClick={onReplyClick}
                               isDeleted={!!message.deleted_at}
                               onForwardMessage={onForwardMessage}
@@ -795,9 +842,16 @@ export default function MessageList({
                         </div>
                         )}
                         
+                        {/* Edited indicator for my messages - show underneath bubble, right-aligned */}
+                        {(message.is_edited && !message.deleted_at) ? (
+                          <div className={`text-xs text-gray-400 dark:text-dark-500 text-right ${hasMessageReactions && !message.deleted_at ? 'pt-6 pb-1' : 'pt-1 pb-1'}`} title={`Edited${message.edited_at ? ` at ${new Date(message.edited_at).toLocaleString()}` : ''}`}>
+                            (edited)
+                          </div>
+                        ) : null}
+                        
                         {/* Read receipt - separate from bubble, at message level */}
                         {isMyGroup && (isLastReadMessage || isLastUnreadMessage || message.status === 'pending' || message.status === 'failed') && (
-                          <div className={`flex items-center text-xs py-1 ${hasMessageReactions && !message.deleted_at ? 'pt-8' : 'pt-1.5'}`}>
+                          <div className={`flex items-center text-xs py-1 ${hasMessageReactions && !message.deleted_at && !message.is_edited ? 'pt-6' : 'pt-1.5'}`}>
                             {isLastReadMessage && readerNames.length > 0 ? (
                               chatType === 'dm' ? (
                                 <span className="text-gray-500 dark:text-dark-400">Seen</span>
@@ -869,7 +923,7 @@ export default function MessageList({
                     
                     return (
                       <div className={`text-xs text-gray-500 dark:text-dark-400 text-right ${
-                        (hasMessageReactions) && !lastMsgHasStatus && !lastMsg.deleted_at ? 'mt-7' : 'mt-1'
+                        (hasMessageReactions) && !lastMsgHasStatus && !lastMsg.deleted_at && !lastMsg.is_edited ? 'mt-7' : 'mt-1'
                       }`}>
                         {formatTime(lastMsg.created_at)}
                       </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App\Chat;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Chat\Message;
+use App\Models\Chat\MessageEdit;
 use App\Models\Chat\MessageReaction;
 use App\Models\Chat\MessageAttachment;
 use App\Models\Chat\Team;
@@ -613,7 +614,7 @@ class MessageController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-        // Update (edit) a message
+    // Update (edit) a message
     public function update(Request $request, $id)
     {
         $message = Message::findOrFail($id);
@@ -623,10 +624,20 @@ class MessageController extends Controller
         $data = $request->validate([
             'body' => 'required|string',
         ]);
+        
+        // Store the previous body in message_edits history
+        MessageEdit::create([
+            'message_id' => $message->id,
+            'body' => $message->body
+        ]);
+        
+        // Update the message
         $message->body = $data['body'];
         $message->is_edited = true;
+        $message->edited_at = now();
         $message->save();
-        broadcast(new \App\Events\Chat\MessageSent($message))->toOthers();
+        
+        broadcast(new \App\Events\Chat\MessageEdited($message))->toOthers();
         return response()->json($message->load(['attachments.reactions.user', 'attachments.forwardedFromAttachment', 'reads', 'reactions.user', 'user']));
     }
 

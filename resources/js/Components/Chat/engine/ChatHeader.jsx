@@ -944,7 +944,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                   onClick={() => setShowDropdown(false)}
                 />
                 {/* Dropdown menu */}
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-20">
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-30">
                   <button
                     onClick={() => handleOptionClick('markUnread')}
                     className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg flex items-center"

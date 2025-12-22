@@ -448,7 +448,22 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         const updates = {}
         if (timestamp) updates.last_message_at = timestamp
         if (resetUnread) updates.unread_count = 0
-        else if (incrementUnread) updates.unread_count = (team.unread_count || 0) + 1
+        else if (incrementUnread) {
+          // For non-member teams (spy mode), don't increment - they use localStorage tracking
+          if (team.is_member === false) {
+            // Just update timestamp, unread will be recalculated from localStorage on next fetch
+            return { ...team, ...updates }
+          }
+          
+          // Check if message is after history_removed_at for this chat
+          const preference = chatPreferences.find(p => p.chat_id === chatId && p.chat_type === 'team')
+          const historyRemovedAt = preference?.history_removed_at
+          
+          // Only increment if no history cutoff, or message is after the cutoff
+          if (!historyRemovedAt || (timestamp && new Date(timestamp) > new Date(historyRemovedAt))) {
+            updates.unread_count = (team.unread_count || 0) + 1
+          }
+        }
         // If neither resetUnread nor incrementUnread, don't touch unread_count
         
         return { ...team, ...updates }
@@ -460,13 +475,22 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         const updates = {}
         if (timestamp) updates.last_message_at = timestamp
         if (resetUnread) updates.unread_count = 0
-        else if (incrementUnread) updates.unread_count = (contact.unread_count || 0) + 1
+        else if (incrementUnread) {
+          // Check if message is after history_removed_at for this chat
+          const preference = chatPreferences.find(p => p.chat_id === chatId && p.chat_type === 'user')
+          const historyRemovedAt = preference?.history_removed_at
+          
+          // Only increment if no history cutoff, or message is after the cutoff
+          if (!historyRemovedAt || (timestamp && new Date(timestamp) > new Date(historyRemovedAt))) {
+            updates.unread_count = (contact.unread_count || 0) + 1
+          }
+        }
         // If neither resetUnread nor incrementUnread, don't touch unread_count
         
         return { ...contact, ...updates }
       }))
     }
-  }, [lastMessageUpdate])
+  }, [lastMessageUpdate, chatPreferences])
 
   // Helper to check if chat is hidden
   const isChatHidden = (item, type) => {
@@ -985,7 +1009,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           {isMember && (
             <>
               {isMuted && (
-                <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+                <SpeakerXMarkIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
               )}
               <ChatOptionsDropdown item={team} type="team" isItemSelected={isItemSelected(team, 'team', section)} />
               <FavoriteButton 
@@ -1054,7 +1078,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         <div className="flex items-center space-x-1">
           {/* Mute indicator */}
           {isMuted && (
-            <SpeakerXMarkIcon className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+            <SpeakerXMarkIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
           )}
           <ChatOptionsDropdown item={contact} isItemSelected={isItemSelected(contact, 'dm', section)} type="user" />
           <FavoriteButton 
@@ -1437,6 +1461,10 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
                     contact.id === itemId ? { ...contact, unread_count: 0 } : contact
                   ))
                 }
+                
+                // Refresh chat preferences to get the new history_removed_at timestamp
+                // This ensures future real-time messages don't incorrectly increment unread count
+                refreshChatPreferences()
                 
                 // If this is the currently selected chat, re-select it to refresh messages
                 // The ChatEngine will fetch fresh messages which will exclude history before the cutoff

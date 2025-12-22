@@ -76,3 +76,14 @@ export const generateChatDeletedMessages = async (parameters) => {
     });
     return response.data;
 };
+
+export const generateChatEditedMessages = async (parameters) => {
+    const { dateRange } = parameters;
+    const response = await axios.get('/reporting/reports/generate/chat-edited-messages', {
+        params: {
+            start_date: dateRange.startDate,
+            end_date: dateRange.endDate,
+        },
+    });
+    return response.data;
+};

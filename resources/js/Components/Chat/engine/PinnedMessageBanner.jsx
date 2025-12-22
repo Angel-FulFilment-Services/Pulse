@@ -1,7 +1,21 @@
 import React from 'react'
 import { XMarkIcon } from '@heroicons/react/24/solid'
-import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, ArrowRightIcon, LinkIcon } from '@heroicons/react/24/outline'
 import PinIcon from '../icons/PinIcon'
+import { extractUrls } from './LinkPreview'
+
+// Helper to strip URLs from text and return display text + link count
+function formatTextWithLinkCount(text) {
+  if (!text) return { displayText: '', linkCount: 0 }
+  const urls = extractUrls(text)
+  if (urls.length === 0) return { displayText: text, linkCount: 0 }
+  
+  let strippedText = text
+  urls.forEach(url => {
+    strippedText = strippedText.replace(url, '').replace(/  +/g, ' ')
+  })
+  return { displayText: strippedText.trim(), linkCount: urls.length }
+}
 
 export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, onUnpin, onUnpinAttachment, onClickPinned, canPinMessages = false }) {
   // Show pinned message OR pinned attachment
@@ -59,31 +73,35 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
     if (isAttachment) {
       const description = getAttachmentDescription(pinnedAttachment)
       if (isForwardedAttachment) {
-        return `Forwarded: ${description}`
+        return { text: `Forwarded: ${description}`, linkCount: 0 }
       }
-      return description
+      return { text: description, linkCount: 0 }
     }
     
     if (isForwardedMessage && forwardedMessage) {
       // Show forwarded message content with original sender
       const prefix = `From ${originalSenderName}: `
       if (forwardedMessage.body) {
-        return prefix + forwardedMessage.body
+        const { displayText, linkCount } = formatTextWithLinkCount(forwardedMessage.body)
+        return { text: prefix + (displayText || 'Link'), linkCount }
       }
       // Check for attachments in forwarded message
       if (forwardedMessage.attachments && forwardedMessage.attachments.length > 0) {
-        return prefix + getAttachmentDescription(forwardedMessage.attachments[0])
+        return { text: prefix + getAttachmentDescription(forwardedMessage.attachments[0]), linkCount: 0 }
       }
-      return prefix + 'Message'
+      return { text: prefix + 'Message', linkCount: 0 }
     }
     
     // If forwarded message but forwardedMessage not loaded, show indicator
     if (isForwardedMessage && !forwardedMessage) {
-      return 'Forwarded message'
+      return { text: 'Forwarded message', linkCount: 0 }
     }
     
-    return pinnedMessage.body || 'Message'
+    const { displayText, linkCount } = formatTextWithLinkCount(pinnedMessage.body)
+    return { text: displayText || 'Link', linkCount }
   }
+  
+  const { text: displayText, linkCount } = getDisplayContent()
 
   return (
     <div className="bg-theme-50 dark:bg-theme-900/30 border-b border-theme-200 dark:border-theme-800 px-6 py-2">
@@ -109,8 +127,14 @@ export default function PinnedMessageBanner({ pinnedMessage, pinnedAttachment, o
                 </>
               )}
             </div>
-            <p className="text-sm text-gray-700 dark:text-dark-300 truncate">
-              {getDisplayContent()}
+            <p className="text-sm text-gray-700 dark:text-dark-300 truncate flex items-center gap-1.5">
+              <span className="truncate">{displayText}</span>
+              {linkCount > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-theme-600 dark:text-theme-400 flex-shrink-0">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span className="text-xs">+{linkCount} link{linkCount > 1 ? 's' : ''}</span>
+                </span>
+              )}
             </p>
           </div>
         </button>

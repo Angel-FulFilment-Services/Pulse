@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import EmojiPicker from './EmojiPicker'
 import AttachmentPreview from './AttachmentPreview'
 import MentionPicker from './MentionPicker'
+import { URL_REGEX, fetchLinkMetadata, LinkPreviewMini } from './LinkPreview'
 
 export default function MessageInput({ 
   value, 
@@ -20,7 +21,8 @@ export default function MessageInput({
   teamMembers = [], // Team members for mentions (only for team chats)
   chatType = null, // 'team' or 'dm' - mentions only work in teams
   currentUserId = null, // Current user ID to exclude from mentions
-  onMentionsChange = null // Callback to track mentions for sending
+  onMentionsChange = null, // Callback to track mentions for sending
+  onLinksChange = null // Callback to track links for sending
 }) {
   const typingTimeoutRef = useRef(null)
   const lastTypingTimeRef = useRef(0)
@@ -41,6 +43,10 @@ export default function MessageInput({
   const [mentionVirtualRef, setMentionVirtualRef] = useState(null) // Virtual ref for @ position
   const backdropRef = useRef(null) // Ref for the formatted overlay
   
+  // URL tracking state
+  const [trackedUrls, setTrackedUrls] = useState([]) // { url, metadata }
+  const urlFetchTimeoutRef = useRef(null)
+  
   // Use provided ref or internal ref
   const effectiveInputRef = inputRef || textareaRef
 
@@ -56,9 +62,10 @@ export default function MessageInput({
       setAttachments([])
       onAttachmentsChange?.([])
     }
-    // Also clear mentions when message is sent
+    // Also clear mentions and URLs when message is sent
     if (clearAttachments) {
       setTrackedMentions([])
+      setTrackedUrls([])
       setShowMentionPicker(false)
       setMentionStartIndex(-1)
       setMentionSearchTerm('')
@@ -348,7 +355,73 @@ export default function MessageInput({
       onTyping?.()
       lastTypingTimeRef.current = now
     }
+    
+    // Detect URLs in the text - debounced to wait for user to stop typing
+    clearTimeout(urlFetchTimeoutRef.current)
+    urlFetchTimeoutRef.current = setTimeout(() => {
+      const urlMatches = newValue.match(URL_REGEX) || []
+      if (urlMatches.length > 0) {
+        // Get current value from the input (may have changed during debounce)
+        const currentValue = effectiveInputRef.current?.value || newValue
+        const currentUrlMatches = currentValue.match(URL_REGEX) || []
+        
+        if (currentUrlMatches.length > 0) {
+          // Strip URLs from the text
+          let strippedValue = currentValue
+          currentUrlMatches.forEach(url => {
+            // Remove URL and any trailing space
+            strippedValue = strippedValue.replace(url, '').replace(/  +/g, ' ')
+          })
+          strippedValue = strippedValue.trim()
+          
+          // Only update if we actually stripped something
+          if (strippedValue !== currentValue) {
+            onChange(strippedValue)
+          }
+          
+          // Add URLs to tracked list
+          addUrlsToTracked(currentUrlMatches)
+        }
+      }
+    }, 800) // Wait 800ms after user stops typing
   }
+  
+  // Add URLs to tracked list and fetch metadata
+  const addUrlsToTracked = useCallback(async (urls) => {
+    const uniqueUrls = [...new Set(urls)]
+    
+    // Find new URLs that need fetching
+    const existingUrlSet = new Set(trackedUrls.map(t => t.url))
+    const newUrls = uniqueUrls.filter(url => !existingUrlSet.has(url))
+    
+    if (newUrls.length === 0) return
+    
+    // Add URLs immediately with loading state
+    const loadingUrls = newUrls.map(url => ({ url, metadata: null, isLoading: true }))
+    const updatedUrlsWithLoading = [...trackedUrls, ...loadingUrls]
+    setTrackedUrls(updatedUrlsWithLoading)
+    onLinksChange?.(updatedUrlsWithLoading.map(u => u.url))
+    
+    // Fetch metadata for new URLs
+    const newUrlData = await Promise.all(
+      newUrls.map(async (url) => {
+        const metadata = await fetchLinkMetadata(url)
+        return { url, metadata, isLoading: false }
+      })
+    )
+    
+    // Update tracked URLs with fetched metadata
+    setTrackedUrls(prev => {
+      const updated = prev.map(tracked => {
+        const fetched = newUrlData.find(n => n.url === tracked.url)
+        if (fetched) {
+          return fetched
+        }
+        return tracked
+      })
+      return updated
+    })
+  }, [trackedUrls, onLinksChange])
 
   // Handle mention selection from picker
   const handleMentionSelect = useCallback((member) => {
@@ -408,23 +481,13 @@ export default function MessageInput({
   const renderFormattedText = useCallback(() => {
     if (!value) return null
     
-    // Build a list of mention patterns to look for
-    const mentionPatterns = trackedMentions.map(m => ({
-      pattern: `@${m.name}`,
-      name: m.name,
-      isEveryone: m.isEveryone
-    }))
-    
-    if (mentionPatterns.length === 0) {
-      // No mentions, just return the text with a trailing space to match textarea
-      return <>{value}<span style={{ opacity: 0 }}>.</span></>
-    }
-    
-    // Find all mentions in the text and their positions (case-insensitive)
-    const mentionPositions = []
+    // Collect all highlight positions (mentions only - URLs are stripped from text)
+    const highlights = []
     const valueLower = value.toLowerCase()
     
-    mentionPatterns.forEach(({ pattern, name, isEveryone }) => {
+    // Find mention positions
+    trackedMentions.forEach(m => {
+      const pattern = `@${m.name}`
       const patternLower = pattern.toLowerCase()
       let startIndex = 0
       let index
@@ -432,48 +495,62 @@ export default function MessageInput({
         const endIndex = index + pattern.length
         // Only highlight if followed by space, newline, or end of string
         if (endIndex >= value.length || value[endIndex] === ' ' || value[endIndex] === '\n') {
-          mentionPositions.push({
+          highlights.push({
+            type: 'mention',
             start: index,
             end: endIndex,
-            pattern: value.slice(index, endIndex), // Use actual text from value to preserve user's casing display
-            correctPattern: pattern, // The correct casing
-            name,
-            isEveryone
+            text: value.slice(index, endIndex),
+            data: m
           })
         }
         startIndex = index + 1
       }
     })
     
-    // Sort by position
-    mentionPositions.sort((a, b) => a.start - b.start)
+    if (highlights.length === 0) {
+      // No highlights, just return the text with a trailing space to match textarea
+      return <>{value}<span style={{ opacity: 0 }}>.</span></>
+    }
+    
+    // Sort by position and filter out overlapping highlights
+    highlights.sort((a, b) => a.start - b.start)
+    const nonOverlapping = []
+    let lastEnd = 0
+    highlights.forEach(h => {
+      if (h.start >= lastEnd) {
+        nonOverlapping.push(h)
+        lastEnd = h.end
+      }
+    })
     
     // Build the formatted output
     const parts = []
     let lastIndex = 0
     
-    mentionPositions.forEach((mention, idx) => {
-      // Add text before this mention
-      if (mention.start > lastIndex) {
+    nonOverlapping.forEach((highlight, idx) => {
+      // Add text before this highlight
+      if (highlight.start > lastIndex) {
         parts.push(
-          <span key={`text-${idx}`}>{value.slice(lastIndex, mention.start)}</span>
+          <span key={`text-${idx}`}>{value.slice(lastIndex, highlight.start)}</span>
         )
       }
       
-      // Add the formatted mention (with @ symbol, colored but same weight to match textarea)
-      parts.push(
-        <span 
-          key={`mention-${idx}`}
-          className="text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30 rounded px-0.5 -mx-0.5"
-        >
-          {mention.pattern}
-        </span>
-      )
+      if (highlight.type === 'mention') {
+        // Render mention pill
+        parts.push(
+          <span 
+            key={`mention-${idx}`}
+            className="text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30 rounded px-0.5 -mx-0.5"
+          >
+            {highlight.text}
+          </span>
+        )
+      }
       
-      lastIndex = mention.end
+      lastIndex = highlight.end
     })
     
-    // Add remaining text after last mention
+    // Add remaining text after last highlight
     if (lastIndex < value.length) {
       parts.push(<span key="text-end">{value.slice(lastIndex)}</span>)
     }
@@ -812,7 +889,7 @@ export default function MessageInput({
             </button>
             <button
               type="submit"
-              disabled={(!value.trim() && attachments.length === 0) || disabled}
+              disabled={(!value.trim() && attachments.length === 0 && trackedUrls.length === 0) || disabled}
               className="p-2 text-white bg-theme-500 hover:bg-theme-600 disabled:bg-gray-300 dark:disabled:bg-dark-700 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
@@ -829,6 +906,26 @@ export default function MessageInput({
             />
           )}
         </form>
+
+        {/* Link previews - shown below input */}
+        {trackedUrls.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {trackedUrls.map(({ url, metadata, isLoading }, idx) => (
+              <div key={`link-preview-${idx}`} className="flex-shrink-0" style={{ width: 'calc(25% - 6px)', minWidth: '160px' }}>
+                <LinkPreviewMini 
+                  url={url} 
+                  metadata={metadata}
+                  isLoading={isLoading}
+                  onRemove={(removedUrl) => {
+                    const newUrls = trackedUrls.filter(t => t.url !== removedUrl)
+                    setTrackedUrls(newUrls)
+                    onLinksChange?.(newUrls.map(u => u.url))
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   )

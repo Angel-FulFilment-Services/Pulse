@@ -1309,6 +1309,36 @@ class ReportingController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function chatEditedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->leftJoin('pulse.message_edits', 'message_edits.message_id', '=', 'messages.id')
+            ->where('messages.is_edited', true)
+            ->whereBetween('messages.edited_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                messages.body AS current_body,
+                message_edits.body AS original_body,
+                (SELECT COUNT(*) FROM pulse.message_edits WHERE message_edits.message_id = messages.id) AS edit_count,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.sent_at,
+                messages.edited_at
+            "))
+            ->groupBy('messages.id', 'sender.name', 'messages.body', 'message_edits.body', 'messages.team_id', 'teams.name', 'recipient.name', 'messages.sent_at', 'messages.edited_at')
+            ->orderBy('messages.edited_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
     /**
      * Download chat attachment from reporting
      * This bypasses the normal chat access check and uses pulse_report_chat permission instead

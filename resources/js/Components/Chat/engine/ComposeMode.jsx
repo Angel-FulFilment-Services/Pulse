@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   UserGroupIcon,
   MagnifyingGlassIcon,
@@ -22,6 +22,25 @@ export default function ComposeMode({
   const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false)
   const [allUsers, setAllUsers] = useState([])
   const [allTeams, setAllTeams] = useState([])
+  
+  // Refs for focus management
+  const recipientInputRef = useRef(null)
+  const messageInputRef = useRef(null)
+
+  // Focus recipient input on mount
+  useEffect(() => {
+    recipientInputRef.current?.focus()
+  }, [])
+
+  // Focus message input when recipient is selected
+  useEffect(() => {
+    if (composeRecipient) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        messageInputRef.current?.focus()
+      }, 50)
+    }
+  }, [composeRecipient])
 
   // Track when attachments change
   const handleAttachmentsChange = (attachments) => {
@@ -120,6 +139,7 @@ export default function ComposeMode({
                   <span className="text-sm text-gray-500 dark:text-dark-400 mr-2">To:</span>
                   <div className="relative flex-1">
                     <input
+                      ref={recipientInputRef}
                       type="text"
                       placeholder="Type a name, channel, or tag"
                       value={recipientSearch}
@@ -259,6 +279,7 @@ export default function ComposeMode({
               disabled={false}
               onAttachmentsChange={handleAttachmentsChange}
               clearAttachments={clearAttachmentsTrigger}
+              inputRef={messageInputRef}
             />
           </div>
         )}

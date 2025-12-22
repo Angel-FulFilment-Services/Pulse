@@ -12,6 +12,7 @@ import ScrollToNewMessages from './engine/ScrollToNewMessages'
 import EmptyState from './engine/EmptyState'
 import ComposeMode from './engine/ComposeMode'
 import ReplyPreview from './engine/ReplyPreview'
+import EditPreview from './engine/EditPreview'
 import PinnedMessageBanner from './engine/PinnedMessageBanner'
 import AnnouncementBanner from './engine/AnnouncementBanner'
 import { useRealtimeChat } from './engine/useRealtimeChat'
@@ -53,6 +54,7 @@ export default function ChatEngine({
   const [loadError, setLoadError] = useState(null)
   const [messageReads, setMessageReads] = useState({})
   const [replyingTo, setReplyingTo] = useState(null)
+  const [editingMessage, setEditingMessage] = useState(null) // Message being edited
   const [pinnedMessage, setPinnedMessage] = useState(null)
   const [pinnedAttachment, setPinnedAttachment] = useState(null)
   const [pinnedLoaded, setPinnedLoaded] = useState(false) // Track when pinned message fetch is complete
@@ -63,6 +65,7 @@ export default function ChatEngine({
   const [currentUserRole, setCurrentUserRole] = useState(null) // Current user's role in the team
   const [teamMembers, setTeamMembers] = useState([]) // Team members for mention picker
   const [pendingMentions, setPendingMentions] = useState([]) // Track mentions to send with message
+  const [pendingLinks, setPendingLinks] = useState([]) // Track links to append to message
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesRef = useRef([]) // Keep track of current messages for loadMoreMessages
@@ -102,6 +105,16 @@ export default function ChatEngine({
   // Determine if user is a member of the current team (for spy mode)
   // For DMs, always consider as member. For teams, check is_member flag
   const isMember = chatType !== 'team' || selectedChat?.is_member !== false
+
+  // Focus message input when opening a chat (only if member, not in spy mode)
+  useEffect(() => {
+    if (selectedChat && isMember && !loading) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        messageInputRef.current?.focus()
+      }, 50)
+    }
+  }, [selectedChat, isMember, loading])
 
   // Use optimistic messages hook
   const {
@@ -274,6 +287,8 @@ export default function ChatEngine({
       setPendingMentions([]) // Clear pending mentions
       setAnnouncements([]) // Clear announcements
       setNewMessage('') // Clear message input
+      setEditingMessage(null) // Clear editing state
+      setReplyingTo(null) // Clear reply state
       return
     }
 
@@ -287,6 +302,8 @@ export default function ChatEngine({
     setTeamMembers([]) // Clear team members for new chat
     setPendingMentions([]) // Clear pending mentions
     setAnnouncements([]) // Clear announcements for new chat
+    setEditingMessage(null) // Clear editing state for new chat
+    setReplyingTo(null) // Clear reply state for new chat
     setNewMessage('') // Clear message input for new chat
     
     let messagesUrl = ''
@@ -477,7 +494,19 @@ export default function ChatEngine({
     
     isLoadingMoreRef.current = true
     setLoadingMore(true)
-    const oldestMessageId = currentMessages[0].id
+    
+    // Find the oldest actual message (not membership events which have string IDs like 'join-123')
+    // Membership events have item_type === 'membership_event', messages have item_type === 'message' or no item_type
+    const oldestMessage = currentMessages.find(msg => msg.item_type !== 'membership_event')
+    if (!oldestMessage) {
+      // No actual messages found, nothing more to load
+      setLoadingMore(false)
+      isLoadingMoreRef.current = false
+      setHasMore(false)
+      hasMoreRef.current = false
+      return
+    }
+    const oldestMessageId = oldestMessage.id
     const container = messageListContainerRef.current
     
     // Save the current scroll position and the element at the top of the viewport
@@ -733,6 +762,15 @@ export default function ChatEngine({
           ? { ...message, deleted_at: null }
           : msg
       ))
+    },
+    onMessageEdited: (message) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id == message.id ? message : msg
+      ))
+      // Update pinned message if it was edited
+      if (pinnedMessage?.id == message.id) {
+        setPinnedMessage(message)
+      }
     },
     onAttachmentPinned: (attachment) => {
       setPinnedAttachment(attachment)
@@ -1327,9 +1365,10 @@ export default function ChatEngine({
     setNewMessage('')
     setReplyingTo(null)
     
-    // Clear pending attachments, mentions, and trigger MessageInput cleanup
+    // Clear pending attachments, mentions, links and trigger MessageInput cleanup
     setPendingAttachments([])
     setPendingMentions([])
+    setPendingLinks([])
     setClearAttachmentsTrigger(prev => !prev)
     
     // Scroll to bottom instantly when sending
@@ -1442,13 +1481,21 @@ export default function ChatEngine({
   // Send message in existing chat
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if ((!newMessage.trim() && pendingAttachments.length === 0) || !selectedChat) return
+    if ((!newMessage.trim() && pendingAttachments.length === 0 && pendingLinks.length === 0) || !selectedChat) return
 
-    const success = await sendMessageToRecipient(newMessage, selectedChat, chatType, pendingAttachments, replyingTo?.id, replyingTo?.attachmentId)
+    // Append tracked URLs to the message
+    let messageWithLinks = newMessage.trim()
+    if (pendingLinks.length > 0) {
+      const linksText = pendingLinks.join(' ')
+      messageWithLinks = messageWithLinks ? `${messageWithLinks} ${linksText}` : linksText
+    }
+
+    const success = await sendMessageToRecipient(messageWithLinks, selectedChat, chatType, pendingAttachments, replyingTo?.id, replyingTo?.attachmentId)
     
     if (success) {
-      // Clear pending attachments and trigger MessageInput cleanup
+      // Clear pending attachments, links, and trigger MessageInput cleanup
       setPendingAttachments([])
+      setPendingLinks([])
       setClearAttachmentsTrigger(prev => !prev)
     }
   }
@@ -1482,6 +1529,108 @@ export default function ChatEngine({
   // Handle cancel reply
   const handleCancelReply = () => {
     setReplyingTo(null)
+  }
+
+  // Handle edit message click
+  const handleEditClick = (message) => {
+    // Only allow editing own messages with a body
+    if (message.sender_id !== currentUser?.id || !message.body) return
+    
+    // Clear any reply state
+    setReplyingTo(null)
+    
+    // Set the message being edited and populate the input
+    setEditingMessage(message)
+    setNewMessage(message.body)
+    
+    // Focus the message input
+    setTimeout(() => {
+      messageInputRef.current?.focus()
+    }, 0)
+  }
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingMessage(null)
+    setNewMessage('')
+  }
+
+  // Handle edit message submit
+  const handleEditMessage = async () => {
+    if (!editingMessage || !newMessage.trim()) return
+    
+    // Don't submit if message hasn't changed
+    if (newMessage.trim() === editingMessage.body) {
+      handleCancelEdit()
+      return
+    }
+    
+    setSending(true)
+    
+    try {
+      const response = await fetch(`/api/chat/messages/${editingMessage.id}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        body: JSON.stringify({ body: newMessage.trim() })
+      })
+      
+      if (response.ok) {
+        const updatedMessage = await response.json()
+        
+        // Update the message in state
+        setMessages(prev => prev.map(msg => 
+          msg.id === updatedMessage.id ? updatedMessage : msg
+        ))
+        
+        // Clear editing state
+        handleCancelEdit()
+        
+        toast.success('Message edited', {
+          toastId: 'message-edited',
+          position: 'top-center',
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Failed to edit message', {
+          toastId: 'edit-failed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error editing message:', error)
+      toast.error('Failed to edit message', {
+        toastId: 'edit-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
+    } finally {
+      setSending(false)
+    }
   }
 
   // Handle adding reaction to a message
@@ -2498,6 +2647,7 @@ export default function ChatEngine({
           pinnedAttachmentId={pinnedAttachment?.id}
           onDeleteMessage={handleDeleteMessage}
           onRestoreMessage={handleRestoreMessage}
+          onEditMessage={handleEditClick}
           onQuickMessage={(user) => {
             // Refresh contacts to include the new conversation, then select the chat
             onRefreshContacts?.()
@@ -2536,6 +2686,9 @@ export default function ChatEngine({
         <ReplyPreview replyingTo={replyingTo} onCancel={handleCancelReply} />
       </div>
 
+      {/* Edit Preview */}
+      <EditPreview editingMessage={editingMessage} onCancel={handleCancelEdit} />
+
       {/* Message Input */}
       {!loadError && (
         <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-dark-700 min-h-[73px]">
@@ -2543,19 +2696,22 @@ export default function ChatEngine({
             <MessageInput
               value={newMessage}
               onChange={setNewMessage}
-              onSubmit={handleSendMessage}
+              onSubmit={editingMessage ? handleEditMessage : handleSendMessage}
               onTyping={sendTypingIndicator}
-              placeholder={`Message ${selectedChat.name}...`}
+              placeholder={editingMessage ? 'Edit your message...' : `Message ${selectedChat.name}...`}
               disabled={sending || isRateLimited}
               replyingTo={replyingTo}
               inputRef={messageInputRef}
               onAttachmentsChange={handleAttachmentsChange}
               clearAttachments={clearAttachmentsTrigger}
-              allowAttachments={canSendAttachments}
+              allowAttachments={canSendAttachments && !editingMessage}
               teamMembers={chatType === 'team' ? teamMembers : []}
               chatType={chatType}
               currentUserId={currentUser?.id}
               onMentionsChange={setPendingMentions}
+              onLinksChange={setPendingLinks}
+              editingMessage={editingMessage}
+              onCancelEdit={handleCancelEdit}
             />
           ) : (
             <div className="flex items-center justify-center py-2 text-gray-500 dark:text-dark-400 text-sm">

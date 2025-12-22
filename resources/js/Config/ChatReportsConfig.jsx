@@ -5,7 +5,8 @@ import {
     generateDirectMessageActivity,
     generateChatAttachmentLog,
     generateChatForwardedMessages,
-    generateChatDeletedMessages
+    generateChatDeletedMessages,
+    generateChatEditedMessages
 } from '../Components/Reporting/Reports/ChatReportGenerators';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
@@ -1336,6 +1337,222 @@ const chatReportsConfig = [
                 {
                     id: 'sender_name',
                     name: 'Deleted By',
+                    expression: (data) => (filterValue) => {
+                        return data?.sender_name === filterValue;
+                    },
+                    calculateOptions: (reportData) => {
+                        const seen = new Set();
+                        return reportData
+                            .filter(item => {
+                                if (!item.sender_name || seen.has(item.sender_name)) return false;
+                                seen.add(item.sender_name);
+                                return true;
+                            })
+                            .map(item => ({
+                                value: item.sender_name,
+                                label: item.sender_name,
+                                checked: false,
+                            }))
+                            .sort((a, b) => a.label.localeCompare(b.label));
+                    },
+                },
+                {
+                    id: 'chat_type',
+                    name: 'Chat Type',
+                    expression: (data) => (filterValue) => {
+                        return data?.chat_type === filterValue;
+                    },
+                    options: [
+                        { value: 'team', label: 'Team Chat', checked: false },
+                        { value: 'dm', label: 'Direct Message', checked: false },
+                    ],
+                },
+                {
+                    id: 'recipient_name',
+                    name: 'Recipient/Team',
+                    expression: (data) => (filterValue) => {
+                        return data?.recipient_name === filterValue;
+                    },
+                    calculateOptions: (reportData) => {
+                        const seen = new Set();
+                        return reportData
+                            .filter(item => {
+                                if (!item.recipient_name || seen.has(item.recipient_name)) return false;
+                                seen.add(item.recipient_name);
+                                return true;
+                            })
+                            .map(item => ({
+                                value: item.recipient_name,
+                                label: item.recipient_name,
+                                checked: false,
+                            }))
+                            .sort((a, b) => a.label.localeCompare(b.label));
+                    },
+                },
+            ]
+        },
+    },
+    {
+        id: 'chat_edited_messages',
+        label: 'Edited Messages',
+        generate: generateChatEditedMessages,
+        parameters: {
+            targetAllowColumn: false,
+            targetAllowCell: false,
+            targetAllowRow: false,
+            total: false,
+            polling: false,
+            dateRange: {
+                default: {
+                    startDate: format(startOfDay(subDays(new Date(), 30)), 'yyyy-MM-dd'),
+                    endDate: format(endOfDay(new Date()), 'yyyy-MM-dd'),
+                },
+                maxDate: new Date(),
+                minDate: new Date().setFullYear(new Date().getFullYear() - 1),
+            },
+            date: false,
+            structure: [
+                {
+                    id: "sender_name",
+                    label: "Edited By",
+                    dataType: "string",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-left font-medium flex flex-row items-center justify-start gap-x-2 w-full",
+                    headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value || 'Unknown',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "original_body",
+                    label: "Original Message",
+                    dataType: "string",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full max-w-[20rem] overflow-hidden text-ellipsis text-wrap",
+                    headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full max-w-[20rem]",
+                    headerAnnotation: "",
+                    format: (value) => value ? (value.length > 80 ? value.substring(0, 80) + '...' : value) : '[No original]',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "current_body",
+                    label: "Current Message",
+                    dataType: "string",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full max-w-[20rem] overflow-hidden text-ellipsis text-wrap",
+                    headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full max-w-[20rem]",
+                    headerAnnotation: "",
+                    format: (value) => value ? (value.length > 80 ? value.substring(0, 80) + '...' : value) : '[No text content]',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "edit_count",
+                    label: "Edit Count",
+                    dataType: "number",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value || 1,
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "chat_type",
+                    label: "Chat Type",
+                    dataType: "string",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value === 'team' ? 'Team' : 'Direct',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "recipient_name",
+                    label: "Recipient/Team",
+                    dataType: "string",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value || '-',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "sent_at",
+                    label: "Originally Sent",
+                    dataType: "date",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value ? format(new Date(value), 'dd MMM yyyy HH:mm:ss') : '-',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+                {
+                    id: "edited_at",
+                    label: "Last Edited",
+                    dataType: "date",
+                    visible: true,
+                    allowTarget: false,
+                    target: 0,
+                    targetDirection: 'asc',
+                    prefix: "",
+                    suffix: "",
+                    cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+                    headerAnnotation: "",
+                    format: (value) => value ? format(new Date(value), 'dd MMM yyyy HH:mm:ss') : '-',
+                    cellAnnotation: (value) => value,
+                    cellAction: (value) => value,
+                },
+            ],
+            filters: [
+                {
+                    id: 'sender_name',
+                    name: 'Edited By',
                     expression: (data) => (filterValue) => {
                         return data?.sender_name === filterValue;
                     },

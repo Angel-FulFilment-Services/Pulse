@@ -11,6 +11,7 @@ use App\Http\Controllers\App\Chat\AttachmentController;
 use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\Chat\AnnouncementController;
+use App\Http\Controllers\App\Chat\LinkPreviewController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
@@ -173,6 +174,9 @@ Route::prefix('chat')
     // Forwarding
     Route::post('messages/{messageId}/forward', [MessageController::class, 'forwardMessage']);
     Route::post('attachments/{attachmentId}/forward', [MessageController::class, 'forwardAttachment']);
+    
+    // Link Previews
+    Route::get('link-preview', [LinkPreviewController::class, 'getMetadata']);
     
     // Message Read Status
     Route::post('messages/read', [MessageReadController::class, 'store']);
