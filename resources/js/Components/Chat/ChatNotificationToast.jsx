@@ -4,16 +4,12 @@ import { QUICK_REACTIONS } from '../../Config/EmojiConfig'
 import UserIcon from './UserIcon'
 
 // Helper to render message body with mentions highlighted
-function MessageBodyWithMentions({ body, mentions = [] }) {
+function MessageBodyWithMentions({ body }) {
   const renderWithMentions = useMemo(() => {
     if (!body) return null
     
-    // If we have specific mentions from the message, use those
-    // Otherwise fall back to detecting @everyone only
-    const validMentionNames = mentions.length > 0 
-      ? ['everyone', ...mentions.map(m => m.name?.toLowerCase()).filter(Boolean)]
-      : ['everyone']
-    
+    // Match @mentions - @word or @Word Word patterns
+    // Match @everyone or @Name or @First Last (up to 3 words for names)
     const parts = []
     let remaining = body
     let keyIndex = 0
@@ -33,46 +29,44 @@ function MessageBodyWithMentions({ body, mentions = [] }) {
         parts.push(<span key={keyIndex++}>{remaining.slice(0, atIndex)}</span>)
       }
       
-      // Check if this @ matches any valid mention
+      // Try to match a mention pattern after @
       const afterAt = remaining.slice(atIndex + 1)
-      let matchedMention = null
-      let matchLength = 0
       
-      for (const mentionName of validMentionNames) {
-        if (afterAt.toLowerCase().startsWith(mentionName)) {
-          // Check that the mention ends at a word boundary
-          const endIndex = mentionName.length
-          const charAfter = afterAt[endIndex]
-          if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
-            // Found a valid mention - use the longest match
-            if (mentionName.length > matchLength) {
-              matchedMention = afterAt.slice(0, mentionName.length)
-              matchLength = mentionName.length
-            }
-          }
+      // Match: word characters, optionally followed by space + word (for multi-word names)
+      // Stop at punctuation, newline, or double space
+      const mentionMatch = afterAt.match(/^([A-Za-z][A-Za-z0-9]*(?:\s[A-Za-z][A-Za-z0-9]*)*)/)
+      
+      if (mentionMatch) {
+        const mentionText = mentionMatch[1]
+        const endIndex = mentionText.length
+        const charAfter = afterAt[endIndex]
+        
+        // Check if it ends at a proper boundary (space, newline, punctuation, or end)
+        if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
+          // Add the mention with bold styling
+          parts.push(
+            <span 
+              key={keyIndex++} 
+              className="font-bold text-theme-600 dark:text-theme-400"
+            >
+              @{mentionText}
+            </span>
+          )
+          remaining = remaining.slice(atIndex + 1 + endIndex)
+        } else {
+          // Has extra characters attached, not a clean mention
+          parts.push(<span key={keyIndex++}>@</span>)
+          remaining = remaining.slice(atIndex + 1)
         }
-      }
-      
-      if (matchedMention) {
-        // Add the mention with bold styling
-        parts.push(
-          <span 
-            key={keyIndex++} 
-            className="font-bold text-theme-600 dark:text-theme-400"
-          >
-            @{matchedMention}
-          </span>
-        )
-        remaining = remaining.slice(atIndex + 1 + matchLength)
       } else {
-        // Not a valid mention, add the @ as plain text and continue
+        // Not a valid mention pattern, add @ as plain text
         parts.push(<span key={keyIndex++}>@</span>)
         remaining = remaining.slice(atIndex + 1)
       }
     }
     
     return parts.length > 0 ? parts : body
-  }, [body, mentions])
+  }, [body])
   
   return <>{renderWithMentions}</>
 }
@@ -194,7 +188,7 @@ export default function ChatNotificationToast({
                     <>
                     {message.body && (
                         <p className="text-gray-900 dark:text-dark-50 text-sm line-clamp-3">
-                          <MessageBodyWithMentions body={message.body} mentions={message.mentions || []} />
+                          <MessageBodyWithMentions body={message.body} />
                         </p>
                     )}
                     {message.attachments?.length > 0 && !message.body && (
