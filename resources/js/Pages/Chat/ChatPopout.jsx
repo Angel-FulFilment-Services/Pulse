@@ -64,6 +64,12 @@ export default function ChatPopout() {
         .then(memberTeams => {
           const memberTeamIds = new Set((memberTeams || []).map(t => t.id))
           
+          // Clear selected chat if it's a non-member team
+          if (chatTypeRef.current === 'team' && selectedChatRef.current?.id && !memberTeamIds.has(selectedChatRef.current.id)) {
+            setSelectedChat(null)
+            setChatType(null)
+          }
+          
           // Leave channels for teams we're not a member of
           subscribedTeamsRef.current.forEach(teamId => {
             if (!memberTeamIds.has(teamId)) {
