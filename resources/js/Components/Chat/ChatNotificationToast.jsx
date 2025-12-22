@@ -4,44 +4,75 @@ import { QUICK_REACTIONS } from '../../Config/EmojiConfig'
 import UserIcon from './UserIcon'
 
 // Helper to render message body with mentions highlighted
-function MessageBodyWithMentions({ body }) {
+function MessageBodyWithMentions({ body, mentions = [] }) {
   const renderWithMentions = useMemo(() => {
     if (!body) return null
     
-    // Simple regex to match @mentions
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g
+    // If we have specific mentions from the message, use those
+    // Otherwise fall back to detecting @everyone only
+    const validMentionNames = mentions.length > 0 
+      ? ['everyone', ...mentions.map(m => m.name?.toLowerCase()).filter(Boolean)]
+      : ['everyone']
     
     const parts = []
-    let lastIndex = 0
-    let match
+    let remaining = body
     let keyIndex = 0
     
-    while ((match = mentionRegex.exec(body)) !== null) {
-      // Add text before the mention
-      if (match.index > lastIndex) {
-        parts.push(<span key={keyIndex++}>{body.slice(lastIndex, match.index)}</span>)
+    while (remaining.length > 0) {
+      // Find the next @ symbol
+      const atIndex = remaining.indexOf('@')
+      
+      if (atIndex === -1) {
+        // No more @, add the rest as plain text
+        parts.push(<span key={keyIndex++}>{remaining}</span>)
+        break
       }
       
-      // Add the mention with bold styling
-      parts.push(
-        <span 
-          key={keyIndex++} 
-          className="font-bold text-theme-500 dark:text-theme-600"
-        >
-          {match[0]}
-        </span>
-      )
+      // Add text before the @
+      if (atIndex > 0) {
+        parts.push(<span key={keyIndex++}>{remaining.slice(0, atIndex)}</span>)
+      }
       
-      lastIndex = match.index + match[0].length
-    }
-    
-    // Add remaining text after last mention
-    if (lastIndex < body.length) {
-      parts.push(<span key={keyIndex++}>{body.slice(lastIndex)}</span>)
+      // Check if this @ matches any valid mention
+      const afterAt = remaining.slice(atIndex + 1)
+      let matchedMention = null
+      let matchLength = 0
+      
+      for (const mentionName of validMentionNames) {
+        if (afterAt.toLowerCase().startsWith(mentionName)) {
+          // Check that the mention ends at a word boundary
+          const endIndex = mentionName.length
+          const charAfter = afterAt[endIndex]
+          if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
+            // Found a valid mention - use the longest match
+            if (mentionName.length > matchLength) {
+              matchedMention = afterAt.slice(0, mentionName.length)
+              matchLength = mentionName.length
+            }
+          }
+        }
+      }
+      
+      if (matchedMention) {
+        // Add the mention with bold styling
+        parts.push(
+          <span 
+            key={keyIndex++} 
+            className="font-bold text-theme-600 dark:text-theme-400"
+          >
+            @{matchedMention}
+          </span>
+        )
+        remaining = remaining.slice(atIndex + 1 + matchLength)
+      } else {
+        // Not a valid mention, add the @ as plain text and continue
+        parts.push(<span key={keyIndex++}>@</span>)
+        remaining = remaining.slice(atIndex + 1)
+      }
     }
     
     return parts.length > 0 ? parts : body
-  }, [body])
+  }, [body, mentions])
   
   return <>{renderWithMentions}</>
 }
@@ -163,7 +194,7 @@ export default function ChatNotificationToast({
                     <>
                     {message.body && (
                         <p className="text-gray-900 dark:text-dark-50 text-sm line-clamp-3">
-                          <MessageBodyWithMentions body={message.body} />
+                          <MessageBodyWithMentions body={message.body} mentions={message.mentions || []} />
                         </p>
                     )}
                     {message.attachments?.length > 0 && !message.body && (
