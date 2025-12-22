@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Sidebar from '../../Components/Chat/Sidebar'
 import ChatEngine from '../../Components/Chat/ChatEngine'
 import NotificationToast from '../../Components/Chat/NotificationToast'
+import { usePermission } from '../../Utils/Permissions'
 
 export default function ChatPopout() {
   const [selectedChat, setSelectedChat] = useState(null) // Can be team or user
@@ -20,16 +21,66 @@ export default function ChatPopout() {
   const [chatPreferences, setChatPreferences] = useState([]) // Track chat preferences for all chats
   const [teamsDeepLinkChat, setTeamsDeepLinkChat] = useState(null) // Deep link from Teams notification
   
+  // Spy mode permission and state
+  const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
+  const [spyMode, setSpyMode] = useState(() => {
+    const stored = localStorage.getItem('chat_spy_mode')
+    return stored !== null ? stored === 'true' : true
+  })
+  const effectiveSpyMode = canMonitorAllTeams ? spyMode : false
+  
+  // Listen for spy mode changes from Sidebar (via localStorage)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'chat_spy_mode') {
+        setSpyMode(e.newValue === 'true')
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+  
   // Use refs to track current selected chat without causing re-subscriptions
   const selectedChatRef = useRef(selectedChat)
   const chatTypeRef = useRef(chatType)
   const subscribedContactsRef = useRef(new Set())
   const subscribedTeamsRef = useRef(new Set())
+  const previousSpyModeRef = useRef(effectiveSpyMode)
   
   useEffect(() => {
     selectedChatRef.current = selectedChat
     chatTypeRef.current = chatType
   }, [selectedChat, chatType])
+  
+  // Handle spy mode toggle - unsubscribe from non-member teams when disabled
+  useEffect(() => {
+    if (!currentUser?.id || !window.Echo) return
+    
+    // If spy mode was just disabled, we need to leave non-member team channels
+    if (previousSpyModeRef.current && !effectiveSpyMode) {
+      // Get current member teams to know which to keep
+      fetch('/api/chat/teams', { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : [])
+        .then(memberTeams => {
+          const memberTeamIds = new Set((memberTeams || []).map(t => t.id))
+          
+          // Leave channels for teams we're not a member of
+          subscribedTeamsRef.current.forEach(teamId => {
+            if (!memberTeamIds.has(teamId)) {
+              const channelName = `chat.team.${teamId}`
+              if (window.Echo.connector.channels[channelName]) {
+                window.Echo.connector.channels[channelName].stopListening('.MessageNotification')
+              }
+              window.Echo.leave(channelName)
+              subscribedTeamsRef.current.delete(teamId)
+            }
+          })
+        })
+        .catch(console.error)
+    }
+    
+    previousSpyModeRef.current = effectiveSpyMode
+  }, [effectiveSpyMode, currentUser])
 
   // Initialize Microsoft Teams SDK and handle deep linking from notifications
   useEffect(() => {
@@ -162,12 +213,13 @@ export default function ChatPopout() {
       .then(data => setContacts(Array.isArray(data) ? data : []))
       .catch(() => setContacts([]))
 
-    // Fetch teams
-    fetch('/api/chat/teams', { credentials: 'same-origin' })
+    // Fetch teams - include all teams if in spy mode for channel subscriptions
+    const teamsUrl = effectiveSpyMode ? '/api/chat/teams?all=true' : '/api/chat/teams'
+    fetch(teamsUrl, { credentials: 'same-origin' })
       .then(res => res.ok ? res.json() : [])
       .then(data => setTeams(Array.isArray(data) ? data : []))
       .catch(() => setTeams([]))
-  }, [currentUser, contactsRefreshKey])
+  }, [currentUser, contactsRefreshKey, effectiveSpyMode])
 
   // Set up global typing listeners for all DM channels
   useEffect(() => {

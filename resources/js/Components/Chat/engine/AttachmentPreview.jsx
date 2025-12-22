@@ -10,7 +10,7 @@ export default function AttachmentPreview({
   isDeletable = false, 
   onDelete,
   // Reaction props (only used when !message.body - attachment-only messages)
-  showReactions = false,
+  isMember = false,
   isMyMessage = false,
   currentUserId = null,
   onAddReaction = null,
@@ -166,9 +166,6 @@ export default function AttachmentPreview({
       return content
     }
 
-    // Check if we have reactions to display
-    const hasReactions = showReactions && attachment.reactions && attachment.reactions.length > 0
-
     return (
       <div 
         ref={(el) => {
@@ -192,8 +189,8 @@ export default function AttachmentPreview({
         
         {content}
         
-        {/* Reaction bubbles - only shown when reactions exist and showReactions is true */}
-        {showReactions && attachment.reactions && attachment.reactions.length > 0 && (
+        {/* Reaction bubbles - only shown when reactions exist */}
+        {attachment.reactions && attachment.reactions.length > 0 && (
           <AttachmentReactionBubbles
             reactions={attachment.reactions}
             isMyMessage={isMyMessage}
@@ -204,25 +201,27 @@ export default function AttachmentPreview({
             boundaryRef={boundaryRef}
           />
         )}
-        
-        {/* Attachment Reactions (controls + optional reaction buttons) */}
-        <AttachmentReactions
-          attachment={attachment}
-          isMyMessage={isMyMessage}
-          onAddReaction={onAddReaction}
-          isHovered={isHovered}
-          attachmentRef={attachmentRef.current}
-          currentUser={{ id: currentUserId }}
-          onPinAttachment={onPinAttachment}
-          isPinned={isPinned}
-          onDeleteAttachment={onDeleteAttachment}
-          onReplyClick={onReplyClick}
-          isDeleted={isDeleted}
-          showReactionButtons={showReactions}
-          messageId={messageId}
-          onForwardAttachment={onForwardAttachment}
-          canPinMessages={canPinMessages}
-        />
+        { isMember && (
+          <>
+            {/* Attachment Reactions (controls + optional reaction buttons) */}
+            <AttachmentReactions
+              attachment={attachment}
+              isMyMessage={isMyMessage}
+              onAddReaction={onAddReaction}
+              isHovered={isHovered}
+              attachmentRef={attachmentRef.current}
+              currentUser={{ id: currentUserId }}
+              onPinAttachment={onPinAttachment}
+              isPinned={isPinned}
+              onDeleteAttachment={onDeleteAttachment}
+              onReplyClick={onReplyClick}
+              isDeleted={isDeleted}
+              messageId={messageId}
+              onForwardAttachment={onForwardAttachment}
+              canPinMessages={canPinMessages}
+            />
+          </>
+        ) }
       </div>
     )
   }

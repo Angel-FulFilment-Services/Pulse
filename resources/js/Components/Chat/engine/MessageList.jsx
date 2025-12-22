@@ -621,7 +621,7 @@ export default function MessageList({
                                       onImageClick={setLightboxImage}
                                       onPdfClick={setLightboxPdf}
                                       // Only show reaction buttons for members
-                                      showReactions={isMember}
+                                      isMember={isMember}
                                       isMyMessage={isMyGroup}
                                       currentUserId={currentUser?.id}
                                       onAddReaction={onAddAttachmentReaction}

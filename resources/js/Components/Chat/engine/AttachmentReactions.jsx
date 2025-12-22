@@ -6,7 +6,7 @@ import { FLUENT_EMOJI_CDN, QUICK_REACTIONS, ALL_REACTIONS } from '../../../Confi
 import EmojiPicker from './EmojiPicker'
 import ForwardDropdown from './ForwardDropdown'
 
-export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, showReactionButtons = true, messageId, onForwardAttachment, canPinMessages = false }) {
+export default function AttachmentReactions({ attachment, isMyMessage, onAddReaction, isHovered: isAttachmentHovered, attachmentRef, currentUser, onPinAttachment, isPinned, onDeleteAttachment, onReplyClick, isDeleted, messageId, onForwardAttachment, canPinMessages = false }) {
   // Don't show reactions on optimistic messages
   const isOptimistic = String(messageId).startsWith('temp-')
   if (isOptimistic) {
@@ -201,37 +201,34 @@ export default function AttachmentReactions({ attachment, isMyMessage, onAddReac
           <div className={`absolute inset-x-0 h-10 w-[17.25rem] ${finalPlacement === 'bottom' ? '-top-10' : '-bottom-10'}`} />
           
           <div className="flex items-center gap-2">
-            {/* Reactions control - only show if showReactionButtons is true */}
-            {showReactionButtons && (
-              <div ref={reactionsControlRef} className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
-                  {QUICK_REACTIONS.map((reaction) => (
-                    <button
-                      key={reaction.name}
-                      onClick={() => handleReactionClick(reaction)}
-                      className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-xl ${
-                        hasUserReacted(reaction.emoji) ? 'bg-gray-200 dark:bg-dark-600' : ''
-                      }`}
-                      title={reaction.label}
-                    >
-                      {reaction.emoji}
-                    </button>
-                  ))}
-                  
-                  <div>
-                    {/* Separator */}
-                    <div className="w-px h-6 bg-gray-200 dark:bg-dark-600 mx-1" />
-                  </div>
-
-                  {/* More button */}
+            <div ref={reactionsControlRef} className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
+                {QUICK_REACTIONS.map((reaction) => (
                   <button
-                    onClick={handleMoreClick}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors"
-                    title="More reactions"
+                    key={reaction.name}
+                    onClick={() => handleReactionClick(reaction)}
+                    className={`w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors text-xl ${
+                      hasUserReacted(reaction.emoji) ? 'bg-gray-200 dark:bg-dark-600' : ''
+                    }`}
+                    title={reaction.label}
                   >
-                    <PlusIcon className="w-5 h-5 text-gray-600 dark:text-dark-300" />
+                    {reaction.emoji}
                   </button>
-              </div>
-            )}
+                ))}
+                
+                <div>
+                  {/* Separator */}
+                  <div className="w-px h-6 bg-gray-200 dark:bg-dark-600 mx-1" />
+                </div>
+
+                {/* More button */}
+                <button
+                  onClick={handleMoreClick}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors"
+                  title="More reactions"
+                >
+                  <PlusIcon className="w-5 h-5 text-gray-600 dark:text-dark-300" />
+                </button>
+            </div>
             
             {/* Pin control */}
             <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
