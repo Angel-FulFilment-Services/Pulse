@@ -65,6 +65,9 @@ export default function ChatEngine({
   const [pendingMentions, setPendingMentions] = useState([]) // Track mentions to send with message
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
+  const messagesRef = useRef([]) // Keep track of current messages for loadMoreMessages
+  const hasMoreRef = useRef(true) // Keep track of hasMore for scroll handlers
+  const selectedChatRef = useRef(null) // Keep track of selectedChat for scroll handlers
   const messagesEndRef = useRef(null)
   const replyPreviewRef = useRef(null)
   const messageListContainerRef = useRef(null)
@@ -82,6 +85,19 @@ export default function ChatEngine({
   
   // Track pending reactions to prevent double-clicks
   const pendingReactionsRef = useRef(new Set())
+  
+  // Keep refs in sync with state for use in scroll handlers
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
+  
+  useEffect(() => {
+    hasMoreRef.current = hasMore
+  }, [hasMore])
+  
+  useEffect(() => {
+    selectedChatRef.current = selectedChat
+  }, [selectedChat])
   
   // Determine if user is a member of the current team (for spy mode)
   // For DMs, always consider as member. For teams, check is_member flag
@@ -452,11 +468,16 @@ export default function ChatEngine({
 
   // Load more messages when scrolling to top
   const loadMoreMessages = async () => {
-    if (loadingMore || !hasMore || !selectedChat || messages.length === 0) return
+    // Use refs to get current values and avoid stale closures
+    const currentMessages = messagesRef.current
+    const currentHasMore = hasMoreRef.current
+    const currentSelectedChat = selectedChatRef.current
+    
+    if (isLoadingMoreRef.current || !currentHasMore || !currentSelectedChat || currentMessages.length === 0) return
     
     isLoadingMoreRef.current = true
     setLoadingMore(true)
-    const oldestMessageId = messages[0].id
+    const oldestMessageId = currentMessages[0].id
     const container = messageListContainerRef.current
     
     // Save the current scroll position and the element at the top of the viewport
@@ -465,9 +486,9 @@ export default function ChatEngine({
     
     let url = ''
     if (chatType === 'team') {
-      url = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50&before_id=${oldestMessageId}`
+      url = `/api/chat/messages?team_id=${currentSelectedChat.id}&per_page=50&before_id=${oldestMessageId}`
     } else if (chatType === 'dm') {
-      url = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50&before_id=${oldestMessageId}`
+      url = `/api/chat/messages?recipient_id=${currentSelectedChat.id}&per_page=50&before_id=${oldestMessageId}`
     }
     
     try {
@@ -485,6 +506,7 @@ export default function ChatEngine({
         
         setMessages(prev => [...newMessages, ...prev])
         setHasMore(hasMoreMessages)
+        hasMoreRef.current = hasMoreMessages
         
         // Restore scroll position after new messages are rendered
         setTimeout(() => {
@@ -496,11 +518,13 @@ export default function ChatEngine({
         }, 0)
       } else {
         setHasMore(false)
+        hasMoreRef.current = false
       }
     } catch (error) {
       console.error('Error loading more messages:', error)
     } finally {
       setLoadingMore(false)
+      isLoadingMoreRef.current = false
     }
   }
 
@@ -510,15 +534,18 @@ export default function ChatEngine({
     if (!container) return
 
     const handleScroll = () => {
-      // If scrolled near the top (within 200px), load more
-      if (container.scrollTop < 200 && hasMore && !loadingMore) {
+      // Use refs for state checks to avoid stale closures
+      // loadMoreMessages already checks all conditions using refs
+      // If scrolled near the top (within 200px), try to load more
+      if (container.scrollTop < 200) {
         loadMoreMessages()
       }
     }
 
     container.addEventListener('scroll', handleScroll)
+
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [hasMore, loadingMore, messages, selectedChat, chatType])
+  }, [selectedChat]) // Re-attach when chat changes
 
   // Handle incoming messages from realtime
   const handleMessageReceived = (message) => {
