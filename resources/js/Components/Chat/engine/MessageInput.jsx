@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { PaperAirplaneIcon, FaceSmileIcon, PaperClipIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-toastify'
 import EmojiPicker from './EmojiPicker'
 import AttachmentPreview from './AttachmentPreview'
+import MentionPicker from './MentionPicker'
 
 export default function MessageInput({ 
   value, 
@@ -15,17 +16,33 @@ export default function MessageInput({
   inputRef = null,
   onAttachmentsChange,
   clearAttachments = false, // New prop to trigger clearing attachments
-  allowAttachments = true // Permission-based prop to control attachment functionality
+  allowAttachments = true, // Permission-based prop to control attachment functionality
+  teamMembers = [], // Team members for mentions (only for team chats)
+  chatType = null, // 'team' or 'dm' - mentions only work in teams
+  currentUserId = null, // Current user ID to exclude from mentions
+  onMentionsChange = null // Callback to track mentions for sending
 }) {
   const typingTimeoutRef = useRef(null)
   const lastTypingTimeRef = useRef(0)
   const emojiButtonRef = useRef(null)
   const fileInputRef = useRef(null)
   const containerRef = useRef(null)
+  const textareaRef = useRef(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [attachments, setAttachments] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [dragOverlayStyle, setDragOverlayStyle] = useState({})
+  
+  // Mention state
+  const [showMentionPicker, setShowMentionPicker] = useState(false)
+  const [mentionSearchTerm, setMentionSearchTerm] = useState('')
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1)
+  const [trackedMentions, setTrackedMentions] = useState([]) // Track mentioned user IDs
+  const [mentionVirtualRef, setMentionVirtualRef] = useState(null) // Virtual ref for @ position
+  const backdropRef = useRef(null) // Ref for the formatted overlay
+  
+  // Use provided ref or internal ref
+  const effectiveInputRef = inputRef || textareaRef
 
   // Clear attachments when parent requests it
   React.useEffect(() => {
@@ -38,6 +55,13 @@ export default function MessageInput({
       })
       setAttachments([])
       onAttachmentsChange?.([])
+    }
+    // Also clear mentions when message is sent
+    if (clearAttachments) {
+      setTrackedMentions([])
+      setShowMentionPicker(false)
+      setMentionStartIndex(-1)
+      setMentionSearchTerm('')
     }
   }, [clearAttachments])
 
@@ -93,14 +117,230 @@ export default function MessageInput({
   }, [])
 
   const handleKeyDown = (e) => {
+    // If mention picker is open, let it handle navigation keys
+    if (showMentionPicker && ['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+      // These are handled by MentionPicker
+      return
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       onSubmit(e)
     }
   }
 
+  // Get caret coordinates in textarea
+  const getCaretCoordinates = useCallback((textarea, position) => {
+    // Create a mirror div to measure text
+    const mirror = document.createElement('div')
+    const computed = window.getComputedStyle(textarea)
+    
+    // Copy styles that affect text layout
+    const stylesToCopy = [
+      'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing',
+      'textTransform', 'wordSpacing', 'lineHeight', 'paddingTop', 'paddingRight',
+      'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderRightWidth',
+      'borderBottomWidth', 'borderLeftWidth', 'boxSizing'
+    ]
+    
+    stylesToCopy.forEach(style => {
+      mirror.style[style] = computed[style]
+    })
+    
+    mirror.style.position = 'absolute'
+    mirror.style.top = '0'
+    mirror.style.left = '0'
+    mirror.style.visibility = 'hidden'
+    mirror.style.whiteSpace = 'pre-wrap'
+    mirror.style.wordWrap = 'break-word'
+    mirror.style.width = `${textarea.offsetWidth}px`
+    mirror.style.overflow = 'hidden'
+    
+    // Add text up to position
+    const textBeforeCaret = textarea.value.substring(0, position)
+    mirror.textContent = textBeforeCaret
+    
+    // Add a span to mark the caret position
+    const caretSpan = document.createElement('span')
+    caretSpan.textContent = '|'
+    mirror.appendChild(caretSpan)
+    
+    document.body.appendChild(mirror)
+    
+    const caretRect = caretSpan.getBoundingClientRect()
+    const textareaRect = textarea.getBoundingClientRect()
+    
+    document.body.removeChild(mirror)
+    
+    return {
+      left: textareaRect.left + caretRect.left - mirror.getBoundingClientRect().left,
+      top: textareaRect.top + caretRect.top - mirror.getBoundingClientRect().top
+    }
+  }, [])
+
+  // Create virtual reference element for floating UI
+  const createVirtualReference = useCallback((x, y) => {
+    return {
+      getBoundingClientRect() {
+        return {
+          width: 0,
+          height: 0,
+          x: x,
+          y: y,
+          top: y,
+          left: x,
+          right: x,
+          bottom: y,
+        }
+      }
+    }
+  }, [])
+
+  // Detect @ mentions in the input
+  const detectMentionTrigger = useCallback((text, cursorPosition) => {
+    // Only allow mentions in team chats
+    if (chatType !== 'team') return null
+    
+    // Look backwards from cursor to find @
+    let atIndex = -1
+    for (let i = cursorPosition - 1; i >= 0; i--) {
+      const char = text[i]
+      // Stop if we hit a newline before finding @
+      if (char === '\n') break
+      if (char === '@') {
+        atIndex = i
+        break
+      }
+    }
+    
+    if (atIndex === -1) return null
+    
+    // Check that @ is at start of word (beginning of text or after space/newline)
+    if (atIndex > 0 && text[atIndex - 1] !== ' ' && text[atIndex - 1] !== '\n') {
+      return null
+    }
+    
+    // Extract the search term (everything after @ up to cursor)
+    const searchTerm = text.slice(atIndex + 1, cursorPosition)
+    
+    // If the search term starts with a space, the user typed "@ " - close the picker
+    if (searchTerm.startsWith(' ')) {
+      return null
+    }
+    
+    return { atIndex, searchTerm }
+  }, [chatType])
+
   const handleChange = (e) => {
-    onChange(e.target.value)
+    const newValue = e.target.value
+    const cursorPosition = e.target.selectionStart
+    
+    onChange(newValue)
+    
+    // Auto-detect manually typed mentions that match team members
+    // Look for @name patterns followed by space/newline that match a team member
+    if (teamMembers.length > 0 || chatType === 'team') {
+      const valueLower = newValue.toLowerCase()
+      const newTrackedMentions = [...trackedMentions]
+      let mentionsChanged = false
+      
+      // Check for @everyone
+      const everyonePattern = '@everyone'
+      let everyoneIndex = valueLower.indexOf(everyonePattern)
+      while (everyoneIndex !== -1) {
+        const endIndex = everyoneIndex + everyonePattern.length
+        // Check if followed by space, newline, or end of string
+        if (endIndex >= newValue.length || newValue[endIndex] === ' ' || newValue[endIndex] === '\n') {
+          // Check if not already tracked
+          if (!newTrackedMentions.some(m => m.id === 'everyone')) {
+            newTrackedMentions.push({ id: 'everyone', name: 'everyone', isEveryone: true })
+            mentionsChanged = true
+          }
+        }
+        everyoneIndex = valueLower.indexOf(everyonePattern, everyoneIndex + 1)
+      }
+      
+      // Check for team member mentions
+      teamMembers.forEach(member => {
+        if (member.id === currentUserId) return // Skip current user
+        
+        const pattern = `@${member.name.toLowerCase()}`
+        let index = valueLower.indexOf(pattern)
+        while (index !== -1) {
+          const endIndex = index + pattern.length
+          // Check if followed by space, newline, or end of string
+          if (endIndex >= newValue.length || newValue[endIndex] === ' ' || newValue[endIndex] === '\n') {
+            // Check if not already tracked
+            if (!newTrackedMentions.some(m => m.id === member.id)) {
+              newTrackedMentions.push({ id: member.id, name: member.name, isEveryone: false })
+              mentionsChanged = true
+            }
+          }
+          index = valueLower.indexOf(pattern, index + 1)
+        }
+      })
+      
+      // Now validate - remove any tracked mentions that are no longer valid
+      const stillValidMentions = newTrackedMentions.filter(mention => {
+        const pattern = `@${mention.name}`
+        const patternLower = pattern.toLowerCase()
+        
+        // Find all occurrences of this mention pattern (case-insensitive)
+        let index = valueLower.indexOf(patternLower)
+        while (index !== -1) {
+          const endIndex = index + pattern.length
+          // Check if the character after the mention is a valid terminator (space, newline, or end of string)
+          if (endIndex >= newValue.length || 
+              newValue[endIndex] === ' ' || 
+              newValue[endIndex] === '\n') {
+            return true // This mention is still valid
+          }
+          // Look for next occurrence
+          index = valueLower.indexOf(patternLower, index + 1)
+        }
+        return false // No valid occurrence found
+      })
+      
+      if (mentionsChanged || stillValidMentions.length !== trackedMentions.length) {
+        setTrackedMentions(stillValidMentions)
+        onMentionsChange?.(stillValidMentions)
+      }
+    }
+    
+    // Check for mention trigger
+    const mentionTrigger = detectMentionTrigger(newValue, cursorPosition)
+    
+    if (mentionTrigger && teamMembers.length > 0) {
+      // Filter members to check if there are any results
+      const searchLower = mentionTrigger.searchTerm.toLowerCase()
+      const hasResults = teamMembers.some(member => 
+        member.name?.toLowerCase().includes(searchLower)
+      ) || 'everyone'.includes(searchLower)
+      
+      if (hasResults) {
+        setShowMentionPicker(true)
+        setMentionStartIndex(mentionTrigger.atIndex)
+        setMentionSearchTerm(mentionTrigger.searchTerm)
+        
+        // Calculate position of @ symbol for floating UI
+        const textarea = effectiveInputRef.current
+        if (textarea) {
+          const coords = getCaretCoordinates(textarea, mentionTrigger.atIndex)
+          setMentionVirtualRef(createVirtualReference(coords.left, coords.top))
+        }
+      } else {
+        // No results - close the picker
+        setShowMentionPicker(false)
+        setMentionStartIndex(-1)
+        setMentionSearchTerm('')
+        setMentionVirtualRef(null)
+      }
+    } else {
+      setShowMentionPicker(false)
+      setMentionStartIndex(-1)
+      setMentionSearchTerm('')
+      setMentionVirtualRef(null)
+    }
     
     // Throttle typing indicator - only send every 3 seconds
     const now = Date.now()
@@ -109,6 +349,148 @@ export default function MessageInput({
       lastTypingTimeRef.current = now
     }
   }
+
+  // Handle mention selection from picker
+  const handleMentionSelect = useCallback((member) => {
+    if (mentionStartIndex === -1) return
+    
+    // Build the mention text
+    const mentionText = `@${member.name}`
+    
+    // Replace the @searchTerm with the mention
+    const beforeMention = value.slice(0, mentionStartIndex)
+    const afterCursor = value.slice(mentionStartIndex + 1 + mentionSearchTerm.length)
+    const newValue = beforeMention + mentionText + ' ' + afterCursor
+    
+    onChange(newValue)
+    
+    // Track the mention
+    const newMention = {
+      id: member.id,
+      name: member.name,
+      isEveryone: member.isEveryone || false
+    }
+    
+    // Add to tracked mentions if not already present
+    setTrackedMentions(prev => {
+      const alreadyMentioned = prev.some(m => m.id === member.id)
+      if (alreadyMentioned) return prev
+      const updated = [...prev, newMention]
+      onMentionsChange?.(updated)
+      return updated
+    })
+    
+    // Close the picker
+    setShowMentionPicker(false)
+    setMentionStartIndex(-1)
+    setMentionSearchTerm('')
+    
+    // Focus back on input and set cursor position
+    setTimeout(() => {
+      const textarea = effectiveInputRef.current
+      if (textarea) {
+        textarea.focus()
+        const newCursorPos = mentionStartIndex + mentionText.length + 1
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }, [value, mentionStartIndex, mentionSearchTerm, onChange, onMentionsChange, effectiveInputRef])
+
+  // Close mention picker
+  const handleMentionClose = useCallback(() => {
+    setShowMentionPicker(false)
+    setMentionStartIndex(-1)
+    setMentionSearchTerm('')
+    setMentionVirtualRef(null)
+  }, [])
+
+  // Render formatted text with highlighted mentions for the overlay
+  const renderFormattedText = useCallback(() => {
+    if (!value) return null
+    
+    // Build a list of mention patterns to look for
+    const mentionPatterns = trackedMentions.map(m => ({
+      pattern: `@${m.name}`,
+      name: m.name,
+      isEveryone: m.isEveryone
+    }))
+    
+    if (mentionPatterns.length === 0) {
+      // No mentions, just return the text with a trailing space to match textarea
+      return <>{value}<span style={{ opacity: 0 }}>.</span></>
+    }
+    
+    // Find all mentions in the text and their positions (case-insensitive)
+    const mentionPositions = []
+    const valueLower = value.toLowerCase()
+    
+    mentionPatterns.forEach(({ pattern, name, isEveryone }) => {
+      const patternLower = pattern.toLowerCase()
+      let startIndex = 0
+      let index
+      while ((index = valueLower.indexOf(patternLower, startIndex)) !== -1) {
+        const endIndex = index + pattern.length
+        // Only highlight if followed by space, newline, or end of string
+        if (endIndex >= value.length || value[endIndex] === ' ' || value[endIndex] === '\n') {
+          mentionPositions.push({
+            start: index,
+            end: endIndex,
+            pattern: value.slice(index, endIndex), // Use actual text from value to preserve user's casing display
+            correctPattern: pattern, // The correct casing
+            name,
+            isEveryone
+          })
+        }
+        startIndex = index + 1
+      }
+    })
+    
+    // Sort by position
+    mentionPositions.sort((a, b) => a.start - b.start)
+    
+    // Build the formatted output
+    const parts = []
+    let lastIndex = 0
+    
+    mentionPositions.forEach((mention, idx) => {
+      // Add text before this mention
+      if (mention.start > lastIndex) {
+        parts.push(
+          <span key={`text-${idx}`}>{value.slice(lastIndex, mention.start)}</span>
+        )
+      }
+      
+      // Add the formatted mention (with @ symbol, colored but same weight to match textarea)
+      parts.push(
+        <span 
+          key={`mention-${idx}`}
+          className="text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30 rounded px-0.5 -mx-0.5"
+        >
+          {mention.pattern}
+        </span>
+      )
+      
+      lastIndex = mention.end
+    })
+    
+    // Add remaining text after last mention
+    if (lastIndex < value.length) {
+      parts.push(<span key="text-end">{value.slice(lastIndex)}</span>)
+    }
+    
+    // Add invisible character to ensure proper sizing
+    parts.push(<span key="spacer" style={{ opacity: 0 }}>.</span>)
+    
+    return parts
+  }, [value, trackedMentions])
+
+  // Sync scroll between textarea and backdrop
+  const handleScroll = useCallback((e) => {
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = e.target.scrollTop
+      backdropRef.current.scrollLeft = e.target.scrollLeft
+    }
+  }, [])
 
   const handleEmojiSelect = (reaction) => {
     onChange(value + reaction.emoji)
@@ -350,17 +732,53 @@ export default function MessageInput({
         <form onSubmit={onSubmit} className="flex items-end space-x-3">
           <div className="flex-1">
             <div className="relative w-full flex">
+              {/* Backdrop overlay for formatted mentions */}
+              {trackedMentions.length > 0 && (
+                <div
+                  ref={backdropRef}
+                  className="absolute inset-0 px-4 py-1.5 pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-gray-900 dark:text-dark-50 rounded-lg"
+                  style={{ 
+                    minHeight: '24px', 
+                    maxHeight: '120px',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    lineHeight: 'inherit',
+                    border: '1px solid transparent'
+                  }}
+                  aria-hidden="true"
+                >
+                  {renderFormattedText()}
+                </div>
+              )}
               <textarea
-                ref={inputRef}
+                ref={effectiveInputRef}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onScroll={handleScroll}
                 placeholder={effectivePlaceholder}
-                className="w-full px-4 py-1.5 border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-50 placeholder-gray-400 dark:placeholder-dark-500 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+                className={`w-full px-4 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-theme-500 focus:border-transparent ${
+                  trackedMentions.length > 0 
+                    ? 'bg-transparent text-transparent caret-gray-900 dark:caret-dark-50' 
+                    : 'bg-white dark:bg-dark-800 text-gray-900 dark:text-dark-50'
+                } placeholder-gray-400 dark:placeholder-dark-500`}
                 rows={1}
                 style={{ minHeight: '24px', maxHeight: '120px' }}
               />
+              
+              {/* Mention Picker */}
+              {showMentionPicker && chatType === 'team' && (
+                <MentionPicker
+                  isOpen={showMentionPicker}
+                  onSelect={handleMentionSelect}
+                  onClose={handleMentionClose}
+                  searchTerm={mentionSearchTerm}
+                  members={teamMembers}
+                  referenceElement={mentionVirtualRef || effectiveInputRef.current}
+                  currentUserId={currentUserId}
+                />
+              )}
             </div>
           </div>
           

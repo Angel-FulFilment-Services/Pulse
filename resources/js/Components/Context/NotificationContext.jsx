@@ -261,18 +261,30 @@ export function NotificationProvider({ children }) {
   }, [])
 
   // Show browser push notification
-  const showPushNotification = useCallback((message, sender, chatId, chatType, hidePreview) => {
+  const showPushNotification = useCallback((message, sender, chatId, chatType, hidePreview, isMentioned = false) => {
     if (notificationPermission !== 'granted') return
     if (isWindowVisible && isWindowFocused) return
     
-    const title = chatType === 'team' ? `${sender.name} in ${message.team_name}` : sender.name
-    const body = hidePreview ? 'New message' : (message.body || 'Sent an attachment')
+    // Build notification title and body
+    let title = chatType === 'team' ? `${sender.name} in ${message.team_name}` : sender.name
+    let body
+    
+    if (isMentioned) {
+      // Special notification text for mentions
+      title = `${sender.name} mentioned you`
+      if (chatType === 'team' && message.team_name) {
+        title += ` in ${message.team_name}`
+      }
+      body = hidePreview ? 'You were mentioned' : (message.body || 'You were mentioned')
+    } else {
+      body = hidePreview ? 'New message' : (message.body || 'Sent an attachment')
+    }
     
     const notification = new Notification(title, {
       body,
       icon: sender.profile_photo_url || '/images/default-avatar.png',
       tag: `chat-${chatType}-${chatId}`,
-      requireInteraction: false,
+      requireInteraction: isMentioned, // Mentions require interaction
     })
     
     notification.onclick = () => {
@@ -281,12 +293,12 @@ export function NotificationProvider({ children }) {
       notification.close()
     }
     
-    // Auto-close after 5 seconds
-    setTimeout(() => notification.close(), 5000)
+    // Auto-close after 5 seconds (10 for mentions)
+    setTimeout(() => notification.close(), isMentioned ? 10000 : 5000)
   }, [notificationPermission, isWindowVisible, isWindowFocused, navigateToChat])
 
   // Show in-app toast notification
-  const showToastNotification = useCallback((message, sender, chatId, chatType, hidePreview) => {
+  const showToastNotification = useCallback((message, sender, chatId, chatType, hidePreview, isMentioned = false) => {
     // Don't show if viewing the chat
     if (isViewingChat(chatId, chatType)) return
     
@@ -345,8 +357,13 @@ export function NotificationProvider({ children }) {
     const chatType = message.team_id ? 'team' : 'user'
     const chatId = message.team_id || message.sender_id
     
-    // Check if muted
-    if (isChatMuted(chatId, chatType)) return
+    // Check if this message mentions the current user
+    const isMentioned = message.mentions_user || 
+      (message.mentions && Array.isArray(message.mentions) && 
+        (message.mentions.includes(currentUser?.id) || message.mentions.includes('everyone')))
+    
+    // Check if muted - but mentions override mute setting
+    if (isChatMuted(chatId, chatType) && !isMentioned) return
     
     // Check if preview should be hidden
     const hidePreview = shouldHidePreview(chatId, chatType)
@@ -354,11 +371,11 @@ export function NotificationProvider({ children }) {
     // Show appropriate notification
     if (!isWindowVisible || !isWindowFocused) {
       // Window not visible - show push notification
-      showPushNotification(message, sender, chatId, chatType, hidePreview)
+      showPushNotification(message, sender, chatId, chatType, hidePreview, isMentioned)
     }
     
     // Always show toast notification (unless viewing the chat)
-    showToastNotification(message, sender, chatId, chatType, hidePreview)
+    showToastNotification(message, sender, chatId, chatType, hidePreview, isMentioned)
   }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification])
 
   // Subscribe to notifications channel

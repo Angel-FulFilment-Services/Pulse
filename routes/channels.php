@@ -58,3 +58,9 @@ Broadcast::channel('chat.dm.{userId1}.{userId2}', function ($user, $userId1, $us
     
     return false;
 });
+
+// Global announcements channel - all authenticated chat users can listen
+Broadcast::channel('chat.announcements.global', function ($user) {
+    // Any authenticated user can receive global announcements
+    return $user ? true : false;
+});

@@ -24,7 +24,9 @@ export function useRealtimeChat({
   onAttachmentDeleted,
   onAttachmentRestored,
   onMemberJoined,
-  onMemberLeft
+  onMemberLeft,
+  onAnnouncementCreated,
+  onAnnouncementDismissed
 }) {
   const echoRef = useRef(null)
   const currentUserRef = useRef(currentUser)
@@ -46,6 +48,8 @@ export function useRealtimeChat({
   const onAttachmentRestoredRef = useRef(onAttachmentRestored)
   const onMemberJoinedRef = useRef(onMemberJoined)
   const onMemberLeftRef = useRef(onMemberLeft)
+  const onAnnouncementCreatedRef = useRef(onAnnouncementCreated)
+  const onAnnouncementDismissedRef = useRef(onAnnouncementDismissed)
   const [connectionError, setConnectionError] = useState(null)
 
   // Keep refs up to date
@@ -69,7 +73,9 @@ export function useRealtimeChat({
     onAttachmentRestoredRef.current = onAttachmentRestored
     onMemberJoinedRef.current = onMemberJoined
     onMemberLeftRef.current = onMemberLeft
-  }, [onMessageReceived, onMessageRead, onMessageUnread, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored, onMemberJoined, onMemberLeft])
+    onAnnouncementCreatedRef.current = onAnnouncementCreated
+    onAnnouncementDismissedRef.current = onAnnouncementDismissed
+  }, [onMessageReceived, onMessageRead, onMessageUnread, onClearTypingUser, onReactionAdded, onReactionRemoved, onAttachmentReactionAdded, onAttachmentReactionRemoved, onMessagePinned, onMessageUnpinned, onMessageDeleted, onMessageRestored, onAttachmentPinned, onAttachmentUnpinned, onAttachmentDeleted, onAttachmentRestored, onMemberJoined, onMemberLeft, onAnnouncementCreated, onAnnouncementDismissed])
 
   useEffect(() => {
     if (!selectedChat || !window.Echo || chatType === 'compose') {
@@ -236,6 +242,19 @@ export function useRealtimeChat({
             onMemberLeftRef.current(e)
           }
         })
+        
+        // Listen for team announcements
+        channel.listen('.AnnouncementCreated', (e) => {
+          if (onAnnouncementCreatedRef.current && e.announcement) {
+            onAnnouncementCreatedRef.current(e.announcement)
+          }
+        })
+        
+        channel.listen('.AnnouncementDismissed', (e) => {
+          if (onAnnouncementDismissedRef.current && e.announcement_id) {
+            onAnnouncementDismissedRef.current(e.announcement_id)
+          }
+        })
       }
       
       // Listen for typing indicators
@@ -264,6 +283,7 @@ export function useRealtimeChat({
 
     // Subscribe to the user's private channel for MessageRead events
     let userChannel = null
+    let globalAnnouncementChannel = null
     if (currentUser?.id) {
       const userChannelName = `chat.user.${currentUser.id}`
       
@@ -295,6 +315,21 @@ export function useRealtimeChat({
           })
         }
       })
+      
+      // Subscribe to global announcements channel
+      globalAnnouncementChannel = window.Echo.private('chat.announcements.global')
+      
+      globalAnnouncementChannel.listen('.AnnouncementCreated', (e) => {
+        if (onAnnouncementCreatedRef.current && e.announcement) {
+          onAnnouncementCreatedRef.current(e.announcement)
+        }
+      })
+      
+      globalAnnouncementChannel.listen('.AnnouncementDismissed', (e) => {
+        if (onAnnouncementDismissedRef.current && e.announcement_id) {
+          onAnnouncementDismissedRef.current(e.announcement_id)
+        }
+      })
     }
 
     return () => {
@@ -302,6 +337,11 @@ export function useRealtimeChat({
       if (userChannel) {
         userChannel.stopListening('.MessageRead')
         userChannel.stopListening('.message.unread')
+      }
+      // Clean up global announcement channel listeners
+      if (globalAnnouncementChannel) {
+        globalAnnouncementChannel.stopListening('.AnnouncementCreated')
+        globalAnnouncementChannel.stopListening('.AnnouncementDismissed')
       }
       // NOTE: Don't call window.Echo.leave() on these channels because that would
       // remove global listeners set up in Chat.jsx. The channels will persist across

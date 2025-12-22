@@ -17,6 +17,7 @@ class NewChatMessage implements ShouldBroadcastNow
     public $userId;
     public $message;
     public $sender;
+    public $mentionsUser;
 
     /**
      * Create a new event instance.
@@ -24,12 +25,14 @@ class NewChatMessage implements ShouldBroadcastNow
      * @param int $userId The user who should receive this notification
      * @param Message $message The message that was sent
      * @param User $sender The user who sent the message
+     * @param bool $mentionsUser Whether this message mentions the receiving user
      */
-    public function __construct(int $userId, Message $message, User $sender)
+    public function __construct(int $userId, Message $message, User $sender, bool $mentionsUser = false)
     {
         $this->userId = $userId;
         $this->message = $message;
         $this->sender = $sender;
+        $this->mentionsUser = $mentionsUser;
     }
 
     /**
@@ -45,6 +48,9 @@ class NewChatMessage implements ShouldBroadcastNow
      */
     public function broadcastWith()
     {
+        // Decode mentions from JSON if stored
+        $mentions = $this->message->mentions ? json_decode($this->message->mentions, true) : [];
+        
         return [
             'message' => [
                 'id' => $this->message->id,
@@ -54,6 +60,8 @@ class NewChatMessage implements ShouldBroadcastNow
                 'sender_id' => $this->message->sender_id,
                 'recipient_id' => $this->message->recipient_id,
                 'created_at' => $this->message->created_at->toISOString(),
+                'mentions' => $mentions,
+                'mentions_user' => $this->mentionsUser,
                 'attachments' => $this->message->attachments?->map(function ($att) {
                     return [
                         'id' => $att->id,

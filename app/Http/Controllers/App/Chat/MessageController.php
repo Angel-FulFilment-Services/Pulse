@@ -469,6 +469,9 @@ class MessageController extends Controller
             
             // Broadcast NewChatMessage for notification system
             $sender = auth()->user();
+            $mentionIds = isset($data['mentions']) && is_array($data['mentions']) ? $data['mentions'] : [];
+            $hasEveryoneMention = in_array('everyone', $mentionIds);
+            
             if ($message->team_id) {
                 // Team message - notify all team members except sender
                 $team = Team::find($message->team_id);
@@ -476,19 +479,21 @@ class MessageController extends Controller
                     $members = $team->getMembers();
                     foreach ($members as $member) {
                         if ($member->id != $sender->id) {
-                            broadcast(new NewChatMessage($member->id, $message, $sender));
+                            // Check if this specific member is mentioned or @everyone was used
+                            $isMentioned = $hasEveryoneMention || in_array($member->id, $mentionIds);
+                            broadcast(new NewChatMessage($member->id, $message, $sender, $isMentioned));
                         }
                     }
                 }
             } elseif ($message->recipient_id) {
-                // DM - notify recipient
-                broadcast(new NewChatMessage($message->recipient_id, $message, $sender));
+                // DM - notify recipient (mentions not applicable in DMs)
+                broadcast(new NewChatMessage($message->recipient_id, $message, $sender, false));
             }
             
-            // Notify mentioned users (if any)
+            // Notify mentioned users (if any) - ChatNotification for additional mention handling
             if (isset($data['mentions']) && is_array($data['mentions'])) {
                 foreach ($data['mentions'] as $mentionId) {
-                    if ($mentionId != auth()->user()->id) {
+                    if ($mentionId != auth()->user()->id && $mentionId !== 'everyone') {
                         broadcast(new \App\Events\Chat\ChatNotification($mentionId, $message, 'mention'))->toOthers();
                     }
                 }

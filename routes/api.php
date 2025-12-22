@@ -10,6 +10,7 @@ use App\Http\Controllers\App\Chat\MessageReadController;
 use App\Http\Controllers\App\Chat\AttachmentController;
 use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
+use App\Http\Controllers\App\Chat\AnnouncementController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
@@ -226,6 +227,12 @@ Route::prefix('chat')->group(function () {
             'words' => \App\Models\RestrictedWord::getActiveWords()
         ]);
     });
+    
+    // Announcements
+    Route::get('announcements', [AnnouncementController::class, 'index']);
+    Route::post('announcements', [AnnouncementController::class, 'store']);
+    Route::get('announcements/{announcementId}', [AnnouncementController::class, 'show']);
+    Route::delete('announcements/{announcementId}', [AnnouncementController::class, 'destroy']);
 });
 
 

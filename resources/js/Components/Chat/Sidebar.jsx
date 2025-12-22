@@ -16,7 +16,8 @@ import {
   TrashIcon,
   SpeakerXMarkIcon,
   XMarkIcon,
-  ArrowTopRightOnSquareIcon
+  ArrowTopRightOnSquareIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline'
 import { 
   StarIcon as StarIconSolid,
@@ -30,6 +31,7 @@ import { useUserStates } from '../Context/ActiveStateContext';
 import { differenceInMinutes } from 'date-fns'
 import ConfirmationDialog from '../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from './CreateTeamDropdown.jsx'
+import AnnouncementDropdown from './AnnouncementDropdown.jsx'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { usePermission } from '../../Utils/Permissions.jsx'
 
@@ -39,17 +41,20 @@ ring.register()
 export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, teamsRefreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange, currentUser }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
+  const canMakeGlobalAnnouncements = usePermission('pulse_chat_global_announcements')
   
   const [searchTerm, setSearchTerm] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showCreateTeamDropdown, setShowCreateTeamDropdown] = useState(false)
+  const [showGlobalAnnouncementDropdown, setShowGlobalAnnouncementDropdown] = useState(false)
   const [createTeamTrigger, setCreateTeamTrigger] = useState(null) // 'header' or 'section'
   const [teams, setTeams] = useState([])
   
   // Refs for create team dropdown triggers
   const headerDropdownButtonRef = useRef(null)
   const sectionCreateTeamRef = useRef(null)
+  const globalAnnouncementButtonRef = useRef(null)
   
   // FloatingUI for header dropdown menu
   const { refs: headerDropdownRefs, floatingStyles: headerDropdownStyles } = useFloating({
@@ -1006,6 +1011,18 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
               <PencilSquareIcon className="w-5 h-5" />
             </button>
             
+            {/* Global Announcement Button */}
+            {canMakeGlobalAnnouncements && (
+              <button
+                ref={globalAnnouncementButtonRef}
+                onClick={() => setShowGlobalAnnouncementDropdown(!showGlobalAnnouncementDropdown)}
+                className="p-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
+                title="Create global announcement"
+              >
+                <MegaphoneIcon className="w-5 h-5" />
+              </button>
+            )}
+            
             {/* Dropdown Menu */}
             <div className="relative">
               <button
@@ -1357,6 +1374,18 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         type="warning"
         yesText={confirmationDialog.type === 'leaveTeam' ? 'Leave' : 'Remove'}
         cancelText="Cancel"
+      />
+      
+      {/* Global Announcement Dropdown */}
+      <AnnouncementDropdown
+        isOpen={showGlobalAnnouncementDropdown}
+        onClose={() => setShowGlobalAnnouncementDropdown(false)}
+        triggerRef={globalAnnouncementButtonRef}
+        scope="global"
+        onAnnouncementCreated={() => {
+          // The announcement will be broadcast via WebSocket
+          // No additional action needed here
+        }}
       />
     </div>
   )

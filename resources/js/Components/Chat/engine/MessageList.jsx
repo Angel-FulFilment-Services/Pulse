@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { PaperClipIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
@@ -10,6 +10,82 @@ import UserIcon from '../UserIcon'
 import AttachmentPreview from './AttachmentPreview'
 import ImageLightbox from './ImageLightbox'
 import PDFLightbox from './PDFLightbox'
+
+// Helper component to render message body with mentions highlighted
+function MessageBody({ body, isMyMessage, teamMembers = [] }) {
+  // Parse @mentions in the message and render them bold
+  const renderWithMentions = useMemo(() => {
+    if (!body) return null
+    
+    // Build list of valid mention names from team members
+    const validMentions = ['everyone', ...teamMembers.map(m => m.name?.toLowerCase()).filter(Boolean)]
+    
+    if (validMentions.length === 0) {
+      return body
+    }
+    
+    const parts = []
+    let remaining = body
+    let keyIndex = 0
+    
+    while (remaining.length > 0) {
+      // Find the next @ symbol
+      const atIndex = remaining.indexOf('@')
+      
+      if (atIndex === -1) {
+        // No more @, add the rest as plain text
+        parts.push(remaining)
+        break
+      }
+      
+      // Add text before the @
+      if (atIndex > 0) {
+        parts.push(remaining.slice(0, atIndex))
+      }
+      
+      // Check if this @ matches any valid mention
+      const afterAt = remaining.slice(atIndex + 1)
+      let matchedMention = null
+      let matchLength = 0
+      
+      for (const mentionName of validMentions) {
+        if (afterAt.toLowerCase().startsWith(mentionName)) {
+          // Check that the mention ends at a word boundary
+          const endIndex = mentionName.length
+          const charAfter = afterAt[endIndex]
+          if (charAfter === undefined || charAfter === ' ' || charAfter === '\n' || /[.,!?;:]/.test(charAfter)) {
+            // Found a valid mention - use the longest match
+            if (mentionName.length > matchLength) {
+              matchedMention = afterAt.slice(0, mentionName.length)
+              matchLength = mentionName.length
+            }
+          }
+        }
+      }
+      
+      if (matchedMention) {
+        // Add the mention with bold styling
+        parts.push(
+          <span 
+            key={keyIndex++} 
+            className={`font-bold ${isMyMessage ? 'text-white' : 'text-theme-500 dark:text-theme-600'}`}
+          >
+            @{matchedMention}
+          </span>
+        )
+        remaining = remaining.slice(atIndex + 1 + matchLength)
+      } else {
+        // Not a valid mention, add the @ as plain text and continue
+        parts.push('@')
+        remaining = remaining.slice(atIndex + 1)
+      }
+    }
+    
+    return parts.length > 0 ? parts : body
+  }, [body, isMyMessage, teamMembers])
+  
+  return <p>{renderWithMentions}</p>
+}
 
 export default function MessageList({ 
   messages, 
@@ -37,7 +113,8 @@ export default function MessageList({
   onForwardMessage,
   onForwardAttachment,
   canDeleteOthersMessages = false,
-  canPinMessages = false
+  canPinMessages = false,
+  teamMembers = []
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -677,7 +754,7 @@ export default function MessageList({
                                 </div>
                               ) : (
                                 <>
-                                  {message.body && <p>{message.body}</p>}
+                                  {message.body && <MessageBody body={message.body} isMyMessage={isMyGroup} teamMembers={teamMembers} />}
                                 </>
                               )}
                             </div>

@@ -13,6 +13,7 @@ import EmptyState from './engine/EmptyState'
 import ComposeMode from './engine/ComposeMode'
 import ReplyPreview from './engine/ReplyPreview'
 import PinnedMessageBanner from './engine/PinnedMessageBanner'
+import AnnouncementBanner from './engine/AnnouncementBanner'
 import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
 import { useRestrictedWords } from './engine/useRestrictedWords'
@@ -40,6 +41,8 @@ export default function ChatEngine({
   // Permission checks - must be at top level before any conditional returns
   const canSendAttachments = usePermission('pulse_chat_send_attachments')
   const canPinMessages = usePermission('pulse_chat_pin_messages')
+  const canDismissGlobalAnnouncements = usePermission('pulse_chat_global_announcements')
+  const canDismissTeamAnnouncements = usePermission('pulse_chat_team_announcements')
   
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
@@ -53,10 +56,13 @@ export default function ChatEngine({
   const [pinnedMessage, setPinnedMessage] = useState(null)
   const [pinnedAttachment, setPinnedAttachment] = useState(null)
   const [pinnedLoaded, setPinnedLoaded] = useState(false) // Track when pinned message fetch is complete
+  const [announcements, setAnnouncements] = useState([]) // Active announcements
   const [pendingAttachments, setPendingAttachments] = useState([]) // Attachments waiting to be sent
   const [uploadedAttachmentData, setUploadedAttachmentData] = useState([]) // Uploaded attachment metadata
   const [clearAttachmentsTrigger, setClearAttachmentsTrigger] = useState(false) // Trigger to clear MessageInput attachments
   const [currentUserRole, setCurrentUserRole] = useState(null) // Current user's role in the team
+  const [teamMembers, setTeamMembers] = useState([]) // Team members for mention picker
+  const [pendingMentions, setPendingMentions] = useState([]) // Track mentions to send with message
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesEndRef = useRef(null)
@@ -244,6 +250,10 @@ export default function ChatEngine({
       setPinnedMessage(null)
       setPinnedAttachment(null)
       setPinnedLoaded(true)
+      setTeamMembers([]) // Clear team members
+      setPendingMentions([]) // Clear pending mentions
+      setAnnouncements([]) // Clear announcements
+      setNewMessage('') // Clear message input
       return
     }
 
@@ -254,29 +264,39 @@ export default function ChatEngine({
     setPinnedMessage(null)
     setPinnedAttachment(null)
     setPinnedLoaded(false)
+    setTeamMembers([]) // Clear team members for new chat
+    setPendingMentions([]) // Clear pending mentions
+    setAnnouncements([]) // Clear announcements for new chat
+    setNewMessage('') // Clear message input for new chat
     
     let messagesUrl = ''
     let pinnedUrl = ''
+    let announcementsUrl = ''
     const params = new URLSearchParams()
     
     if (chatType === 'team') {
       messagesUrl = `/api/chat/messages?team_id=${selectedChat.id}&per_page=50`
       params.append('team_id', selectedChat.id)
+      announcementsUrl = `/api/chat/announcements?team_id=${selectedChat.id}`
     } else if (chatType === 'dm') {
       messagesUrl = `/api/chat/messages?recipient_id=${selectedChat.id}&per_page=50`
       params.append('recipient_id', selectedChat.id)
+      announcementsUrl = `/api/chat/announcements?recipient_id=${selectedChat.id}`
     }
     pinnedUrl = `/api/chat/messages/pinned?${params}`
 
-    // Fetch both messages and pinned message in parallel
+    // Fetch messages, pinned message, and announcements in parallel
     Promise.all([
       fetch(messagesUrl, { credentials: 'same-origin' })
         .then(res => res.ok ? res.json() : { messages: [], has_more: false }),
       fetch(pinnedUrl, { credentials: 'same-origin' })
         .then(res => res.ok ? res.json() : null)
-        .catch(() => null)
+        .catch(() => null),
+      fetch(announcementsUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : [])
+        .catch(() => [])
     ])
-      .then(([messagesData, pinnedData]) => {
+      .then(([messagesData, pinnedData, announcementsData]) => {
         const messageList = Array.isArray(messagesData) ? messagesData : (messagesData.messages || [])
         const hasMoreMessages = messagesData.has_more !== undefined ? messagesData.has_more : false
         
@@ -302,6 +322,9 @@ export default function ChatEngine({
         setPinnedAttachment(pinnedData?.attachment || null)
         setPinnedLoaded(true)
         
+        // Set announcements
+        setAnnouncements(Array.isArray(announcementsData) ? announcementsData : [])
+        
         // Scroll to bottom after both messages and pinned banner are rendered
         // Use requestAnimationFrame to ensure DOM is painted before scrolling
         requestAnimationFrame(() => {
@@ -320,6 +343,34 @@ export default function ChatEngine({
         setPinnedLoaded(true)
       })
   }, [selectedChat, chatType])
+
+  // Fetch team members for mention picker (only for team chats)
+  useEffect(() => {
+    if (!selectedChat || chatType !== 'team') {
+      setTeamMembers([])
+      return
+    }
+
+    // Fetch team members
+    fetch(`/api/chat/teams/${selectedChat.id}`, { 
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.members) {
+          setTeamMembers(data.members)
+        }
+      })
+      .catch(error => {
+        console.error('Failed to fetch team members for mentions:', error)
+        setTeamMembers([])
+      })
+  }, [selectedChat?.id, chatType])
 
   // Retry loading chat
   const retryLoadChat = () => {
@@ -770,6 +821,19 @@ export default function ChatEngine({
         sent_at: event.left_at,
       }
       setMessages(prev => [...prev, membershipEvent])
+    },
+    onAnnouncementCreated: (announcement) => {
+      // Add new announcement to state (avoiding duplicates)
+      setAnnouncements(prev => {
+        if (prev.some(a => a.id === announcement.id)) {
+          return prev
+        }
+        return [announcement, ...prev]
+      })
+    },
+    onAnnouncementDismissed: (announcementId) => {
+      // Remove dismissed announcement from state
+      setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
     }
   })
 
@@ -943,6 +1007,13 @@ export default function ChatEngine({
               formData.append('reply_to_attachment_id', msg.reply_to_attachment_id)
             }
             
+            // Include mentions if any
+            if (msg.mentions && msg.mentions.length > 0) {
+              msg.mentions.forEach((mention, index) => {
+                formData.append(`mentions[${index}]`, mention.id)
+              })
+            }
+            
             // Add attachments
             msg.attachments.forEach((attachment, index) => {
               formData.append(`attachments[${index}]`, attachment.file)
@@ -979,6 +1050,11 @@ export default function ChatEngine({
             // Include reply_to_attachment_id if replying to specific attachment
             if (msg.reply_to_attachment_id) {
               requestData.reply_to_attachment_id = msg.reply_to_attachment_id
+            }
+            
+            // Include mentions if any
+            if (msg.mentions && msg.mentions.length > 0) {
+              requestData.mentions = msg.mentions.map(m => m.id)
             }
             
             response = await fetch('/api/chat/messages', {
@@ -1213,14 +1289,16 @@ export default function ChatEngine({
         sender_id: replyToMessage.sender_id,
         created_at: replyToMessage.created_at,
       } : null,
+      mentions: pendingMentions, // Include mentions
     })
     
     // Clear input immediately for instant feedback
     setNewMessage('')
     setReplyingTo(null)
     
-    // Clear pending attachments and trigger MessageInput cleanup
+    // Clear pending attachments, mentions, and trigger MessageInput cleanup
     setPendingAttachments([])
+    setPendingMentions([])
     setClearAttachmentsTrigger(prev => !prev)
     
     // Scroll to bottom instantly when sending
@@ -1578,6 +1656,50 @@ export default function ChatEngine({
         
         return { ...msg, attachments: updatedAttachments }
       }))
+    }
+  }
+
+  // Dismiss an announcement
+  const handleDismissAnnouncement = async (announcementId) => {
+    if (!announcementId) return
+    
+    try {
+      const response = await fetch(`/api/chat/announcements/${announcementId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      })
+      
+      if (response.ok) {
+        // Remove from local state
+        setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
+        toast.success('Announcement dismissed', {
+          toastId: 'announcement-dismissed',
+          position: 'top-center',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+          progress: undefined,
+          theme: 'light',
+        })
+      }
+    } catch (error) {
+      console.error('Error dismissing announcement:', error)
+      toast.error('Failed to dismiss announcement', {
+        toastId: 'announcement-dismiss-failed',
+        position: 'top-center',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      })
     }
   }
 
@@ -2244,6 +2366,22 @@ export default function ChatEngine({
         </div>
       )}
       
+      {/* Announcement Banner - appears above pinned messages */}
+      {!connectionError && !loadError && announcements.length > 0 && (
+        <AnnouncementBanner 
+          announcements={announcements}
+          onDismiss={handleDismissAnnouncement}
+          canDismiss={
+            // Can dismiss if user has global announcement permission OR
+            // (it's a team announcement AND user has team announcement permission)
+            canDismissGlobalAnnouncements || 
+            (chatType === 'team' && canDismissTeamAnnouncements)
+          }
+          chatId={selectedChat?.id}
+          chatType={chatType}
+        />
+      )}
+      
       {/* Pinned Message Banner */}
       {!connectionError && !loadError && (pinnedMessage || pinnedAttachment) && (
         <PinnedMessageBanner 
@@ -2337,6 +2475,7 @@ export default function ChatEngine({
           onForwardAttachment={handleForwardAttachment}
           canDeleteOthersMessages={chatType === 'team' && (currentUserRole === 'admin' || currentUserRole === 'owner')}
           canPinMessages={canPinMessages}
+          teamMembers={chatType === 'team' ? teamMembers : []}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}
@@ -2379,6 +2518,10 @@ export default function ChatEngine({
             onAttachmentsChange={handleAttachmentsChange}
             clearAttachments={clearAttachmentsTrigger}
             allowAttachments={canSendAttachments}
+            teamMembers={chatType === 'team' ? teamMembers : []}
+            chatType={chatType}
+            currentUserId={currentUser?.id}
+            onMentionsChange={setPendingMentions}
           />
         </div>
       )}

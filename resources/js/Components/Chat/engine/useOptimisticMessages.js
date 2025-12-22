@@ -120,6 +120,7 @@ export function useOptimisticMessages(selectedChat, chatType, currentUser) {
       reply_to_attachment_id: messageData.reply_to_attachment_id,
       reply_to_attachment: messageData.reply_to_attachment,
       reply_to_message: messageData.reply_to_message,
+      mentions: messageData.mentions || [], // Include mentions
       status: 'pending', // pending, failed, sent
       retryCount: 0,
     }

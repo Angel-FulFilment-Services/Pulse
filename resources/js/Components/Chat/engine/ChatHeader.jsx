@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
-import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon, UserPlusIcon, XMarkIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { UserGroupIcon, EllipsisVerticalIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, EyeIcon, EyeSlashIcon, TrashIcon, SpeakerXMarkIcon, UserPlusIcon, XMarkIcon, MagnifyingGlassIcon, ChevronDownIcon, MegaphoneIcon } from '@heroicons/react/24/outline'
 import { UserGroupIcon as UserGroupIconSolid } from '@heroicons/react/24/solid'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react'
 import { differenceInMinutes } from 'date-fns'
 import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
+import AnnouncementDropdown from '../AnnouncementDropdown.jsx'
 import { usePermission } from '../../../Utils/Permissions.jsx'
 import { useUserStates } from '../../Context/ActiveStateContext'
 
 export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
+  const canMakeTeamAnnouncements = usePermission('pulse_chat_team_announcements')
   
   // Get user states for active status
   const { userStates } = useUserStates()
@@ -21,6 +23,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
   const [showMembersPanel, setShowMembersPanel] = useState(false)
   const [showAddUserPopover, setShowAddUserPopover] = useState(false)
   const [showCreateTeamDropdown, setShowCreateTeamDropdown] = useState(false)
+  const [showTeamAnnouncementDropdown, setShowTeamAnnouncementDropdown] = useState(false)
   const [teamMembers, setTeamMembers] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [userSearch, setUserSearch] = useState('')
@@ -35,6 +38,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
   
   // Ref for create team button
   const createTeamButtonRef = useRef(null)
+  const teamAnnouncementButtonRef = useRef(null)
   
   // FloatingUI for members popover
   const { refs: membersRefs, floatingStyles: membersFloatingStyles } = useFloating({
@@ -698,7 +702,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
                         </div>
                       ) : (
                         <div className="py-1">
-                          {teamMembers.map(member => (
+                          {[...teamMembers].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(member => (
                             <div 
                               key={member.id}
                               className="px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-dark-700"
@@ -884,6 +888,19 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
               title="Create team with this user"
             >
               <UserPlusIcon className="w-5 h-5" />
+            </button>
+          )}
+          
+          {/* Team Announcement Button - only show for team chats */}
+          {chatType === 'team' && canMakeTeamAnnouncements && (
+            <button
+              ref={teamAnnouncementButtonRef}
+              onClick={() => setShowTeamAnnouncementDropdown(!showTeamAnnouncementDropdown)}
+              disabled={loading}
+              className={`p-2 rounded-lg ${showTeamAnnouncementDropdown ? 'text-theme-600 dark:text-theme-400 bg-theme-100 dark:bg-theme-900/30' : 'text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-800'} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Create team announcement"
+            >
+              <MegaphoneIcon className="w-5 h-5" />
             </button>
           )}
           
@@ -1127,6 +1144,21 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           initialMember={chat}
           onTeamCreated={(newTeam) => {
             onTeamCreated?.(newTeam)
+          }}
+        />
+      )}
+      
+      {/* Team Announcement Dropdown for team chats */}
+      {chatType === 'team' && (
+        <AnnouncementDropdown
+          isOpen={showTeamAnnouncementDropdown}
+          onClose={() => setShowTeamAnnouncementDropdown(false)}
+          triggerRef={teamAnnouncementButtonRef}
+          scope="team"
+          teamId={chat?.id}
+          onAnnouncementCreated={() => {
+            // The announcement will be broadcast via WebSocket
+            // No additional action needed here
           }}
         />
       )}
