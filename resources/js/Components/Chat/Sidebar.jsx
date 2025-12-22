@@ -40,7 +40,7 @@ import { RiSpyLine } from '@remixicon/react'
 // Register the ring spinner
 ring.register()
 
-export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, teamsRefreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange, currentUser }) {
+export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUsers = [], unreadChats = new Set(), refreshKey = 0, teamsRefreshKey = 0, lastMessageUpdate = null, isLoading = false, onPreferencesChange, currentUser, spyMode: spyModeProp, onSpyModeChange }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
   const canMakeGlobalAnnouncements = usePermission('pulse_chat_global_announcements')
@@ -49,11 +49,14 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   // Get NotificationContext to sync preferences
   const { fetchChatPreferences: fetchNotificationPreferences } = useNotifications()
   
-  // Spy mode state - defaults to true, persisted in localStorage
-  const [spyMode, setSpyMode] = useState(() => {
+  // Spy mode state - use prop if provided (from Chat.jsx), otherwise manage locally
+  const [localSpyMode, setLocalSpyMode] = useState(() => {
     const stored = localStorage.getItem('chat_spy_mode')
     return stored !== null ? stored === 'true' : true // Default to true
   })
+  
+  // Use prop if provided, otherwise use local state
+  const spyMode = spyModeProp !== undefined ? spyModeProp : localSpyMode
   
   // Ensure spy mode is off if user doesn't have permission
   const effectiveSpyMode = canMonitorAllTeams ? spyMode : false
@@ -127,8 +130,14 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   // Toggle spy mode and persist to localStorage
   const toggleSpyMode = () => {
     const newValue = !spyMode
-    setSpyMode(newValue)
-    localStorage.setItem('chat_spy_mode', String(newValue))
+    if (onSpyModeChange) {
+      // Use callback if provided (from Chat.jsx)
+      onSpyModeChange(newValue)
+    } else {
+      // Otherwise manage locally
+      setLocalSpyMode(newValue)
+      localStorage.setItem('chat_spy_mode', String(newValue))
+    }
   }
 
   // Helper functions for spy mode read tracking (localStorage-based since we can't create read receipts)

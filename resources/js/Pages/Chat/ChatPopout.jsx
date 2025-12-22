@@ -21,7 +21,7 @@ export default function ChatPopout() {
   const [chatPreferences, setChatPreferences] = useState([]) // Track chat preferences for all chats
   const [teamsDeepLinkChat, setTeamsDeepLinkChat] = useState(null) // Deep link from Teams notification
   
-  // Spy mode permission and state
+  // Spy mode permission and state - managed here and passed to Sidebar
   const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
   const [spyMode, setSpyMode] = useState(() => {
     const stored = localStorage.getItem('chat_spy_mode')
@@ -29,7 +29,13 @@ export default function ChatPopout() {
   })
   const effectiveSpyMode = canMonitorAllTeams ? spyMode : false
   
-  // Listen for spy mode changes from Sidebar (via localStorage)
+  // Handle spy mode toggle from Sidebar
+  const handleSpyModeChange = (newValue) => {
+    setSpyMode(newValue)
+    localStorage.setItem('chat_spy_mode', String(newValue))
+  }
+  
+  // Also listen for spy mode changes from other tabs (via localStorage)
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'chat_spy_mode') {
@@ -494,6 +500,8 @@ export default function ChatPopout() {
           isLoading={chatLoading}
           onPreferencesChange={setChatPreferences}
           currentUser={currentUser}
+          spyMode={spyMode}
+          onSpyModeChange={handleSpyModeChange}
         />
       </div>
       
