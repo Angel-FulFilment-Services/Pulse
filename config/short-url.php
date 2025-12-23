@@ -11,7 +11,7 @@ return [
     | is registered for the short URL route.
     |
     */
-    'prefix' => 's',
+    'prefix' => null,
 
     /*
     |--------------------------------------------------------------------------
