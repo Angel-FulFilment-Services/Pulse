@@ -6,7 +6,7 @@ import Article from '../../Components/KnowledgeBase/Article.jsx';
 
 const Post = ({ article, questions, resolutions }) => {
     return (
-        <div className="relative flex flex-col h-screen bg-white dark:bg-dark-900">
+        <div className="relative flex flex-col h-dvh bg-white dark:bg-dark-900">
             <Article
                 article={article}
                 questions={questions}

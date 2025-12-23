@@ -21,7 +21,7 @@ const Rota = ({ token }) => {
     };
 
     return (
-        <div className="h-screen">
+        <div className="h-dvh">
             {renderView()}
         </div>
       );

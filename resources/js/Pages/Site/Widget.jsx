@@ -423,7 +423,7 @@ export default function DeliveryAndVisitorWidget() {
     return (
         <div className="bg-white">
             { rollCall && Object.values(rollCallData).every(item => item.present) && (
-                <div className="bg-green-50 text-green-900 text-lg font-semibold px-4 rounded-t-lg w-full max-h-screen h-svh flex flex-col items-center justify-between animate-fade-in">
+                <div className="bg-green-50 text-green-900 text-lg font-semibold px-4 rounded-t-lg w-full max-h-dvh h-svh flex flex-col items-center justify-between animate-fade-in">
                     <div className="flex items-center justify-end w-full h-10">
                         <XMarkIcon className="h-6 w-6 text-green-900 dark:text-dark-100 stroke-[2.5] cursor-pointer" onClick={() => toggleRollCall()} />
                     </div>

@@ -154,7 +154,7 @@ export const wallboards = {
                 },
                 fullscreen: {
                     width: 'w-screen',
-                    height: 'h-screen',
+                    height: 'h-dvh',
                 }
             }
         }

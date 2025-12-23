@@ -297,7 +297,7 @@ export default function RestrictedWordsFeed({ searchTerm, refreshTrigger, setRef
           <div className="mx-auto max-w-full w-full">
             <div className="mt-2 w-full space-y-4">
               <motion.div
-                className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
+                className="overflow-y-auto h-dvh pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
                 layout
               >
                 <AnimatePresence>

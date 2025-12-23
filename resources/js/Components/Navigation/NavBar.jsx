@@ -71,7 +71,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-800 h-dvh overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

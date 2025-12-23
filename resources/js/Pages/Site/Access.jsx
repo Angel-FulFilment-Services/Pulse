@@ -300,7 +300,7 @@ export default function Access({ location }) {
   // Render logic
   if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} cameraStream={cameraStream} showFireScreen={showFireScreen} setShowFireScreen={setShowFireScreen} />;
   if (step === 'mode') return  (
-      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
+      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-screen">
         <div className="flex items-center justify-between w-full h-10">
           <img
             src="/images/angel-logo.png"
@@ -330,7 +330,7 @@ export default function Access({ location }) {
   if (step === 'signin-interview-home') return <SignInInterviewForm onComplete={setFormData} setStep={setStep} location={location} from="splash" />;
   if (step === 'update-profile-photo') {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
+      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-full">
         <UpdateProfilePhoto onComplete={() => signIn(false)} userId={formData.userId} />
       </div>
     );

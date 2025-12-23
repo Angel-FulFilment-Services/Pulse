@@ -71,7 +71,7 @@ export default function SignInContractorForm({ onComplete, setStep, location }) 
 
   return (
     <div
-      className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 pb-16 h-screen min-h-dvh w-full"
+      className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 pb-16 h-dvh min-h-dvh w-full"
     >
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon

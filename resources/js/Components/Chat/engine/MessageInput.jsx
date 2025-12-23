@@ -784,7 +784,7 @@ export default function MessageInput({
       {/* Chat window drag container */}
       {allowAttachments && isDragging && !attachments.length && (
         <div 
-          className="fixed top-0 left-0 h-screen z-50 bg-theme-800/10 dark:bg-theme-800/20 border-2 border-dashed border-theme-500 dark:border-theme-400 rounded-lg flex items-center justify-center"
+          className="fixed top-0 left-0 h-dvh z-50 bg-theme-800/10 dark:bg-theme-800/20 border-2 border-dashed border-theme-500 dark:border-theme-400 rounded-lg flex items-center justify-center"
           style={dragOverlayStyle}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}

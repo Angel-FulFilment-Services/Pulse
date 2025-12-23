@@ -25,7 +25,7 @@ export default function SplashScreen({ onContinue, setStep, cameraStream = null,
 
   if (localShowFireMessage) {
     return (
-      <div className="min-h-screen bg-red-600 flex items-center justify-center p-8 absolute inset-0 z-50">
+      <div className="min-h-dvh bg-red-600 flex items-center justify-center p-8 absolute inset-0 z-50">
         <div className="text-center">
           <div className="mb-8">
             <FireIcon className="mx-auto h-32 w-32 text-white animate-pulse" />
@@ -59,7 +59,7 @@ export default function SplashScreen({ onContinue, setStep, cameraStream = null,
   return (
     <>
       <div
-        className="flex flex-col items-center justify-between h-screen w-screen dark:bg-dark-900 cursor-pointer select-none py-10"
+        className="flex flex-col items-center justify-between h-dvh w-screen dark:bg-dark-900 cursor-pointer select-none py-10"
         onClick={onContinue} 
         tabIndex={0}
         role="button"

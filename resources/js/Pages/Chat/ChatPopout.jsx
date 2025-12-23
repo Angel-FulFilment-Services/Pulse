@@ -485,7 +485,7 @@ export default function ChatPopout() {
   }, [currentUser])
 
   return (
-    <div className="h-screen flex flex-row-reverse bg-gray-50 dark:bg-dark-800">
+    <div className="h-dvh flex flex-row-reverse bg-gray-50 dark:bg-dark-800">
       {/* Sidebar - Full screen on mobile when showing, fixed width on desktop */}
       <div className={`${showMobileSidebar ? 'flex' : 'hidden'} md:flex w-full md:w-80`}>
         <Sidebar

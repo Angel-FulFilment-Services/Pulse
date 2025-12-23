@@ -86,7 +86,7 @@ const Reporting = () => {
     }, [activeTab]);
 
     return (
-        <div className="w-full flex flex-col h-screen bg-white dark:bg-dark-900">
+        <div className="w-full flex flex-col h-dvh bg-white dark:bg-dark-900">
             <div id="reporting_header" className="z-30">
                 <div className="z-30">
                     <Header

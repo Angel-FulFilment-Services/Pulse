@@ -24,7 +24,7 @@ export default function Hero () {
   }, []);
 
   return (
-    <div className='absolute h-screen w-full hidden lg:flex lg:flex-row'>
+    <div className='absolute h-dvh w-full hidden lg:flex lg:flex-row'>
       <div className="self-center w-full flex flex-col items-center justify-center h-full">
         <div className='flex-row flex w-full h-full overflow-hidden'>
           <div className="w-full flex flex-col">

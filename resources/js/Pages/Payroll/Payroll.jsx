@@ -31,7 +31,7 @@ const Payroll = () => {
     };
 
     return (
-        <div className="w-full flex flex-col h-screen bg-white dark:bg-dark-900">
+        <div className="w-full flex flex-col h-dvh bg-white dark:bg-dark-900">
             <div className="flex flex-col w-full h-full">
                 {renderTab()}
             </div>

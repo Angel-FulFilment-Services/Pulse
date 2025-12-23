@@ -167,7 +167,7 @@ createInertiaApp({
         page.default.layout = (page) => (
           <AppWrapper>
             {() => (
-              <div className="min-h-screen bg-black text-white">
+              <div className="min-h-dvh bg-black text-white">
                 <div children={page} />
               </div>
             )}

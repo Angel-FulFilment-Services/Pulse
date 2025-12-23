@@ -30,7 +30,7 @@ export default function GoodbyeMessage({ setStep }) {
 
   return (
     <div
-      className="flex flex-col items-center justify-between h-screen w-screen dark:bg-dark-900 cursor-pointer select-none py-10"
+      className="flex flex-col items-center justify-between h-dvh w-screen dark:bg-dark-900 cursor-pointer select-none py-10"
       tabIndex={0}
       style={{ outline: 'none' }}
       onClick={handleClick} // Clear timeout and navigate to splash
