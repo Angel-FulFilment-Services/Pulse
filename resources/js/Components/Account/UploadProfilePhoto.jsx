@@ -298,8 +298,16 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.closePath();
           ctx.clip();
 
-          // Use "contain" for uploads, "cover" for camera
-          const baseScale = Math.max(previewSize / img.width, previewSize / img.height);
+          // Match the preview: uploads use "contain", camera uses "cover"
+          // The preview CSS uses width/height: zoom * 100% with object-fit
+          // So we need to calculate based on how the image fits in the container
+          const isUpload = lastSource === 'upload';
+          
+          // For contain: scale so the entire image fits (use min)
+          // For cover: scale so the image covers the area (use max)
+          const baseScale = isUpload
+            ? Math.min(previewSize / img.width, previewSize / img.height)
+            : Math.max(previewSize / img.width, previewSize / img.height);
 
           const scale = baseScale * zoom;
           const displayWidth = img.width * scale;
