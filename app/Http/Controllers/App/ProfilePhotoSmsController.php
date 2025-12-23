@@ -126,21 +126,19 @@ class ProfilePhotoSmsController extends Controller
     {
         // Validate the signed URL
         if (!$request->hasValidSignature()) {
-            return Inertia::render('Account/MobileProfilePhotoExpired');
+            abort(419); // Page Expired
         }
 
         $user = User::find($user_id);
         $employee = Employee::where('user_id', $user_id)->first();
 
         if (!$user || !$employee) {
-            return Inertia::render('Account/MobileProfilePhotoExpired');
+            abort(404);
         }
 
         // Check if photo is already set
         if (!empty($employee->profile_photo)) {
-            return Inertia::render('Account/MobileProfilePhotoComplete', [
-                'message' => 'Your profile photo has already been set.'
-            ]);
+            abort(410); // Gone - resource no longer available
         }
 
         return Inertia::render('Account/MobileProfilePhoto', [
