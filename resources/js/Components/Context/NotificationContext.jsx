@@ -24,6 +24,7 @@ export function NotificationProvider({ children }) {
   const [notificationPermission, setNotificationPermission] = useState('default')
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
   const channelRef = useRef(null)
+  const handleMessageNotificationRef = useRef(null) // Ref to always have latest handler
 
   // Track window focus state
   useEffect(() => {
@@ -122,11 +123,12 @@ export function NotificationProvider({ children }) {
     // Check global mute first
     if (globalSettings.global_mute) return true
     
-    // Check per-chat mute
+    // Check per-chat mute - convert IDs to numbers for consistent comparison
+    const numericChatId = Number(chatId)
     const preference = chatPreferences.find(
-      p => p.chat_id === chatId && p.chat_type === chatType
+      p => Number(p.chat_id) === numericChatId && p.chat_type === chatType
     )
-    return preference?.is_muted || false
+    return preference?.is_muted === true
   }, [chatPreferences, globalSettings.global_mute])
 
   // Check if preview should be hidden
@@ -134,11 +136,12 @@ export function NotificationProvider({ children }) {
     // Check global setting first
     if (globalSettings.global_hide_preview) return true
     
-    // Check per-chat setting
+    // Check per-chat setting - convert IDs to numbers for consistent comparison
+    const numericChatId = Number(chatId)
     const preference = chatPreferences.find(
-      p => p.chat_id === chatId && p.chat_type === chatType
+      p => Number(p.chat_id) === numericChatId && p.chat_type === chatType
     )
-    return preference?.hide_preview || false
+    return preference?.hide_preview === true
   }, [chatPreferences, globalSettings.global_hide_preview])
 
   // Check if user is currently viewing the specified chat
@@ -379,6 +382,11 @@ export function NotificationProvider({ children }) {
     showToastNotification(message, sender, chatId, chatType, hidePreview, isMentioned)
   }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification])
 
+  // Keep the handler ref updated so websocket callback always uses latest handler
+  useEffect(() => {
+    handleMessageNotificationRef.current = handleMessageNotification
+  }, [handleMessageNotification])
+
   // Subscribe to notifications channel
   useEffect(() => {
     if (!currentUser?.id || !window.Echo) return
@@ -389,14 +397,21 @@ export function NotificationProvider({ children }) {
     const channel = window.Echo.private(`chat.user.${currentUser.id}`)
     channelRef.current = channel
     
-    channel.listen('.NewChatMessage', handleMessageNotification)
+    // Use a wrapper function that calls the ref, ensuring we always use the latest handler
+    const notificationHandler = (data) => {
+      if (handleMessageNotificationRef.current) {
+        handleMessageNotificationRef.current(data)
+      }
+    }
+    
+    channel.listen('.NewChatMessage', notificationHandler)
     
     return () => {
       if (channelRef.current) {
         channelRef.current.stopListening('.NewChatMessage')
       }
     }
-  }, [currentUser?.id, handleMessageNotification, preferencesLoaded])
+  }, [currentUser?.id, preferencesLoaded]) // Removed handleMessageNotification - we use ref to always get latest
 
   const value = {
     currentUser,
