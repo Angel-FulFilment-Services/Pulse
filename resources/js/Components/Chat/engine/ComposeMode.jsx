@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   UserGroupIcon,
   MagnifyingGlassIcon,
-  XMarkIcon
+  XMarkIcon,
+  ChevronLeftIcon
 } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import UserIcon from '../UserIcon.jsx'
@@ -12,7 +13,8 @@ export default function ComposeMode({
   currentUser, 
   onChatSelect,
   onMessageSend,
-  onRefreshContacts
+  onRefreshContacts,
+  onBackToSidebar
 }) {
   const [recipientSearch, setRecipientSearch] = useState('')
   const [showRecipientDropdown, setShowRecipientDropdown] = useState(false)
@@ -127,6 +129,16 @@ export default function ComposeMode({
       <div className="px-6 py-2 border-b border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-900 min-h-[5.31rem]">
         <div className="flex items-center justify-between">
           <div className="flex items-center flex-1">
+            {/* Back button for mobile */}
+            {onBackToSidebar && (
+              <button
+                onClick={onBackToSidebar}
+                className="lg:hidden p-2 mr-2 text-gray-400 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800"
+                title="Back to conversations"
+              >
+                <ChevronLeftIcon className="w-5 h-5" />
+              </button>
+            )}
             <div className="w-12 h-12 bg-theme-500 dark:bg-theme-600 rounded-lg flex items-center justify-center mr-6">
               <PaperAirplaneIcon className="w-7 h-7 text-white" />
             </div>

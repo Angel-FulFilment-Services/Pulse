@@ -87,7 +87,7 @@ export default function ReplyBubble({ repliedMessage, isMyMessage, onClickReply 
               {formatTimestamp(repliedMessage.created_at)}
             </div>
           </div>
-          <div className={`text-sm truncate max-w-lg flex items-center gap-1.5 ${
+          <div className={`text-sm truncate max-w-xs xl:max-w-md 2xl:max-w-lg flex items-center gap-1.5 ${
             isMyMessage ? 'text-white dark:text-dark-200 text-opacity-75' : 'text-gray-500 dark:text-dark-400'
           } ${repliedMessage.deleted_at || (isAttachmentMessage && attachment?.deleted_at) ? 'italic' : ''}`}>
             {(() => {

@@ -206,7 +206,7 @@ export default function MessageReactions({ message, isMyMessage, onAddReaction, 
           {/* Invisible padding area to prevent flickering when moving mouse between bubble and popover */}
           <div className={`absolute inset-x-0 h-10 w-[17.25rem] ${finalPlacement === 'bottom' ? '-top-10' : '-bottom-10'}`} />
           
-          <div className="flex items-center gap-2">
+          <div className={`flex ${finalPlacement === 'bottom' ? 'flex-col' : 'flex-col-reverse'} xl:flex-row items-end xl:items-center gap-1 xl:gap-2`}>
             {/* Reactions control */}
             <div ref={reactionsControlRef} className="bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 p-2 flex items-center gap-1">
                 {QUICK_REACTIONS.map((reaction) => (

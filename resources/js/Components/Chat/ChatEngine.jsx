@@ -2526,6 +2526,7 @@ export default function ChatEngine({
         onChatSelect={onChatSelect}
         onMessageSend={sendMessageToRecipient}
         onRefreshContacts={onRefreshContacts}
+        onBackToSidebar={onBackToSidebar}
       />
     )
   }
@@ -2537,7 +2538,7 @@ export default function ChatEngine({
 
   // Main chat view
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-dark-900">
+    <div className="flex-1 flex flex-col h-full w-full min-w-0 overflow-hidden bg-white dark:bg-dark-900">
       <ChatHeader 
         chat={selectedChat} 
         chatType={chatType} 
@@ -2601,7 +2602,7 @@ export default function ChatEngine({
       )}
 
       {/* Messages */}
-      <div ref={messageListContainerRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4 relative flex flex-col">
+      <div ref={messageListContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-4 relative flex flex-col w-full">
         {/* Error state */}
         {loadError && (
           <div className="flex items-center justify-center h-full">

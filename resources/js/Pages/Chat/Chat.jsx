@@ -124,6 +124,8 @@ export default function Chat() {
           if (chat) {
             setSelectedChat(chat)
             setChatType(chatType)
+            // On mobile, go directly to chat view when loading from URL
+            setShowMobileSidebar(false)
           }
         })
         .catch(console.error)
@@ -301,8 +303,8 @@ export default function Chat() {
     setSelectedChat(chat)
     setChatType(type)
     
-    // On mobile, switch to chat view when a chat is selected (not compose mode)
-    if (chat && type !== 'compose') {
+    // On mobile, switch to chat view when a chat is selected OR compose mode is entered
+    if (chat || type === 'compose') {
       setShowMobileSidebar(false)
     }
     
@@ -398,9 +400,9 @@ export default function Chat() {
   }, [currentUser])
 
   return (
-    <div className="h-[calc(100vh-4rem)] lg:h-full flex bg-gray-50 dark:bg-dark-800">
+    <div className="h-[calc(100vh-4rem)] lg:h-full flex bg-gray-50 dark:bg-dark-800 overflow-hidden w-full">
       {/* Chat Area - Hidden on mobile when sidebar is showing, always visible on desktop */}
-      <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1`}>
+      <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 min-w-0 overflow-hidden`}>
         <ChatEngine
           selectedChat={selectedChat}
           chatType={chatType}

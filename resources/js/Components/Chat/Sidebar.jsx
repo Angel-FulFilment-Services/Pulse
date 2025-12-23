@@ -754,7 +754,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
             e.stopPropagation()
             setIsOpen(!isOpen)
           }}
-          className={`opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 p-1 ${isItemSelected ? 'hover:bg-theme-200/50 dark:hover:bg-theme-800/50' : 'hover:bg-gray-200 dark:hover:bg-dark-700'} rounded`}
+          className={`opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-150 hover:scale-110 p-1 ${isItemSelected ? 'hover:bg-theme-200/50 dark:hover:bg-theme-800/50' : 'hover:bg-gray-200 dark:hover:bg-dark-700'} rounded`}
         >
           <EllipsisVerticalIcon className="w-4 h-4 text-gray-400 dark:text-dark-400" />
         </button>
@@ -843,7 +843,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 mb-0.5"
+        className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-150 hover:scale-110 mb-0.5"
       >
         {isFavorited ? (
           // Currently favorited - show outline on hover to indicate "unfavorite"
@@ -970,7 +970,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     return (
       <div 
         key={`${section}-team-${team.id}`}
-        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors ${
+        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors touch-manipulation ${
           isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
         } ${
           isItemSelected(team, 'team', section)
@@ -1031,7 +1031,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     return (
       <div 
         key={`${section}-contact-${contact.id}`}
-        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors ${
+        className={`flex items-center px-3 py-2 mx-2 rounded-lg group transition-colors touch-manipulation ${
           isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
         } ${
           isItemSelected(contact, 'dm', section)

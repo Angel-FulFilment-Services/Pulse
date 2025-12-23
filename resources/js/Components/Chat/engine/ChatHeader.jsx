@@ -656,7 +656,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-shrink-0">
           {/* Team Members Button - show for all team members */}
           {chatType === 'team' && (
             <div className="relative">
