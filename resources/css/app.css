@@ -8,43 +8,16 @@
         padding: 0 !important;
     }
     
-    /* iOS safe area support - use CSS custom properties */
-    :root {
-        --safe-area-inset-top: env(safe-area-inset-top, 0px);
-        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-        --safe-area-inset-left: env(safe-area-inset-left, 0px);
-        --safe-area-inset-right: env(safe-area-inset-right, 0px);
-    }
-    
+    /* iOS safe area support */
     body {
-        padding-top: var(--safe-area-inset-top);
-        padding-bottom: var(--safe-area-inset-bottom);
-        padding-left: var(--safe-area-inset-left);
-        padding-right: var(--safe-area-inset-right);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 }
 
 @layer utilities {
-    /* Override h-dvh to use real viewport height on iOS */
-    .h-dvh {
-        height: 100dvh;
-        height: var(--real-vh, 100dvh);
-    }
-    
-    /* Utility for safe area aware heights */
-    .h-safe-screen {
-        height: calc(var(--real-vh, 100dvh) - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-    }
-    
-    /* Padding utilities for safe areas */
-    .pb-safe {
-        padding-bottom: var(--safe-area-inset-bottom);
-    }
-    
-    .pt-safe {
-        padding-top: var(--safe-area-inset-top);
-    }
-    
     @keyframes sync-pulse {
         0%, 100% {
             opacity: 1;
