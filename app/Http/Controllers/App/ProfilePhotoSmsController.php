@@ -85,9 +85,8 @@ class ProfilePhotoSmsController extends Controller
             ['user_id' => $user->id]
         );
 
-        // Create a short URL
+        // Create a short URL (not single-use so page can be refreshed)
         $shortUrlModel = ShortURL::destinationUrl($signedUrl)
-            ->singleUse()
             ->make();
 
         $shortUrl = $shortUrlModel->default_short_url;
