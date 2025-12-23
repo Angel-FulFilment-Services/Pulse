@@ -92,7 +92,7 @@ function resolveColumnParameters(column, parameters, dateRange) {
 
 export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, setReportData, dateRange }) {
   const [sortConfig, setSortConfig] = useState(parameters?.sorting?.default ? parameters.sorting.default : { key: null, direction: 'asc' }); // State to track sorting configuration
-  const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
+  const [tableHeight, setTableHeight] = useState('calc(100dvh - 15rem)'); // Default height
 
   useEffect(() => {
     const headerElement = document.getElementById('reporting_header');
@@ -105,10 +105,10 @@ export default function ReportingTable({ parameters, structure, filters, data, t
 
       if (mediaQuery.matches) {
         // Screen width is `lg` or larger
-        setTableHeight(`calc(100vh - ${headerHeight + 20}px)`);
+        setTableHeight(`calc(100dvh - ${headerHeight + 20}px)`);
       } else {
         // Screen width is below `lg`
-        setTableHeight(`calc(100vh - ${headerHeight + 85}px)`);
+        setTableHeight(`calc(100dvh - ${headerHeight + 85}px)`);
       }
     };
 
