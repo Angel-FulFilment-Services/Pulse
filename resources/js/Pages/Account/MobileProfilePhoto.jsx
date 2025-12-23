@@ -8,21 +8,15 @@ export default function MobileProfilePhoto({ user_id, user_name, signature, expi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (imageData) => {
     setIsSubmitting(true);
     setError(null);
 
-    const form = event.target;
-    const canvas = form.querySelector('canvas');
-    
-    if (!canvas) {
+    if (!imageData) {
       setError('No image to save. Please take or upload a photo first.');
       setIsSubmitting(false);
       return;
     }
-
-    const imageData = canvas.toDataURL('image/jpeg', 0.9);
 
     try {
       // Build the signed URL for the POST request
@@ -89,10 +83,7 @@ export default function MobileProfilePhoto({ user_id, user_name, signature, expi
           <UploadProfilePhoto
             handleSubmit={handleSubmit}
             handleClose={() => {
-              // On mobile, closing just shows a message
-              if (window.confirm('Are you sure you want to cancel? You can use this link again later.')) {
                 window.close();
-              }
             }}
           />
 

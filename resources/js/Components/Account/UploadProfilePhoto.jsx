@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
+import ConfirmationDialog from '../Dialogs/ConfirmationDialog';
 
 // Simple spinner component
 function Spinner() {
@@ -37,6 +38,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [lastSource, setLastSource] = useState(null); // "camera" or "upload"
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Spinner for image loading
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -323,8 +325,8 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     };
 
     const cropped = await getCroppedImage();
-    handleSubmit(cropped);
-    handleClose();
+    await handleSubmit(cropped);
+    // Let the parent component handle closing after successful submission
   };
 
   return (
@@ -520,7 +522,13 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         <button
           type="button"
           className="text-sm font-semibold text-gray-900 dark:text-dark-100 px-4 py-2 rounded-md"
-          onClick={handleClose}
+          onClick={() => {
+            if (preview) {
+              setShowCancelConfirm(true);
+            } else {
+              handleClose();
+            }
+          }}
         >
           Cancel
         </button>
@@ -532,6 +540,20 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           Save
         </button>
       </div>
+
+      <ConfirmationDialog
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        title="Discard Changes?"
+        description="You have an unsaved photo. Are you sure you want to discard it?"
+        isYes={() => {
+          setShowCancelConfirm(false);
+          handleClose();
+        }}
+        type="question"
+        yesText="Discard"
+        cancelText="Keep Editing"
+      />
     </form>
   );
 }
