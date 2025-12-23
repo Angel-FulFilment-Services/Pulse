@@ -278,7 +278,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-screen">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-dvh">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
