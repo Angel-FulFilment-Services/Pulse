@@ -30,11 +30,13 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   const [cameraError, setCameraError] = useState(false);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
+  const previewContainerRef = useRef(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [containerSize, setContainerSize] = useState(384);
 
   const [isLoading, setIsLoading] = useState(false);
   const [lastSource, setLastSource] = useState(null); // "camera" or "upload"
@@ -43,6 +45,18 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   // Spinner for image loading
   const [imgLoaded, setImgLoaded] = useState(false);
   const [lastPinchDistance, setLastPinchDistance] = useState(null);
+
+  // Track container size for accurate canvas rendering
+  useEffect(() => {
+    const updateSize = () => {
+      if (previewContainerRef.current) {
+        setContainerSize(previewContainerRef.current.offsetWidth);
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [preview]);
 
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
@@ -286,36 +300,42 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         const img = new window.Image();
         img.crossOrigin = "Anonymous";
         img.onload = () => {
-          const previewSize = 384;
+          // Output size is always 384px for consistency
+          const outputSize = 384;
+          // Use the actual displayed container size for calculations
+          const displaySize = containerSize;
+          // Scale factor to convert from display coordinates to output coordinates
+          const scaleFactor = outputSize / displaySize;
+          
           const canvas = document.createElement('canvas');
-          canvas.width = previewSize;
-          canvas.height = previewSize;
+          canvas.width = outputSize;
+          canvas.height = outputSize;
           const ctx = canvas.getContext('2d');
 
           ctx.save();
           ctx.beginPath();
-          ctx.arc(previewSize / 2, previewSize / 2, previewSize / 2, 0, Math.PI * 2, true);
+          ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2, true);
           ctx.closePath();
           ctx.clip();
 
           // Match the preview: uploads use "contain", camera uses "cover"
-          // The preview CSS uses width/height: zoom * 100% with object-fit
-          // So we need to calculate based on how the image fits in the container
           const isUpload = lastSource === 'upload';
           
+          // Calculate base scale relative to the display container size
           // For contain: scale so the entire image fits (use min)
           // For cover: scale so the image covers the area (use max)
           const baseScale = isUpload
-            ? Math.min(previewSize / img.width, previewSize / img.height)
-            : Math.max(previewSize / img.width, previewSize / img.height);
+            ? Math.min(displaySize / img.width, displaySize / img.height)
+            : Math.max(displaySize / img.width, displaySize / img.height);
 
-          const scale = baseScale * zoom;
+          // Apply zoom and scale up to output size
+          const scale = baseScale * zoom * scaleFactor;
           const displayWidth = img.width * scale;
           const displayHeight = img.height * scale;
 
-          // Center the image, then apply drag
-          const dx = (previewSize - displayWidth) / 2 + drag.x;
-          const dy = (previewSize - displayHeight) / 2 + drag.y;
+          // Center the image, then apply drag (scaled to output coordinates)
+          const dx = (outputSize - displayWidth) / 2 + (drag.x * scaleFactor);
+          const dy = (outputSize - displayHeight) / 2 + (drag.y * scaleFactor);
 
           ctx.drawImage(
             img,
@@ -355,12 +375,11 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           >
             {preview ? (
               <div
+                ref={previewContainerRef}
                 className="w-full h-full cursor-move"
                 style={{
                   overflow: 'hidden',
                   borderRadius: '9999px',
-                  width: '24rem',
-                  height: '24rem',
                   position: 'relative',
                   userSelect: 'none',
                 }}
