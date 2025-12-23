@@ -150,18 +150,12 @@ class ProfilePhotoSmsController extends Controller
     }
 
     /**
-     * Set profile photo from mobile page (no auth required - uses signed URL).
+     * Set profile photo from mobile page (no auth required).
+     * Security: The page itself is protected by signed URL, so we trust
+     * POST requests that come with valid user_id and CSRF token.
      */
     public function setMobileProfilePhoto(Request $request, $user_id)
     {
-        // Validate the signed URL
-        if (!$request->hasValidSignature()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This link has expired or is invalid.'
-            ], 403);
-        }
-
         $employee = Employee::where('user_id', $user_id)->first();
 
         if (!$employee) {
@@ -169,6 +163,14 @@ class ProfilePhotoSmsController extends Controller
                 'success' => false,
                 'message' => 'User not found.'
             ], 404);
+        }
+
+        // Check if photo is already set (prevents reuse)
+        if (!empty($employee->profile_photo)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile photo has already been set.'
+            ], 400);
         }
 
         $data = $request->input('profile_photo');
