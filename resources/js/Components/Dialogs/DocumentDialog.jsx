@@ -24,7 +24,7 @@ export default function DocumentDialog({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500/50 dark:bg-gray-800/50 transition-opacity" />
+          <div className="fixed inset-0 bg-gray-500/50 dark:bg-dark-800/50 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">

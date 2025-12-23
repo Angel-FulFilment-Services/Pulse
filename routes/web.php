@@ -93,6 +93,19 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 
 /*
 |-----------------------
+| Mobile Profile Photo (Signed URL - No Auth Required)
+|-----------------------
+*/
+
+Route::get('/profile/photo/mobile/{user_id}', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'showMobileUpload'])
+    ->name('profile.photo.mobile')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+Route::post('/profile/photo/mobile/{user_id}/set', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'setMobileProfilePhoto'])
+    ->name('profile.photo.mobile.set')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+
+/*
+|-----------------------
 | Two Factor Authentication
 |-----------------------
 */
@@ -272,6 +285,10 @@ Route::get('/profile/account', [AccountController::class, 'profile'])->name('acc
 Route::post('/profile/account/photo/set', [AccountController::class, 'setProfilePhoto'])->name('account.profile.photo.set')->withoutMiddleware('has.permission:pulse_view_account');
 Route::post('/profile/account/photo/delete', [AccountController::class, 'deleteProfilePhoto'])->name('account.profile.photo.remove')->withoutMiddleware('has.permission:pulse_view_account');
 Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name('account.profile.photo')->withoutMiddleware('has.permission:pulse_view_account','auth','twofactor');
+
+// Profile Photo SMS Routes (authenticated)
+Route::get('/api/profile/photo/sms/status', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'checkStatus'])->withoutMiddleware('has.permission:pulse_view_account');
+Route::post('/api/profile/photo/sms/send', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'sendSms'])->withoutMiddleware('has.permission:pulse_view_account');
 
 /*
 |-----------------------

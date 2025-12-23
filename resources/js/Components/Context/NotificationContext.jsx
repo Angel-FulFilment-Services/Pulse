@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { toast } from 'react-toastify'
 import { usePage } from '@inertiajs/react'
 import ChatNotificationToast from '../Chat/ChatNotificationToast'
+import ProfilePhotoPromptDialog, { shouldShowProfilePhotoPrompt, clearProfilePhotoDismissal } from '../Dialogs/ProfilePhotoPromptDialog'
 
 const NotificationContext = createContext(null)
 
@@ -25,6 +26,14 @@ export function NotificationProvider({ children }) {
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
   const channelRef = useRef(null)
   const handleMessageNotificationRef = useRef(null) // Ref to always have latest handler
+  
+  // Profile photo prompt state
+  const [showProfilePhotoPrompt, setShowProfilePhotoPrompt] = useState(false)
+  const [profilePhotoPromptData, setProfilePhotoPromptData] = useState({
+    maskedPhone: '',
+    userName: ''
+  })
+  const profilePhotoCheckRef = useRef(false) // Prevent multiple checks
 
   // Track window focus state
   useEffect(() => {
@@ -117,6 +126,79 @@ export function NotificationProvider({ children }) {
     fetchChatPreferences()
     fetchGlobalSettings()
   }, [fetchChatPreferences, fetchGlobalSettings])
+
+  // Check if user needs profile photo on app load
+  useEffect(() => {
+    // Check if feature is enabled via environment variable
+    if (import.meta.env.VITE_PROFILE_PHOTO_PROMPT_ENABLED !== 'true') return
+    
+    // Only run once per session and only if user is logged in
+    if (!currentUser || profilePhotoCheckRef.current) return
+    
+    const checkProfilePhotoStatus = async () => {
+      // Double-check the ref in case of race condition
+      if (profilePhotoCheckRef.current) return
+      profilePhotoCheckRef.current = true
+      
+      // Only check if we should show the prompt (not dismissed in last 48h)
+      if (!shouldShowProfilePhotoPrompt()) return
+      
+      try {
+        const response = await fetch('/api/profile/photo/sms/status', {
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Only show prompt if user needs photo AND has mobile number
+          if (data.needs_photo && data.has_mobile) {
+            setProfilePhotoPromptData({
+              maskedPhone: data.masked_phone,
+              userName: data.user_name
+            })
+            setShowProfilePhotoPrompt(true)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking profile photo status:', error)
+      }
+    }
+    
+    // Small delay to not block initial render
+    const timer = setTimeout(checkProfilePhotoStatus, 1500)
+    return () => clearTimeout(timer)
+  }, [currentUser])
+
+  // Handle sending SMS for profile photo
+  const handleProfilePhotoSendSms = useCallback(async () => {
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      const response = await fetch('/api/profile/photo/sms/send', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        return { success: true, maskedPhone: data.masked_phone }
+      } else {
+        return { success: false, message: data.message || 'Failed to send SMS' }
+      }
+    } catch (error) {
+      console.error('Error sending SMS:', error)
+      return { success: false, message: 'An unexpected error occurred' }
+    }
+  }, [])
 
   // Check if chat is muted
   const isChatMuted = useCallback((chatId, chatType) => {
@@ -430,11 +512,21 @@ export function NotificationProvider({ children }) {
     navigateToChat,
     fetchChatPreferences,
     fetchGlobalSettings,
+    clearProfilePhotoDismissal, // Export for use when user sets photo
   }
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
+      
+      {/* Profile Photo Prompt Dialog - shown on first app load if user needs photo */}
+      <ProfilePhotoPromptDialog
+        isOpen={showProfilePhotoPrompt}
+        onClose={() => setShowProfilePhotoPrompt(false)}
+        maskedPhone={profilePhotoPromptData.maskedPhone}
+        userName={profilePhotoPromptData.userName}
+        onSendSms={handleProfilePhotoSendSms}
+      />
     </NotificationContext.Provider>
   )
 }
