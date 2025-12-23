@@ -34,6 +34,26 @@
     <body class="">
         @inertia
         
+        <!-- Safari viewport height fix -->
+        <script>
+            function updateViewportHeight() {
+                if (window.visualViewport) {
+                    const vh = window.visualViewport.height;
+                    document.documentElement.style.setProperty('--real-vh', `${vh}px`);
+                } else {
+                    document.documentElement.style.setProperty('--real-vh', `${window.innerHeight}px`);
+                }
+            }
+
+            window.addEventListener('resize', updateViewportHeight);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', updateViewportHeight);
+            }
+            window.addEventListener('orientationchange', updateViewportHeight);
+
+            updateViewportHeight();
+        </script>
+        
         <!-- PWA Service Worker Registration -->
         <script>
             if ('serviceWorker' in navigator) {
