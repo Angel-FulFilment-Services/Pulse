@@ -400,7 +400,7 @@ export default function Chat() {
   }, [currentUser])
 
   return (
-    <div className="h-[calc(100vh-4rem)] lg:h-full flex bg-gray-50 dark:bg-dark-800 overflow-hidden w-full">
+    <div className="h-[calc(100dvh-4rem)] lg:h-full flex bg-gray-50 dark:bg-dark-800 overflow-hidden w-full">
       {/* Chat Area - Hidden on mobile when sidebar is showing, always visible on desktop */}
       <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 min-w-0 overflow-hidden`}>
         <ChatEngine
