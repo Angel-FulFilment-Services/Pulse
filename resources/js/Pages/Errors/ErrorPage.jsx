@@ -7,6 +7,8 @@ export default function ErrorPage({ status }) {
       500: 'Server Error',
       404: 'Page Not Found',
       403: 'Forbidden',
+      419: 'Page Expired',
+      410: 'Gone',
     }[status]
   
     const description = {
@@ -14,6 +16,8 @@ export default function ErrorPage({ status }) {
       500: 'Whoops, something went wrong on our servers.',
       404: 'Sorry, the page you are looking for could not be found.',
       403: 'Sorry, you are forbidden from accessing this page.',
+      419: 'Sorry, your session has expired. Please refresh and try again.',
+      410: 'Sorry, the page you are looking for is no longer available.',
     }[status]
   
     return (
