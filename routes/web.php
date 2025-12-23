@@ -363,3 +363,10 @@ Route::get('/camera/viewer', [SiteController::class, 'cameraViewer'])->name('cam
 Route::get('/fire-emergency/roll-call', [SiteController::class, 'rollCall'])
     ->name('fire.roll-call')
     ->middleware(['signed']);
+
+/*
+|-----------------------
+| Short URL Handler (must be last)
+|-----------------------
+*/
+Route::get('/{shortURLKey}', [\AshAllenDesign\ShortURL\Controllers\ShortURLController::class, '__invoke']);
