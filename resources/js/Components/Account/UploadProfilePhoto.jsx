@@ -542,7 +542,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       </div>
 
       {/* Save and Cancel buttons at the bottom */}
-      <div className="flex justify-end gap-4 w-full mt-4">
+      <div className="flex justify-end gap-4 w-full mt-2">
         <button
           type="button"
           className="text-sm font-semibold text-gray-900 dark:text-dark-100 px-4 py-2 rounded-md"
