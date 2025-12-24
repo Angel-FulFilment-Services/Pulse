@@ -318,15 +318,9 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           ctx.closePath();
           ctx.clip();
 
-          // Match the preview: uploads use "contain", camera uses "cover"
-          const isUpload = lastSource === 'upload';
-          
-          // Calculate base scale relative to the display container size
-          // For contain: scale so the entire image fits (use min)
-          // For cover: scale so the image covers the area (use max)
-          const baseScale = isUpload
-            ? Math.min(displaySize / img.width, displaySize / img.height)
-            : Math.max(displaySize / img.width, displaySize / img.height);
+          // Always use "cover" behavior so image fills the frame
+          // For cover: scale so the image covers the entire area (use max)
+          const baseScale = Math.max(displaySize / img.width, displaySize / img.height);
 
           // Apply zoom and scale up to output size
           const scale = baseScale * zoom * scaleFactor;
@@ -364,6 +358,9 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Update Profile Photo</h1>
         <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
           Take a new photo or upload an image to use as your profile picture.
+        </p>
+        <p className="mt-2 text-sm text-gray-500 dark:text-dark-500">
+          Your photo should be a clear, front-facing image of just you (No pets, groups, or inappropriate content.)
         </p>
       </div>
 
@@ -416,7 +413,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                     maxWidth: 'none',
                     maxHeight: 'none',
                     transform: 'translate(-50%, -50%)',
-                    objectFit: lastSource === 'upload' ? 'contain' : 'cover',
+                    objectFit: 'cover',
                     opacity: isLoading ? 0 : 1,
                     transition: 'opacity 0.2s',
                     touchAction: 'none',
