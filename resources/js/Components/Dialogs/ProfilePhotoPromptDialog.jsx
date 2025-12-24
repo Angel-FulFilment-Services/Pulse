@@ -3,16 +3,13 @@ import { Dialog, Transition } from '@headlessui/react';
 import { CameraIcon, DevicePhoneMobileIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const STORAGE_KEY = 'profile_photo_prompt_dismissed';
-const SMS_SENT_KEY = 'profile_photo_sms_sent';
 
 // Dismiss duration in hours (default 48 hours), configurable via env
 const DISMISS_HOURS = parseInt(import.meta.env.VITE_PROFILE_PHOTO_DISMISS_HOURS || '48', 10);
 const DISMISS_DURATION = DISMISS_HOURS * 60 * 60 * 1000; // Convert hours to milliseconds
 
-const SMS_LINK_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds (link expiry)
-
 /**
- * Check if the prompt should be shown based on localStorage dismissal and SMS sent time
+ * Check if the prompt should be shown based on localStorage dismissal
  */
 export function shouldShowProfilePhotoPrompt() {
   const now = Date.now();
@@ -22,15 +19,6 @@ export function shouldShowProfilePhotoPrompt() {
   if (dismissed) {
     const dismissedAt = parseInt(dismissed, 10);
     if ((now - dismissedAt) <= DISMISS_DURATION) {
-      return false;
-    }
-  }
-  
-  // Check if SMS was sent in the last 24 hours (link still valid)
-  const smsSent = localStorage.getItem(SMS_SENT_KEY);
-  if (smsSent) {
-    const sentAt = parseInt(smsSent, 10);
-    if ((now - sentAt) <= SMS_LINK_DURATION) {
       return false;
     }
   }
@@ -46,18 +34,10 @@ export function dismissProfilePhotoPrompt() {
 }
 
 /**
- * Record that an SMS was sent (prevents prompt for 24 hours)
- */
-export function recordSmsSent() {
-  localStorage.setItem(SMS_SENT_KEY, Date.now().toString());
-}
-
-/**
- * Clear the dismissal and SMS sent record (useful after user sets photo)
+ * Clear the dismissal record (useful after user sets photo)
  */
 export function clearProfilePhotoDismissal() {
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(SMS_SENT_KEY);
 }
 
 export default function ProfilePhotoPromptDialog({
@@ -101,7 +81,6 @@ export default function ProfilePhotoPromptDialog({
     try {
       const result = await onSendSms();
       if (result.success) {
-        recordSmsSent(); // Track that SMS was sent
         startResendCountdown(); // Start countdown for resend button
         setStep('sent');
       } else {
@@ -119,7 +98,6 @@ export default function ProfilePhotoPromptDialog({
     try {
       const result = await onSendSms();
       if (result.success) {
-        recordSmsSent(); // Track that SMS was sent
         startResendCountdown(); // Reset countdown after resend
       } else {
         setErrorMessage(result.message || 'Failed to resend SMS.');
