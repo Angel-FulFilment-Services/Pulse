@@ -72,7 +72,7 @@ export default function MobileProfilePhoto({ user_id, user_name, signature, expi
   return (
     <>
       <Head title="Set Profile Photo" />
-      <div className="bg-gray-50 dark:bg-dark-950 min-h-screen py-4 px-4">
+      <div className="bg-gray-50 dark:bg-dark-950 min-h-dvh py-4 px-4 overflow-x-hidden overscroll-none">
         <div className="bg-white dark:bg-dark-900 rounded-lg shadow-xl p-6 max-w-lg w-full mx-auto">
           {error && (
             <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
