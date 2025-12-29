@@ -51,7 +51,7 @@ class NotifyOneMonthOfEmploymentCommand extends Command
         if($employees->count() > 0){
             foreach($employees as $employee){
                 // Send notification to senior CC team
-                $seniorCCEmails = ['martin@angelfs.com', 'tms@angelfs'];
+                $seniorCCEmails = ['martin@angelfs.com', 'tms@angelfs.co.uk'];
 
                 foreach($seniorCCEmails as $email){
                     // Send email
