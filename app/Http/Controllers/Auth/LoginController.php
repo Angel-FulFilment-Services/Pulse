@@ -34,12 +34,6 @@ class LoginController extends Controller
     
     public function login(request $request)
     {
-        Log::debug('Login attempt from IP: ' . $request->ip());
-        Log::debug('Long IP: ' . ip2long($request->ip()));
-        Log::debug('Environment: ' . app()->environment());
-        Log::debug('Allowed Long IP Range: ' . (3232235520 . ' - ' . 3232301055));
-        Log::debug('Allowed IP Range: ' . (long2ip(3232235520) . ' - ' . long2ip(3232301055)));
-
         $this->validate($request, [
             'email' => 'required|email',
             'password' => 'required'
@@ -68,7 +62,7 @@ class LoginController extends Controller
         }
 
         // sign in user
-        if (!auth()->attempt(['email' => STR::lower($request->email), 'password' => $request->password, 'active' => 1],$request->remember)){                            
+        if (!auth()->attempt(['email' => STR::lower($request->email), 'password' => $request->password, 'active' => 1], true)){                            
             if ($user) {
                 // Increment the login_attempt counter
                 $user->increment('login_attempt');
@@ -84,7 +78,11 @@ class LoginController extends Controller
 
         $user->update(['login_attempt' => 0]);
 
-        if (!(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055) && app()->environment(['production', 'staging'])) {
+        if (
+            !(ip2long($request->ip()) >= 3232235520 && ip2long($request->ip()) <= 3232301055)
+            && !(ip2long($request->server('HTTP_CF_CONNECTING_IP')) == ip2long('193.117.223.34'))
+            && app()->environment(['production', 'staging'])
+            ) {
             if (Permissions::hasPermission('sms_2fa_enabled') || Permissions::hasPermission('email_2fa_enabled')) {
                 auth()->user()->generate_two_factor_code();
                 

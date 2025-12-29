@@ -731,6 +731,10 @@ class AssetController extends Controller
             ->groupBy('kit_id')
             ->first();
 
+        if(!$kit) {
+            return response()->json(['message' => 'No assigned kit found for this employee.'], 404);
+        }
+
         $items = DB::table('assets.kits')
             ->join('assets.kit_items', 'kit_items.kit_id', '=', 'kits.id')
             ->join('assets.assets', 'assets.id', '=', 'kit_items.asset_id')
@@ -1182,7 +1186,7 @@ class AssetController extends Controller
                     'pat_earth_cont' => $row[11] ?? '',
                     'pat_leakage' => $row[12] ?? '',
                     'pat_continuity' => $row[13] ?? '',
-                    'pat_result' => $row[14] ?? '',
+                    'pat_result' => in_array(strtoupper($row[14]), ['PASSED', 'PASS', 'Y']) ? true : false,
                 ];
 
                 try {
@@ -1258,7 +1262,7 @@ class AssetController extends Controller
                     'pat_earth_cont' => $row[11] ?? '',
                     'pat_leakage' => $row[12] ?? '',
                     'pat_continuity' => $row[13] ?? '',
-                    'pat_result' => $row[14] ?? '',
+                    'pat_result' => in_array(strtoupper($row[14]), ['PASSED', 'PASS', 'Y']) ? 'Pass' : 'Fail',
                 ];
 
                 try {
@@ -1457,6 +1461,16 @@ class AssetController extends Controller
         $generic_items = [1, 2, 3, 4, 1124];
 
         foreach ($generic_items as $item) {
+
+            // Check if item is already in kit.
+            $existingItem = Item::where('kit_id', $kit->id)
+            ->where('asset_id', $item)
+            ->first();
+
+            // Skip if already exists.
+            if($existingItem)
+                continue;
+                
             Item::create([
                 'kit_id' => $kit->id,
                 'asset_id' => $item,

@@ -34,6 +34,9 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
     <header className="relative isolate bg-white dark:bg-dark-900 shadow-md z-20">
     <div className="border-b border-gray-200 bg-white/40 dark:border-dark-700 dark:bg-dark-900/40 px-6 pt-4">
       <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-dark-100">Reporting</h3>
+      <h1 className="text-gray-400 dark:text-dark-100 mt-1 text-sm">
+        Manage and generate reports to gain insights into various aspects of the organisation.
+      </h1>
       <div className="mt-4">
         <div className="block">
           <nav className="-mb-px flex space-x-8">
@@ -70,7 +73,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
       <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
         <div className="w-full flex items-center gap-x-2">
           <div className="max-w-56 w-full relative">
-            {reports.length &&
+            {reports.length > 0 &&
               <>
                 <SelectControl
                   id="view-select"

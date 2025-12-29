@@ -55,7 +55,6 @@ class ReportingController extends Controller
             )
             ->select(
                 'e1.hr_id',
-                // Count absence spells - look at previous scheduled shift
                 DB::raw('
                     COUNT(CASE 
                         WHEN e1.category IN ("Sick", "AWOL", "Absent") 
@@ -195,6 +194,8 @@ class ReportingController extends Controller
             DB::table('halo_rota.shifts2 as shifts')
                 ->select(
                     'shifts.hr_id',
+                    'shifts.shiftcat',
+                    'shifts.shiftloc',
                     DB::raw('
                         SUM(TIMESTAMPDIFF(
                             MINUTE,
@@ -238,7 +239,8 @@ class ReportingController extends Controller
                     }
                 )
                 ->whereBetween('shifts.shiftdate', [$startDate, $endDate])
-                ->groupBy('hr_id'),
+                ->groupBy('hr_id')
+                ->groupBy('shiftcat', 'shiftloc'),
             'shifts',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'shifts.hr_id');
@@ -248,6 +250,8 @@ class ReportingController extends Controller
             DB::table('apex_data.timesheet_master')
                 ->select(
                     'timesheet_master.hr_id',
+                    'shiftcat',
+                    'shiftloc',
                     DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 AS worked_minutes_master'),
                     DB::raw('
                         SUM(
@@ -260,7 +264,7 @@ class ReportingController extends Controller
                 )
                 ->leftJoinSub(
                     DB::table('halo_rota.shifts2 as shifts')
-                        ->select('hr_id', 'shiftdate', 'shiftstart', 'shiftend')
+                        ->select('hr_id', 'shiftdate', 'shiftstart', 'shiftend', 'shiftcat', 'shiftloc')
                         ->whereBetween('shiftdate', [$startDate, $endDate])
                         ->groupBy('hr_id', 'shiftdate', 'shiftstart', 'shiftend'),
                     'shifts',
@@ -281,16 +285,20 @@ class ReportingController extends Controller
                     }
                 )
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id'),
+                ->groupBy('hr_id', 'shiftcat', 'shiftloc'),
             'timesheet_master',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'timesheet_master.hr_id');
+                $join->on('shifts.shiftcat', '=', 'timesheet_master.shiftcat');
+                $join->on('shifts.shiftloc', '=', 'timesheet_master.shiftloc');
             }
         )
         ->leftJoinSub(
             DB::table('apex_data.timesheet_today')
                 ->select(
                     'timesheet_today.hr_id',
+                    'shiftcat',
+                    'shiftloc',
                     DB::raw('SUM(TIMESTAMPDIFF(SECOND, on_time, off_time)) / 60 AS worked_minutes_today'),
                     DB::raw('
                         SUM(
@@ -303,9 +311,9 @@ class ReportingController extends Controller
                 )
                 ->leftJoinSub(
                     DB::table('halo_rota.shifts2 as shifts')
-                        ->select('hr_id', 'shiftdate')
+                        ->select('hr_id', 'shiftdate', 'shiftcat', 'shiftloc')
                         ->whereBetween('shiftdate', [$startDate, $endDate])
-                        ->groupBy('hr_id', 'shiftdate'),
+                        ->groupBy('hr_id', 'shiftdate', 'shiftcat', 'shiftloc'),
                     'shifts',
                     function ($join) {
                         $join->on('apex_data.timesheet_today.hr_id', '=', 'shifts.hr_id')
@@ -313,10 +321,12 @@ class ReportingController extends Controller
                     }
                 )
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id'),
+                ->groupBy('hr_id', 'shiftcat', 'shiftloc'),
             'timesheet_today',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'timesheet_today.hr_id');
+                $join->on('shifts.shiftcat', '=', 'timesheet_today.shiftcat');
+                $join->on('shifts.shiftloc', '=', 'timesheet_today.shiftloc');
             }
         )
         ->leftJoinSub(
@@ -326,19 +336,36 @@ class ReportingController extends Controller
                         ->select(
                             'hr_id',
                             'shiftdate',
+                            'shiftstart',
+                            'shiftend',
+                            'shiftcat',
+                            'shiftloc',
                             DB::raw('SUM(TIMESTAMPDIFF(MINUTE, 
                                 STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftstart, 4, "0")), "%Y-%m-%d %H%i"),
                                 STR_TO_DATE(CONCAT(shiftdate, " ", LPAD(shiftend, 4, "0")), "%Y-%m-%d %H%i")
                             )) as total_daily_shift_minutes')
                         )
                         ->groupBy('hr_id', 'shiftdate'),
-                    'daily_shifts',
-                    function($join) {
-                        $join->on('events.hr_id', '=', 'daily_shifts.hr_id')
-                             ->on(DB::raw('DATE(events.date)'), '=', 'daily_shifts.shiftdate');
+                    'shifts',
+                    function ($join) {
+                        $join->on('apex_data.events.hr_id', '=', 'shifts.hr_id')
+                        ->where(function ($query) {
+                            $query->where(function ($subQuery) {
+                                // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                                $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), on_time)'), [-60, 0])
+                                         ->orWhereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i"), off_time)'), [0, 60]);
+                            })
+                            ->orWhere(function ($subQuery) {
+                                // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                                $subQuery->whereRaw('on_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")')
+                                         ->orWhereRaw('off_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                            });
+                        });
                     }
-                )
+                )                    
                 ->select('events.hr_id', 
+                    'shifts.shiftcat',
+                    'shifts.shiftloc',
                     DB::raw('SUM(IF(category = "Reduced", TIMESTAMPDIFF(MINUTE, on_time, off_time), 0)) AS reduced_minutes'),
                     DB::raw('SUM(IF(category = "Sick", 1, 0)) AS sick_count'),
                     DB::raw('SUM(IF(category = "AWOL", 1, 0)) AS awol_count'),
@@ -347,9 +374,9 @@ class ReportingController extends Controller
                         COUNT(DISTINCT CASE 
                             WHEN category IN ("Sick", "AWOL", "Absent") 
                                 AND (
-                                    daily_shifts.hr_id IS NULL OR
+                                    shifts.hr_id IS NULL OR
                                     TIMESTAMPDIFF(MINUTE, events.on_time, events.off_time) >= 
-                                    (daily_shifts.total_daily_shift_minutes / 2)
+                                    (shifts.total_daily_shift_minutes / 2)
                                 )
                             THEN DATE(events.date)
                             ELSE NULL 
@@ -357,23 +384,95 @@ class ReportingController extends Controller
                     ')
                 )
                 ->whereBetween('events.date', [$startDate, $endDate])
-                ->groupBy('events.hr_id'),
+                ->groupBy('events.hr_id', 'shifts.shiftcat', 'shifts.shiftloc'),
             'events',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'events.hr_id');
+                $join->on('shifts.shiftcat', '=', 'events.shiftcat');
+                $join->on('shifts.shiftloc', '=', 'events.shiftloc');
             }
         )
         ->leftJoinSub(
             DB::table('apex_data.breaksheet_master')
                 ->select(
                     'breaksheet_master.hr_id',
+                    'shiftcat',
+                    'shiftloc',
                     DB::raw('SUM(TIMESTAMPDIFF(MINUTE, on_time, off_time)) AS break_minutes'),
                 )
+                ->leftJoinSub(
+                    DB::table('halo_rota.shifts2 as shifts')
+                        ->select('hr_id', 'shiftdate', 'shiftstart', 'shiftend', 'shiftcat', 'shiftloc')
+                        ->whereBetween('shiftdate', [$startDate, $endDate])
+                        ->groupBy('hr_id', 'shiftdate', 'shiftstart', 'shiftend'),
+                    'shifts',
+                    function ($join) {
+                        $join->on('apex_data.breaksheet_master.hr_id', '=', 'shifts.hr_id')
+                        ->where(function ($query) {
+                            $query->where(function ($subQuery) {
+                                // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                                $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), on_time)'), [-60, 0])
+                                         ->orWhereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i"), off_time)'), [0, 60]);
+                            })
+                            ->orWhere(function ($subQuery) {
+                                // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                                $subQuery->whereRaw('on_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")')
+                                         ->orWhereRaw('off_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                            });
+                        });
+                    }
+                )
                 ->whereBetween('date', [$startDate, $endDate])
-                ->groupBy('hr_id'),
+                ->groupBy('hr_id', 'shiftcat', 'shiftloc'),
             'breaksheet',
             function ($join) {
                 $join->on('hr.hr_id', '=', 'breaksheet.hr_id');
+                $join->on('shifts.shiftcat', '=', 'breaksheet.shiftcat');
+                $join->on('shifts.shiftloc', '=', 'breaksheet.shiftloc');
+            }
+        )
+        ->leftJoinSub(
+            DB::table('apex_data.apex_data')
+                ->select(
+                    'apex_data.hr_id', 
+                    'apex_data.date_time',
+                    'shifts.shiftcat',
+                    'shifts.shiftloc',
+                    DB::raw('
+                        SUM(IF(apex_data.type <> "Queue", apex_data.ring_time + apex_data.calltime, apex_data.calltime)) as time
+                    ')
+                )
+                ->leftJoinSub(
+                    DB::table('halo_rota.shifts2 as shifts')
+                        ->select('hr_id', 'shiftdate', 'shiftstart', 'shiftend', 'shiftcat', 'shiftloc')
+                        ->whereBetween('shiftdate', [$startDate, $endDate])
+                        ->groupBy('hr_id', 'shiftdate', 'shiftstart', 'shiftend'),
+                    'shifts',
+                    function ($join) {
+                        $join->on('apex_data.apex_data.hr_id', '=', 'shifts.hr_id')
+                        ->where(function ($query) {
+                            $query->where(function ($subQuery) {
+                                // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                                $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), apex_data.date_time)'), [-60, 0]);
+                            })
+                            ->orWhere(function ($subQuery) {
+                                // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                                $subQuery->whereRaw('apex_data.date_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                            });
+                        });
+                    }
+                )
+                ->whereBetween('date', [$startDate, $endDate])
+                ->where(function($query){
+                    $query->where('apex_data.answered','=','1');
+                    $query->orWhere('apex_data.type','<>','Queue');
+                })
+                ->groupBy('apex_data.hr_id', 'shifts.shiftcat', 'shifts.shiftloc'),
+            'apex_data',
+            function ($join) {
+                $join->on('hr.hr_id', '=', 'apex_data.hr_id');
+                $join->on('shifts.shiftcat', '=', 'apex_data.shiftcat');
+                $join->on('shifts.shiftloc', '=', 'apex_data.shiftloc');
             }
         )
         ->select(DB::raw("
@@ -430,7 +529,27 @@ class ReportingController extends Controller
             IFNULL((SUM(events.awol_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS awol_percentage,
             IFNULL(SUM(events.absent_count), 0) AS shifts_absent,
             IFNULL((SUM(events.absent_count) / SUM(shifts.shifts_scheduled)) * 100, 0) AS absent_percentage,
-            IFNULL(SUM(events.total_absence_days), 0) AS total_absence_days
+            IFNULL(SUM(events.total_absence_days), 0) AS total_absence_days,
+            shifts.shiftcat as shift_category,
+            shifts.shiftloc as shift_location,
+            IFNULL(SUM(timesheet_master.worked_minutes_master), 0) + IFNULL(SUM(timesheet_today.worked_minutes_today), 0) as worked_duration_minutes,
+            (
+                IFNULL(SUM(apex_data.time), 0)
+            ) / 60 as minutes,
+            IFNULL(
+                (
+                    (
+                        (
+                            IFNULL(SUM(apex_data.time), 0)
+                        ) / 60
+                    ) /
+                    (
+                        (
+                            IFNULL(SUM(timesheet_master.worked_minutes_master), 0) +
+                            IFNULL(SUM(timesheet_today.worked_minutes_today), 0)
+                        )
+                    ) 
+            ) * 100, 0) as utilisation
         "))
         ->where('shifts.shifts_scheduled', '>', 0)
         ->orWhere(function ($query) {
@@ -438,6 +557,7 @@ class ReportingController extends Controller
             ->orWhere('timesheet_today.worked_minutes_today', '>', 0);
         })
         ->groupBy('hr.hr_id')
+        ->groupBy('shifts.shiftcat', 'shifts.shiftloc')
         ->orderBy('agent')
         ->get();
 
@@ -674,9 +794,11 @@ class ReportingController extends Controller
                             IFNULL(SUM(timesheet_today.agent_worked_minutes_today), 0)
                         )
                     ) 
-                ) * 100, 0) as utilisation
+                ) * 100, 0) as utilisation,
+            shifts.shiftcat as shift_category,
+            shifts.shiftloc as shift_location
         "))
-        ->groupBy('shifts.shiftdate')
+        ->groupBy('shifts.shiftdate', 'shifts.shiftcat', 'shifts.shiftloc')
         ->get();
 
         $targets = DB::connection('wings_config')->table('reports')->where('client','ANGL')->where('campaign', 'Hours Comparison Report')->value('targets');
@@ -692,6 +814,34 @@ class ReportingController extends Controller
         ->table('apex_data.events')
         ->leftJoin('wings_config.users as logged_by', 'logged_by.id', '=', 'events.created_by_user_id')
         ->leftJoin('wings_config.users as users', 'users.id', '=', 'events.user_id')
+        ->leftJoinSub(
+            DB::table('halo_rota.shifts2')
+                ->select(
+                    'hr_id',
+                    'shiftdate',
+                    'shiftstart',
+                    'shiftend',
+                    'shiftcat',
+                    'shiftloc',
+                )
+                ->groupBy('hr_id', 'shiftdate'),
+            'shifts',
+            function ($join) {
+                $join->on('apex_data.events.hr_id', '=', 'shifts.hr_id')
+                ->where(function ($query) {
+                    $query->where(function ($subQuery) {
+                        // Condition for timesheet blocks within one hour before or after shiftstart/shiftend
+                        $subQuery->whereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i"), on_time)'), [-60, 0])
+                                    ->orWhereBetween(DB::raw('TIMESTAMPDIFF(MINUTE, STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i"), off_time)'), [0, 60]);
+                    })
+                    ->orWhere(function ($subQuery) {
+                        // Condition for timesheet blocks fully within the shiftstart and shiftend range
+                        $subQuery->whereRaw('on_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")')
+                                    ->orWhereRaw('off_time BETWEEN STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftstart, 4, "0")), "%Y-%m-%d %H%i") AND STR_TO_DATE(CONCAT(shifts.shiftdate, " ", LPAD(shifts.shiftend, 4, "0")), "%Y-%m-%d %H%i")');
+                    });
+                });
+            }
+        )     
         ->whereBetween('events.date', [$startDate, $endDate])
         ->select(DB::raw("
             users.name AS agent,
@@ -699,7 +849,9 @@ class ReportingController extends Controller
             events.created_at as logged_at,
             TIMESTAMPDIFF(SECOND, on_time, off_time) AS duration,
             events.category as category,
-            events.notes as notes
+            events.notes as notes,
+            shifts.shiftcat as shift_category,
+            shifts.shiftloc as shift_location
         "))
         ->orderBy('events.created_at', 'desc')
         ->get();
@@ -916,5 +1068,295 @@ class ReportingController extends Controller
         $targets = (is_array($targets) && array_key_exists('utilisation_targets', $targets) ? $targets['utilisation_targets'] : null);
 
         return response()->json($targets);
+    }
+
+    public function totalCPASignUps(){
+
+        $cpa_data = DB::connection('wings_config')->table('dashboard_tiles')->find(11)->data;
+
+        $call_data = DB::connection('wings_config')->table('dashboard_tiles')->find(37)->data;
+
+        if($cpa_data === null && $call_data === null){
+            return response()->json([
+                'cpa_sign_ups' => 0,
+                'inbound_calls' => 0,
+                'outbound_calls' => 0,
+            ]);
+        }
+
+        $cpa_data = json_decode($cpa_data, true);
+        $call_data = json_decode($call_data, true);
+
+        if(!isset($cpa_data['data']['total_sign_ups']) || !is_array($cpa_data['data']['total_sign_ups'])){
+            $cpa_data['data']['total_sign_ups'] = [0];
+        }
+
+        if(!isset($call_data['data']['tot_in_channels'])){
+            $call_data['data']['tot_in_channels'] = 0;
+        }
+        if(!isset($call_data['data']['tot_out_channels'])){
+            $call_data['data']['tot_out_channels'] = 0;
+        }
+
+        return response()->json([
+            'cpa_sign_ups' => array_sum($cpa_data['data']['total_sign_ups']),
+            'inbound_calls' => $call_data['data']['tot_in_channels'],
+            'outbound_calls' => $call_data['data']['tot_out_channels'],
+        ]);
+    }
+
+    // ==================== CHAT AUDIT REPORTS ====================
+
+    public function chatMessageLog(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.body,
+                IFNULL(attachments.count, 0) AS attachment_count,
+                IF(messages.forwarded_from_message_id IS NOT NULL, 1, 0) AS is_forwarded,
+                IF(messages.deleted_at IS NOT NULL, 1, 0) AS is_deleted,
+                messages.sent_at
+            "))
+            ->orderBy('messages.sent_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatActivitySummary(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users', 'users.id', '=', 'messages.sender_id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->leftJoin(DB::raw('(SELECT user_id, COUNT(*) as count FROM pulse.message_reactions GROUP BY user_id) as reactions'), 'reactions.user_id', '=', 'messages.sender_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                users.name AS user_name,
+                COUNT(*) AS total_messages,
+                SUM(IF(messages.team_id IS NOT NULL, 1, 0)) AS team_messages,
+                SUM(IF(messages.team_id IS NULL, 1, 0)) AS dm_messages,
+                SUM(IFNULL(attachments.count, 0)) AS attachments_sent,
+                MAX(IFNULL(reactions.count, 0)) AS reactions_given,
+                SUM(IF(messages.forwarded_from_message_id IS NOT NULL, 1, 0)) AS messages_forwarded,
+                SUM(IF(messages.deleted_at IS NOT NULL, 1, 0)) AS messages_deleted
+            "))
+            ->groupBy('users.id', 'users.name')
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function teamChatActivity(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        // Calculate number of days for average
+        $days = max(1, (strtotime($endDate) - strtotime($startDate)) / 86400);
+
+        $data = DB::connection('pulse')
+            ->table('teams')
+            ->leftJoin('pulse.messages', function($join) use ($startDate, $endDate) {
+                $join->on('teams.id', '=', 'messages.team_id')
+                     ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            })
+            ->leftJoin(DB::raw('(SELECT team_id, COUNT(DISTINCT user_id) as count FROM pulse.team_user WHERE left_at IS NULL GROUP BY team_id) as members'), 'members.team_id', '=', 'teams.id')
+            ->leftJoin(DB::raw('(SELECT message_id, COUNT(*) as count FROM pulse.message_attachments GROUP BY message_id) as attachments'), 'attachments.message_id', '=', 'messages.id')
+            ->whereNull('teams.deleted_at')
+            ->select(DB::raw("
+                teams.id,
+                teams.name AS team_name,
+                IFNULL(members.count, 0) AS member_count,
+                COUNT(messages.id) AS total_messages,
+                COUNT(DISTINCT messages.sender_id) AS unique_senders,
+                SUM(IFNULL(attachments.count, 0)) AS attachments_shared,
+                ROUND(COUNT(messages.id) / {$days}, 1) AS avg_messages_per_day
+            "))
+            ->groupBy('teams.id', 'teams.name', 'members.count')
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function dmActivity(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->whereNull('messages.team_id')
+            ->whereNotNull('messages.recipient_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                LEAST(sender.name, recipient.name) AS user1_name,
+                GREATEST(sender.name, recipient.name) AS user2_name,
+                COUNT(*) AS total_messages,
+                SUM(IF(sender.name = LEAST(sender.name, recipient.name), 1, 0)) AS user1_sent,
+                SUM(IF(sender.name = GREATEST(sender.name, recipient.name), 1, 0)) AS user2_sent,
+                MIN(messages.sent_at) AS first_message,
+                MAX(messages.sent_at) AS last_message
+            "))
+            ->groupBy(DB::raw('LEAST(sender.name, recipient.name), GREATEST(sender.name, recipient.name)'))
+            ->orderBy('total_messages', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatAttachmentLog(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('message_attachments')
+            ->leftJoin('pulse.messages', 'messages.id', '=', 'message_attachments.message_id')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereBetween('message_attachments.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                message_attachments.id,
+                sender.name AS sender_name,
+                message_attachments.file_name,
+                CASE 
+                    WHEN message_attachments.mime_type LIKE 'image/%' THEN 'image'
+                    WHEN message_attachments.mime_type LIKE 'video/%' THEN 'video'
+                    WHEN message_attachments.mime_type LIKE 'audio/%' THEN 'audio'
+                    WHEN message_attachments.mime_type = 'application/pdf' THEN 'pdf'
+                    ELSE 'file'
+                END AS file_type,
+                message_attachments.file_size,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                IF(message_attachments.forwarded_from_attachment_id IS NOT NULL, 1, 0) AS is_forwarded,
+                message_attachments.created_at
+            "))
+            ->orderBy('message_attachments.created_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatForwardedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->join('pulse.messages as original', 'messages.forwarded_from_message_id', '=', 'original.id')
+            ->leftJoin('wings_config.users as forwarder', 'forwarder.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as original_sender', 'original_sender.id', '=', 'original.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereNotNull('messages.forwarded_from_message_id')
+            ->whereBetween('messages.sent_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                forwarder.name AS forwarded_by,
+                original_sender.name AS original_sender,
+                original.body AS original_message,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS forwarded_to_type,
+                COALESCE(teams.name, recipient.name) AS forwarded_to_name,
+                messages.sent_at AS forwarded_at
+            "))
+            ->orderBy('messages.sent_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatDeletedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->whereNotNull('messages.deleted_at')
+            ->whereBetween('messages.deleted_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                messages.body,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.sent_at,
+                messages.deleted_at
+            "))
+            ->orderBy('messages.deleted_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function chatEditedMessages(Request $request){
+        $startDate = date("Y-m-d", strtotime($request->query('start_date')));
+        $endDate = date("Y-m-d", strtotime($request->query('end_date')));
+
+        $data = DB::connection('pulse')
+            ->table('messages')
+            ->leftJoin('wings_config.users as sender', 'sender.id', '=', 'messages.sender_id')
+            ->leftJoin('wings_config.users as recipient', 'recipient.id', '=', 'messages.recipient_id')
+            ->leftJoin('pulse.teams', 'teams.id', '=', 'messages.team_id')
+            ->leftJoin('pulse.message_edits', 'message_edits.message_id', '=', 'messages.id')
+            ->where('messages.is_edited', true)
+            ->whereBetween('messages.edited_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select(DB::raw("
+                messages.id,
+                sender.name AS sender_name,
+                messages.body AS current_body,
+                message_edits.body AS original_body,
+                (SELECT COUNT(*) FROM pulse.message_edits WHERE message_edits.message_id = messages.id) AS edit_count,
+                IF(messages.team_id IS NOT NULL, 'team', 'dm') AS chat_type,
+                COALESCE(teams.name, recipient.name) AS recipient_name,
+                messages.sent_at,
+                messages.edited_at
+            "))
+            ->groupBy('messages.id', 'sender.name', 'messages.body', 'message_edits.body', 'messages.team_id', 'teams.name', 'recipient.name', 'messages.sent_at', 'messages.edited_at')
+            ->orderBy('messages.edited_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Download chat attachment from reporting
+     * This bypasses the normal chat access check and uses pulse_report_chat permission instead
+     */
+    public function downloadChatAttachment(Request $request, $id)
+    {
+        $attachment = \App\Models\Chat\MessageAttachment::findOrFail($id);
+        
+        // Get file from storage using the AttachmentService
+        $attachmentService = app(\App\Services\Chat\AttachmentService::class);
+        $fileContent = $attachmentService->getFile($attachment->storage_path, $attachment->storage_driver);
+        
+        if (!$fileContent) {
+            abort(404, 'File not found');
+        }
+        
+        return response($fileContent, 200)
+            ->header('Content-Type', $attachment->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="' . $attachment->file_name . '"');
     }
 }

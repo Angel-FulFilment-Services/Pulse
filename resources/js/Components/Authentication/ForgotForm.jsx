@@ -47,7 +47,7 @@ export default function ForgotForm () {
     }
 
     return (
-        <div className="w-full lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
+        <div className="w-full lg:w-1/2 xl:w-1/3 h-dvh flex flex-col items-center justify-center z-40">
             <form className='flex flex-row rounded-xl items-center justify-center w-4/5 max-w-fit shadow-2xl bg-gray-100  overflow-y-auto' onSubmit={submit}>
                 <div className="h-full flex flex-col items-center justify-center">
                     <div className="h-full flex flex-col justify-between pt-10 px-10">

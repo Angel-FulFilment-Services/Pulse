@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('command:BuildAbsenceEventsCommand')->dailyAt('6:00');
+        $schedule->command('command:NotifyOneMonthOfEmploymentCommand')->dailyAt('7:00');
         
         // Refresh badges for active users every 15 minutes
         $schedule->call(function () {

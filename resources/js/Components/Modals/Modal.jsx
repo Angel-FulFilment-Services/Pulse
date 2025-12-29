@@ -56,7 +56,7 @@ export default function Modal({
         <div className="fixed inset-0 overflow-y-auto">
           <div className={`flex min-h-full text-center ${
             fullHeight 
-              ? 'items-stretch justify-center p-4 h-screen' 
+              ? 'items-stretch justify-center p-4 h-dvh' 
               : 'items-center justify-center p-4'
           }`}>
             <Transition.Child

@@ -100,7 +100,7 @@ export default function TwoFactorAuthForm() {
   }
 
   return (
-    <div className="w-full max-w-lg lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
+    <div className="w-full max-w-lg lg:w-1/2 xl:w-1/3 h-dvh flex flex-col items-center justify-center z-40">
       <form
         className="flex flex-col items-center justify-center rounded-xl w-4/5 shadow-2xl bg-gray-100 dark:bg-dark-800 overflow-y-auto p-6"
         onSubmit={submit}

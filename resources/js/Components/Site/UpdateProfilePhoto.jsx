@@ -345,7 +345,7 @@ export default function UploadProfilePhoto({ onComplete, userId }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-full">
       <div className="flex items-center justify-end w-full h-10">
         <XMarkIcon
           className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer"

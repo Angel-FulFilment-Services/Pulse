@@ -7,10 +7,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class GenericEmailNotification extends Notification
+class GenericEmailNotification extends Notification implements ShouldQueue
 {
     use Queueable;
-    protected $notification_url, $notification_greeting, $notification_line_1, $notification_action, $notification_table, $notification_table_view, $notification_footer_line_1 ;
+    protected $notification_url, $notification_greeting, $notification_line_1, $notification_action, $notification_table, $notification_table_view, $notification_footer_line_1, $notification_panel;
     /**
      * Create a new notification_url instance.
      *

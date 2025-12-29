@@ -495,12 +495,14 @@ class PayrollController extends Controller
                 ->sum('diallings');
             $weeklyDiallingPercentage = ($weeklyDiallings > 0) ? round(($weeklySignUps / $weeklyDiallings) * 100, 2) : 0;
             
-            if ($weekStart >= '2025-02-03' || $weeklyDiallingPercentage > 0.75) {
-                if ($weeklySignUps >= 42) $incentivesEarnt += 100;
-                elseif ($weeklySignUps >= 30) $incentivesEarnt += 50;
-                elseif ($weeklySignUps >= 25) $incentivesEarnt += 25;
-                elseif ($weeklySignUps >= 20) $incentivesEarnt += 20;
-            }
+            if($weeklySignUps >= 57 && $weekStart >= '2025-11-24') $incentivesEarnt += 200;
+            elseif($weeklySignUps >= 50 && $weekStart >= '2025-11-24') $incentivesEarnt += 150;
+            elseif($weeklySignUps >= 46 && $weekStart >= '2025-11-24') $incentivesEarnt += 125;
+            elseif ($weeklySignUps >= 42) $incentivesEarnt += 100;
+            elseif($weeklySignUps >= 35 && $weekStart >= '2025-11-24') $incentivesEarnt += 75;
+            elseif ($weeklySignUps >= 30) $incentivesEarnt += 50;
+            elseif ($weeklySignUps >= 25) $incentivesEarnt += 25;
+            elseif ($weeklySignUps >= 20) $incentivesEarnt += 20;
         }
 
         return $incentivesEarnt;

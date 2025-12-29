@@ -3,7 +3,7 @@ import { ArrowLeftIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function SignInTypeSelector({ onSelect, setStep }) {
   return (
-    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
+    <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-screen">
       <div className="flex items-center justify-between w-full h-10">
         <ArrowLeftIcon className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer" onClick={() => setStep('mode')} />
         <XMarkIcon className="h-10 w-10 text-black dark:text-dark-100 stroke-[2.5] cursor-pointer" onClick={() => setStep('splash')} />

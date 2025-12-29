@@ -475,7 +475,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger, onEditArti
             {layoutConfig.style === 'condensed' ? (
               // Condensed list layout
               <motion.div
-                className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
+                className="overflow-y-auto h-dvh pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
                 layout
               >
                 <AnimatePresence>
@@ -497,7 +497,7 @@ export default function Feed({ searchTerm, activeTab, refreshTrigger, onEditArti
             ) : (
               // Card layout (original)
               <motion.ul
-                className="overflow-y-auto h-screen pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
+                className="overflow-y-auto h-dvh pb-96 no-scrollbar divide-y divide-gray-200 dark:divide-dark-700"
                 layout
               >
                 <AnimatePresence>

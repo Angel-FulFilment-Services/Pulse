@@ -48,6 +48,9 @@ class HandleInertiaRequests extends Middleware
             'permissions' => fn () => $request->user()
                 ? $request->user()->assignedPermissions()->pluck('right')
                 : null,
+            'isOnSite' => fn () => $request->user()
+                ? $request->user()->isOnSite()
+                : null,
         ]);
     }
 }

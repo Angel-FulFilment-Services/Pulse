@@ -92,7 +92,7 @@ function resolveColumnParameters(column, parameters, dateRange) {
 
 export default function ReportingTable({ parameters, structure, filters, data, targets, editing, handleTargetChange, setReportData, dateRange }) {
   const [sortConfig, setSortConfig] = useState(parameters?.sorting?.default ? parameters.sorting.default : { key: null, direction: 'asc' }); // State to track sorting configuration
-  const [tableHeight, setTableHeight] = useState('calc(100vh - 15rem)'); // Default height
+  const [tableHeight, setTableHeight] = useState('calc(100dvh - 15rem)'); // Default height
 
   useEffect(() => {
     const headerElement = document.getElementById('reporting_header');
@@ -105,10 +105,10 @@ export default function ReportingTable({ parameters, structure, filters, data, t
 
       if (mediaQuery.matches) {
         // Screen width is `lg` or larger
-        setTableHeight(`calc(100vh - ${headerHeight + 20}px)`);
+        setTableHeight(`calc(100dvh - ${headerHeight + 20}px)`);
       } else {
         // Screen width is below `lg`
-        setTableHeight(`calc(100vh - ${headerHeight + 85}px)`);
+        setTableHeight(`calc(100dvh - ${headerHeight + 85}px)`);
       }
     };
 
@@ -130,10 +130,15 @@ export default function ReportingTable({ parameters, structure, filters, data, t
       mediaQuery.removeEventListener('change', updateTableHeight); // Remove event listener
     };
   }, []);
+  
+  // Apply filters to the data
+  const filteredData = useMemo(() => {
+    return applyFilters(data, filters);
+  }, [data, filters]);
 
   const groupedData = useMemo(() => {
     if (!parameters.grouping || !parameters.grouping.groupBy || parameters.grouping.groupBy.length === 0) {
-      return data;
+      return filteredData;
     }
 
     // Helper to get a unique group key for each row
@@ -142,39 +147,34 @@ export default function ReportingTable({ parameters, structure, filters, data, t
 
     // Group rows by group key
     const groups = {};
-    data.forEach((row) => {
+    filteredData.forEach((row) => {
       const key = getGroupKey(row);
       if (!groups[key]) groups[key] = [];
       groups[key].push(row);
     });
 
-    // For each group, build a new row using groupColumns logic
+    // For each group, build a new row using structure columns
     return Object.values(groups).map((groupRows) => {
       const groupedRow = {};
-      parameters.grouping.groupColumns.forEach((col) => {
+      structure.forEach((col) => {
         if (col.group && typeof col.group === 'function') {
           groupedRow[col.id] = col.group(groupRows);
         } else {
           // Default: just take the first value
-          groupedRow[col.id] = groupRows[0][col.id];
+          groupedRow[col.id] = groupRows[0]?.[col.id];
         }
       });
       return groupedRow;
     });
-  }, [data, parameters.grouping]);
+  }, [filteredData, parameters.grouping, structure]);
 
-  // Apply filters to the data
-  const filteredData = useMemo(() => {
-    return applyFilters(groupedData, filters);
-  }, [groupedData, filters]);
-
-  // Apply sorting to the filtered data
+  // Apply sorting to the grouped data
   const sortedData = useMemo(() => {
-    if (!sortConfig.key) return filteredData;
+    if (!sortConfig.key) return groupedData;
 
     const { key, direction } = sortConfig;
 
-    return [...filteredData].sort((a, b) => {
+    return [...groupedData].sort((a, b) => {
       const column = structure.find((col) => col.id === key);
       
       // Helper function to get the actual value for sorting
@@ -216,7 +216,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
 
       return 0; // Default case for unsupported data types
     });
-  }, [filteredData, sortConfig, structure, parameters, dateRange]);
+  }, [groupedData, sortConfig, structure, parameters, dateRange]);
 
   const handleSort = (column) => {
     if (column.dataType === 'control' || (column?.sortable && !column.sortable)) {
@@ -388,7 +388,7 @@ export default function ReportingTable({ parameters, structure, filters, data, t
                       >
                         <div className={`${column.cellClass || ''}`}>
                           {(() => {
-                            if (column.dataType === 'integer' || column.dataType === 'float') {
+                            if (column.dataType === 'integer' || column.dataType === 'float' || column.dataType === 'number') {
                               if (column.suffix === '%' && column.numeratorId && column.denominatorId) {
                                 // Calculate weighted average for percentage columns
                                 const totalNumerator = sortedData.reduce(

@@ -116,9 +116,9 @@ export default function Profile({ employee, user }) {
     }
 
   return (
-    <form className="flex flex-col h-screen">
+    <form className="flex flex-col h-dvh">
         <AccountFormHeader employee={employee}></AccountFormHeader>
-        <div className="mx-auto max-w-full w-full py-6 space-y-6 overflow-y-auto h-screen">
+        <div className="mx-auto max-w-full w-full py-6 space-y-6 overflow-y-auto h-dvh">
             <div className="border-b border-gray-900/10 dark:border-dark-100/10 pb-8 w-11/12 mx-auto">
                 <h2 className="text-base/7 font-semibold text-gray-900 dark:text-dark-100">Profile</h2>
                 <p className="mt-1 text-sm/6 text-gray-600 dark:text-dark-400">
@@ -159,7 +159,7 @@ export default function Profile({ employee, user }) {
                             <div className="size-20 relative flex items-center justify-center">
                                 <div className="size-16 ring-2 rounded-full absolute ring-gray-700/20 dark:ring-dark-300/50"></div>
                                 {employee.profile_photo ?
-                                    <img src={`https://pulse.cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90 flex-shrink-0" />
+                                    <img src={`https://pulse-cdn.angelfs.co.uk/profile/images/${employee.profile_photo}`} className="size-16 select-none rounded-full dark:brightness-90 flex-shrink-0" />
                                 :
                                     <UserCircleIcon aria-hidden="true" className="size-20 text-gray-300 dark:text-dark-500 absolute" />
                                 }
@@ -184,7 +184,7 @@ export default function Profile({ employee, user }) {
                                 <div className="px-2">
                                     <ClickedModal
                                         overlay={true}
-                                        customSize={"max-w-fit max-h-screen px-8 py-4"}
+                                        customSize={"max-w-fit max-h-dvh px-8 py-4"}
                                         className={`rounded-md bg-white dark:bg-dark-900 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-dark-100 shadow-xs ring-1 ring-gray-300 dark:ring-dark-500 ring-inset hover:bg-gray-50 dark:hover:bg-dark-800 text-center cursor-pointer`}
                                         onClose={() => {
                                             const iframe = document.querySelector('iframe');

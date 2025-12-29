@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getWallboardList, getWallboard } from '../../Config/Wallboards';
-import { PauseIcon, PlayIcon, XMarkIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ArrowsPointingOutIcon, ArrowUpLeftIcon, ArrowUpIcon, ArrowUpRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowDownLeftIcon, ArrowDownIcon, ArrowDownRightIcon } from '@heroicons/react/24/solid';
+import { PauseIcon, PlayIcon, XMarkIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ArrowsPointingOutIcon, ArrowUpLeftIcon, ArrowUpIcon, ArrowUpRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowDownLeftIcon, ArrowDownIcon, ArrowDownRightIcon, FireIcon } from '@heroicons/react/24/solid';
 import { hasPermission } from '../../Utils/Permissions.jsx';
 import PrinterStatus from '../../Components/Wallboard/PrinterStatus';
+import axios from 'axios';
 
 /**
  * IFrame Component - Reusable iframe wrapper
@@ -108,7 +109,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         },
         fullscreen: {
             width: pip.sizes.fullscreen.width || 'w-screen',
-            height: pip.sizes.fullscreen.height || 'h-screen',
+            height: pip.sizes.fullscreen.height || 'h-dvh',
             scale: pip.sizes.fullscreen.scale || 1.6,
         },
     };
@@ -328,7 +329,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
     
     if (size === 'fullscreen') {
         const fullscreenPos = fullscreenPositionClasses[currentPosition] || fullscreenPositionClasses['bottom-right'];
-        sizeClass = `${fullscreenPos} w-screen h-screen`;
+        sizeClass = `${fullscreenPos} w-screen h-dvh`;
     } else if ((isDragging || isAnimating) && dragPosition) {
         // While dragging or animating, use inline styles for free positioning
         sizeClass = `${sizeConfigs[size]?.width} ${sizeConfigs[size]?.height}`;
@@ -679,7 +680,7 @@ const WallboardSelector = ({ onSelect }) => {
     );
     
     return (
-        <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-dark-900">
+        <div className="flex items-center justify-center h-dvh w-screen bg-white dark:bg-dark-900">
             <div className="max-w-4xl w-full p-8">
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-dark-50 mb-8 text-center">
                     Select Wallboard
@@ -719,6 +720,9 @@ const Wallboard = () => {
     const [selectedWallboard, setSelectedWallboard] = useState(null);
     const [config, setConfig] = useState(null);
     const [refreshKey, setRefreshKey] = useState(Date.now());
+    const [showFireScreen, setShowFireScreen] = useState(false);
+    const displayedFireEvents = useRef(new Set());
+    const fireCheckInterval = useRef(null);
     
     useEffect(() => {
         // Check if there's a wallboard ID in the URL
@@ -763,6 +767,46 @@ const Wallboard = () => {
         return () => clearInterval(intervalId);
     }, [config?.refreshInterval]);
     
+    // Poll for active fire events every 30 seconds
+    useEffect(() => {
+        const checkForFireEvent = async () => {
+            try {
+                const response = await axios.get('/api/fire-emergency/check-active');
+                
+                if (response.data.active) {
+                    const eventId = response.data.event_id;
+                    const triggeredBy = response.data.triggered_by;
+                    
+                    // Ignore if triggered by Access Control System
+                    if (triggeredBy === 'Access Control System') {
+                        return;
+                    }
+                    
+                    // Only show if we haven't displayed this event yet
+                    if (!displayedFireEvents.current.has(eventId)) {
+                        displayedFireEvents.current.add(eventId);
+                        setShowFireScreen(true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking for fire events:', error);
+            }
+        };
+        
+        // Check immediately on mount
+        checkForFireEvent();
+        
+        // Then check every 30 seconds
+        fireCheckInterval.current = setInterval(checkForFireEvent, 30000);
+        
+        // Cleanup on unmount
+        return () => {
+            if (fireCheckInterval.current) {
+                clearInterval(fireCheckInterval.current);
+            }
+        };
+    }, []);
+    
     const handleWallboardSelect = (wallboardId) => {
         const wallboardConfig = getWallboard(wallboardId);
         setSelectedWallboard(wallboardId);
@@ -791,7 +835,42 @@ const Wallboard = () => {
     
     // Render the selected wallboard
     return (
-        <div className="h-screen w-screen overflow-hidden bg-white dark:bg-dark-900 relative">
+        <div className="h-dvh w-screen overflow-hidden bg-white dark:bg-dark-900 relative">
+            {/* Fire Emergency Screen Overlay */}
+            {showFireScreen && (
+                <div className="min-h-dvh bg-red-600 flex items-center justify-center p-8 absolute inset-0 z-50">
+                    <div className="text-center">
+                        <div className="mb-8">
+                            <FireIcon className="mx-auto h-32 w-32 text-white animate-pulse" />
+                        </div>
+                        
+                        <h1 className="text-6xl font-bold text-white mb-6">
+                            FIRE EMERGENCY
+                        </h1>
+                        
+                        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-8 max-w-2xl mt-10 mx-auto">
+                            <p className="text-3xl font-semibold text-white mb-4">
+                                Please proceed to the designated fire assembly point immediately
+                            </p>
+                            <p className="text-xl text-white/90 mb-6">
+                                Walk calmly to the nearest exit.
+                            </p>
+                            <div className="border-t-2 border-white/30 pt-6 mt-6">
+                                <p className="text-lg text-white/80">
+                                    Follow instructions from emergency personnel and do not re-enter the building until it is declared safe.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="absolute top-6 right-6">
+                        <XMarkIcon 
+                            className="h-10 w-10 text-white cursor-pointer" 
+                            onClick={() => setShowFireScreen(false)} 
+                        />
+                    </div>
+                </div>
+            )}
+            
             {/* Back button - shows on hover */}
             <div className="group max-w-xs w-full h-20 absolute top-4 left-1/2 transform -translate-x-1/2 z-40 flex justify-center">
                 <button

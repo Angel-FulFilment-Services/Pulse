@@ -11,12 +11,17 @@ use App\Models\User\User;
 use DB;
 use Log;
 use Str;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\FireRollCallNotification;
+use App\Helper\Auditing;
+use App\Helper\T2SMS;
 
 class SiteController extends Controller
 {
     // Block logged out users from using dashboard
     public function __construct(){
-        $this->middleware(['guest'])->except('widget');
+        $this->middleware(['guest'])->except('widget', 'triggerFireEmergency', 'rollCall', 'checkActiveFireEvent');
         //$this->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
         $this->middleware(['log.access']);
     }
@@ -501,5 +506,286 @@ class SiteController extends Controller
         }
         
         return response()->json(['status' => 'offers_cleared']);
+    }
+
+    /**
+     * Get current onsite personnel for roll call
+     */
+    private function getOnsitePersonnel()
+    {
+        $visitors = DB::connection('wings_config')
+            ->table('site_access_log as sal1')
+            ->join(
+                DB::raw('
+                    (
+                        SELECT visitor_name, MAX(created_at) as latest_created
+                        FROM site_access_log
+                        WHERE type = "access"
+                        AND category IN ("visitor", "contractor")
+                        AND created_at >= CURDATE()
+                        GROUP BY visitor_name
+                    ) as latest
+                '), 
+                function ($join) {
+                    $join->on('sal1.visitor_name', '=', 'latest.visitor_name')
+                        ->on('sal1.created_at', '=', 'latest.latest_created');
+                }
+            )
+            ->whereIn('sal1.category', ['visitor', 'contractor'])
+            ->where('sal1.location', 'Lostwithiel')
+            ->whereNull('sal1.signed_out') // Only currently signed in
+            ->select('sal1.*')
+            ->orderByDesc('sal1.created_at')
+            ->get();
+
+        $employees = DB::connection('wings_config')
+            ->table('site_access_log as sal1')
+            ->join(
+                DB::raw('
+                    (
+                        SELECT user_id, MAX(created_at) as latest_created, MIN(signed_in) as earliest_signed_in
+                        FROM site_access_log
+                        WHERE type = "access"
+                        AND category = "employee"
+                        AND created_at >= CURDATE()
+                        GROUP BY user_id
+                    ) as latest
+                '), 
+                function ($join) {
+                    $join->on('sal1.user_id', '=', 'latest.user_id')
+                        ->on('sal1.created_at', '=', 'latest.latest_created');
+                }
+            )
+            ->leftJoin('wings_data.hr_details', 'sal1.user_id', '=', 'hr_details.user_id')
+            ->leftJoin('users', 'sal1.user_id', '=', 'users.id')
+            ->where('sal1.location', 'Lostwithiel')
+            ->whereNull('sal1.signed_out') // Only currently signed in
+            ->select(
+                'sal1.id',
+                'sal1.user_id',
+                'sal1.created_at',
+                'sal1.signed_in',
+                'sal1.signed_out',
+                'sal1.location',
+                'sal1.category',
+                'latest.earliest_signed_in',
+                'hr_details.profile_photo',
+                'hr_details.job_title',
+                'users.name as fullname'
+            )
+            ->orderByDesc('sal1.created_at')
+            ->get();
+
+        return [
+            'visitors' => $visitors,
+            'employees' => $employees,
+        ];
+    }
+
+    public function rollCall(Request $request)
+    {
+        // Verify the signed URL is valid
+        if (!$request->hasValidSignature()) {
+            abort(403, 'This roll call link has expired or is invalid.');
+        }
+
+        $personnel = $this->getOnsitePersonnel();
+
+        return Inertia::render('Site/RollCall', [
+            'initialVisitors' => $personnel['visitors'],
+            'initialEmployees' => $personnel['employees'],
+        ]);
+    }
+
+    public function triggerFireEmergency(Request $request)
+    {
+        $validated = $request->validate([
+            'source' => 'required|in:access_control,authenticated',
+            'photo' => 'nullable|string', // Base64 encoded photo
+        ]);
+
+        $source = $validated['source'];
+        $userId = auth()->check() ? auth()->id() : 1954; // 1954 = Access Control System User
+        $userName = auth()->check() ? auth()->user()->name : 'Access Control System';
+
+        // Save photo if provided (from access control camera)
+        $photoPath = null;
+        if (!empty($validated['photo'])) {
+            $photoPath = $this->savePhoto($validated['photo']);
+        }
+
+        // Get all users with pulse_fire_warden permission that are currently onsite
+        // OR users with pulse_fire_warden_senior permission (regardless of onsite status)
+        $users = User::where('users.active', 1)
+            ->where('users.client_ref', 'ANGL')
+            ->where(function($query) {
+                // Senior fire wardens - always notified regardless of onsite status
+                $query->whereHas('assignedPermissionsUser', function($q) {
+                    $q->where('right', 'pulse_fire_warden_senior');
+                })
+                // OR regular fire wardens who are currently onsite
+                ->orWhere(function($q) {
+                    $q->whereHas('assignedPermissionsUser', function($subq) {
+                        $subq->where('right', 'pulse_fire_warden');
+                    })
+                    ->whereExists(function($subq) {
+                        $subq->select(DB::raw(1))
+                            ->from('wings_config.site_access_log as sal')
+                            ->whereColumn('sal.user_id', 'users.id')
+                            ->whereDate('sal.created_at', '>=', DB::raw('CURDATE()'))
+                            ->whereNull('sal.signed_out')
+                            ->where('sal.type', 'access')
+                            ->where('sal.category', 'employee');
+                    });
+                });
+            })
+            ->with('employee')
+            ->get();
+
+        if ($users->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No fire wardens found onsite'
+            ], 400);
+        }
+
+        // Generate temporary signed URL (valid for 24 hours)
+        $rollCallUrl = URL::temporarySignedRoute(
+            'fire.roll-call',
+            now()->addHours(1)
+        );
+
+        // Get current onsite personnel
+        $personnel = $this->getOnsitePersonnel();
+        $onsiteList = [
+            'employees' => $personnel['employees']->map(function($emp) {
+                return [
+                    'name' => $emp->fullname,
+                    'job_title' => $emp->job_title,
+                ];
+            })->values()->toArray(),
+            'visitors' => $personnel['visitors']->map(function($vis) {
+                return [
+                    'name' => $vis->visitor_name,
+                    'company' => $vis->visitor_company,
+                ];
+            })->values()->toArray(),
+        ];
+
+        // Send SMS to all users
+        foreach ($users as $user) {
+            if ($user->employee->contact_mobile_phone) {
+                $totalOnsite = count($onsiteList['employees']) + count($onsiteList['visitors']);
+                $smsMessage = "FIRE EMERGENCY\n\n" .
+                              "A fire emergency has been reported.\n" .
+                              "{$totalOnsite} people currently onsite:\n\n";
+                
+                // Add employees
+                if (!empty($onsiteList['employees'])) {
+                    $smsMessage .= "EMPLOYEES:\n";
+                    foreach ($onsiteList['employees'] as $emp) {
+                        $smsMessage .= "- {$emp['name']}\n";
+                    }
+                }
+                
+                // Add visitors
+                if (!empty($onsiteList['visitors'])) {
+                    $smsMessage .= "\nVISITORS:\n";
+                    foreach ($onsiteList['visitors'] as $vis) {
+                        $smsMessage .= "- {$vis['name']}\n";
+                    }
+                }
+                
+                $smsMessage .= "\nRoll Call:\n{$rollCallUrl}";
+
+                T2SMS::sendSms('Angel', $user->employee->contact_mobile_phone, $smsMessage);
+            }
+        }
+
+        // Send email notifications
+        $emailData = [
+            'triggered_by' => $userName,
+            'triggered_at' => now()->format('d/m/Y H:i:s'),
+            'roll_call_url' => $rollCallUrl,
+            'photo_path' => $photoPath,
+            'onsite_personnel' => $onsiteList,
+        ];
+
+        // Filter users to only those with valid email addresses
+        $usersWithEmail = $users->filter(function($user) {
+            return !empty($user->email);
+        });
+
+        if ($usersWithEmail->isNotEmpty()) {
+            Notification::send($usersWithEmail, new FireRollCallNotification($emailData));
+        }
+
+        // Create audit log
+        $auditNotes = json_encode([
+            'source' => $source,
+            'triggered_by' => $userName,
+            'user_id' => $userId,
+            'users_notified' => $users->count(),
+            'photo_saved' => !is_null($photoPath),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        Auditing::log('fire_emergency', $userId, 'Fire emergency alert triggered', $auditNotes);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fire emergency alert sent successfully',
+            'users_notified' => $users->count(),
+        ]);
+    }
+
+    /**
+     * Save camera photo to R2 bucket
+     */
+    private function savePhoto($base64Photo)
+    {
+        try {
+            // Remove data:image/jpeg;base64, prefix if present
+            $photo = preg_replace('/^data:image\/\w+;base64,/', '', $base64Photo);
+            $photo = base64_decode($photo);
+
+            // Generate filename
+            $filename = 'fire/photos/' . now()->format('Y-m-d_His') . '_' . uniqid() . '.jpg';
+
+            // Save to private R2 bucket
+            Storage::disk('r2')->put($filename, $photo, 'private');
+
+            return $filename;
+        } catch (\Exception $e) {
+            \Log::error('Failed to save fire emergency photo: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Check for active fire events in the last hour
+     * Returns event ID if found, null otherwise
+     */
+    public function checkActiveFireEvent(Request $request)
+    {
+        // Look for fire_emergency audit logs in the last hour
+        $activeEvent = DB::connection('wings_config')->table('audit_log_pulse')
+            ->where('type', 'fire_emergency')
+            ->where('created_at', '>=', now()->subHour())
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($activeEvent) {
+            return response()->json([
+                'active' => true,
+                'event_id' => $activeEvent->id,
+                'triggered_at' => $activeEvent->created_at,
+                'triggered_by' => json_decode($activeEvent->notes)->triggered_by ?? 'Unknown',
+            ]);
+        }
+
+        return response()->json([
+            'active' => false,
+        ]);
     }
 }

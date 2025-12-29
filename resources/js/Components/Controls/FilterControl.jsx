@@ -10,7 +10,8 @@ export default function FilterControl(props) {
   const { onFilterChange, clearFilters, filters } = props;
   
   const handleFilterChange = (event) => {
-    onFilterChange({ id: event.target.name, value: event.target.value, checked: event.target.checked });
+    const value = event.target.value === '__NULL__' ? null : event.target.value;
+    onFilterChange({ id: event.target.name, value: value, checked: event.target.checked });
   };
 
   const handleSearchChange = (event) => {
@@ -38,9 +39,9 @@ export default function FilterControl(props) {
 
         <div className="mx-4 items-center hidden 2xl:flex gap-x-3">
           <div className="-m-2.5 flex flex-wrap items-center">
-            {activeFilters.map((activeFilter) => (
+            {activeFilters.map((activeFilter, idx) => (
               <span
-                key={activeFilter.value}
+                key={`${activeFilter.id}-${activeFilter.value ?? 'null'}-${idx}`}
                 className="m-1 inline-flex items-center rounded-full border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-900 py-1.5 pl-3 pr-2 text-sm font-medium text-gray-900 dark:text-dark-100"
               >
                 <span>{activeFilter.label}</span>
@@ -115,11 +116,11 @@ export default function FilterControl(props) {
                   )}
                   <form className="space-y-4 max-h-96 overflow-y-auto">
                     {section.options.filter((option) => !search || option.label.toLowerCase().includes(search.toLowerCase())).map((option, optionIdx) => (
-                      <div key={option.value} className="flex items-center">
+                      <div key={optionIdx} className="flex items-center">
                         <input
                           id={`filter-${section.id}-${optionIdx}`}
                           name={section.id}
-                          value={option.value}
+                          value={option?.value === null ? '__NULL__' : (option?.value ?? '')}
                           onChange={handleFilterChange}
                           type="checkbox"
                           checked={option.checked}

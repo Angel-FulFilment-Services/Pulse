@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 use App\Models\User\AssignedPermissions;
 use App\Models\HR\Employee;
 use App\Models\Client\Client;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -51,6 +52,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'chat_preferences' => 'array',
     ];
 
     public function client(){
@@ -87,6 +89,17 @@ class User extends Authenticatable
     public function hasPermission($permission)
     {
         return $this->assignedPermissions()->where('right', $permission)->isNotEmpty();
+    }
+
+    public function isOnSite(): bool
+    {
+        return DB::connection('wings_config')
+            ->table('site_access_log')
+            ->where('user_id', $this->id)
+            ->where('type', 'access')
+            ->whereDate('created_at', today())
+            ->whereNull('signed_out')
+            ->exists();
     }
 
     public function generate_two_factor_code(): void

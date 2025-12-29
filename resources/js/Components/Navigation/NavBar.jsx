@@ -10,26 +10,32 @@ import { router, Link } from '@inertiajs/react'
 import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
 import { hasPermission } from '../../Utils/Permissions.jsx';
+import FireEmergencyButton from '../Emergency/FireEmergencyButton.jsx';
 
 import {
   Bars3Icon,
   CalendarIcon,
   ChartPieIcon,
+  ChartBarIcon,
   DocumentDuplicateIcon,
   FolderIcon,
   AcademicCapIcon,
   HomeIcon,
+  ChatBubbleOvalLeftIcon,
   UsersIcon,
+  UserIcon,
+  UserGroupIcon,
   CubeIcon,
   BanknotesIcon,
   XMarkIcon,
   Cog6ToothIcon,
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 
 export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const { auth, employee } = usePage().props;
+  const { auth, employee, isOnSite } = usePage().props;
 
   const teams = [
     { name: 'All Staff', href: '#', initial: 'A', current: false },
@@ -41,8 +47,9 @@ export default function NavBar({ page }) {
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
-    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
+    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_chat' },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
 ], [currentPath]);
 
@@ -64,7 +71,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-800 h-dvh overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
@@ -141,6 +148,13 @@ export default function NavBar({ page }) {
                             ))}
                           </ul>
                         </li>
+                        <li className="-mx-6 mt-auto">
+                          {isOnSite && hasPermission('pulse_fire_warden') &&  (
+                            <div className="px-2 flex items-center justify-start border-b border-gray-200 dark:border-dark-700 pb-2">
+                              <FireEmergencyButton className="w-full"/>
+                            </div>
+                          )}
+                        </li>
                       </ul>
                     </nav>
                   </div>
@@ -177,6 +191,11 @@ export default function NavBar({ page }) {
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
+                  {isOnSite && hasPermission('pulse_fire_warden') &&  (
+                    <div className="px-2 flex items-center justify-start border-b border-gray-200 dark:border-dark-700 pb-2">
+                      <FireEmergencyButton className="w-full"/>
+                    </div>
+                  )}
                   <Menu as="div" className="relative">
                     <div>
                       <MenuButton className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50 dark:text-dark-50 dark:hover:bg-dark-800 w-full focus:outline-none">
@@ -259,7 +278,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-dvh">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

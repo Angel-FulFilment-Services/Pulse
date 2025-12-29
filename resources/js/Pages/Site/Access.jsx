@@ -6,11 +6,13 @@ import SignInTypeSelector from '../../Components/Site/SignInTypeSelector';
 import DeliveryTypeSelector from '../../Components/Site/DeliveryTypeSelector';
 import SignInEmployeeForm from '../../Components/Site/SignInEmployeeForm';
 import SignInVisitorForm from '../../Components/Site/SignInVisitorForm';
+import SignInInterviewForm from '../../Components/Site/SignInInterviewForm';
 import SignInContractorForm from '../../Components/Site/SignInContractorForm';
 import UpdateProfilePhoto from '../../Components/Site/UpdateProfilePhoto';
 import TermsAndConditions from '../../Components/Site/TermsAndConditions';
 import SignOutList from '../../Components/Site/SignOutList';
 import WelcomeMessage from '../../Components/Site/WelcomeMessage';
+import InterviewMessage from '../../Components/Site/InterviewMessage';
 import GoodbyeMessage from '../../Components/Site/GoodbyeMessage';
 import ThankYouMessage from '../../Components/Site/ThankYouMessage';
 import { XMarkIcon } from '@heroicons/react/24/outline';
@@ -28,6 +30,11 @@ export default function Access({ location }) {
   const localStream = useRef(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [streamingActive, setStreamingActive] = useState(false);
+
+  // Fire event tracking
+  const [showFireScreen, setShowFireScreen] = useState(false);
+  const displayedFireEvents = useRef(new Set()); // Track which event IDs we've already shown
+  const fireCheckInterval = useRef(null);
 
   // Initialize camera and streaming
   const initializeCamera = useCallback(async () => {
@@ -144,12 +151,57 @@ export default function Access({ location }) {
       setSignOutType(null); // Reset signOutType when returning to splash
       setFormData(null); // Reset formData when returning to splash
     }
+
+    if( step === 'signin-interview' || step === 'signin-interview-home') {
+      setSignInType('visitor'); // Set signInType to visitor for interview sign in
+    }
   }, [step])
 
   // Initialize camera when component mounts
   useEffect(() => {
     initializeCamera();
   }, [initializeCamera]);
+
+  // Poll for active fire events every minute
+  useEffect(() => {
+    const checkForFireEvent = async () => {
+      try {
+        const response = await axios.get('/api/fire-emergency/check-active');
+        
+        if (response.data.active) {
+          const eventId = response.data.event_id;
+          const triggeredBy = response.data.triggered_by;
+          
+          // Ignore if triggered by Access Control System (this screen)
+          if (triggeredBy === 'Access Control System') {
+            return;
+          }
+          
+          // Only show if we haven't displayed this event yet
+          if (!displayedFireEvents.current.has(eventId)) {
+            displayedFireEvents.current.add(eventId);
+            setStep('splash');
+            setShowFireScreen(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for fire events:', error);
+      }
+    };
+
+    // Check immediately on mount
+    checkForFireEvent();
+
+    // Then check every minute
+    fireCheckInterval.current = setInterval(checkForFireEvent, 30000); // 30000ms = 30 seconds
+
+    // Cleanup on unmount
+    return () => {
+      if (fireCheckInterval.current) {
+        clearInterval(fireCheckInterval.current);
+      }
+    };
+  }, []);
 
   // Example handlers
   const handleSplashContinue = () => setStep('mode');
@@ -236,13 +288,19 @@ export default function Access({ location }) {
     }
   };
 
-  const handleSignInComplete = () => setStep('welcome');
+  const handleSignInComplete = () => { 
+    if(signInType === 'visitor' && (formData.visitor_visiting === 'Interview' || formData.visitor_visiting === 'interview')) {
+      setStep('welcome-interview');
+    } else {
+      setStep('welcome'); 
+    }
+  };
   const handleSignOutComplete = () => setStep('goodbye');
 
   // Render logic
-  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} />;
+  if (step === 'splash') return <SplashScreen onContinue={handleSplashContinue} setStep={setStep} cameraStream={cameraStream} showFireScreen={showFireScreen} setShowFireScreen={setShowFireScreen} />;
   if (step === 'mode') return  (
-      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-screen">
+      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-screen">
         <div className="flex items-center justify-between w-full h-10">
           <img
             src="/images/angel-logo.png"
@@ -268,9 +326,11 @@ export default function Access({ location }) {
   if (step === 'signin-employee') return <SignInEmployeeForm onComplete={setFormData} setStep={setStep} location={location} />;
   if (step === 'signin-visitor') return <SignInVisitorForm onComplete={setFormData} setStep={setStep} location={location} />;
   if (step === 'signin-contractor') return <SignInContractorForm onComplete={setFormData} setStep={setStep} location={location} />;
+  if (step === 'signin-interview') return <SignInInterviewForm onComplete={setFormData} setStep={setStep} location={location} from="mode" />;
+  if (step === 'signin-interview-home') return <SignInInterviewForm onComplete={setFormData} setStep={setStep} location={location} from="splash" />;
   if (step === 'update-profile-photo') {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-screen w-full">
+      <div className="fixed inset-0 bg-white dark:bg-dark-900 z-40 p-12 pt-10 h-dvh w-full">
         <UpdateProfilePhoto onComplete={() => signIn(false)} userId={formData.userId} />
       </div>
     );
@@ -278,6 +338,7 @@ export default function Access({ location }) {
   if (step === 'signout') return <SignOutList onComplete={handleSignOutComplete} setStep={setStep} signOutType={signOutType} />;
   if (step === 'terms-and-conditions') return <TermsAndConditions onComplete={signIn} setStep={setStep} />;
   if (step === 'welcome') return <WelcomeMessage setStep={setStep} />;
+  if (step === 'welcome-interview') return <InterviewMessage setStep={setStep} />;
   if (step === 'goodbye') return <GoodbyeMessage setStep={setStep} />;
   if (step === 'thank-you-signature') return <ThankYouMessage setStep={setStep} category="signature" />;
   if (step === 'thank-you-left-at-door') return <ThankYouMessage setStep={setStep} category="left-at-door" />;
