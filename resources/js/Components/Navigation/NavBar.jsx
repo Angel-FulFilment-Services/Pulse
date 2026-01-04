@@ -71,7 +71,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50 dark:bg-dark-800 h-dvh overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-800 h-dvh overflow-y-auto w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
@@ -278,8 +278,8 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-dvh">
-          <div className="h-full" children={page}>{/* Your content */}</div>
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-y-auto w-full fixed lg:relative h-dvh">
+          <div className="min-h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
     </>

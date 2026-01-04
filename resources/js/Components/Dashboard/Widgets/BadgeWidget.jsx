@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Badge from '../../Badges/Badge.jsx';
 import useFetchBadges from '../../Fetches/Dashboard/useFetchBadges.jsx';
 import SelectControl from '../../Controls/SelectControl.jsx';
-import { set } from 'lodash';
 
-const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefreshStateChange }) => {
+// Transition delay when expanding/collapsing (ms)
+const TRANSITION_DELAY = 1000;
+
+const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefresh, onRefreshStateChange }) => {
     const [triggerFlip, setTriggerFlip] = useState(null);
     const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const [filter, setFilter] = useState('all'); // all, obtained, in-progress, locked
@@ -12,7 +14,9 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState({ id: 'default', value: 'default', displayValue: 'Sort: Default' });
     const [processedNewBadges, setProcessedNewBadges] = useState(new Set());
-    const BADGES_PER_PAGE = 18;
+    const [isTransitioning, setIsTransitioning] = useState(false); // Show loading during expand/collapse
+    const transitionTimeoutRef = useRef(null);
+    const BADGES_PER_PAGE = 30;
     
     // Fetch badges from API
     const { badges, statistics, isLoading, isLoaded, markBadgeAsViewed } = useFetchBadges();
@@ -35,10 +39,33 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
         return () => observer.disconnect();
     }, []);
 
+    // Show loading state during expand/collapse transition
+    useEffect(() => {
+        // Clear any pending timeout
+        if (transitionTimeoutRef.current) {
+            clearTimeout(transitionTimeoutRef.current);
+        }
+        
+        // Start transition
+        setIsTransitioning(true);
+        
+        // End transition after delay
+        transitionTimeoutRef.current = setTimeout(() => {
+            setIsTransitioning(false);
+        }, TRANSITION_DELAY);
+        
+        return () => {
+            if (transitionTimeoutRef.current) {
+                clearTimeout(transitionTimeoutRef.current);
+            }
+        };
+    }, [isExpanded]);
+
     useEffect(() => {
         setSortBy({ id: 'default', value: 'default', displayValue: 'Default' });
         setFilter('all');
         setSearchQuery('');
+        setCurrentPage(1);
     }, [isExpanded]);
     
     // Mark new badges as viewed when they appear
@@ -290,9 +317,9 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
                 </div>
             )}
 
-            {/* Loading state - skeleton badges */}
-            {(isLoading || badges.length === 0) && !isLoaded && (
-                <div className={`grid ${isExpanded ? 'grid-cols-3 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}>
+            {/* Loading state - skeleton badges (also shown during expand/collapse transition) */}
+            {((isLoading || badges.length === 0) && !isLoaded) || isTransitioning ? (
+                <div className={`grid ${isExpanded ? 'grid-cols-5 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}>
                     {Array.from({ length: isExpanded ? BADGES_PER_PAGE : 9 }).map((_, index) => (
                         <div 
                             key={`skeleton-${index}`}
@@ -333,21 +360,23 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
                         </div>
                     ))}
                 </div>
-            )}
+            ) : null}
 
             {/* Badges content */}
-            {isLoaded && (
+            {isLoaded && !isTransitioning && (
                 <>
-                    <div className={`grid ${isExpanded ? 'grid-cols-3 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}>
+                    <div 
+                        className={`grid ${isExpanded ? 'grid-cols-5 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}
+                    >
                         {paginatedBadges.map((badge, index) => (
                             <div 
                                 key={badge.id} 
-                                className="flex flex-col items-center space-y-2"
+                                className={`flex flex-col items-center space-y-2 transition-transform duration-300`}
                             >
                                 <div className="relative w-20 h-20">
                                     {/* Inset seat/cavity for badge - stays in place */}
                                     <div
-                                        className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-white/5"
+                                        className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-dark-900/5"
                                         style={{
                                             top: 0,
                                             left: 0,
@@ -396,9 +425,11 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
                                 
                                 {/* Badge info */}
                                 <div className="text-center">
-                                    <p className="text-xs font-medium text-gray-700 dark:text-dark-200 truncate max-w-sm">
-                                        {badge.name.charAt(0).toUpperCase() + badge.name.slice(1).replace('_', ' ')}
-                                    </p>
+                                    {isExpanded && (
+                                        <p className="text-xs font-medium text-gray-700 dark:text-dark-200 truncate max-w-sm">
+                                            {badge.name.charAt(0).toUpperCase() + badge.name.slice(1).replace('_', ' ')}
+                                        </p>
+                                    )}
                                     <p className="text-xs text-gray-500 dark:text-dark-400">
                                         {new Date(badge.awarded_at).toLocaleDateString('en-GB', { 
                                             day: 'numeric', 
@@ -418,7 +449,7 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
                                 <div className="relative w-20 h-20">
                                     {/* Empty inset seat/cavity */}
                                     <div
-                                        className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-white/5"
+                                        className="absolute rounded-3xl bg-gradient-to-br from-gray-200 to-gray-100 dark:from-dark-800 dark:to-dark-700 border border-black/10 dark:border-dark-900/5"
                                         style={{
                                             top: 0,
                                             left: 0,
@@ -500,6 +531,8 @@ const BadgeWidget = ({ employee, isExpanded, onToggleExpand, onRefresh, onRefres
             )}
         </div>
     );
-};
+});
+
+BadgeWidget.displayName = 'BadgeWidget';
 
 export default BadgeWidget;

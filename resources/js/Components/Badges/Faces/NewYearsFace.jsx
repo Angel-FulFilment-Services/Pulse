@@ -1,15 +1,18 @@
-import { motion, useMotionValue } from 'framer-motion';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+// Maximum concurrent fireworks for performance
+const MAX_FIREWORKS = 3;
 
 // Unified burst pattern component with memoization
-function BurstPattern({ firework }) {
+const BurstPattern = React.memo(function BurstPattern({ firework }) {
     const particles = useMemo(() => {
         const particleArray = [];
         
-        // Palm pattern - special handling
+        // Palm pattern - special handling (reduced particles)
         if (firework.burstPattern === 'palm') {
-            const shells = 4;
-            const particlesPerShell = 8;
+            const shells = 3; // Reduced from 4
+            const particlesPerShell = 6; // Reduced from 8
         
             for (let shell = 0; shell < shells; shell++) {
                 const shellDistance = (shell + 1) * 5;
@@ -237,22 +240,25 @@ function BurstPattern({ firework }) {
     }, [firework.id, firework.burstPattern, firework.targetX, firework.targetY, firework.burstColor, firework.fizzleColor, firework.splitColorLeft, firework.splitColorRight]);
     
     return <>{particles}</>;
-}
+});
 
-export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) {
+BurstPattern.displayName = 'BurstPattern';
+
+const NewYearsFace = React.memo(function NewYearsFace({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) {
     const [badgeIsHovered, setBadgeIsHovered] = useState(false);
     const [fireworks, setFireworks] = useState([]);
-    const [nextId, setNextId] = useState(0);
+    const nextIdRef = useRef(0);
     const badgeIsHoveredRef = useRef(false);
     const mouseXRef = useRef(mouseX);
+    const isMountedRef = useRef(true);
     
-    // Generate stars once with minimum distance between them
+    // Generate stars once with minimum distance between them - reduced count from 20 to 12
     const stars = useRef((() => {
         const stars = [];
-        const minDistance = 15; // Minimum distance between stars (in percentage)
-        const maxAttempts = 100;
+        const minDistance = 18; // Increased minimum distance
+        const maxAttempts = 50; // Reduced attempts
         
-        while (stars.length < 20) {
+        while (stars.length < 12) {
             let attempts = 0;
             let validPosition = false;
             let newStar;
@@ -356,7 +362,7 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
             }
 
             const firework = {
-                id: currentId,
+                id: nextIdRef.current,
                 startX,
                 targetX,
                 targetY,
@@ -369,20 +375,27 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
                 burstPattern,
             };
 
-            setFireworks(prev => [...prev, firework]);
+            // Limit concurrent fireworks for performance
+            setFireworks(prev => {
+                if (prev.length >= MAX_FIREWORKS) {
+                    return [...prev.slice(1), firework];
+                }
+                return [...prev, firework];
+            });
 
             // Remove firework after animation completes
             // Palm pattern needs longer: shell expansion (0.6s) + pause (1s) + fall (up to 12s) = ~14s
             const animationDuration = firework.burstPattern === 'palm' ? 15000 : 3000;
             setTimeout(() => {
-                setFireworks(prev => prev.filter(f => f.id !== firework.id));
+                if (isMountedRef.current) {
+                    setFireworks(prev => prev.filter(f => f.id !== firework.id));
+                }
             }, animationDuration);
             
-            currentId++;
-            setNextId(currentId);
+            nextIdRef.current++;
             
-            // Schedule next firework with random delay (800-1800ms)
-            const nextDelay = 500 + Math.random() * 1000;
+            // Schedule next firework with random delay (increased for performance)
+            const nextDelay = 800 + Math.random() * 1200;
             setTimeout(launchSingleFirework, nextDelay);
         };
 
@@ -390,7 +403,7 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
         launchSingleFirework();
 
         return () => {
-            isMounted = false;
+            isMountedRef.current = false;
         };
     }, [isUnearned]);
 
@@ -401,25 +414,12 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
             position: 'relative',
             background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #2a2a4a 100%)',
             overflow: 'hidden',
+            contain: 'layout style paint',
         }}>            
-            {/* Background stars */}
+            {/* Background stars - use CSS animation instead of framer motion */}
             {stars.map((star) => (
-                <motion.div
+                <div
                     key={`star-${star.id}`}
-                    initial={{
-                        opacity: 0.3,
-                    }}
-                    animate={!isUnearned ? {
-                        opacity: [0.3, 0.6, 0.3],
-                    } : {
-                        opacity: 0.3,
-                    }}
-                    transition={!isUnearned ? {
-                        duration: star.duration,
-                        repeat: Infinity,
-                        delay: star.delay,
-                        ease: "easeInOut",
-                    } : {}}
                     style={{
                         position: 'absolute',
                         left: `${star.left}%`,
@@ -428,13 +428,23 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
                         height: `${star.size}px`,
                         background: 'white',
                         boxShadow: '0 0 2px rgba(255,255,255,0.8)',
+                        opacity: isUnearned ? 0.3 : undefined,
+                        animation: isUnearned ? undefined : `starTwinkle ${star.duration}s ease-in-out ${star.delay}s infinite`,
                     }}
                 />
             ))}
             
+            {/* CSS animation for stars */}
+            <style>{`
+                @keyframes starTwinkle {
+                    0%, 100% { opacity: 0.3; }
+                    50% { opacity: 0.6; }
+                }
+            `}</style>
+            
             {/* Fireworks */}
             {fireworks.map((firework) => (
-                <div key={firework.id} style={{ position: 'relative', zIndex: 35 }}>
+                <div key={firework.id} style={{ position: 'relative', zIndex: 35, willChange: 'transform' }}>
                     {/* Rising trail with golden sparks */}
                     <motion.div
                         initial={{
@@ -461,8 +471,8 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
                         }}
                     />
 
-                    {/* Sparkling trail particles */}
-                    {Array.from({ length: 8 }).map((_, i) => (
+                    {/* Sparkling trail particles - reduced from 8 to 5 */}
+                    {Array.from({ length: 5 }).map((_, i) => (
                         <motion.div
                             key={`trail-${i}`}
                             initial={{
@@ -551,4 +561,8 @@ export default function NewYearsFace({ mouseX, mouseY, isHovering, embossingCont
             }} />
         </div>
     );
-}
+});
+
+NewYearsFace.displayName = 'NewYearsFace';
+
+export default NewYearsFace;

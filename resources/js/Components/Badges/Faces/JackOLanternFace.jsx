@@ -1,37 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, useTransform } from 'framer-motion';
 
-const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
-    // Flickering light effect
+const JackOLanternFace = React.memo(({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
+    // Flickering light effect - throttled to 150ms instead of 100ms
     const [flickerOffset, setFlickerOffset] = useState(0);
     
     useEffect(() => {
         if (isUnearned) return;
         
         const flickerInterval = setInterval(() => {
-            setFlickerOffset(Math.random() * 0.8 - 0.4); // Range from -0.4 to 0.4
-        }, 100);
+            setFlickerOffset(Math.random() * 0.8 - 0.4);
+        }, 150); // Increased from 100ms
         
         return () => clearInterval(flickerInterval);
     }, [isUnearned]);
     
     // Mouse deformation effect - convert mouseX/mouseY (0-1) to web coordinates
-    const mouseXPos = useTransform(mouseX, [0, 1], [0, 80]); // Map to SVG viewBox
+    const mouseXPos = useTransform(mouseX, [0, 1], [0, 80]);
     const mouseYPos = useTransform(mouseY, [0, 1], [0, 80]);
     
-    // Get current mouse position for calculations
+    // Throttle mouse position updates for SVG
     const [currentMousePos, setCurrentMousePos] = useState({ x: 40, y: 40 });
+    const lastUpdateRef = useRef(0);
     
     // Calculate pumpkin light intensity for parallax effects
     const pumpkinLightIntensity = 0.95 + flickerOffset * 0.3;
     
+    // Throttled mouse position update (60fps max)
     useEffect(() => {
-        const unsubscribeX = mouseXPos.on('change', (x) => {
-            setCurrentMousePos(prev => ({ ...prev, x }));
-        });
-        const unsubscribeY = mouseYPos.on('change', (y) => {
-            setCurrentMousePos(prev => ({ ...prev, y }));
-        });
+        const updatePosition = (axis, value) => {
+            const now = performance.now();
+            if (now - lastUpdateRef.current > 16) { // ~60fps
+                setCurrentMousePos(prev => ({
+                    ...prev,
+                    [axis]: value
+                }));
+                lastUpdateRef.current = now;
+            }
+        };
+        
+        const unsubscribeX = mouseXPos.on('change', (x) => updatePosition('x', x));
+        const unsubscribeY = mouseYPos.on('change', (y) => updatePosition('y', y));
         
         return () => {
             unsubscribeX();
@@ -778,6 +787,8 @@ const JackOLanternFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, emboss
             </div>
         </>
     );
-};
+});
+
+JackOLanternFace.displayName = 'JackOLanternFace';
 
 export default JackOLanternFace;

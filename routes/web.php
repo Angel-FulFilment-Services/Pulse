@@ -123,6 +123,9 @@ Route::get('/proxy/bigin/pipeline-status', [ProxyController::class, 'biginPipeli
 Broadcast::routes(['middleware' => ['web', 'auth']]);
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard/managers-on-duty', [DashboardController::class, 'managersOnDuty'])->withoutMiddleware('log.access');
+Route::get('/dashboard/latest-articles', [DashboardController::class, 'latestArticles'])->withoutMiddleware('log.access');
+Route::get('/api/dashboard/announcements', [DashboardController::class, 'announcements'])->withoutMiddleware('log.access');
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 Route::get('/wallboard', [DashboardController::class, 'wallboard'])->name('wallboard');

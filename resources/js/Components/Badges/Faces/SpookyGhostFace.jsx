@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useTransform, useSpring } from 'framer-motion';
 
-const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
+const SpookyGhostFace = React.memo(({ mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned }) => {
     const [isHovered, setIsHovered] = React.useState(false);
     
     // Fog flows with mouse position and tilt
@@ -395,6 +395,8 @@ const SpookyGhostFace = ({ mouseX, mouseY, isHovering, rotateX, rotateY, embossi
             </motion.div>
         </>
     );
-};
+});
+
+SpookyGhostFace.displayName = 'SpookyGhostFace';
 
 export default SpookyGhostFace;

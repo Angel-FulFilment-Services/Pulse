@@ -1,23 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { motion, useMotionValue } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 
-const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
-    const [lights, setLights] = useState([]);
+// Static light bulb configuration - no need to recreate on each render
+const LIGHT_BULBS = [
+    { id: 1, x: 10, y: 16, color: '#FF4444', delay: 0 },
+    { id: 2, x: 20, y: 11, color: '#44FF44', delay: 0.1 },
+    { id: 3, x: 30, y: 8, color: '#4444FF', delay: 0.2 },
+    { id: 4, x: 40, y: 6, color: '#FFFF44', delay: 0.3 },
+    { id: 5, x: 50, y: 7.5, color: '#FF44FF', delay: 0.4 },
+    { id: 6, x: 60, y: 9, color: '#44FFFF', delay: 0.5 },
+    { id: 7, x: 70, y: 12, color: '#FF8844', delay: 0.6 },
+];
+
+const ChristmasLightsFace = React.memo(({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
     const [hoveredLight, setHoveredLight] = useState(null);
+    const [badgeIsHovered, setBadgeIsHovered] = useState(false);
     
-    // Generate light bulbs along a curved wire
+    // Subscribe to badge hover state once at parent level
     useEffect(() => {
-        const lightBulbs = [
-            { id: 1, x: 10, y: 16, color: '#FF4444', delay: 0 },
-            { id: 2, x: 20, y: 11, color: '#44FF44', delay: 0.1 },
-            { id: 3, x: 30, y: 8, color: '#4444FF', delay: 0.2 },
-            { id: 4, x: 40, y: 6, color: '#FFFF44', delay: 0.3 },
-            { id: 5, x: 50, y: 7.5, color: '#FF44FF', delay: 0.4 },
-            { id: 6, x: 60, y: 9, color: '#44FFFF', delay: 0.5 },
-            { id: 7, x: 70, y: 12, color: '#FF8844', delay: 0.6 },
-        ];
-        setLights(lightBulbs);
-    }, []);
+        const unsubscribe = isHovering.on('change', setBadgeIsHovered);
+        setBadgeIsHovered(isHovering.get());
+        return unsubscribe;
+    }, [isHovering]);
     
     return (
         <>
@@ -74,13 +78,13 @@ const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent, isU
                 />
             </svg>
             
-            {/* Light bulbs */}
+            {/* Light bulbs - pass down hover state directly */}
             <div className="absolute inset-0" style={{ pointerEvents: 'auto' }}>
-                {lights.map((light) => (
+                {LIGHT_BULBS.map((light) => (
                     <LightBulb
                         key={light.id}
                         light={light}
-                        isHovering={isHovering}
+                        badgeIsHovered={badgeIsHovered}
                         isHovered={hoveredLight === light.id}
                         onHover={() => setHoveredLight(light.id)}
                         onLeave={() => setHoveredLight(null)}
@@ -305,22 +309,12 @@ const ChristmasLightsFace = ({ mouseX, mouseY, isHovering, embossingContent, isU
             </div>
         </>
     );
-};
+});
 
-const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned }) => {
-    const [badgeIsHovered, setBadgeIsHovered] = useState(false);
-    
-    useEffect(() => {
-        const unsubscribe = isHovering.on('change', (value) => {
-            setBadgeIsHovered(value);
-        });
-        
-        // Set initial value
-        setBadgeIsHovered(isHovering.get());
-        
-        return unsubscribe;
-    }, [isHovering]);
-    
+ChristmasLightsFace.displayName = 'ChristmasLightsFace';
+
+// Optimized LightBulb - receives hover state as prop instead of subscribing
+const LightBulb = React.memo(({ light, badgeIsHovered, isHovered, onHover, onLeave, isUnearned }) => {
     return (
         <div
             style={{
@@ -331,7 +325,7 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned 
                 pointerEvents: (badgeIsHovered && !isUnearned) ? 'auto' : 'none',
                 cursor: (badgeIsHovered && !isUnearned) ? 'pointer' : 'default',
                 padding: '4px',
-                zIndex: 50, // Above glare/shine layers
+                zIndex: 50,
             }}
             onMouseEnter={isUnearned ? undefined : onHover}
             onMouseLeave={isUnearned ? undefined : onLeave}
@@ -357,9 +351,8 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned 
                 }}
             />
             
-            {/* Light bulb */}
+            {/* Light bulb - use CSS animations for strobe effect */}
             <motion.div
-                key={badgeIsHovered ? 'hovered' : 'not-hovered'}
                 style={{
                     left: 0,
                     width: '7px',
@@ -368,6 +361,7 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned 
                     margin: '0 auto',
                     borderRadius: '40% 40% 50% 50%',
                     position: 'relative',
+                    willChange: 'opacity, box-shadow',
                 }}
                 initial={{
                     opacity: (badgeIsHovered || isUnearned) ? (isHovered ? 1 : 0.3) : 0.3,
@@ -378,13 +372,11 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned 
                         : `0 0 2px ${light.color}`,
                 }}
                 animate={(badgeIsHovered || isUnearned) ? {
-                    // When badge IS hovered OR isUnearned: static state based on individual bulb hover
                     opacity: isHovered ? 1 : 0.3,
                     boxShadow: isHovered 
                         ? `0 0 10px ${light.color}, 0 0 16px ${light.color}, 0 0 20px ${light.color}`
                         : `0 0 2px ${light.color}`,
                 } : {
-                    // When badge is NOT hovered and earned: strobe all lights
                     opacity: [0.3, 1, 0.3],
                     boxShadow: [
                         `0 0 2px ${light.color}`,
@@ -417,6 +409,8 @@ const LightBulb = ({ light, isHovering, isHovered, onHover, onLeave, isUnearned 
             </motion.div>
         </div>
     );
-};
+});
+
+LightBulb.displayName = 'LightBulb';
 
 export default ChristmasLightsFace;

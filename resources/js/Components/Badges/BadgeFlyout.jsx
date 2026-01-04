@@ -148,10 +148,9 @@ const BadgeFlyout = ({ badge, progress, tierInfo }) => {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-2 overflow-hidden">
                         <div 
-                            className="h-full rounded-full transition-all duration-300"
+                            className="h-full rounded-full transition-all duration-300 bg-theme-500 dark:bg-theme-600"
                             style={{ 
                                 width: `${progressPercentage}%`,
-                                backgroundColor: tierInfo?.color || '#3b82f6'
                             }}
                         />
                     </div>

@@ -146,10 +146,7 @@ const BadgeDetailsPanel = ({ badge, progress, tierInfo, colors }) => {
                                     </div>
                                     <div className="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-3 overflow-hidden">
                                         <motion.div 
-                                            className="h-full rounded-full"
-                                            style={{ 
-                                                backgroundColor: tierInfo?.color || '#3b82f6'
-                                            }}
+                                            className="h-full rounded-full bg-theme-500 dark:bg-theme-600"
                                             initial={{ width: 0 }}
                                             animate={{ width: `${progressPercentage}%` }}
                                             transition={{ duration: 0.8, ease: 'easeOut' }}

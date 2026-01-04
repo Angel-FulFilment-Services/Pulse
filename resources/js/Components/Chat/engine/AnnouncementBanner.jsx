@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { XMarkIcon, MegaphoneIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid'
+import { GlobeAltIcon } from '@heroicons/react/24/outline'
 import { formatDistanceToNow } from 'date-fns'
 
 // Local storage key for locally dismissed announcements
@@ -117,11 +118,19 @@ export default function AnnouncementBanner({ announcements = [], onDismiss, canD
             <span className="py-0.5">{announcement.creator?.name || 'Someone'} made an announcement</span>
             <span className="text-theme-500 dark:text-theme-600">•</span>
             <span className="text-theme-600 dark:text-theme-500">{formatTime(announcement.created_at)}</span>
-            {announcement.scope === 'global' && (
+            {announcement.scope === 'global' ? (
+              <>
+                <span className="text-theme-500 dark:text-theme-600">•</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-theme-200 dark:bg-theme-800 text-theme-800 dark:text-theme-200">
+                  <GlobeAltIcon className="w-3 h-3" />
+                  Global
+                </span>
+              </>
+            ) : announcement.team?.name && (
               <>
                 <span className="text-theme-500 dark:text-theme-600">•</span>
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-theme-200 dark:bg-theme-800 text-theme-800 dark:text-theme-200">
-                  Global
+                  {announcement.team.name}
                 </span>
               </>
             )}

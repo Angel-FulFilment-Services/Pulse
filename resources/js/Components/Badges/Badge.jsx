@@ -1,16 +1,18 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, useAnimation } from 'framer-motion';
 import * as HeroIcons from '@heroicons/react/24/solid';
-import AlexandriteFace from './Faces/AlexandriteFace.jsx';
-import ChristmasSnowFace from './Faces/ChristmasSnowFace.jsx';
-import ChristmasLightsFace from './Faces/ChristmasLightsFace.jsx';
-import NewYearsFace from './Faces/NewYearsFace.jsx';
-import JackOLanternFace from './Faces/JackOLanternFace.jsx';
-import SpookyGhostFace from './Faces/SpookyGhostFace.jsx';
-import AutumnFace from './Faces/AutumnFace.jsx';
 import PopoverFlyout from '../Flyouts/PopoverFlyout.jsx';
 import BadgeFlyout from './BadgeFlyout.jsx';
 import BadgeDetailsPanel from './BadgeDetailsPanel.jsx';
+
+// Lazy load face components for better initial bundle performance
+const AlexandriteFace = lazy(() => import('./Faces/AlexandriteFace.jsx'));
+const ChristmasSnowFace = lazy(() => import('./Faces/ChristmasSnowFace.jsx'));
+const ChristmasLightsFace = lazy(() => import('./Faces/ChristmasLightsFace.jsx'));
+const NewYearsFace = lazy(() => import('./Faces/NewYearsFace.jsx'));
+const JackOLanternFace = lazy(() => import('./Faces/JackOLanternFace.jsx'));
+const SpookyGhostFace = lazy(() => import('./Faces/SpookyGhostFace.jsx'));
+const AutumnFace = lazy(() => import('./Faces/AutumnFace.jsx'));
 
 // Utility to darken a hex color
 function darkenColor(hex, percent) {
@@ -117,6 +119,19 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
     const glareX = useTransform(mouseX, [0, 1], [100, 0]);
     const glareY = useTransform(mouseY, [0, 1], [100, 0]);
     
+    // Embossing transforms - moved outside render functions for performance
+    const embossShadowX = useTransform(rotateY, [-20, 20], [-1.5, 1.5]);
+    const embossShadowY = useTransform(rotateX, [-20, 20], [1.5, -1.5]);
+    const embossHighlightX = useTransform(rotateY, [-20, 20], [0.8, -0.8]);
+    const embossHighlightY = useTransform(rotateX, [-20, 20], [-0.8, 0.8]);
+    const lockShadowX = useTransform(rotateY, [-20, 20], [-2, 2]);
+    const lockShadowY = useTransform(rotateX, [-20, 20], [2, -2]);
+    const lockHighlightX = useTransform(rotateY, [-20, 20], [1, -1]);
+    const lockHighlightY = useTransform(rotateX, [-20, 20], [-1, 1]);
+    
+    // Pre-compute glare intensity for use in memoized background
+    const glareIntensityRef = useRef(1);
+    
     // 3D edge transforms (always created, but only used when enlarged)
     const topEdgeTransform = useTransform(rotateX, [-40, 0, 40], ['rotateX(-90deg) translateY(-2px)', 'rotateX(0deg)', 'rotateX(0deg)']);
     const topEdgeOpacity = useTransform(rotateX, [-40, -10, 0], [1, 0.5, 0]);
@@ -126,6 +141,10 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
     const leftEdgeOpacity = useTransform(rotateY, [-40, -10, 0], [1, 0.5, 0]);
     const rightEdgeTransform = useTransform(rotateY, [-40, 0, 40], ['rotateY(0deg)', 'rotateY(0deg)', 'rotateY(90deg) translateX(2px)']);
     const rightEdgeOpacity = useTransform(rotateY, [0, 10, 40], [0, 0.5, 1]);
+    
+    // Hover shadow transforms - moved outside render for performance
+    const hoverShadowX = useTransform(rotateY, [-35, 0, 35], ['15px', '10px', '5px']);
+    const hoverShadowY = useTransform(rotateX, [-35, 0, 35], ['5px', '10px', '15px']);
     
     // Badge tier colors - memoized to avoid recreation
     const tierColors = useMemo(() => ({
@@ -170,6 +189,22 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
     }, [badge.prerequisite_badge, badge.is_earned, badge.tier, tierColors]);
     
     const { isLocked, isUnearned, colors, isAlexandrite, isChristmasSnow, isChristmasLights, isNewYears, isJackOLantern, isSpookyGhost, isAutumn, hasCustomFace, glareIntensity } = badgeState;
+    
+    // Update the ref when glareIntensity changes (for use in transforms)
+    glareIntensityRef.current = glareIntensity;
+    
+    // Glare background transform - pre-computed at component level
+    const glareBackground = useTransform([glareX, glareY, isHovering], ([x, y, hovering]) => {
+        if (!hovering) return 'transparent';
+        const intensity = glareIntensityRef.current;
+        return `radial-gradient(
+            circle at ${x}% ${y}%,
+            rgba(255, 255, 255, ${0.3 * intensity}) 0%,
+            rgba(255, 255, 255, ${0.15 * intensity}) 25%,
+            rgba(255, 255, 255, ${0.05 * intensity}) 45%,
+            transparent 70%
+        )`;
+    });
     
     // Mouse move effect for desktop - wrapped in useCallback to prevent recreation
     const handleMouseMove = useCallback((e) => {
@@ -234,6 +269,7 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
     }, [shouldFlip, controls, rotateX, rotateY, isEnlarged]);
     
     // Memoize particle burst to prevent re-renders from canceling animation
+    // Reduced particle count from 20 to 12 for better performance
     const particleBurst = useMemo(() => {
         if (!isFlipping) return null;
         
@@ -245,9 +281,11 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                 height: '80px',
                 zIndex: 1,
                 pointerEvents: 'none',
+                willChange: 'transform',
+                contain: 'layout style paint',
             }}>
-                {Array.from({ length: 20 }).map((_, i) => {
-                    const angle = (i * 360) / 20 + (Math.random() - 0.5) * 30;
+                {Array.from({ length: 12 }).map((_, i) => {
+                    const angle = (i * 360) / 12 + (Math.random() - 0.5) * 30;
                     const distance = 100 + Math.random() * 40;
                     const endX = Math.cos((angle * Math.PI) / 180) * distance;
                     const endY = Math.sin((angle * Math.PI) / 180) * distance;
@@ -295,113 +333,9 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
         );
     }, [isFlipping, badge.tier, colors.accent, colors.primary]);
     
-    // Render custom face based on tier
-    const renderCustomFace = (embossingContent) => {
-        if (isAlexandrite) {
-            return (
-                <AlexandriteFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isFlipping={isFlipping}
-                    glareIntensity={glareIntensity}
-                    colors={colors}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isChristmasSnow) {
-            return (
-                <ChristmasSnowFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isChristmasLights) {
-            return (
-                <ChristmasLightsFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isNewYears) {
-            return (
-                <NewYearsFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isJackOLantern) {
-            return (
-                <JackOLanternFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isSpookyGhost) {
-            return (
-                <SpookyGhostFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        if (isAutumn) {
-            return (
-                <AutumnFace 
-                    mouseX={mouseX}
-                    mouseY={mouseY}
-                    isHovering={isHovering}
-                    rotateX={rotateX}
-                    rotateY={rotateY}
-                    embossingContent={embossingContent}
-                    isUnearned={isUnearned}
-                />
-            );
-        }
-        
-        return null;
-    };
-    
-    // Render embossed image/icon
-    const renderEmbossing = () => {
+    // Render embossed image/icon - uses pre-defined transforms for performance
+    // Defined before embossingContent and customFaceContent which depend on it
+    const renderEmbossing = useCallback(() => {
         // If badge is locked, show lock icon instead
         if (isLocked || isUnearned) {
             return (
@@ -414,8 +348,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                         <motion.div
                             className="absolute inset-0 flex items-center justify-center"
                             style={{
-                                x: useTransform(rotateY, [-20, 20], [-2, 2]),
-                                y: useTransform(rotateX, [-20, 20], [2, -2]),
+                                x: lockShadowX,
+                                y: lockShadowY,
                             }}
                         >
                             <HeroIcons.LockClosedIcon
@@ -443,8 +377,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                         <motion.div
                             className="absolute inset-0 flex items-center justify-center"
                             style={{
-                                x: useTransform(rotateY, [-20, 20], [1, -1]),
-                                y: useTransform(rotateX, [-20, 20], [-1, 1]),
+                                x: lockHighlightX,
+                                y: lockHighlightY,
                             }}
                         >
                             <HeroIcons.LockClosedIcon
@@ -485,8 +419,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                             <motion.div
                                 className="absolute inset-0"
                                 style={{
-                                    x: useTransform(rotateY, [-20, 20], [-1.5, 1.5]),
-                                    y: useTransform(rotateX, [-20, 20], [1.5, -1.5]),
+                                    x: embossShadowX,
+                                    y: embossShadowY,
                                 }}
                             >
                                 <img
@@ -531,8 +465,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                             <motion.div
                                 className="absolute inset-0"
                                 style={{
-                                    x: useTransform(rotateY, [-20, 20], [0.8, -0.8]),
-                                    y: useTransform(rotateX, [-20, 20], [-0.8, 0.8]),
+                                    x: embossHighlightX,
+                                    y: embossHighlightY,
                                 }}
                             >
                                 <img
@@ -563,8 +497,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                             <motion.div
                                 className="absolute inset-0"
                                 style={{
-                                    x: useTransform(rotateY, [-20, 20], [-1.5, 1.5]),
-                                    y: useTransform(rotateX, [-20, 20], [1.5, -1.5]),
+                                    x: embossShadowX,
+                                    y: embossShadowY,
                                 }}
                             >
                                 <IconComponent
@@ -594,8 +528,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                             <motion.div
                                 className="absolute inset-0"
                                 style={{
-                                    x: useTransform(rotateY, [-20, 20], [0.8, -0.8]),
-                                    y: useTransform(rotateX, [-20, 20], [-0.8, 0.8]),
+                                    x: embossHighlightX,
+                                    y: embossHighlightY,
                                 }}
                             >
                                 <IconComponent
@@ -613,7 +547,47 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                 </div>
             </div>
         );
-    };
+    }, [isLocked, isUnearned, badge.image, badge.icon, colors.emboss, embossShadowX, embossShadowY, embossHighlightX, embossHighlightY, lockShadowX, lockShadowY, lockHighlightX, lockHighlightY]);
+    
+    // Memoized embossing content to avoid recreating on every render
+    const embossingContent = useMemo(() => renderEmbossing(), [renderEmbossing]);
+    
+    // Render custom face based on tier - memoized with Suspense for lazy loading
+    const customFaceContent = useMemo(() => {
+        if (!hasCustomFace) return null;
+        
+        const FaceComponent = isAlexandrite ? AlexandriteFace
+            : isChristmasSnow ? ChristmasSnowFace
+            : isChristmasLights ? ChristmasLightsFace
+            : isNewYears ? NewYearsFace
+            : isJackOLantern ? JackOLanternFace
+            : isSpookyGhost ? SpookyGhostFace
+            : isAutumn ? AutumnFace
+            : null;
+        
+        if (!FaceComponent) return null;
+        
+        const commonProps = {
+            mouseX,
+            mouseY,
+            isHovering,
+            rotateX,
+            rotateY,
+            embossingContent,
+            isUnearned,
+        };
+        
+        // Add specific props for Alexandrite
+        const faceProps = isAlexandrite 
+            ? { ...commonProps, isFlipping, glareIntensity, colors }
+            : commonProps;
+        
+        return (
+            <Suspense fallback={<div className="absolute inset-0" />}>
+                <FaceComponent {...faceProps} />
+            </Suspense>
+        );
+    }, [hasCustomFace, isAlexandrite, isChristmasSnow, isChristmasLights, isNewYears, isJackOLantern, isSpookyGhost, isAutumn, mouseX, mouseY, isHovering, rotateX, rotateY, embossingContent, isUnearned, isFlipping, glareIntensity, colors]);
     
     return (
         <>
@@ -710,8 +684,8 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                         width: '80px',
                         height: '80px',
                         zIndex: 0,
-                        x: useTransform(rotateY, [-35, 0, 35], ['15px', '10px', '5px']),
-                        y: useTransform(rotateX, [-35, 0, 35], ['5px', '10px', '15px']),
+                        x: hoverShadowX,
+                        y: hoverShadowY,
                     }}
                     initial={{ opacity: 0, filter: 'blur(6px)' }}
                     animate={
@@ -905,16 +879,7 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                         <motion.div
                             className="absolute inset-0 pointer-events-none"
                             style={{
-                                background: useTransform([glareX, glareY, isHovering], ([x, y, hovering]) => {
-                                    if (!hovering) return 'transparent';
-                                    return `radial-gradient(
-                                        circle at ${x}% ${y}%,
-                                        rgba(255, 255, 255, ${0.3 * glareIntensity}) 0%,
-                                        rgba(255, 255, 255, ${0.15 * glareIntensity}) 25%,
-                                        rgba(255, 255, 255, ${0.05 * glareIntensity}) 45%,
-                                        transparent 70%
-                                    )`;
-                                }),
+                                background: glareBackground,
                                 zIndex: 30,
                             }}
                         />
@@ -947,10 +912,10 @@ const Badge = React.memo(({ badge, index, shouldFlip = false, onToggleExpand, is
                         )}
                         
                         {/* CUSTOM FACE LAYER */}
-                        {hasCustomFace && renderCustomFace(renderEmbossing())}
+                        {customFaceContent}
                         
                         {/* EMBOSSED IMAGE/ICON LAYER - Only render if no custom face */}
-                        {!hasCustomFace && renderEmbossing()}
+                        {!hasCustomFace && embossingContent}
                     </motion.div>
 
                     {/* BACK SIDE - Pin broach */}

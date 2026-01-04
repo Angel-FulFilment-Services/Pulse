@@ -1,51 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 
-const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
-    const [snowflakes, setSnowflakes] = useState([]);
+const ChristmasSnowFace = React.memo(({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
+    const [isHovered, setIsHovered] = useState(false);
     
-    // Track cursor position even when not moving
-    const cursorX = useMotionValue(40); // Start at center
+    // Track cursor position only when needed
+    const cursorX = useMotionValue(40);
     const cursorY = useMotionValue(40);
     
-    // Update cursor position from parent's mouseX/mouseY - continuously while hovering
+    // Subscribe to hover state changes
     useEffect(() => {
-        const updateCursor = () => {
-            cursorX.set(mouseX.get() * 80);
-            cursorY.set(mouseY.get() * 80);
-        };
-        
-        // Update immediately when hover state changes
-        const unsubscribeHover = isHovering.on('change', (hovering) => {
-            if (hovering) {
-                updateCursor();
-            }
+        const unsubscribe = isHovering.on('change', (hovering) => {
+            setIsHovered(hovering);
         });
+        setIsHovered(isHovering.get());
+        return unsubscribe;
+    }, [isHovering]);
+    
+    // Only subscribe to mouse position when hovered
+    useEffect(() => {
+        if (!isHovered) return;
         
         const unsubscribeX = mouseX.on('change', (v) => cursorX.set(v * 80));
         const unsubscribeY = mouseY.on('change', (v) => cursorY.set(v * 80));
         
+        // Set initial position
+        cursorX.set(mouseX.get() * 80);
+        cursorY.set(mouseY.get() * 80);
+        
         return () => {
-            unsubscribeHover();
             unsubscribeX();
             unsubscribeY();
         };
-    }, [mouseX, mouseY, isHovering, cursorX, cursorY]);
+    }, [isHovered, mouseX, mouseY, cursorX, cursorY]);
     
-    // Generate snowflakes
-    useEffect(() => {
-        if (!isUnearned) {
-            const flakes = Array.from({ length: 25 }, (_, i) => ({
-                id: i,
-                startX: Math.random() * 80,
-                startY: -20 - Math.random() * 30, // Start higher up (was -10 to -30, now -20 to -50)
-                size: 3 + Math.random() * 2, // Increased min from 2 to 3, max from 5 to 5
-                duration: 3 + Math.random() * 2,
-                delay: Math.random() * 3,
-                drift: (Math.random() - 0.5) * 20,
-            }));
-            setSnowflakes(flakes);
-        }
+    // Generate snowflakes - reduced from 25 to 15 for better performance
+    const snowflakes = useMemo(() => {
+        if (isUnearned) return [];
+        return Array.from({ length: 15 }, (_, i) => ({
+            id: i,
+            startX: Math.random() * 80,
+            startY: -20 - Math.random() * 30,
+            size: 3 + Math.random() * 2,
+            duration: 3 + Math.random() * 2,
+            delay: Math.random() * 3,
+        }));
     }, [isUnearned]);
     
     return (
@@ -345,33 +344,42 @@ const ChristmasSnowFace = ({ mouseX, mouseY, isHovering, embossingContent, isUne
             </div>
         </>
     );
-};
+});
 
-// Separate component for each snowflake to use hooks properly
-const Snowflake = ({ flake, cursorX, cursorY, isHovering }) => {
+ChristmasSnowFace.displayName = 'ChristmasSnowFace';
+
+// Optimized snowflake component - uses simpler animation when not hovered
+const Snowflake = React.memo(({ flake, cursorX, cursorY, isHovering }) => {
+    const [isHovered, setIsHovered] = useState(false);
     const currentY = useMotionValue(flake.startY);
     
-    // Calculate repulsion offset from cursor using 2D distance
+    // Subscribe to hover state
+    useEffect(() => {
+        const unsubscribe = isHovering.on('change', setIsHovered);
+        setIsHovered(isHovering.get());
+        return unsubscribe;
+    }, [isHovering]);
+    
+    // Calculate repulsion offset only when hovered
     const offsetX = useTransform(
-        [cursorX, cursorY, currentY, isHovering],
-        ([cx, cy, snowY, hovering]) => {
-            if (!hovering) return 0;
+        [cursorX, cursorY, currentY],
+        ([cx, cy, snowY]) => {
+            if (!isHovered) return 0;
             
             const dx = cx - flake.startX;
             const dy = cy - snowY;
-            const distance = Math.sqrt(dx * dx + dy * dy); // 2D distance
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Repel if within 20px radius (circular area)
             if (distance < 20) {
                 const force = (20 - distance) / 20;
-                return dx > 0 ? -force * 18 : force * 18; // Stronger push
+                return dx > 0 ? -force * 18 : force * 18;
             }
             return 0;
         }
     );
     
-    // Apply smooth spring to the offset
-    const smoothX = useSpring(offsetX, { stiffness: 150, damping: 20 });
+    // Apply smooth spring to the offset with lower stiffness for performance
+    const smoothX = useSpring(offsetX, { stiffness: 100, damping: 15 });
     
     return (
         <motion.div
@@ -382,8 +390,9 @@ const Snowflake = ({ flake, cursorX, cursorY, isHovering }) => {
                 left: `${flake.startX}px`,
                 filter: 'blur(0.5px)',
                 boxShadow: '0 0 2px rgba(255, 255, 255, 0.8)',
-                x: smoothX, // Smoothly animated cursor repulsion
-                y: currentY, // Track Y position for distance calculation
+                x: smoothX,
+                y: currentY,
+                willChange: 'transform',
             }}
             initial={{ 
                 y: flake.startY,
@@ -410,11 +419,13 @@ const Snowflake = ({ flake, cursorX, cursorY, isHovering }) => {
                     delay: flake.delay,
                     repeat: Infinity,
                     ease: 'linear',
-                    times: [0, 0.05, 0.9, 1], // Fade in faster (by 5% instead of 10%)
+                    times: [0, 0.05, 0.9, 1],
                 },
             }}
         />
     );
-};
+});
+
+Snowflake.displayName = 'Snowflake';
 
 export default ChristmasSnowFace;

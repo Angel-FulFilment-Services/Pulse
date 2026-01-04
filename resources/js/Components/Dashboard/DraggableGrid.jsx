@@ -8,9 +8,10 @@ const DraggableGrid = ({
     widgets = [], 
     savedLayouts = {},
     onLayoutChange,
-    expandedWidget,
+    expandedWidgets = [],
     onExpandWidget,
     onLockWidget,
+    dragEnabled = true,
     className = "",
     ...gridProps 
 }) => {
@@ -20,40 +21,127 @@ const DraggableGrid = ({
     const [isReady, setIsReady] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [currentLayout, setCurrentLayout] = useState(null); // Track the actual current layout
+    const [prevExpandedWidgets, setPrevExpandedWidgets] = useState([]);
     
-    // Callback ref to ensure we capture the element
-    const setExpandedWidgetRef = (element) => {
-        console.log('setExpandedWidgetRef called with:', element);
-        expandedWidgetRef.current = element;
-        if (element && expandedWidget) {
-            // Scroll when ref is set
-            setTimeout(() => {
-                scrollExpandedIntoView(element);
-            }, 400);
+    // Constants for calculating heights (must match grid config)
+    const ROW_HEIGHT = 42;
+    const MARGIN = 16;
+    
+    // Calculate the final pixel height of an expanded widget
+    const calculateExpandedPixelHeight = (widgetId) => {
+        const widgetData = widgets.find(w => (w.key || w.id) === widgetId);
+        if (!widgetData) return null;
+        
+        const minExpandedHeight = widgetData?.minExpandedH || widgetData?.minH || 10;
+        const maxExpandedWidth = widgetData?.maxExpandedW;
+        const maxExpandedHeight = widgetData?.maxExpandedH;
+        
+        let expandedHeightUnits;
+        
+        if (maxExpandedWidth !== undefined && maxExpandedHeight !== undefined) {
+            expandedHeightUnits = maxExpandedHeight;
+        } else {
+            // Full screen expansion
+            const headerAndPadding = 100;
+            const availableHeight = viewportHeight - headerAndPadding;
+            const calculatedHeight = Math.floor(availableHeight / (ROW_HEIGHT + MARGIN));
+            expandedHeightUnits = Math.max(calculatedHeight, minExpandedHeight);
         }
+        
+        // Convert grid units to pixels: height = (units * rowHeight) + ((units - 1) * margin)
+        return (expandedHeightUnits * ROW_HEIGHT) + ((expandedHeightUnits - 1) * MARGIN);
     };
     
-    const scrollExpandedIntoView = (element) => {
-        if (!element) return;
+    // Scroll expanded widget into view when expansion changes
+    useEffect(() => {
+        // Find newly expanded widgets (in current but not in previous)
+        const newlyExpanded = expandedWidgets.filter(w => !prevExpandedWidgets.includes(w));
         
-        // Get element position
-        const rect = element.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // Check if widget is fully visible
-        const viewportHeight = window.innerHeight;
-        const isFullyVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
+        if (newlyExpanded.length > 0) {
+            // Scroll to the first newly expanded widget
+            const expandedWidgetKey = newlyExpanded[0];
+            const expandedElement = document.querySelector(`[data-widget-id="${expandedWidgetKey}"]`);
+            
+            if (expandedElement) {
+                const finalHeight = calculateExpandedPixelHeight(expandedWidgetKey);
+                const scrollContainer = document.querySelector('main.overflow-y-auto');
                 
-        if (!isFullyVisible) {
-            // Scroll to show the top of the widget with some padding
-            const elementTop = rect.top + scrollTop;
-            console.log('Scrolling to:', elementTop - 80);
-            window.scrollTo({
-                top: Math.max(0, elementTop - 80),
-                behavior: 'smooth'
-            });
+                if (scrollContainer && finalHeight) {
+                    const containerRect = scrollContainer.getBoundingClientRect();
+                    const containerHeight = scrollContainer.clientHeight;
+                    const padding = 40;
+                    
+                    // Calculate target scroll position based on initial element position
+                    const initialElementRect = expandedElement.getBoundingClientRect();
+                    const elementTopInContent = initialElementRect.top - containerRect.top + scrollContainer.scrollTop;
+                    const finalBottomInContent = elementTopInContent + finalHeight;
+                    
+                    // Determine scroll target
+                    let scrollTarget = null;
+                    
+                    if (finalHeight >= containerHeight - padding) {
+                        // Widget will be taller than viewport - scroll to show top
+                        scrollTarget = elementTopInContent - padding;
+                    } else {
+                        // Widget fits - position so bottom is visible
+                        scrollTarget = finalBottomInContent - containerHeight + padding;
+                    }
+                    
+                    if (scrollTarget !== null && scrollTarget > scrollContainer.scrollTop) {
+                        const maxScrollNow = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                        
+                        // Check if we can already reach the target
+                        if (scrollTarget <= maxScrollNow) {
+                            // Target is already reachable - use smooth scroll
+                            scrollContainer.scrollTo({
+                                top: Math.max(0, scrollTarget),
+                                behavior: 'smooth'
+                            });
+                        } else {
+                            // Need to wait for content to grow - use progressive scroll
+                            const animationDuration = 400;
+                            let animationFrame;
+                            
+                            const progressiveScroll = () => {
+                                const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                                const targetForNow = Math.min(scrollTarget, maxScroll);
+                                
+                                // Smoothly interpolate toward target
+                                const diff = targetForNow - scrollContainer.scrollTop;
+                                if (Math.abs(diff) > 2) {
+                                    // Move 15% of the remaining distance each frame for smooth motion
+                                    scrollContainer.scrollTop += diff * 0.15;
+                                }
+                                
+                                // Continue if we haven't reached target and content might still be growing
+                                if (scrollContainer.scrollTop < scrollTarget - 5) {
+                                    animationFrame = requestAnimationFrame(progressiveScroll);
+                                }
+                            };
+                            
+                            animationFrame = requestAnimationFrame(progressiveScroll);
+                            
+                            // Stop after animation duration
+                            const stopTimer = setTimeout(() => {
+                                if (animationFrame) {
+                                    cancelAnimationFrame(animationFrame);
+                                }
+                            }, animationDuration);
+                            
+                            setPrevExpandedWidgets([...expandedWidgets]);
+                            return () => {
+                                if (animationFrame) cancelAnimationFrame(animationFrame);
+                                clearTimeout(stopTimer);
+                            };
+                        }
+                    }
+                }
+            }
         }
-    };
+        
+        setPrevExpandedWidgets([...expandedWidgets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [expandedWidgets.join(','), widgets, viewportHeight]);
     
     // Wait for grid to mount and position items
     useEffect(() => {
@@ -123,52 +211,54 @@ const DraggableGrid = ({
 
     // Compute final layout with expansion logic applied
     const computedLayouts = useMemo(() => {
-        if (!expandedWidget) {
+        if (!expandedWidgets || expandedWidgets.length === 0) {
             // No expansion, use normal layouts
             return layouts;
         }
 
-        // When there's an expanded widget, just expand it in place
-        const baseLg = (currentLayout && currentLayout.length > 0) ? currentLayout : layouts.lg;
-        
-        const expandedWidgetData = widgets.find(w => (w.key || w.id) === expandedWidget);
-        const minExpandedHeight = expandedWidgetData?.minExpandedH || expandedWidgetData?.minH || 10;
-        
-        // Calculate expanded height based on viewport
-        const rowHeight = 42;
-        const marginPerRow = 20;
-        const headerAndPadding = 100;
-        const availableHeight = viewportHeight - headerAndPadding;
-        const calculatedHeight = Math.floor(availableHeight / (rowHeight + marginPerRow));
-        const expandedHeight = Math.max(calculatedHeight, minExpandedHeight);
-        
-        // Modify layout with expanded widget
-        const modifiedLg = baseLg.map(item => {
+        // Always use the base layouts.lg for original dimensions
+        // This ensures collapsed widgets return to their original size
+        const modifiedLg = layouts.lg.map(item => {
             const widget = widgets.find(w => (w.key || w.id) === item.i);
-            const isWelcome = widget?.showHeader === false;
+            const isExpanded = expandedWidgets.includes(item.i);
             
-            if (item.i === expandedWidget) {
-                // Expand in place - full width and calculated height
+            if (isExpanded && widget) {
+                const minExpandedHeight = widget.minExpandedH || widget.minH || 10;
+                const maxExpandedWidth = widget.maxExpandedW;
+                const maxExpandedHeight = widget.maxExpandedH;
+                
+                // Calculate expanded dimensions
+                let expandedWidth;
+                let expandedHeight;
+                
+                if (maxExpandedWidth !== undefined && maxExpandedHeight !== undefined) {
+                    // Use the specified max dimensions
+                    expandedWidth = maxExpandedWidth;
+                    expandedHeight = maxExpandedHeight;
+                } else {
+                    // Full screen expansion (original behavior)
+                    expandedWidth = 12;
+                    const rowHeight = 42;
+                    const marginPerRow = 20;
+                    const headerAndPadding = 100;
+                    const availableHeight = viewportHeight - headerAndPadding;
+                    const calculatedHeight = Math.floor(availableHeight / (rowHeight + marginPerRow));
+                    expandedHeight = Math.max(calculatedHeight, minExpandedHeight);
+                }
+                
+                // Expand to calculated dimensions
                 return {
                     ...item,
-                    w: 12,
+                    w: expandedWidth,
                     h: expandedHeight,
-                    minW: 12,
+                    minW: widget.minW || item.minW,
                     minH: minExpandedHeight,
-                    maxW: 12,
+                    maxW: expandedWidth,
                 };
             }
             
-            // Don't unlock the welcome widget
-            if (isWelcome) {
-                return item;
-            }
-            
-            // Unlock all other widgets during expansion (including locked ones)
-            return {
-                ...item,
-                static: false,
-            };
+            // Return original dimensions for non-expanded widgets
+            return item;
         });
 
         return {
@@ -194,7 +284,8 @@ const DraggableGrid = ({
                 x: 0
             }))
         };
-    }, [layouts, expandedWidget, widgets, viewportHeight, currentLayout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [layouts, expandedWidgets.join(','), widgets, viewportHeight, currentLayout]);
 
     const handleLayoutChange = (layout, allLayouts) => {
         setCurrentLayout(layout);
@@ -235,7 +326,7 @@ const DraggableGrid = ({
                 margin={[16, 16]}
                 containerPadding={[0, 0]}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={!expandedWidget}
+                isDraggable={dragEnabled && expandedWidgets.length === 0}
                 isResizable={false}
                 compactType="vertical"
                 preventCollision={false}
@@ -245,40 +336,38 @@ const DraggableGrid = ({
             >
                 {widgets.map((widget, index) => {
                     const key = widget.key || widget.id || `widget-${index}`;
-                    const isExpanded = expandedWidget === key;
+                    const isExpanded = expandedWidgets.includes(key);
                     const isLocked = widget.locked || false;
                     
                     return (
                         <div 
                             key={key} 
                             className="widget-container"
-                            ref={isExpanded ? setExpandedWidgetRef : null}
-                            style={{
-                                opacity: expandedWidget && !isExpanded && !isLocked ? 0.3 : 1,
-                                transition: 'opacity 0.3s ease-in-out'
-                            }}
+                            data-widget-id={key}
                         >
                             {widget.showHeader === false ? (
                                 // Render content directly without WidgetItem wrapper for special cases like WelcomeCard
                                 React.cloneElement(widget.content, { 
                                     isExpanded,
-                                    onToggleExpand: () => onExpandWidget?.(isExpanded ? null : key)
+                                    onToggleExpand: () => onExpandWidget?.(key)
                                 })
                             ) : (
                                 <WidgetItem
                                     title={widget.title}
                                     headerAction={widget.headerAction}
                                     className="h-full"
-                                    onExpand={() => onExpandWidget?.(isExpanded ? null : key)}
+                                    onExpand={() => onExpandWidget?.(key)}
                                     isExpanded={isExpanded}
+                                    canExpand={widget.canExpand !== false}
                                     onLock={() => onLockWidget?.(key)}
                                     isLocked={isLocked}
+                                    dragEnabled={dragEnabled}
                                     canRefresh={widget.canRefresh}
                                     onRefresh={() => onRefreshWidget?.(key)}
                                 >
                                     {React.cloneElement(widget.content, { 
                                         isExpanded,
-                                        onToggleExpand: () => onExpandWidget?.(isExpanded ? null : key),
+                                        onToggleExpand: () => onExpandWidget?.(key),
                                         onRefresh: () => onRefreshWidget?.(key)
                                     })}
                                 </WidgetItem>

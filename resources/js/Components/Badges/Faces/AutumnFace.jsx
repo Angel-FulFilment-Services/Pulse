@@ -39,7 +39,7 @@ const GroundLeaf = memo(({ leaf }) => (
     />
 ));
 
-const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
+const AutumnFace = React.memo(({ mouseX, mouseY, isHovering, embossingContent, isUnearned }) => {
     const [leaves, setLeaves] = useState([]);
     const [groundLeaves, setGroundLeaves] = useState([]);
     const [birds, setBirds] = useState([]);
@@ -1615,6 +1615,8 @@ const AutumnFace = ({ mouseX, mouseY, isHovering, embossingContent, isUnearned }
             })}
         </>
     );
-};
+});
+
+AutumnFace.displayName = 'AutumnFace';
 
 export default AutumnFace;
