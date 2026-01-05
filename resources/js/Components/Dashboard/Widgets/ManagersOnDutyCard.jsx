@@ -1,13 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { ChatBubbleLeftEllipsisIcon, UserIcon as UserIconOutline } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
 import useFetchManagersOnDuty from '../../Fetches/Dashboard/useFetchManagersOnDuty.jsx';
 import UserIcon from '../../User/UserIcon.jsx';
+import ScrollHint from '../../Hints/ScrollHint';
 
 const MIN_DISPLAY_COUNT = 4; // Always show at least 4 cards
 
 const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     const { managers, isLoading, isLoaded } = useFetchManagersOnDuty();
+    const scrollRef = useRef(null);
     
     // Show all managers when expanded, only clocked in when collapsed
     // Use useMemo to prevent recalculation on every render
@@ -49,7 +51,7 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     // Loading skeleton
     if (isLoading || !isLoaded) {
         return (
-            <div className="space-y-3 animate-pulse">
+            <div className="space-y-2.5 animate-pulse">
                 
                 {( !isExpanded ? [1, 2, 3 ,4] : [1, 2, 3, 4, 5, 6, 7]).map((i) => (
                     <div key={i} className="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
@@ -67,9 +69,9 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     }
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden relative">
             {/* Managers List - scrollable */}
-            <div className="flex-1 overflow-y-auto space-y-3">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2.5">
                 {managersOnDuty.map((manager) => (
                     <div 
                         key={manager.hr_id} 
@@ -133,14 +135,8 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
                 ))}
             </div>
             
-            {/* Show all managers link when expanded */}
-            {isExpanded && managers.length > managersOnDuty.length && (
-                <div className="pt-3 mt-2 border-t border-gray-200 dark:border-dark-700 text-center flex-shrink-0">
-                    <p className="text-xs text-gray-500 dark:text-dark-400">
-                        {managers.length - managersOnDuty.length} manager{managers.length - managersOnDuty.length !== 1 ? 's' : ''} not currently on duty
-                    </p>
-                </div>
-            )}
+            {/* Scroll hint */}
+            <ScrollHint scrollRef={scrollRef} basic={false} />
         </div>
     );
 };

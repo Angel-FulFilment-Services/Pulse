@@ -26,8 +26,8 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     const endDate = format(endOfDay(today), 'yyyy-MM-dd');
     
     // Fetch shifts and timesheets for today
-    const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(startDate, endDate, 965);
-    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(startDate, endDate, 965);
+    const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(startDate, endDate, 6927);
+    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(startDate, endDate, 6927);
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
@@ -190,25 +190,19 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     if (isLoading || !isLoaded) {
         return (
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
-                <div className="bg-theme-50 dark:bg-theme-900/20 border border-theme-200 dark:border-theme-800 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="space-y-1.5">
-                            <div className="h-4 w-24 bg-theme-200 dark:bg-theme-700 rounded"></div>
-                            <div className="h-3 w-32 bg-theme-100 dark:bg-theme-800 rounded"></div>
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="h-11 w-11 bg-gray-200 dark:bg-dark-700 rounded-lg"></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-20 bg-gray-200 dark:bg-dark-700 rounded"></div>
+                            <div className="h-4 w-16 bg-gray-100 dark:bg-dark-800 rounded"></div>
                         </div>
-                        <div className="text-right space-y-1.5">
-                            <div className="h-4 w-20 bg-theme-200 dark:bg-theme-700 rounded"></div>
-                            <div className="h-3 w-14 bg-theme-100 dark:bg-theme-800 rounded"></div>
-                        </div>
+                        <div className="h-3 w-32 bg-gray-100 dark:bg-dark-800 rounded"></div>
                     </div>
-                    <div>
-                        <div className="flex justify-between mb-1">
-                            <div className="h-2 w-12 bg-theme-100 dark:bg-theme-800 rounded"></div>
-                            <div className="h-2 w-16 bg-theme-100 dark:bg-theme-800 rounded"></div>
-                            <div className="h-2 w-12 bg-theme-100 dark:bg-theme-800 rounded"></div>
-                        </div>
-                        <div className="h-2.5 w-full bg-white/50 dark:bg-dark-700 rounded-full"></div>
-                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
                 </div>
             </div>
         );
@@ -217,136 +211,130 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     // No shift today
     if (!shiftData) {
         return (
-            <div className="flex flex-col items-center justify-center flex-1 text-center px-4">
-                <div className="relative mb-4">
-                    {/* Background circle */}
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-50 dark:from-dark-700 dark:to-dark-800 flex items-center justify-center shadow-inner">
-                        <CalendarDaysIcon className="h-10 w-10 text-gray-400 dark:text-dark-500" />
-                    </div>
-                    {/* Checkmark badge */}
-                    <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center border-2 border-white dark:border-dark-900">
-                        <svg className="w-4 h-4 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
+            <div className="flex flex-col flex-1 min-h-0 relative">
+                {/* Skeleton-like background */}
+                <div className="flex items-center gap-3 mb-3 opacity-30">
+                    <div className="h-11 w-11 bg-gray-200 dark:bg-dark-700 rounded-lg"></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-20 bg-gray-200 dark:bg-dark-700 rounded"></div>
+                            <div className="h-4 w-16 bg-gray-100 dark:bg-dark-800 rounded"></div>
+                        </div>
+                        <div className="h-3 w-32 bg-gray-100 dark:bg-dark-800 rounded"></div>
                     </div>
                 </div>
-                <h4 className="text-lg font-semibold text-gray-700 dark:text-dark-200 mb-1">No Shift Today</h4>
-                <p className="text-sm text-gray-500 dark:text-dark-400 max-w-[200px]">
-                    You have no shifts scheduled. Enjoy your day off!
-                </p>
+                <div className="grid grid-cols-2 gap-2 opacity-30">
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
+                </div>
+                
+                {/* Centered overlay text */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="backdrop-blur-sm px-4 py-2 bg-white/70 dark:bg-dark-900/70 rounded-lg border border-gray-200 dark:border-dark-700 text-center">
+                        <CalendarDaysIcon className="h-8 w-8 text-gray-400 dark:text-dark-500 mx-auto mb-2" />
+                        <p className="text-xl font-medium text-gray-600 dark:text-dark-200">No Shift Today</p>
+                        <p className="text-sm text-gray-500 dark:text-dark-400 mt-1">You have no scheduled shifts for today.</p>
+                    </div>
+                </div>
             </div>
         );
     }
     
-    // Status colors
-    const statusColors = {
-        upcoming: 'text-blue-600 dark:text-blue-400',
-        active: 'text-green-600 dark:text-green-400',
-        not_clocked_in: 'text-orange-600 dark:text-orange-400',
-        completed: 'text-gray-600 dark:text-dark-400',
+    // Status badge styles
+    const getStatusBadge = () => {
+        switch (shiftData.status) {
+            case 'active':
+                return {
+                    bg: 'bg-green-100 dark:bg-green-900/30',
+                    text: 'text-green-700 dark:text-green-400',
+                    dot: 'bg-green-500',
+                    label: 'Active'
+                };
+            case 'upcoming':
+                return {
+                    bg: 'bg-blue-100 dark:bg-blue-900/30',
+                    text: 'text-blue-700 dark:text-blue-400',
+                    dot: 'bg-blue-500',
+                    label: 'Upcoming'
+                };
+            case 'completed':
+                return {
+                    bg: 'bg-gray-100 dark:bg-dark-700',
+                    text: 'text-gray-600 dark:text-dark-400',
+                    dot: 'bg-gray-400',
+                    label: 'Completed'
+                };
+            case 'not_clocked_in':
+                return {
+                    bg: 'bg-orange-100 dark:bg-orange-900/30',
+                    text: 'text-orange-700 dark:text-orange-400',
+                    dot: 'bg-orange-500',
+                    label: 'Not Clocked In'
+                };
+            default:
+                return {
+                    bg: 'bg-gray-100 dark:bg-dark-700',
+                    text: 'text-gray-600 dark:text-dark-400',
+                    dot: 'bg-gray-400',
+                    label: ''
+                };
+        }
     };
     
-    // Get progress bar color based on worked percentage
+    // Get progress bar color based on status and worked percentage
     const getProgressColor = () => {
         if (shiftData.status === 'upcoming') return 'bg-blue-500';
+        if (shiftData.status === 'completed') return 'bg-green-500';
         
         const percentage = shiftData.workedPercentage;
         if (percentage >= 90) return 'bg-green-500';
-        if (percentage >= 70) return 'bg-amber-500';
-        return 'bg-red-500';
+        if (percentage >= 70) return 'bg-theme-500';
+        return 'bg-orange-500';
     };
     
-    const progressColor = getProgressColor();
+    const statusBadge = getStatusBadge();
 
     return (
         <div className="flex flex-col flex-1 min-h-0">
-            {/* Shift Info Card */}
-            <div className="bg-theme-50 dark:bg-theme-900/20 border border-theme-200 dark:border-theme-800 rounded-lg p-3 mb-3">
-                <div className="flex items-center justify-between mb-3">
-                    <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                            <h4 className="text-base font-semibold text-theme-900 dark:text-theme-100">
-                                {shiftData.category}
-                            </h4>
-                            {shiftData.isClockedIn && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                    <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
-                                    Clocked In
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-theme-600 dark:text-theme-400">
-                            <div className="flex items-center gap-1">
-                                <ClockIcon className="h-3.5 w-3.5" />
-                                <span>{shiftData.startTime} - {shiftData.endTime}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <MapPinIcon className="h-3.5 w-3.5" />
-                                <span>{shiftData.location}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className={`text-sm font-bold ${statusColors[shiftData.status]}`}>
-                            {shiftData.remainingText}
-                        </div>
-                        {shiftData.workedMinutes > 0 && (
-                            <div className="text-xs text-theme-600 dark:text-theme-400">
-                                {shiftData.workedText} worked
-                            </div>
-                        )}
-                    </div>
+            {/* Header with icon and shift info */}
+            <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 rounded-lg bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30">
+                    <CalendarDaysIcon className="h-5 w-5 text-theme-600 dark:text-theme-400" />
                 </div>
-
-                {/* Progress Bar */}
-                <div>
-                    <div className="flex justify-between text-[10px] text-theme-600 dark:text-theme-400 mb-1">
-                        <span>{shiftData.startTime}</span>
-                        <span>{shiftData.progress}% worked</span>
-                        <span>{shiftData.endTime}</span>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-dark-100">
+                            {shiftData.category}
+                        </h4>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${statusBadge.bg} ${statusBadge.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot} ${shiftData.status === 'active' ? 'animate-pulse' : ''}`}></span>
+                            {statusBadge.label}
+                        </span>
                     </div>
-                    <div className="w-full bg-white/50 dark:bg-dark-700 rounded-full h-2.5 overflow-hidden">
-                        <div 
-                            className={`${progressColor} h-2.5 rounded-full transition-all duration-1000 ease-out`}
-                            style={{ width: `${shiftData.progress}%` }}
-                        ></div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-dark-400">
+                        <div className="flex items-center gap-1">
+                            <ClockIcon className="h-3.5 w-3.5" />
+                            <span>{shiftData.startTime} - {shiftData.endTime}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <MapPinIcon className="h-3.5 w-3.5" />
+                            <span>{shiftData.location}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Timesheet Breakdown */}
-            {isExpanded && shiftData.timesheetBreakdown.length > 0 && (
-                <div className="flex-1 min-h-0 overflow-auto">
-                    <h5 className="text-[10px] font-medium text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-2">Today's Activity</h5>
-                    <div className="space-y-2">
-                        {shiftData.timesheetBreakdown.map((item, index) => (
-                            <div key={index}>
-                                <div className="flex items-center justify-between mb-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${categoryColors[item.category] || 'bg-gray-500'}`}></div>
-                                        <span className="text-xs font-medium text-gray-900 dark:text-dark-100">{item.category}</span>
-                                    </div>
-                                    <span className="text-xs font-medium text-gray-600 dark:text-dark-300">
-                                        {formatDuration(item.totalMinutes)}
-                                    </span>
-                                </div>
-                                <div className="space-y-0.5 ml-3">
-                                    {item.entries.map((entry, entryIndex) => (
-                                        <div key={entryIndex} className="flex items-center justify-between text-[10px] text-gray-500 dark:text-dark-400">
-                                            <span>
-                                                {entry.startTime} - {entry.isActive ? (
-                                                    <span className="text-green-600 dark:text-green-400 font-medium">Active</span>
-                                                ) : entry.endTime}
-                                            </span>
-                                            <span>{formatDuration(entry.duration)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {/* Stats row */}
+            <div className="grid grid-cols-2 gap-2">
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700">
+                    <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Status</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">{shiftData.remainingText}</p>
                 </div>
-            )}
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700">
+                    <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Worked</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">{shiftData.workedText || '0m'}</p>
+                </div>
+            </div>
         </div>
     );
 };

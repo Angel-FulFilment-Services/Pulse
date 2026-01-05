@@ -38,7 +38,7 @@ const StatCard = ({ title, value, unit, status, icon: Icon, isExpanded }) => {
     const styles = getStatusStyles();
 
     return (
-        <div className={`${styles.bg} rounded-lg p-3 border ${styles.border}`}>
+        <div className={`${styles.bg} rounded-lg px-3 py-2.5 border ${styles.border}`}>
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                     <Icon className={`h-3.5 w-3.5 ${styles.text}`} />

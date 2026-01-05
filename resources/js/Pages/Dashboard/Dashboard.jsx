@@ -61,35 +61,44 @@ const Dashboard = ({ token }) => {
             title: 'Today\'s Schedule',
             content: <ScheduleCard employee={employee} />,
             headerAction: <CalendarDaysIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 0, y: 5, w: 4, h: 5,
-            minW: 4, minH: 5,
-            minExpandedH: 12
+            canExpand: false,
+            x: 0, y: 5, w: 3, h: 4,
+            minW: 4, minH: 4,
         },
         {
             id: 'schedule_widget',
             title: 'This Week\'s Schedule',
             content: <ScheduleWidget employee={employee} />,
             headerAction: <ClockIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 4, y: 5, w: 6, h: 5,
+            x: 3, y: 5, w: 6, h: 4,
             minW: 6, minH: 6,
             canExpand: false,
+        },
+        {
+            id: 'quick_stats',
+            title: 'Quick Stats',
+            content: <QuickStatsCard employee={employee} />,
+            canExpand: false,
+            headerAction: <ChartBarIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
+            x: 9, y: 5, w: 3, h: 5,
+            minW: 3, minH: 4,
         },
         {
             id: 'performance_insights',
             title: 'Shift Attendance',
             content: <PerformanceInsightsWidget employee={employee} />,
             headerAction: <ChartBarIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 4, y: 9, w: 7, h: 4,
+            x: 4, y: 9, w: 6, h: 3,
             minW: 2, minH: 5,
-            maxExpandedH: 8,
-            maxExpandedW: 7
+            maxExpandedH: 7,
+            maxExpandedW: 6
         },
         {
             id: 'managers_on_duty',
             title: 'Managers On Duty',
             content: <ManagersOnDutyCard />,
             headerAction: <UserGroupIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 0, y: 14, w: 4, h: 8,
+            x: 0, y: 14, w: 4, h: 7,
             minW: 3, minH: 4,
             maxExpandedH: 13,
             maxExpandedW: 4
@@ -99,9 +108,9 @@ const Dashboard = ({ token }) => {
             title: 'Knowledge Base',
             content: <KnowledgeBaseWidget setWidgetVisibility={setWidgetVisibility} />,
             headerAction: <BookOpenIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 4, y: 22, w: 4, h: 8,
+            x: 4, y: 22, w: 4, h: 7,
             minW: 3, minH: 5,
-            maxExpandedH: 13,
+            maxExpandedH: 12,
             maxExpandedW: 6
         },
         {
@@ -109,9 +118,9 @@ const Dashboard = ({ token }) => {
             title: 'Equipment Status',
             content: <EquipmentStatusWidget />,
             headerAction: <ComputerDesktopIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 0, y: 9, w: 4, h: 5,
+            x: 0, y: 9, w: 4, h: 4,
             minW: 2, minH: 5,
-            maxExpandedH: 10,
+            maxExpandedH: 9,
             maxExpandedW: 7
         },
         {
@@ -119,16 +128,8 @@ const Dashboard = ({ token }) => {
             title: 'Your Badges',
             content: <BadgeWidget employee={employee} />,
             headerAction: <TrophyIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 0, y: 22, w: 4, h: 9,
+            x: 0, y: 22, w: 4, h: 8,
             minW: 2, minH: 4,
-        },
-        {
-            id: 'quick_stats',
-            title: 'Quick Stats',
-            content: <QuickStatsCard employee={employee} />,
-            headerAction: <ChartBarIcon className="h-5 w-5 text-gray-400 dark:text-dark-500" />,
-            x: 4, y: 14, w: 4, h: 8,
-            minW: 3, minH: 4,
         }
     ];
 
@@ -170,7 +171,7 @@ const Dashboard = ({ token }) => {
                     expandedWidgets={expandedWidgets}
                     onExpandWidget={handleExpandWidget}
                     onLockWidget={handleLockWidget}
-                    dragEnabled={false}
+                    dragEnabled={true}
                     className="dashboard-grid"
                 />
             </div>

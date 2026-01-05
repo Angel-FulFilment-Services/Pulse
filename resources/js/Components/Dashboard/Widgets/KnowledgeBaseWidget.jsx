@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MagnifyingGlassIcon, DocumentTextIcon, EyeIcon, TagIcon, SpeakerWaveIcon, WrenchIcon } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
+import ScrollHint from '../../Hints/ScrollHint';
 
 // Get icon component based on article category
 const getCategoryIcon = (category) => {
@@ -20,6 +21,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [limitedArticles, setLimitedArticles] = useState([]);
     const initialLoadDone = useRef(false);
+    const scrollRef = useRef(null);
     
     // Pass search query to the hook - it will debounce and fetch from API
     const { articles, categories, isLoading, isLoaded } = useFetchLatestArticles(selectedCategory, 10, searchQuery);
@@ -50,12 +52,12 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
         return (
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 {/* Search skeleton */}
-                <div className="mb-4">
+                <div className="mb-2">
                     <div className="h-9 bg-gray-100 dark:bg-dark-800 rounded-md animate-pulse"></div>
                 </div>
                 
                 {/* Tabs skeleton */}
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-2">
                     {[1, 2, 3].map((i) => (
                         <div key={i} className="h-7 w-20 bg-gray-100 dark:bg-dark-800 rounded-lg animate-pulse"></div>
                     ))}
@@ -80,9 +82,9 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
     }
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden relative">
             {/* Search bar */}
-            <div className="mb-4">
+            <div className="mb-2">
                 <TextInput
                     id="knowledge-search"
                     placeholder="Search knowledge base..."
@@ -94,7 +96,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
             </div>
 
             {/* Category tabs */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 flex-shrink-0">
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-1 flex-shrink-0">
                 <button
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
@@ -121,7 +123,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
             </div>
 
             {/* Articles list */}
-            <div className={`flex-1 overflow-y-auto ${limitedArticles.length === 0 ? 'flex items-center justify-center' : 'space-y-2'} ${isLoading ? 'opacity-50' : ''} transition-opacity`}>
+            <div ref={scrollRef} className={`flex-1 overflow-y-auto ${limitedArticles.length === 0 ? 'flex items-center justify-center' : 'space-y-2'} ${isLoading ? 'opacity-50' : ''} transition-opacity`}>
                 {limitedArticles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center px-4">
                         <DocumentTextIcon className="h-12 w-12 text-gray-300 dark:text-dark-600 mb-3" />
@@ -199,6 +201,9 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
                     ))
                 )}
             </div>
+            
+            {/* Scroll hint */}
+            <ScrollHint scrollRef={scrollRef} basic={false} />
         </div>
     );
 };

@@ -66,7 +66,7 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
     
     // Fetch shifts and timesheets
     const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(fiveWeeksAgo, endDate, 6927);
-    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(fiveWeeksAgo, endDate, 965);
+    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(fiveWeeksAgo, endDate, 6927);
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
@@ -236,7 +236,7 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
     }, [shifts, timesheets]);
 
     const StatCard = ({ title, value, trend, change, unit = '', icon: Icon }) => (
-        <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 py-7 border border-gray-100 dark:border-dark-700">
+        <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 py-4 border border-gray-100 dark:border-dark-700">
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -269,7 +269,7 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="grid grid-cols-3 gap-3">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 py-7 border border-gray-100 dark:border-dark-700">
+                        <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 py-4 border border-gray-100 dark:border-dark-700">
                             <div className="h-3 w-20 bg-gray-200/75 dark:bg-dark-700/25 rounded mb-2"></div>
                             <div className="h-6 w-12 bg-gray-200/75 dark:bg-dark-700/25 rounded mb-0.5"></div>
                         </div>

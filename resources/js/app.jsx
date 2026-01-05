@@ -27,6 +27,13 @@ function AppWrapper({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || '');
   const [darkTheme, setDarkTheme] = useState(() => localStorage.getItem('darkTheme') || '');
   const [mode, setMode] = useState(() => localStorage.getItem('mode') || 'light');
+  const [autoMode] = useState(() => localStorage.getItem('autoMode') === 'true');
+
+  // Check if current time is during "day" hours (6am - 8pm)
+  const isDayTime = () => {
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 20;
+  };
 
   useEffect(() => {
     // Apply theme from localStorage
@@ -37,13 +44,24 @@ function AppWrapper({ children }) {
     if (darkTheme) document.body.classList.add(darkTheme);
     else document.body.classList.remove('theme-dark-slate');
 
-    // Apply mode from localStorage
-    if (mode === 'dark') {
+    // If auto mode is enabled, determine mode based on time
+    let effectiveMode = mode;
+    if (autoMode) {
+      effectiveMode = isDayTime() ? 'light' : 'dark';
+      // Update localStorage if it differs
+      if (effectiveMode !== mode) {
+        localStorage.setItem('mode', effectiveMode);
+        setMode(effectiveMode);
+      }
+    }
+
+    // Apply mode
+    if (effectiveMode === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [theme, mode, darkTheme]);
+  }, [theme, mode, darkTheme, autoMode]);
 
   const handleSetTheme = (themeClass) => {
     document.documentElement.classList.add('disable-transitions');

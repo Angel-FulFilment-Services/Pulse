@@ -23,9 +23,9 @@ const WidgetItem = ({
             {...props}
         >
             {/* Header */}
-            <div className={`px-6 py-4 rounded-t-2xl border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-800 flex-shrink-0 drag-handle ${!dragEnabled ? 'cursor-default' : isLocked ? 'cursor-not-allowed' : 'cursor-move'}`}>
+            <div className={`px-4 py-1.5 rounded-t-2xl border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-800 flex-shrink-0 drag-handle ${!dragEnabled ? 'cursor-default' : isLocked ? 'cursor-not-allowed' : 'cursor-move'}`}>
                 <div className="flex items-center justify-between">
-                    <h3 className="text-md font-semibold text-gray-900 dark:text-dark-100 flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-100 flex-1">
                         {title}
                     </h3>
                     <div className="flex items-center flex-shrink-0 divide-x divide-gray-200 dark:divide-dark-700">
@@ -38,7 +38,7 @@ const WidgetItem = ({
                                         e.stopPropagation();
                                         onLock();
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
                                     aria-label={isLocked ? "Unlock widget" : "Lock widget"}
                                     title={isLocked ? "Unlock" : "Lock"}
                                 >
@@ -59,7 +59,7 @@ const WidgetItem = ({
                                         e.stopPropagation();
                                         onExpand();
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
                                     aria-label={isExpanded ? "Collapse widget" : "Expand widget"}
                                     title={isExpanded ? "Collapse" : "Expand"}
                                 >
@@ -80,7 +80,7 @@ const WidgetItem = ({
                                         e.stopPropagation();
                                         onRefresh();
                                     }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors cursor-pointer"
                                     aria-label="Refresh widget"
                                     title="Refresh"
                                 >
@@ -90,7 +90,7 @@ const WidgetItem = ({
                         )}
                         <div className="px-1">
                             {headerAction && (
-                                <div className="flex-shrink-0 p-1.5">
+                                <div className="flex-shrink-0 p-1">
                                     {headerAction}
                                 </div>
                             )}
@@ -100,7 +100,7 @@ const WidgetItem = ({
             </div>
             
             {/* Content */}
-            <div className="p-6 flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
                 {children}
             </div>
         </div>

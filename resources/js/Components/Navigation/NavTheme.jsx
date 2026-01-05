@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { SunIcon, MoonIcon } from '@heroicons/react/24/solid';
+import React, { useEffect, useState, useCallback } from 'react';
+import { SunIcon, MoonIcon, ClockIcon } from '@heroicons/react/24/solid';
 import { PaintBrushIcon } from '@heroicons/react/24/outline';
 
 const themes = [
@@ -11,6 +11,12 @@ const themes = [
   { name: 'Pink', class: 'theme-pink', color: '236 72 153' },
 ];
 
+// Check if current time is during "day" hours (6am - 8pm)
+function isDayTime() {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 20; // 6:00 AM to 7:59 PM is day
+}
+
 function getCurrentMode() {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 }
@@ -19,6 +25,43 @@ export default function NavTheme() {
   const [theme, setThemeState] = useState(() => localStorage.getItem('theme') || '');
   const [mode, setModeState] = useState(() => localStorage.getItem('mode') || 'light');
   const [darkTheme, setDarkTheme] = useState(() => localStorage.getItem('darkTheme') || '');
+  const [autoMode, setAutoModeState] = useState(() => localStorage.getItem('autoMode') === 'true');
+
+  // Apply mode to document
+  const applyMode = useCallback((newMode) => {
+    document.documentElement.classList.add('disable-transitions');
+    if (newMode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    setTimeout(() => {
+      document.documentElement.classList.remove('disable-transitions');
+    }, 0);
+  }, []);
+
+  // Check and apply auto mode based on time
+  const checkAutoMode = useCallback(() => {
+    if (autoMode) {
+      const shouldBeDark = !isDayTime();
+      const currentMode = getCurrentMode();
+      if ((shouldBeDark && currentMode !== 'dark') || (!shouldBeDark && currentMode !== 'light')) {
+        const newMode = shouldBeDark ? 'dark' : 'light';
+        applyMode(newMode);
+        setModeState(newMode);
+        localStorage.setItem('mode', newMode);
+      }
+    }
+  }, [autoMode, applyMode]);
+
+  // Set up interval to check time when auto mode is enabled
+  useEffect(() => {
+    if (autoMode) {
+      checkAutoMode(); // Check immediately
+      const interval = setInterval(checkAutoMode, 60000); // Check every minute
+      return () => clearInterval(interval);
+    }
+  }, [autoMode, checkAutoMode]);
 
   function handleSetTheme(themeClass) {
     document.documentElement.classList.add('disable-transitions');
@@ -34,19 +77,30 @@ export default function NavTheme() {
   }
 
   function handleSetMode(newMode) {
-    document.documentElement.classList.add('disable-transitions');
-
-    if (newMode === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    // Disable auto mode when manually setting mode
+    if (autoMode) {
+      setAutoModeState(false);
+      localStorage.setItem('autoMode', 'false');
     }
+    
+    applyMode(newMode);
     localStorage.setItem('mode', newMode);
     setModeState(newMode);
+  }
 
-    setTimeout(() => {
-      document.documentElement.classList.remove('disable-transitions');
-    }, 0);
+  function handleToggleAutoMode() {
+    const newAutoMode = !autoMode;
+    setAutoModeState(newAutoMode);
+    localStorage.setItem('autoMode', String(newAutoMode));
+    
+    if (newAutoMode) {
+      // Immediately apply the correct mode based on time
+      const shouldBeDark = !isDayTime();
+      const newMode = shouldBeDark ? 'dark' : 'light';
+      applyMode(newMode);
+      setModeState(newMode);
+      localStorage.setItem('mode', newMode);
+    }
   }
 
   function handleSetDarkTheme(darkThemeClass) {
@@ -247,6 +301,24 @@ export default function NavTheme() {
               )}
             </span>
           </span>
+        </button>
+        
+        {/* Auto Mode Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleToggleAutoMode();
+          }}
+          className={`p-1.5 rounded-full transition-colors ${
+            autoMode 
+              ? 'bg-theme-100 dark:bg-theme-900/30' 
+              : 'hover:bg-gray-100 dark:hover:bg-dark-700'
+          }`}
+          aria-label="Toggle auto dark mode based on time"
+          // title={autoMode ? `Auto mode: ${isDayTime() ? 'Day (Light)' : 'Night (Dark)'}` : 'Enable auto dark mode'}
+        >
+          <ClockIcon className={`w-5 h-5 ${autoMode ? 'text-theme-600 dark:text-theme-400' : 'text-gray-400 dark:text-dark-500'}`} />
         </button>
       </div>
     </div>

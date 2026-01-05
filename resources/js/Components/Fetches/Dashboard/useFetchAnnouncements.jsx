@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+const DUMMYDATA = [
+  {
+    id: 20,
+    title: 'System Maintenance Scheduled',
+    message: 'Our systems will undergo maintenance on Saturday from 1 AM to 3 AM. Please save your work accordingly.',
+    date: '2024-06-15T10:00:00Z',
+  },
+];
+
+
 const useFetchAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,11 +26,15 @@ const useFetchAnnouncements = () => {
         setIsLoading(true);
       }, 500);
 
-      const response = await axios.get('/api/dashboard/announcements', {
-        signal: controller.signal,
-      });
-      setAnnouncements(response.data);
+      // const response = await axios.get('/api/dashboard/announcements', {
+      //   signal: controller.signal,
+      // });
+      // setAnnouncements(response.data);
       
+      // Using dummy data for now
+      setAnnouncements(DUMMYDATA);
+
+
       clearTimeout(loadingTimeout);
       setIsLoading(false);
       setIsLoaded(true);
