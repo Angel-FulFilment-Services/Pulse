@@ -35,6 +35,15 @@ const AnnouncementsWidget = ({ widgetId, setWidgetVisibility }) => {
     const [locallyDismissed, setLocallyDismissed] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const hasNotifiedRef = useRef(false);
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
 
     // Load locally dismissed announcements on mount
     useEffect(() => {
@@ -90,7 +99,7 @@ const AnnouncementsWidget = ({ widgetId, setWidgetVisibility }) => {
     };
 
     // Loading skeleton - simple banner style
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="h-full w-full flex flex-col animate-pulse">
                 <div className="flex-1 bg-theme-50 dark:bg-theme-900/20 border border-theme-200 dark:border-theme-800 rounded-xl px-5 py-4 flex items-center">

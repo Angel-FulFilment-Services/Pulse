@@ -10,6 +10,15 @@ const MIN_DISPLAY_COUNT = 4; // Always show at least 4 cards
 const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     const { managers, isLoading, isLoaded } = useFetchManagersOnDuty();
     const scrollRef = useRef(null);
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Show all managers when expanded, only clocked in when collapsed
     // Use useMemo to prevent recalculation on every render
@@ -49,7 +58,7 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     };
     
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="space-y-2.5 animate-pulse">
                 

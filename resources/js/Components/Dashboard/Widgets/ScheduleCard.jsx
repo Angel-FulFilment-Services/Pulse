@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CalendarDaysIcon, ClockIcon, MapPinIcon, BriefcaseIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, startOfDay, endOfDay, differenceInMinutes, isSameDay } from 'date-fns';
@@ -31,6 +31,15 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Format duration helper
     const formatDuration = (minutes) => {
@@ -187,7 +196,7 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     }, [shifts, timesheets, today]);
     
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="flex items-center gap-3 mb-3">

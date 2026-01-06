@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CalendarIcon, ClockIcon, ExclamationTriangleIcon, FaceFrownIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, startOfWeek, endOfWeek, subWeeks, differenceInMinutes, isSameDay } from 'date-fns';
@@ -22,6 +22,15 @@ const QuickStatsCard = ({ employee }) => {
     
     const isLoading = isLoadingShifts || isLoadingTimesheets || isLoadingEvents;
     const isLoaded = isLoadedShifts && isLoadedTimesheets && isLoadedEvents;
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Calculate stats
     const stats = useMemo(() => {
@@ -161,7 +170,7 @@ const QuickStatsCard = ({ employee }) => {
     };
 
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="grid grid-cols-2 gap-2">

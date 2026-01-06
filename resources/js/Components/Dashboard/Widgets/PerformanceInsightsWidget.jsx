@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon, CheckCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, startOfMonth, startOfWeek, endOfWeek, subWeeks, differenceInMinutes, isSameDay } from 'date-fns';
@@ -70,6 +70,15 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Calculate performance metrics
     const performanceData = useMemo(() => {
@@ -264,7 +273,7 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
     );
 
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="grid grid-cols-3 gap-3">

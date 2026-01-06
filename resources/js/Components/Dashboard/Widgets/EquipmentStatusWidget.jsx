@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CubeIcon, ComputerDesktopIcon, SignalIcon, ExclamationTriangleIcon, CheckCircleIcon, SignalSlashIcon, WifiIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
@@ -68,6 +68,15 @@ const EquipmentStatusWidget = ({ employee, isExpanded }) => {
     
     // Fetch kit and latency responses
     const { kit, responses, isLoading, isLoaded } = useFetchKit(startDate, endDate, 6755);
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Calculate latency statistics
     const latencyStats = useMemo(() => {
@@ -111,7 +120,7 @@ const EquipmentStatusWidget = ({ employee, isExpanded }) => {
     }, [kit]);
 
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="space-y-3">

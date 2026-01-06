@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CalendarDaysIcon, ClockIcon, MapPinIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, addDays, startOfDay, endOfDay, isSameDay, differenceInMinutes } from 'date-fns';
@@ -21,6 +21,15 @@ const ScheduleWidget = ({ employee }) => {
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
     
     // Process schedule for each day
     const weekSchedule = useMemo(() => {
@@ -106,7 +115,7 @@ const ScheduleWidget = ({ employee }) => {
     }, [shifts, timesheets, today]);
 
     // Loading skeleton
-    if (isLoading || !isLoaded) {
+    if (showSkeleton) {
         return (
             <div className="flex flex-col flex-1 min-h-0">
                 <div className="grid grid-cols-7 gap-2 flex-1">

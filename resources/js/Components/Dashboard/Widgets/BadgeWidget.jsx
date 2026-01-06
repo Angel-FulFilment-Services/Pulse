@@ -20,6 +20,15 @@ const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefres
     
     // Fetch badges from API
     const { badges, statistics, isLoading, isLoaded, markBadgeAsViewed } = useFetchBadges();
+    const initialLoadDone = useRef(false);
+    
+    // Track if we've done the initial load
+    if (isLoaded && !initialLoadDone.current) {
+        initialLoadDone.current = true;
+    }
+    
+    // Only show loading skeleton on initial load, not on data refreshes
+    const showSkeleton = !initialLoadDone.current && (isLoading || !isLoaded);
 
     // Listen for dark mode changes
     useEffect(() => {
@@ -318,7 +327,7 @@ const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefres
             )}
 
             {/* Loading state - skeleton badges (also shown during expand/collapse transition) */}
-            {((isLoading || badges.length === 0) && !isLoaded) || isTransitioning ? (
+            {showSkeleton || isTransitioning ? (
                 <div className={`grid ${isExpanded ? 'grid-cols-5 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}>
                     {Array.from({ length: isExpanded ? BADGES_PER_PAGE : 9 }).map((_, index) => (
                         <div 
@@ -363,7 +372,7 @@ const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefres
             ) : null}
 
             {/* Badges content */}
-            {isLoaded && !isTransitioning && (
+            {!showSkeleton && !isTransitioning && (
                 <>
                     <div 
                         className={`grid ${isExpanded ? 'grid-cols-5 pt-6 mt-3' : 'grid-cols-3'} gap-4 flex-1 overflow-y-visible`}
