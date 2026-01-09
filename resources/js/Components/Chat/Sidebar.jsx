@@ -47,7 +47,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
   
   // Get NotificationContext to sync preferences
-  const { fetchChatPreferences: fetchNotificationPreferences, refreshUnreadCount, decrementUnreadCount } = useNotifications()
+  const { fetchChatPreferences: fetchNotificationPreferences, refreshUnreadCount, decrementUnreadCount, decrementTeamUnreadCount } = useNotifications()
   
   // Spy mode state - use prop if provided (from Chat.jsx), otherwise manage locally
   const [localSpyMode, setLocalSpyMode] = useState(() => {
@@ -968,6 +968,8 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       // Immediately decrement the global unread count for nav badge
       if (chatUnreadCount > 0) {
         decrementUnreadCount?.(chatUnreadCount)
+        // Also decrement the team unread count in navbar
+        decrementTeamUnreadCount?.(chat.id, chatUnreadCount)
       }
     } else {
       const currentContact = contacts.find(c => c.id === chat.id)

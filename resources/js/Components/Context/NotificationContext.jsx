@@ -172,6 +172,24 @@ export function NotificationProvider({ children }) {
     setTotalUnreadCount(prev => prev + 1)
   }, [])
 
+  // Increment a specific team's unread count in navTeams
+  const incrementTeamUnreadCount = useCallback((teamId) => {
+    setNavTeams(prev => prev.map(team => 
+      team.id === teamId 
+        ? { ...team, unread_count: (team.unread_count || 0) + 1 }
+        : team
+    ))
+  }, [])
+
+  // Decrement a specific team's unread count (or reset to 0)
+  const decrementTeamUnreadCount = useCallback((teamId, amount = null) => {
+    setNavTeams(prev => prev.map(team => 
+      team.id === teamId 
+        ? { ...team, unread_count: amount === null ? 0 : Math.max(0, (team.unread_count || 0) - amount) }
+        : team
+    ))
+  }, [])
+
   // Decrement unread count by a specific amount
   const decrementUnreadCount = useCallback((amount = 1) => {
     setTotalUnreadCount(prev => Math.max(0, prev - amount))
@@ -508,6 +526,11 @@ export function NotificationProvider({ children }) {
     // Increment the global unread count (unless user is viewing this chat)
     if (!isViewingChat(chatId, chatType)) {
       incrementUnreadCount()
+      
+      // Also increment the specific team's unread count in navTeams
+      if (chatType === 'team') {
+        incrementTeamUnreadCount(chatId)
+      }
     }
     
     // Check if this message mentions the current user
@@ -529,7 +552,7 @@ export function NotificationProvider({ children }) {
     
     // Always show toast notification (unless viewing the chat)
     showToastNotification(message, sender, chatId, chatType, hidePreview, isMentioned)
-  }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification, isViewingChat, incrementUnreadCount])
+  }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification, isViewingChat, incrementUnreadCount, incrementTeamUnreadCount])
 
   // Keep the handler ref updated so websocket callback always uses latest handler
   useEffect(() => {
@@ -583,6 +606,8 @@ export function NotificationProvider({ children }) {
     fetchGlobalSettings,
     incrementUnreadCount,
     decrementUnreadCount,
+    incrementTeamUnreadCount,
+    decrementTeamUnreadCount,
     refreshUnreadCount,
     clearProfilePhotoDismissal, // Export for use when user sets photo
   }
