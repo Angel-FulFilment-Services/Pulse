@@ -47,7 +47,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
   
   // Get NotificationContext to sync preferences
-  const { fetchChatPreferences: fetchNotificationPreferences, refreshUnreadCount } = useNotifications()
+  const { fetchChatPreferences: fetchNotificationPreferences, refreshUnreadCount, decrementUnreadCount } = useNotifications()
   
   // Spy mode state - use prop if provided (from Chat.jsx), otherwise manage locally
   const [localSpyMode, setLocalSpyMode] = useState(() => {
@@ -944,6 +944,8 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
       // For non-member teams (spy mode), save read data to localStorage
       // We need to get the current team to capture its backend unread count as baseline
       const currentTeam = teams.find(t => t.id === chat.id)
+      const chatUnreadCount = currentTeam?.unread_count || 0
+      
       if (chat.is_member === false && currentTeam) {
         // Store the current backend unread count as the baseline
         // Since we're about to mark it as read, the baseline should reflect
@@ -955,21 +957,31 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         // If we have previous read data, backend count = baseline + current local unread
         // If no read data, backend count = current unread count
         const estimatedBackendCount = readData 
-          ? (readData.baselineBackendCount || 0) + (currentTeam.unread_count || 0)
-          : (currentTeam.unread_count || 0)
+          ? (readData.baselineBackendCount || 0) + chatUnreadCount
+          : chatUnreadCount
         setSpyModeReadData(chat.id, estimatedBackendCount)
       }
       setTeams(prev => prev.map(team => 
         team.id === chat.id ? { ...team, unread_count: 0 } : team
       ))
+      
+      // Immediately decrement the global unread count for nav badge
+      if (chatUnreadCount > 0) {
+        decrementUnreadCount?.(chatUnreadCount)
+      }
     } else {
+      const currentContact = contacts.find(c => c.id === chat.id)
+      const chatUnreadCount = currentContact?.unread_count || 0
+      
       setContacts(prev => prev.map(contact => 
         contact.id === chat.id ? { ...contact, unread_count: 0 } : contact
       ))
+      
+      // Immediately decrement the global unread count for nav badge
+      if (chatUnreadCount > 0) {
+        decrementUnreadCount?.(chatUnreadCount)
+      }
     }
-    
-    // Refresh the global unread count for nav badge
-    refreshUnreadCount?.()
     
     // Parent will handle URL update
     onChatSelect(chat, type)
