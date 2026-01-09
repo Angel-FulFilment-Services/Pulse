@@ -54,13 +54,13 @@ export default function ProfileLightbox({ photoUrl, onClose }) {
 
       {/* Profile image */}
       <div 
-        className="relative flex items-center justify-center"
+        className="relative flex items-center justify-center max-w-[95dvw] max-h-[85dvh] sm:max-w-[90dvw] sm:max-h-[90dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={photoUrl}
           alt="Profile photo"
-          className={`max-w-full max-h-[90vh] object-contain rounded-2xl transition-opacity duration-300 bg-neutral-900 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`max-w-full max-h-[85dvh] sm:max-h-[90dvh] w-auto h-auto object-contain rounded-2xl transition-opacity duration-300 bg-neutral-900 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImageLoaded(true)}
         />
       </div>
