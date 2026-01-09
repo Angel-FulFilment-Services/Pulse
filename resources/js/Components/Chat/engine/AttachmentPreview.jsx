@@ -48,6 +48,7 @@ export default function AttachmentPreview({
   // For existing messages, use lazy loading
   const shouldLoadImmediately = isDeletable || attachment.preview || attachment.file
   const [isLoaded, setIsLoaded] = useState(shouldLoadImmediately)
+  const [imageReady, setImageReady] = useState(false) // Tracks when image content has actually loaded
   const [error, setError] = useState(false)
   const observerRef = useRef(null)
   const containerRef = useRef(null)
@@ -57,6 +58,7 @@ export default function AttachmentPreview({
   // Reset state when attachment changes
   useEffect(() => {
     setIsLoaded(shouldLoadImmediately)
+    setImageReady(false)
     setError(false)
   }, [attachment.id, attachment.url, shouldLoadImmediately])
 
@@ -89,6 +91,10 @@ export default function AttachmentPreview({
 
   const handleImageError = () => {
     setError(true)
+  }
+
+  const handleImageLoad = () => {
+    setImageReady(true)
   }
 
   const handleDownload = async (e) => {
@@ -246,6 +252,13 @@ export default function AttachmentPreview({
           ? imageUrl + (imageUrl.includes('?') ? '&' : '?') + `v=${attachment.id}`
           : imageUrl)
     
+    // Calculate skeleton dimensions based on attachment metadata if available
+    // Fall back to reasonable defaults that match max-w-xs (320px) constraint
+    const skeletonWidth = attachment.width ? Math.min(attachment.width, 320) : 320
+    const skeletonHeight = attachment.width && attachment.height 
+      ? Math.min(Math.round((attachment.height / attachment.width) * skeletonWidth), 384) // max-h-96 = 384px
+      : 192 // Default height (h-48)
+    
     return wrapWithReactions(
       <div 
         ref={containerRef}
@@ -290,17 +303,9 @@ export default function AttachmentPreview({
             </div>
           </div>
         ) : (
-          // Chat feed mode - just rounded image
-          !error && imageUrl ? (
-            <img
-              key={attachment.id || attachment.url}
-              src={imageUrlWithVersion}
-              alt={attachment.file_name || attachment.name}
-              className="max-w-xs lg:max-w-sm max-h-96 object-contain rounded-lg"
-              onError={handleImageError}
-              loading="lazy"
-            />
-          ) : (
+          // Chat feed mode - with loading skeleton
+          error ? (
+            // Error state
             <div className="w-80 bg-white dark:bg-dark-800 rounded-lg overflow-hidden border-2 border-gray-800/10">
               <div className="h-48 bg-gray-100 dark:bg-dark-700 flex flex-col items-center justify-center relative">
                 <PhotoIcon className="w-12 h-12 -mt-9 text-gray-400 dark:text-dark-300" />
@@ -310,6 +315,49 @@ export default function AttachmentPreview({
                 <p className="text-sm font-medium truncate">{attachment.file_name || attachment.name}</p>
                 <p className="text-xs text-theme-100/50">{attachment.file_size_formatted || formatFileSize(attachment.size || attachment.file_size)}</p>
               </div>
+            </div>
+          ) : isLoaded && imageUrl ? (
+            // Loading/Loaded image - show skeleton overlay until image is ready
+            <div className="relative">
+              {/* Hidden image that loads in background */}
+              <img
+                key={attachment.id || attachment.url}
+                src={imageUrlWithVersion}
+                alt={attachment.file_name || attachment.name}
+                className={`max-w-xs lg:max-w-sm max-h-96 object-contain rounded-lg ${imageReady ? 'opacity-100' : 'opacity-0 absolute'}`}
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+                loading="lazy"
+              />
+              {/* Skeleton shown while image is loading */}
+              {!imageReady && (
+                <div 
+                  className="bg-gray-200 dark:bg-dark-700 rounded-lg overflow-hidden animate-pulse flex flex-col items-center justify-center"
+                  style={{ 
+                    width: skeletonWidth, 
+                    height: skeletonHeight,
+                    minWidth: 200,
+                    minHeight: 150
+                  }}
+                >
+                  <PhotoIcon className="w-12 h-12 text-gray-400 dark:text-dark-500" />
+                  <p className="text-sm font-medium text-gray-400 dark:text-dark-500 mt-2">Loading...</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Waiting to start loading (not in viewport yet)
+            <div 
+              className="bg-gray-200 dark:bg-dark-700 rounded-lg overflow-hidden animate-pulse flex flex-col items-center justify-center"
+              style={{ 
+                width: skeletonWidth, 
+                height: skeletonHeight,
+                minWidth: 200,
+                minHeight: 150
+              }}
+            >
+              <PhotoIcon className="w-12 h-12 text-gray-400 dark:text-dark-500" />
+              <p className="text-sm font-medium text-gray-400 dark:text-dark-500 mt-2">Loading...</p>
             </div>
           )
         )}

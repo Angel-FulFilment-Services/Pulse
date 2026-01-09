@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { ring } from 'ldrs'
 import ChatHeader from './engine/ChatHeader'
@@ -141,14 +141,27 @@ export default function ChatEngine({
   }
 
   // Track if user has scrolled up
+  const wasAtBottomBeforeUpdateRef = useRef(true)
+  
+  // Helper to check if currently at bottom
+  const isAtBottom = useCallback(() => {
+    const container = messageListContainerRef.current
+    if (!container) return true
+    const { scrollTop, scrollHeight, clientHeight } = container
+    // Consider at bottom if within 150px of bottom (roughly 1-2 messages buffer)
+    return scrollHeight - scrollTop - clientHeight <= 150
+  }, [])
+  
   useEffect(() => {
     const container = messageListContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container
-      // Consider user scrolled up if they're more than 100px from bottom
-      isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100
+      // Consider user scrolled up if they're more than 150px from bottom
+      isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 150
+      // Update the "was at bottom" state continuously while not in the middle of a message update
+      wasAtBottomBeforeUpdateRef.current = !isUserScrolledUpRef.current
     }
 
     container.addEventListener('scroll', handleScroll)
@@ -169,11 +182,12 @@ export default function ChatEngine({
     }
     
     const mergedMessages = getMergedMessages(messages)
+    const newMessageArrived = mergedMessages.length > prevMessageCountRef.current
     
     // Only auto-scroll if:
-    // 1. User is at bottom (not scrolled up)
+    // 1. User was at bottom BEFORE the new message arrived
     // 2. Message count increased (new message arrived)
-    if (!isUserScrolledUpRef.current && mergedMessages.length > prevMessageCountRef.current) {
+    if (wasAtBottomBeforeUpdateRef.current && newMessageArrived) {
       scrollToBottom()
     }
     
@@ -229,7 +243,10 @@ export default function ChatEngine({
       messages.forEach(msg => {
         const senderId = msg.sender_id || msg.user_id
         const isFromOther = senderId !== currentUser.id
-        const isUnread = !messageReads[msg.id]
+        // Check if current user has read this message (not just if anyone has read it)
+        const currentUserReads = messageReads[msg.id] || []
+        const currentUserHasRead = currentUserReads.some(read => read.user_id === currentUser.id)
+        const isUnread = !currentUserHasRead
         const notBeingMarked = !markedAsReadRef.current.has(msg.id)
         
         if (isFromOther && isUnread && notBeingMarked) {
@@ -269,6 +286,7 @@ export default function ChatEngine({
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         // Reset scroll tracking so we know user is going to bottom
         isUserScrolledUpRef.current = false
+        wasAtBottomBeforeUpdateRef.current = true
       }
     }
   }
@@ -369,6 +387,7 @@ export default function ChatEngine({
           requestAnimationFrame(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
             isUserScrolledUpRef.current = false
+            wasAtBottomBeforeUpdateRef.current = true
           })
         })
       })
@@ -471,6 +490,7 @@ export default function ChatEngine({
           requestAnimationFrame(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
             isUserScrolledUpRef.current = false
+            wasAtBottomBeforeUpdateRef.current = true
           })
         })
       })
@@ -974,7 +994,10 @@ export default function ChatEngine({
       const unreadMessages = messages.filter(msg => {
         const senderId = msg.sender_id || msg.user_id
         const isFromOther = senderId !== currentUser.id
-        const notAlreadyRead = !messageReads[msg.id]
+        // Check if current user has already read this message (not just if anyone has read it)
+        const currentUserReads = messageReads[msg.id] || []
+        const currentUserHasRead = currentUserReads.some(read => read.user_id === currentUser.id)
+        const notAlreadyRead = !currentUserHasRead
         const notAlreadyMarking = !markedAsReadRef.current.has(msg.id)
         
         if (!isFromOther || !notAlreadyRead || !notAlreadyMarking) return false
@@ -1376,6 +1399,7 @@ export default function ChatEngine({
     setTimeout(() => {
       scrollToBottom(true)
       isUserScrolledUpRef.current = false
+      wasAtBottomBeforeUpdateRef.current = true
       setSending(false)
     }, 100)
     

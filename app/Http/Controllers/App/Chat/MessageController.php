@@ -515,7 +515,7 @@ class MessageController extends Controller
         $userId = auth()->user()->id;
         $contacts = User::whereIn('id', function($query) use ($userId) {
             $query->selectRaw('distinct if(sender_id = ?, recipient_id, sender_id)', [$userId])
-                ->from('messages')
+                ->from('pulse.messages')
                 ->where(function($q) use ($userId) {
                     $q->where('sender_id', $userId)->orWhere('recipient_id', $userId);
                 })

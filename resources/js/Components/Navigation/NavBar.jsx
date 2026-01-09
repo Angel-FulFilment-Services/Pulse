@@ -11,6 +11,7 @@ import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
 import { hasPermission } from '../../Utils/Permissions.jsx';
 import FireEmergencyButton from '../Emergency/FireEmergencyButton.jsx';
+import { useNotifications } from '../Context/NotificationContext';
 
 import {
   Bars3Icon,
@@ -36,10 +37,20 @@ export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { auth, employee, isOnSite } = usePage().props;
+  const { totalUnreadCount, navTeams } = useNotifications() || { totalUnreadCount: 0, navTeams: [] };
 
-  const teams = [
-    { name: 'All Staff', href: '#', initial: 'A', current: false },
-  ]
+  // Transform navTeams into the format needed for NavTeamItem
+  const teams = useMemo(() => {
+    return navTeams.map(team => ({
+      id: team.id,
+      name: team.name,
+      href: `/chat?type=team&id=${team.id}`,
+      initial: team.name?.charAt(0)?.toUpperCase() || '?',
+      // current: currentPath === '/chat' && new URLSearchParams(window.location.search).get('id') === String(team.id),
+      current: false, // Disable current state for teams in nav
+      unread_count: team.unread_count || 0
+    }))
+  }, [navTeams, currentPath])
 
   const navigation = useMemo(() => [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: currentPath === '/', right: null },
@@ -49,9 +60,9 @@ export default function NavBar({ page }) {
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
     { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
-    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_chat' },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_chat', notificationQty: totalUnreadCount },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
-], [currentPath]);
+], [currentPath, totalUnreadCount]);
 
   useEffect(() => {
     const handleRouteChange = (event) => {
@@ -182,14 +193,16 @@ export default function NavBar({ page }) {
                     ))}
                   </ul>
                 </li>
-                <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
-                  <ul role="list" className="-mx-2 mt-2 space-y-1">
-                    {teams.map((team, i) => (
-                        <NavTeamItem team={team} key={i}></NavTeamItem>
-                    ))}
-                  </ul>
-                </li>
+                {teams.length > 0 && (
+                  <li>
+                    <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
+                    <ul role="list" className="-mx-2 mt-2 space-y-1">
+                      {teams.map((team, i) => (
+                          <NavTeamItem team={team} key={i}></NavTeamItem>
+                      ))}
+                    </ul>
+                  </li>
+                )}
                 <li className="-mx-6 mt-auto">
                   {isOnSite && hasPermission('pulse_fire_warden') &&  (
                     <div className="px-2 flex items-center justify-start border-b border-gray-200 dark:border-dark-700 pb-2">

@@ -157,7 +157,8 @@ export default function MessageList({
   canDeleteOthersMessages = false,
   canPinMessages = false,
   teamMembers = [],
-  isMember = true
+  isMember = true,
+  hasMore = false
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -265,8 +266,30 @@ export default function MessageList({
   }
 
   // Separate membership events from regular messages
-  const membershipEvents = messages.filter(item => item.item_type === 'membership_event')
+  const allMembershipEvents = messages.filter(item => item.item_type === 'membership_event')
   const regularMessages = messages.filter(item => item.item_type !== 'membership_event')
+  
+  // Find the oldest loaded regular message timestamp
+  // If hasMore is true (more messages to load), filter out membership events
+  // that are older than the oldest loaded message to avoid showing them out of order
+  const membershipEvents = useMemo(() => {
+    if (!hasMore || regularMessages.length === 0) {
+      // All messages are loaded, show all membership events
+      return allMembershipEvents
+    }
+    
+    // Find the oldest regular message timestamp
+    const oldestMessageTime = regularMessages.reduce((oldest, msg) => {
+      const msgTime = new Date(msg.created_at).getTime()
+      return msgTime < oldest ? msgTime : oldest
+    }, Infinity)
+    
+    // Only show membership events that are newer than or equal to the oldest loaded message
+    return allMembershipEvents.filter(event => {
+      const eventTime = new Date(event.created_at).getTime()
+      return eventTime >= oldestMessageTime
+    })
+  }, [allMembershipEvents, regularMessages, hasMore])
 
   // Group regular messages by sender and time
   const groupedMessages = regularMessages

@@ -24,6 +24,8 @@ export function NotificationProvider({ children }) {
   const [isWindowVisible, setIsWindowVisible] = useState(true)
   const [notificationPermission, setNotificationPermission] = useState('default')
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0) // Total unread messages for nav badge
+  const [navTeams, setNavTeams] = useState([]) // Teams for nav sidebar
   const channelRef = useRef(null)
   const handleMessageNotificationRef = useRef(null) // Ref to always have latest handler
   
@@ -121,11 +123,71 @@ export function NotificationProvider({ children }) {
     }
   }, [currentUser])
 
+  // Fetch total unread count for teams the user is a member of
+  const fetchTotalUnreadCount = useCallback(async () => {
+    if (!currentUser) return
+    
+    try {
+      // Fetch teams (only ones user is a member of - no ?all=true param)
+      const teamsResponse = await fetch('/api/chat/teams', {
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      // Fetch contacts (use /api/chat/users which includes unread_count)
+      const contactsResponse = await fetch('/api/chat/users', {
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      let total = 0
+      let fetchedTeams = []
+      
+      if (teamsResponse.ok) {
+        const teams = await teamsResponse.json()
+        fetchedTeams = teams
+        total += teams.reduce((sum, team) => sum + (team.unread_count || 0), 0)
+      }
+      
+      if (contactsResponse.ok) {
+        const contacts = await contactsResponse.json()
+        total += contacts.reduce((sum, contact) => sum + (contact.unread_count || 0), 0)
+      }
+      
+      setNavTeams(fetchedTeams)
+      setTotalUnreadCount(total)
+    } catch (error) {
+      console.error('Error fetching total unread count:', error)
+    }
+  }, [currentUser])
+
+  // Increment unread count (called when new message arrives)
+  const incrementUnreadCount = useCallback(() => {
+    setTotalUnreadCount(prev => prev + 1)
+  }, [])
+
+  // Decrement unread count by a specific amount
+  const decrementUnreadCount = useCallback((amount = 1) => {
+    setTotalUnreadCount(prev => Math.max(0, prev - amount))
+  }, [])
+
+  // Refresh unread count from server
+  const refreshUnreadCount = useCallback(() => {
+    fetchTotalUnreadCount()
+  }, [fetchTotalUnreadCount])
+
   // Load preferences on mount
   useEffect(() => {
     fetchChatPreferences()
     fetchGlobalSettings()
-  }, [fetchChatPreferences, fetchGlobalSettings])
+    fetchTotalUnreadCount()
+  }, [fetchChatPreferences, fetchGlobalSettings, fetchTotalUnreadCount])
 
   // Check if user needs profile photo on app load
   useEffect(() => {
@@ -443,6 +505,11 @@ export function NotificationProvider({ children }) {
     const chatType = message.team_id ? 'team' : 'user'
     const chatId = message.team_id || message.sender_id
     
+    // Increment the global unread count (unless user is viewing this chat)
+    if (!isViewingChat(chatId, chatType)) {
+      incrementUnreadCount()
+    }
+    
     // Check if this message mentions the current user
     const isMentioned = message.mentions_user || 
       (message.mentions && Array.isArray(message.mentions) && 
@@ -462,7 +529,7 @@ export function NotificationProvider({ children }) {
     
     // Always show toast notification (unless viewing the chat)
     showToastNotification(message, sender, chatId, chatType, hidePreview, isMentioned)
-  }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification])
+  }, [currentUser, isChatMuted, shouldHidePreview, isWindowVisible, isWindowFocused, showPushNotification, showToastNotification, isViewingChat, incrementUnreadCount])
 
   // Keep the handler ref updated so websocket callback always uses latest handler
   useEffect(() => {
@@ -503,6 +570,8 @@ export function NotificationProvider({ children }) {
     isWindowVisible,
     notificationPermission,
     preferencesLoaded,
+    totalUnreadCount,
+    navTeams,
     isChatMuted,
     shouldHidePreview,
     isViewingChat,
@@ -512,6 +581,9 @@ export function NotificationProvider({ children }) {
     navigateToChat,
     fetchChatPreferences,
     fetchGlobalSettings,
+    incrementUnreadCount,
+    decrementUnreadCount,
+    refreshUnreadCount,
     clearProfilePhotoDismissal, // Export for use when user sets photo
   }
 

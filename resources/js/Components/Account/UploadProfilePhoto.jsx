@@ -45,6 +45,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   // Spinner for image loading
   const [imgLoaded, setImgLoaded] = useState(false);
   const [lastPinchDistance, setLastPinchDistance] = useState(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 }); // Track natural image size
 
   // Track container size for accurate canvas rendering
   useEffect(() => {
@@ -278,6 +279,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   useEffect(() => {
     setDrag({ x: 0, y: 0 });
     setZoom(1);
+    setImageDimensions({ width: 0, height: 0 });
   }, [preview]);
 
   // When zoom changes, also clamp drag to prevent image from being out of bounds
@@ -403,13 +405,42 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                   src={preview}
                   alt="Profile Preview"
                   draggable={false}
-                  onLoad={() => setImgLoaded(true)}
+                  onLoad={(e) => {
+                    setImgLoaded(true);
+                    setImageDimensions({ 
+                      width: e.target.naturalWidth, 
+                      height: e.target.naturalHeight 
+                    });
+                  }}
                   style={{
                     position: 'absolute',
                     left: `calc(50% + ${drag.x}px)`,
                     top: `calc(50% + ${drag.y}px)`,
-                    width: `${zoom * 100}%`,
-                    height: `${zoom * 100}%`,
+                    // Calculate size to always cover the container
+                    // Use the larger scale factor to ensure full coverage
+                    ...(imageDimensions.width > 0 && imageDimensions.height > 0 ? (() => {
+                      const containerSizePx = containerSize || 384;
+                      const imgAspect = imageDimensions.width / imageDimensions.height;
+                      // For cover: the smaller dimension of the image should match the container
+                      if (imgAspect > 1) {
+                        // Landscape image: height should match container
+                        return {
+                          height: `${zoom * 100}%`,
+                          width: 'auto',
+                        };
+                      } else {
+                        // Portrait or square image: width should match container
+                        return {
+                          width: `${zoom * 100}%`,
+                          height: 'auto',
+                        };
+                      }
+                    })() : {
+                      width: `${zoom * 100}%`,
+                      height: `${zoom * 100}%`,
+                    }),
+                    minWidth: '100%',
+                    minHeight: '100%',
                     maxWidth: 'none',
                     maxHeight: 'none',
                     transform: 'translate(-50%, -50%)',

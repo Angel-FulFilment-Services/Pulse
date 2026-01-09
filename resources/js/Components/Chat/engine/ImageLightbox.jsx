@@ -7,6 +7,7 @@ ring.register()
 
 export default function ImageLightbox({ attachment, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   
   useEffect(() => {
     const handleEscape = (e) => {
@@ -90,7 +91,11 @@ export default function ImageLightbox({ attachment, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Image and caption wrapper */}
-        <div className="relative inline-block">
+        <div 
+          className="relative inline-block"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           <img
             src={attachment.url}
             alt={attachment.file_name}
@@ -98,9 +103,9 @@ export default function ImageLightbox({ attachment, onClose }) {
             onLoad={() => setImageLoaded(true)}
           />
           
-          {/* Filename caption - positioned relative to image */}
+          {/* Filename caption - positioned relative to image, shown on hover */}
           {imageLoaded && (
-            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3 rounded-b-2xl">
+            <div className={`absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3 rounded-b-2xl transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
               <p className="text-sm font-medium truncate">{attachment.file_name}</p>
               <p className="text-xs text-gray-300">{attachment.file_size_formatted}</p>
             </div>
