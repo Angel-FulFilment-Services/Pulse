@@ -21,7 +21,7 @@ const SkeletonLoader = ({ className }) => (
   <div className={`animate-pulse bg-gray-100 dark:bg-dark-800 ${className}`} />
 );
 
-const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, headingClass = null, subHeadingClass = null}) => {
+const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, iconSize = "large", isLoading = false, allowClickInto = true, clickablePhoto = false, headingClass = null, subHeadingClass = null}) => {
   const selectedSizeClass = sizeClasses[iconSize] || sizeClasses['medium'];
   const { userStates } = useUserStates();
   const userState = agent?.hr_id ? userStates[agent.hr_id] : null;
@@ -44,7 +44,7 @@ const UserItemFull = ({ agent, shift = null, timesheets = null, events = null, i
 
   return (
     <div className="flex gap-x-6">
-      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} jobTitle={jobTitle} />
+      <UserItem userId={agent.hr_id} size={iconSize} agent={agent} allowClickInto={allowClickInto} clickablePhoto={clickablePhoto} jobTitle={jobTitle} />
       <div className="flex-auto">
         <div className="pb-0.5 flex items-start gap-x-3">
           <div className={`${headingClass ? headingClass : "text-sm font-medium text-gray-900 dark:text-dark-50"} text-nowrap leading-6 w-max`}>{agent?.agent || userState?.name}</div>

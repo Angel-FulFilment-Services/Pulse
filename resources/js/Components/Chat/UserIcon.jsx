@@ -4,9 +4,11 @@ import React, { memo, useMemo, useState } from 'react';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
 import { useUserStates } from '../Context/ActiveStateContext';
 import ContactCard from './ContactCard';
+import ProfileLightbox from './ProfileLightbox';
 
-const UserItem = ({ size = 'large', contact, showContactCard = false, onSendMessage, contactCardPlacement = 'right-start' }) => {
+const UserItem = ({ size = 'large', contact, showContactCard = false, onSendMessage, contactCardPlacement = 'right-start', clickablePhoto = false }) => {
   const [imageError, setImageError] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
   
   const sizeClasses = {
     "icon": {
@@ -56,12 +58,26 @@ const UserItem = ({ size = 'large', contact, showContactCard = false, onSendMess
     }
   }, [lastActiveAt]);
 
+  const photoUrl = profilePhoto ? `https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}` : null;
+  const hasPhoto = profilePhoto && !imageError;
+  const canClickPhoto = clickablePhoto && hasPhoto && !showContactCard;
+
+  const handlePhotoClick = (e) => {
+    if (canClickPhoto) {
+      e.stopPropagation();
+      setShowLightbox(true);
+    }
+  };
+
   const iconContent = (
-    <span className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass}`}>
-      {profilePhoto && !imageError ? (
+    <span 
+      className={`relative flex flex-shrink-0 flex-row items-center justify-center bg-gray-50 dark:bg-dark-800 rounded-full ${selectedSizeClass} ${canClickPhoto ? 'cursor-pointer hover:ring-2 hover:ring-theme-400 transition-all' : ''}`}
+      onClick={handlePhotoClick}
+    >
+      {hasPhoto ? (
         <img
-          src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
-          className={`w-full h-full select-none rounded-full brightness-95`}
+          src={photoUrl}
+          className={`w-full h-full select-none rounded-full brightness-95 object-cover`}
           alt="User profile"
           onError={() => setImageError(true)}
         />
@@ -77,17 +93,35 @@ const UserItem = ({ size = 'large', contact, showContactCard = false, onSendMess
   // Wrap with ContactCard if enabled
   if (showContactCard && contact) {
     return (
-      <ContactCard 
-        contact={contact} 
-        onSendMessage={onSendMessage}
-        placement={contactCardPlacement}
-      >
-        {iconContent}
-      </ContactCard>
+      <>
+        <ContactCard 
+          contact={contact} 
+          onSendMessage={onSendMessage}
+          placement={contactCardPlacement}
+        >
+          {iconContent}
+        </ContactCard>
+        {showLightbox && photoUrl && (
+          <ProfileLightbox 
+            photoUrl={photoUrl}
+            onClose={() => setShowLightbox(false)}
+          />
+        )}
+      </>
     );
   }
 
-  return iconContent;
+  return (
+    <>
+      {iconContent}
+      {showLightbox && photoUrl && (
+        <ProfileLightbox 
+          photoUrl={photoUrl}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
+    </>
+  );
 };
 
 // Wrap the component in React.memo

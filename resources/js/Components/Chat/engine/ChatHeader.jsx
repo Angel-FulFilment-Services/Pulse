@@ -639,7 +639,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             </div>
           ) : (
             <div className="w-10 h-10 flex items-center justify-center mr-6">
-              <UserIcon size="large" contact={chat} />
+              <UserIcon size="large" contact={chat} clickablePhoto />
             </div>
           )}
           
