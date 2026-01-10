@@ -5,8 +5,9 @@ import ClickedModal from '../Modals/ClickedModal';
 import React, { memo, useMemo, useState } from 'react';
 import UserFlyoutLayout from './UserFlyoutLayout';
 import PopoverFlyout from '../Flyouts/PopoverFlyout';
+import ProfileLightbox from '../Chat/ProfileLightbox';
 
-const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, showState = true, customClass, searchState = 'hrId' }) => {
+const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, showState = true, customClass, searchState = 'hrId', clickablePhoto = false }) => {
   const sizeClasses = {
     "icon": {
       'extra-small': 'h-6 w-6',
@@ -25,6 +26,7 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
   };
 
   const [imageError, setImageError] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   const selectedSizeClass = sizeClasses.icon[size] || sizeClasses.icon.medium;
   const selectedActivitySizeClass = sizeClasses.activity[size] || sizeClasses.activity.medium;
@@ -85,9 +87,10 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
         {profilePhoto && !imageError ? (
           <img
             src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
-            className={`w-full h-full select-none rounded-full brightness-95`}
+            className={`w-full h-full select-none rounded-full brightness-95 object-cover ${clickablePhoto ? 'cursor-pointer hover:ring-2 hover:ring-theme-400 transition-all' : ''}`}
             alt="User profile"
             onError={() => setImageError(true)}
+            onClick={clickablePhoto ? (e) => { e.stopPropagation(); setShowLightbox(true); } : undefined}
           />
         ) : (
           <UserIcon className={`w-[80%] h-[80%] text-gray-300 dark:text-dark-600`} aria-hidden="true" />
@@ -121,6 +124,14 @@ const UserItem = ({ userId, size = 'large', agent, allowClickInto, jobTitle, sho
             </span>
         )}
       </span>
+      
+      {/* Profile Photo Lightbox - only when clickablePhoto is enabled */}
+      {showLightbox && profilePhoto && clickablePhoto && (
+        <ProfileLightbox 
+          photoUrl={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
     </>
   );
 };

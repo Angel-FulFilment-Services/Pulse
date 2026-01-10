@@ -4,6 +4,7 @@ import { EnvelopeIcon, PaperAirplaneIcon, ClockIcon, CalendarIcon } from '@heroi
 import { UserIcon } from '@heroicons/react/24/solid'
 import { differenceInMinutes, differenceInHours, differenceInDays, format, isToday, isTomorrow, parseISO } from 'date-fns'
 import { useUserStates } from '../Context/ActiveStateContext'
+import ProfileLightbox from './ProfileLightbox'
 
 // Format the last active time in a human-readable way
 const formatLastActive = (lastActiveAt) => {
@@ -109,6 +110,7 @@ export default function ContactCard({
   const [isSending, setIsSending] = useState(false)
   const [shift, setShift] = useState(null)
   const [shiftLoading, setShiftLoading] = useState(false)
+  const [showLightbox, setShowLightbox] = useState(false)
   const hoverTimeoutRef = useRef(null)
   const leaveTimeoutRef = useRef(null)
   const inputRef = useRef(null)
@@ -283,7 +285,15 @@ export default function ContactCard({
               <div className="flex items-center gap-3">
                 {/* Profile Photo */}
                 <div className="relative flex-shrink-0">
-                  <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                  <div 
+                    className={`h-14 w-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden ${profilePhoto && !imageError ? 'cursor-pointer hover:ring-2 hover:ring-white/50 transition-all' : ''}`}
+                    onClick={(e) => {
+                      if (profilePhoto && !imageError) {
+                        e.stopPropagation()
+                        setShowLightbox(true)
+                      }
+                    }}
+                  >
                     {profilePhoto && !imageError ? (
                       <img
                         src={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
@@ -385,6 +395,14 @@ export default function ContactCard({
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Profile Photo Lightbox */}
+      {showLightbox && profilePhoto && (
+        <ProfileLightbox 
+          photoUrl={`https://pulse-cdn.angelfs.co.uk/profile/images/${profilePhoto}`}
+          onClose={() => setShowLightbox(false)}
+        />
       )}
     </>
   )

@@ -47,7 +47,7 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   const canMonitorAllTeams = usePermission('pulse_monitor_all_teams')
   
   // Get NotificationContext to sync preferences
-  const { fetchChatPreferences: fetchNotificationPreferences } = useNotifications()
+  const { fetchChatPreferences: fetchNotificationPreferences, refreshUnreadCount, decrementUnreadCount, decrementTeamUnreadCount } = useNotifications()
   
   // Spy mode state - use prop if provided (from Chat.jsx), otherwise manage locally
   const [localSpyMode, setLocalSpyMode] = useState(() => {
@@ -141,28 +141,48 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
   }
 
   // Helper functions for spy mode read tracking (localStorage-based since we can't create read receipts)
-  const getSpyModeLastRead = (teamId) => {
-    const stored = localStorage.getItem(`spy_mode_last_read_${teamId}`)
-    return stored ? new Date(stored) : null
+  // We store two things: the timestamp when user last read, and the baseline unread count at that time
+  const getSpyModeReadData = (teamId) => {
+    const stored = localStorage.getItem(`spy_mode_read_data_${teamId}`)
+    if (!stored) return null
+    try {
+      return JSON.parse(stored)
+    } catch {
+      return null
+    }
   }
 
-  const setSpyModeLastRead = (teamId) => {
-    localStorage.setItem(`spy_mode_last_read_${teamId}`, new Date().toISOString())
+  const setSpyModeReadData = (teamId, backendUnreadCount) => {
+    // Store both the timestamp and the backend's unread count at time of reading
+    const data = {
+      lastRead: new Date().toISOString(),
+      baselineBackendCount: backendUnreadCount // The backend count when user viewed this chat
+    }
+    localStorage.setItem(`spy_mode_read_data_${teamId}`, JSON.stringify(data))
   }
 
   // Process teams after fetching to apply spy mode read tracking
   const processTeamsWithSpyModeReads = (teamsData) => {
     return teamsData.map(team => {
-      // For non-member teams, check localStorage for last read time
+      // For non-member teams, check localStorage for read tracking data
       if (team.is_member === false) {
-        const lastRead = getSpyModeLastRead(team.id)
-        if (lastRead && team.last_message_at) {
-          // If we've read this team after the last message, mark as read
+        const readData = getSpyModeReadData(team.id)
+        if (readData && team.last_message_at) {
+          const lastRead = new Date(readData.lastRead)
           const lastMessageTime = new Date(team.last_message_at)
+          
           if (lastRead >= lastMessageTime) {
+            // User read after the last message - no unread
             return { ...team, unread_count: 0 }
+          } else {
+            // New messages arrived since user last read
+            // Calculate: current backend count - baseline count = new messages since reading
+            const baselineCount = readData.baselineBackendCount || 0
+            const newUnreadCount = Math.max(0, (team.unread_count || 0) - baselineCount)
+            return { ...team, unread_count: newUnreadCount }
           }
         }
+        // No read data - user has never viewed this chat, show full unread count
       }
       return team
     })
@@ -449,18 +469,17 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
         if (timestamp) updates.last_message_at = timestamp
         if (resetUnread) updates.unread_count = 0
         else if (incrementUnread) {
-          // For non-member teams (spy mode), don't increment - they use localStorage tracking
-          if (team.is_member === false) {
-            // Just update timestamp, unread will be recalculated from localStorage on next fetch
-            return { ...team, ...updates }
-          }
-          
-          // Check if message is after history_removed_at for this chat
+          // Check if message is after history_removed_at for this chat (member teams only)
           const preference = chatPreferences.find(p => p.chat_id === chatId && p.chat_type === 'team')
           const historyRemovedAt = preference?.history_removed_at
           
-          // Only increment if no history cutoff, or message is after the cutoff
-          if (!historyRemovedAt || (timestamp && new Date(timestamp) > new Date(historyRemovedAt))) {
+          // For non-member teams (spy mode), always increment since they don't use history_removed_at
+          // For member teams, only increment if no history cutoff, or message is after the cutoff
+          const shouldIncrement = team.is_member === false || 
+            !historyRemovedAt || 
+            (timestamp && new Date(timestamp) > new Date(historyRemovedAt))
+          
+          if (shouldIncrement) {
             updates.unread_count = (team.unread_count || 0) + 1
           }
         }
@@ -922,17 +941,48 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
     
     // Reset unread count for this chat
     if (type === 'team') {
-      // For non-member teams (spy mode), save read timestamp to localStorage
-      if (chat.is_member === false) {
-        setSpyModeLastRead(chat.id)
+      // For non-member teams (spy mode), save read data to localStorage
+      // We need to get the current team to capture its backend unread count as baseline
+      const currentTeam = teams.find(t => t.id === chat.id)
+      const chatUnreadCount = currentTeam?.unread_count || 0
+      
+      if (chat.is_member === false && currentTeam) {
+        // Store the current backend unread count as the baseline
+        // Since we're about to mark it as read, the baseline should reflect
+        // what the backend thinks is unread (we'll subtract this on next refresh)
+        // We need to find the original backend count, which we can approximate
+        // by looking at what the backend would return for this team
+        const readData = getSpyModeReadData(chat.id)
+        // Calculate what the backend count likely is:
+        // If we have previous read data, backend count = baseline + current local unread
+        // If no read data, backend count = current unread count
+        const estimatedBackendCount = readData 
+          ? (readData.baselineBackendCount || 0) + chatUnreadCount
+          : chatUnreadCount
+        setSpyModeReadData(chat.id, estimatedBackendCount)
       }
       setTeams(prev => prev.map(team => 
         team.id === chat.id ? { ...team, unread_count: 0 } : team
       ))
+      
+      // Immediately decrement the global unread count for nav badge
+      if (chatUnreadCount > 0) {
+        decrementUnreadCount?.(chatUnreadCount)
+        // Also decrement the team unread count in navbar
+        decrementTeamUnreadCount?.(chat.id, chatUnreadCount)
+      }
     } else {
+      const currentContact = contacts.find(c => c.id === chat.id)
+      const chatUnreadCount = currentContact?.unread_count || 0
+      
       setContacts(prev => prev.map(contact => 
         contact.id === chat.id ? { ...contact, unread_count: 0 } : contact
       ))
+      
+      // Immediately decrement the global unread count for nav badge
+      if (chatUnreadCount > 0) {
+        decrementUnreadCount?.(chatUnreadCount)
+      }
     }
     
     // Parent will handle URL update
@@ -1368,16 +1418,20 @@ export default function Sidebar({ onChatSelect, selectedChat, chatType, typingUs
           // Close dropdowns
           setShowDropdown(false)
           
-          // Refresh teams list
+          // Refresh teams list - use the same URL and processing as the main fetch
           try {
-            const teamsResponse = await fetch('/api/chat/teams', { 
+            const url = effectiveSpyMode ? '/api/chat/teams?all=true' : '/api/chat/teams'
+            const teamsResponse = await fetch(url, { 
               credentials: 'same-origin',
               headers: getHeaders()
             })
             
             if (teamsResponse.ok) {
               const updatedTeams = await teamsResponse.json()
-              setTeams(Array.isArray(updatedTeams) ? updatedTeams : [])
+              const teamsArray = Array.isArray(updatedTeams) ? updatedTeams : []
+              // Apply spy mode read tracking for non-member teams
+              const processedTeams = processTeamsWithSpyModeReads(teamsArray)
+              setTeams(processedTeams)
             }
           } catch (error) {
             console.error('Error refreshing teams:', error)

@@ -35,6 +35,11 @@ class TeamsEmbed
                 "frame-ancestors 'self' https://teams.microsoft.com https://*.teams.microsoft.com https://*.office.com https://*.microsoft.com"
             );
 
+            // Prevent caching issues in Teams iframe
+            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', '0');
+
             // Set a cookie to remember Teams mode (with SameSite=None for iframe)
             $response->headers->setCookie(
                 cookie('in_teams', 'true', 60 * 24 * 7, '/', null, true, true, false, 'None')

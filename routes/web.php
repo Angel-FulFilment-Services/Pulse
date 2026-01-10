@@ -94,6 +94,19 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 
 /*
 |-----------------------
+| Mobile Profile Photo (Signed URL - No Auth Required)
+|-----------------------
+*/
+
+Route::get('/profile/photo/mobile/{user_id}', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'showMobileUpload'])
+    ->name('profile.photo.mobile')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+Route::post('/profile/photo/mobile/{user_id}/set', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'setMobileProfilePhoto'])
+    ->name('profile.photo.mobile.set')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+
+/*
+|-----------------------
 | Two Factor Authentication
 |-----------------------
 */
@@ -287,6 +300,10 @@ Route::post('/profile/account/photo/set', [AccountController::class, 'setProfile
 Route::post('/profile/account/photo/delete', [AccountController::class, 'deleteProfilePhoto'])->name('account.profile.photo.remove')->withoutMiddleware('has.permission:pulse_view_account');
 Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name('account.profile.photo')->withoutMiddleware('has.permission:pulse_view_account','auth','twofactor');
 
+// Profile Photo SMS Routes (authenticated)
+Route::get('/api/profile/photo/sms/status', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'checkStatus'])->withoutMiddleware('has.permission:pulse_view_account');
+Route::post('/api/profile/photo/sms/send', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'sendSms'])->withoutMiddleware('has.permission:pulse_view_account');
+
 /*
 |-----------------------
 | User
@@ -360,3 +377,10 @@ Route::get('/camera/viewer', [SiteController::class, 'cameraViewer'])->name('cam
 Route::get('/fire-emergency/roll-call', [SiteController::class, 'rollCall'])
     ->name('fire.roll-call')
     ->middleware(['signed']);
+
+/*
+|-----------------------
+| Short URL Handler (must be last)
+|-----------------------
+*/
+Route::get('/{shortURLKey}', [\AshAllenDesign\ShortURL\Controllers\ShortURLController::class, '__invoke']);

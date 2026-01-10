@@ -162,12 +162,14 @@ class TeamController extends Controller
         $hasMonitorPermission = $user->hasPermission('pulse_monitor_all_teams');
         $wantsAllTeams = $request->boolean('all', false);
         
-        // Get team IDs that the user is a member of
-        $memberTeamIds = \DB::connection('pulse')->table('team_user')
+        // Get team IDs that the user is a member of, along with joined_at timestamps
+        $memberTeams = \DB::connection('pulse')->table('team_user')
             ->where('user_id', $userId)
             ->whereNull('left_at')
-            ->pluck('team_id')
-            ->toArray();
+            ->get(['team_id', 'joined_at']);
+        
+        $memberTeamIds = $memberTeams->pluck('team_id')->toArray();
+        $memberJoinedAt = $memberTeams->pluck('joined_at', 'team_id');
         
         if ($hasMonitorPermission && $wantsAllTeams) {
             // User can see all teams (spy mode enabled)
@@ -189,12 +191,18 @@ class TeamController extends Controller
             ->keyBy('chat_id');
 
         // Add unread_count, last_message_at, and is_member for each team
-        $teams = $teams->map(function($team) use ($userId, $preferences, $memberTeamIds) {
+        $teams = $teams->map(function($team) use ($userId, $preferences, $memberTeamIds, $memberJoinedAt) {
             $query = $team->messages()
                 ->whereDoesntHave('reads', function($q) use ($userId) {
                     $q->where('user_id', $userId);
                 })
                 ->where('sender_id', '!=', $userId);
+            
+            // Only count messages sent after the user joined the team
+            $joinedAt = $memberJoinedAt->get($team->id);
+            if ($joinedAt) {
+                $query->where('created_at', '>=', $joinedAt);
+            }
             
             // Filter by history_removed_at if set
             $preference = $preferences->get($team->id);

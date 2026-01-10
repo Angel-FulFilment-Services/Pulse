@@ -51,7 +51,7 @@ class NotifyOneMonthOfEmploymentCommand extends Command
         if($employees->count() > 0){
             foreach($employees as $employee){
                 // Send notification to senior CC team
-                $seniorCCEmails = ['martin@angelfs.com', 'tms@angelfs'];
+                $seniorCCEmails = ['tms@angelfs.co.uk'];
 
                 foreach($seniorCCEmails as $email){
                     // Send email
@@ -84,6 +84,7 @@ class NotifyOneMonthOfEmploymentCommand extends Command
         )
         ->leftJoin('users', 'hr_details.user_id', '=', 'users.id')
         ->where('hr_details.start_date', date('Y-m-d', strtotime('-25 days')))
+        ->where('hr_details.leave_date', null)
         ->get();
 
         return $oneMonthEmployees;

@@ -163,6 +163,18 @@ export default function ReportingTable({ parameters, structure, filters, data, t
           // Default: just take the first value
           groupedRow[col.id] = groupRows[0]?.[col.id];
         }
+        // For percentage columns with numerator/denominator, aggregate those values too
+        // so the totals row can calculate weighted averages correctly
+        if (col.numeratorId && col.denominatorId) {
+          groupedRow[col.numeratorId] = groupRows.reduce(
+            (sum, row) => sum + (parseFloat(row[col.numeratorId]) || 0),
+            0
+          );
+          groupedRow[col.denominatorId] = groupRows.reduce(
+            (sum, row) => sum + (parseFloat(row[col.denominatorId]) || 0),
+            0
+          );
+        }
       });
       return groupedRow;
     });

@@ -192,6 +192,15 @@ createInertiaApp({
           </AppWrapper>
         );
         break;
+      case name.startsWith('Account/MobileProfilePhoto'):
+        page.default.layout = (page) => (
+          <AppWrapper>
+            {() => (
+              <div children={page} />
+            )}
+          </AppWrapper>
+        );
+        break;
       default:
         page.default.layout = (page) => (
           <AppWrapper>

@@ -11,12 +11,14 @@ import { toast } from 'react-toastify'
 import { router } from '@inertiajs/react'
 import { useUserStates } from '../../Components/Context/ActiveStateContext';
 import ConfirmationDialog from '../../Components/Dialogs/ConfirmationDialog'
+import { useNotifications } from '../../Components/Context/NotificationContext'
 
 import UKCounties from '../../Components/Forms/LocalAddress/UKCounties.jsx';
 
 export default function Profile({ employee, user }) {
     const counties = UKCounties();
     const { refreshUserStates } = useUserStates();
+    const { clearProfilePhotoDismissal } = useNotifications();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const setProfilePhoto = async (image) => {
@@ -42,6 +44,9 @@ export default function Profile({ employee, user }) {
                 throw new Error('Failed to set profile photo');
             }
 
+            // Clear the dismissal since they now have a photo
+            clearProfilePhotoDismissal();
+            
             router.visit('/profile/account')
             refreshUserStates();
 

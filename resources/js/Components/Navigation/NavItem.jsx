@@ -27,7 +27,7 @@ export default function NavButton ({ item }){
         {item.name}
          {/* Notification Qty */}
          {item.notificationQty > 0 && (
-          <div className="bg-theme-500 text-white text-xs font-bold rounded-full flex-shrink-0 items-center justify-center p-1 px-2 ml-2">
+          <div className="bg-theme-500 text-white text-xs font-bold rounded-full flex-shrink-0 flex items-center justify-center min-w-6 px-1.5 h-6 ml-auto">
               {item.notificationQty > 99 ? '99+' : item.notificationQty}
           </div>
          )}
