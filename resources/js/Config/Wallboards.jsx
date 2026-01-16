@@ -84,6 +84,22 @@ export const wallboards = {
         ],
     },
 
+        // Example: Slideshow with 15 second intervals
+    "senior-management-dashboard": {
+        name: 'Senior Management Wallboard',
+        layout: 'single',
+        layout_name: 'Single',
+        refreshInterval: 3600, // Refresh every 1 hour
+        permission: 'pulse_wallboard_view_sm_dashboard', // Restrict to users with this permission
+        sources: [
+            {
+                source: 'https://wings.angelfs.co.uk/dashboard/group/senior',
+                title: 'Wings Senior Management Dashboard',
+                slideInterval: 10
+            }
+        ],
+    },
+
     // Example: Slideshow with 15 second intervals
     "it-dashboard": {
         name: 'IT Dashboard Slideshow',
@@ -138,7 +154,7 @@ export const wallboards = {
                 },
                 fullscreen: {
                     width: 'w-screen',
-                    height: 'h-screen',
+                    height: 'h-dvh',
                 }
             }
         }

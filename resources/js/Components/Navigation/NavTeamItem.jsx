@@ -1,4 +1,5 @@
 import { React } from 'react'
+import { Link } from '@inertiajs/react'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -7,7 +8,7 @@ function classNames(...classes) {
 export default function NavButton ({ team }){
     return(
       <li key={team.name}>
-        <a
+        <Link
           href={team.href}
           className={classNames(
             team.current
@@ -27,7 +28,12 @@ export default function NavButton ({ team }){
             {team.initial}
           </span>
           <span className="truncate">{team.name}</span>
-        </a>
+          {team.unread_count > 0 && (
+            <span className="bg-theme-500 text-white text-xs font-bold rounded-full flex-shrink-0 flex items-center justify-center min-w-6 px-1.5 h-6 ml-auto">
+              {team.unread_count > 99 ? '99+' : team.unread_count}
+            </span>
+          )}
+        </Link>
       </li>
     )
 }

@@ -8,10 +8,10 @@ const Dashboard = ({ token }) => {
 
     return (
         <div className="overflow-y-hidden">
-            <div className="flex flex-row w-full justify-center bg-gray-100 ">                      
+            <div className="flex flex-row w-full justify-center bg-gray-100 dark:bg-dark-800">                      
                 {/* <InformationDialog /> */}
             </div>
-            <div className="sm:flex sm:items-center sm:justify-between bg-white h-screen">
+            <div className="sm:flex sm:items-center sm:justify-between bg-white dark:bg-dark-900 h-dvh">
                 <UserFlyoutLayout hrId={employee.hr_id} jobTitle={employee.job_title} handleClose={null} startDate={format(startOfDay(subDays(new Date(), 7)), 'yyyy-MM-dd')} endDate={format(endOfDay(addDays(new Date(), 7)), 'yyyy-MM-dd')}/>
             </div>
         </div>

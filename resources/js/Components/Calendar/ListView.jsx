@@ -68,6 +68,72 @@ export default function ListView({ setView, viewType }) {
           { value: 'Surplus', label: 'Surplus', checked: false },
         ].sort((a, b) => a.label.localeCompare(b.label)),
       },
+      {
+        id: 'shiftcat',
+        name: 'Shift Category',
+        expression: (shift, userStates) => (filterValue) => {
+          return shift.shiftcat === filterValue;
+        },
+        options: (() => {
+          const seen = new Set();
+
+          if(!shifts || shifts.length === 0) {
+            return [
+              {
+                value: 'All',
+                label: 'All',
+                checked: false,
+              }
+            ];
+          }
+
+          return shifts
+            .filter(item => {
+              if (!item.shiftcat || seen.has(item.shiftcat)) return false;
+              seen.add(item.shiftcat);
+              return true;
+            })
+            .map(item => ({
+              value: item.shiftcat,
+              label: item.shiftcat,
+              checked: false,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+        })(),
+      },
+      {
+        id: 'shiftloc',
+        name: 'Shift Location',
+        expression: (shift, userStates) => (filterValue) => {
+          return shift.shiftloc === filterValue;
+        },
+        options: (() => {
+          const seen = new Set();
+
+          if(!shifts || shifts.length === 0) {
+            return [
+              {
+                value: 'All',
+                label: 'All',
+                checked: false,
+              }
+            ];
+          }
+
+          return shifts
+            .filter(item => {
+              if (!item.shiftloc || seen.has(item.shiftloc)) return false;
+              seen.add(item.shiftloc);
+              return true;
+            })
+            .map(item => ({
+              value: item.shiftloc,
+              label: item.shiftloc,
+              checked: false,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+        })(),
+      }
     ];
   });
   
@@ -75,6 +141,62 @@ export default function ListView({ setView, viewType }) {
   const groupedShifts = useMemo(() => {
     return groupShifts(shifts, false, (shift) => `${shift.shiftstart}`, timesheets, events, userStates, filters, search);
   }, [shifts, timesheets, filters, search]);
+  
+  // Recalculate shift categories when shifts change
+  useEffect(() => {
+    if (shifts && shifts.length > 0) {
+      setFilters(prevFilters => {
+        return prevFilters.map(filter => {
+          switch (filter.id) {
+            case 'shiftcat':
+                const seen = new Set();
+                const existingChecked = new Set(
+                  filter.options.filter(opt => opt.checked).map(opt => opt.value)
+                );
+                
+                const newOptions = shifts
+                  .filter(item => {
+                    if (!item.shiftcat || seen.has(item.shiftcat)) return false;
+                    seen.add(item.shiftcat);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.shiftcat,
+                    label: item.shiftcat,
+                    checked: existingChecked.has(item.shiftcat),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+                
+                return { ...filter, options: newOptions };              
+            case 'shiftloc':
+                const seenLoc = new Set();
+                const existingCheckedLoc = new Set(
+                  filter.options.filter(opt => opt.checked).map(opt => opt.value)
+                );
+                
+                const newOptionsLoc = shifts
+                  .filter(item => {
+                    if (!item.shiftloc || seenLoc.has(item.shiftloc)) return false;
+                    seenLoc.add(item.shiftloc);
+                    return true;
+                  })
+                  .map(item => ({
+                    value: item.shiftloc,
+                    label: item.shiftloc,
+                    checked: existingCheckedLoc.has(item.shiftloc),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+                
+                return { ...filter, options: newOptionsLoc };
+            default:
+              break;
+          }
+
+          return filter;
+        });
+      });
+    }
+  }, [shifts]);
   
   useEffect(() => {
     if (shifts.length) {
@@ -175,7 +297,7 @@ export default function ListView({ setView, viewType }) {
       <div ref={container} className="isolate flex flex-auto flex-col overflow-auto bg-white dark:bg-dark-900 transition-all duration-500 ease-in-out items-center">
         <div className="flex max-w-full flex-none flex-col sm:max-w-none w-full md:max-w-full">
           <div className="overflow-hidden">
-            <div className="mx-auto max-w-7xl xl:max-w-none lg:w-4/5 px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl xl:max-w-none lg:w-full px-4 sm:px-6 lg:px-8">
               <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
                 <table className="w-full text-left">
                   <tbody className="relative overflow-y-auto">
@@ -198,7 +320,7 @@ export default function ListView({ setView, viewType }) {
                               <td className="relative py-2 pr-6 w-4/5 sm:w-1/3">
                                 <UserItemFull isLoading={true} />
                               </td>
-                              <td className="hidden py-2 sm:table-cell pr-6 w-96 xl:w-[30rem]">
+                              <td className="hidden py-2 xl:table-cell pr-6 w-96 xl:w-[30rem]">
                                 <ShiftProgressBar isLoading={true} />
                               </td>
                               <td className="py-2 text-right w-20">
@@ -268,7 +390,7 @@ export default function ListView({ setView, viewType }) {
                                               isLoading={!isLoaded || isTransitioning}
                                             />
                                           </td>
-                                          <td className="hidden py-2 lg:table-cell pr-6 w-96 xl:w-[30rem]">
+                                          <td className="hidden py-2 xl:table-cell pr-6 w-96 xl:w-[30rem]">
                                             <ShiftProgressBar
                                               shift={shift}
                                               timesheets={relevantTimesheets}

@@ -3,8 +3,8 @@ import React, { useEffect } from 'react';
 export default function Background () {
     return (
         <div>
-            <div className="absolute flex flex-row h-screen w-full bg-black z-30 opacity-30"></div>
-            <div className="flex flex-col absolute w-full h-screen justify-start z-10">
+            <div className="absolute flex flex-row h-dvh w-full bg-black z-30 opacity-30"></div>
+            <div className="flex flex-col absolute w-full h-dvh justify-start z-10">
                 <svg preserveAspectRatio="none" id="svg" viewBox="0 0 1440 773" xmlns="http://www.w3.org/2000/svg" className="wave-1 transition duration-300 ease-in-out delay-150 z-10">
                     <defs>
                         <linearGradient id="gradient" x1="56%" y1="0%" x2="44%" y2="100%">
@@ -29,7 +29,7 @@ export default function Background () {
                     <path d="M 0,400 L 0,275 C 52.14601231859156,251.92128393560495 104.29202463718312,228.84256787120992 157,237 C 209.70797536281688,245.15743212879008 262.97791376985913,284.5510124507653 312,332 C 361.02208623014087,379.4489875492347 405.7963202833804,434.95338232572897 454,459 C 502.2036797166196,483.04661767427103 553.8368050966191,475.63545824631893 593,482 C 632.1631949033809,488.36454175368107 658.8564593301435,508.5047846889952 705,545 C 751.1435406698565,581.4952153110048 816.7373575828067,634.3454029977 867,654 C 917.2626424171933,673.6545970023 952.1941103386293,660.1136033202041 1001,690 C 1049.8058896613707,719.8863966797959 1112.4862010626769,793.2001837214834 1162,826 C 1211.5137989373231,858.7998162785166 1247.8610854106637,851.085661793862 1292,865 C 1336.1389145893363,878.914338206138 1388.0694572946682,914.457169103069 1440,950 L 1440,400 L 0,400 Z" stroke="none" strokeWidth="0" fill="url(#gradient)" fillOpacity="1" className="transition-all duration-300 ease-in-out delay-150 path-2" transform="rotate(-180 720 200)"></path>
                 </svg>
             </div>
-            <div className="flex flex-col absolute w-full h-screen justify-end z-10">
+            <div className="flex flex-col absolute w-full h-dvh justify-end z-10">
                 <svg preserveAspectRatio="none" id="svg" viewBox="0 0 1440 700" xmlns="http://www.w3.org/2000/svg" className="wave-2 transition duration-300 ease-in-out delay-150 z-10">
                     <defs>
                         <linearGradient id="gradient" x1="20%" y1="45%" x2="81%" y2="70%">

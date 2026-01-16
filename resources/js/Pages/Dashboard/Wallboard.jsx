@@ -109,7 +109,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
         },
         fullscreen: {
             width: pip.sizes.fullscreen.width || 'w-screen',
-            height: pip.sizes.fullscreen.height || 'h-screen',
+            height: pip.sizes.fullscreen.height || 'h-dvh',
             scale: pip.sizes.fullscreen.scale || 1.6,
         },
     };
@@ -329,7 +329,7 @@ const PictureInPictureOverlay = ({ pip, refreshKey }) => {
     
     if (size === 'fullscreen') {
         const fullscreenPos = fullscreenPositionClasses[currentPosition] || fullscreenPositionClasses['bottom-right'];
-        sizeClass = `${fullscreenPos} w-screen h-screen`;
+        sizeClass = `${fullscreenPos} w-screen h-dvh`;
     } else if ((isDragging || isAnimating) && dragPosition) {
         // While dragging or animating, use inline styles for free positioning
         sizeClass = `${sizeConfigs[size]?.width} ${sizeConfigs[size]?.height}`;
@@ -680,7 +680,7 @@ const WallboardSelector = ({ onSelect }) => {
     );
     
     return (
-        <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-dark-900">
+        <div className="flex items-center justify-center h-dvh w-screen bg-white dark:bg-dark-900">
             <div className="max-w-4xl w-full p-8">
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-dark-50 mb-8 text-center">
                     Select Wallboard
@@ -835,10 +835,10 @@ const Wallboard = () => {
     
     // Render the selected wallboard
     return (
-        <div className="h-screen w-screen overflow-hidden bg-white dark:bg-dark-900 relative">
+        <div className="h-dvh w-screen overflow-hidden bg-white dark:bg-dark-900 relative">
             {/* Fire Emergency Screen Overlay */}
             {showFireScreen && (
-                <div className="min-h-screen bg-red-600 flex items-center justify-center p-8 absolute inset-0 z-50">
+                <div className="min-h-dvh bg-red-600 flex items-center justify-center p-8 absolute inset-0 z-50">
                     <div className="text-center">
                         <div className="mb-8">
                             <FireIcon className="mx-auto h-32 w-32 text-white animate-pulse" />

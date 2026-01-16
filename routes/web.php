@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
@@ -19,12 +20,14 @@ use App\Http\Controllers\App\AssetController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
+use App\Http\Controllers\App\Chat\ChatController;
 use App\Http\Controllers\App\AdministrationController;
 use App\Http\Controllers\App\ProxyController;
 
 // HR
 use App\Http\Controllers\App\AccountController;
 use App\Http\Controllers\App\UserController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -43,8 +46,28 @@ use App\Http\Controllers\App\UserController;
 |-----------------------
 */
 Route::get('/administration', [AdministrationController::class, 'index'])->name('administration');
+
+// Free Gifts routes (with permission)
+Route::get('/administration/free-gifts/configurations', [AdministrationController::class, 'angelGiftConfigurations'])
+    ->middleware(['has.permission:pulse_view_free_gifts'])
+    ->name('administration.settings.angel_gift_configurations');
+
+// Restricted Words API CRUD (with permission)
+Route::get('/api/administration/restricted-words', [AdministrationController::class, 'restrictedWords'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.index');
+Route::post('/api/administration/restricted-words', [AdministrationController::class, 'storeRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.store');
+Route::put('/api/administration/restricted-words/{id}', [AdministrationController::class, 'updateRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.update');
+Route::delete('/api/administration/restricted-words/{id}', [AdministrationController::class, 'destroyRestrictedWord'])
+    ->middleware(['has.permission:pulse_manage_restricted_words'])
+    ->name('administration.restricted_words.destroy');
+
+// Wildcard route for SPA navigation (must come after specific routes)
 Route::get('/administration/{page}', [AdministrationController::class, 'index'])->name('administration.page');
-Route::get('/administration/free-gifts/configurations', [AdministrationController::class, 'angelGiftConfigurations'])->name('administration.settings.angel_gift_configurations');
 
 
 /*
@@ -70,6 +93,19 @@ Route::post('/reset', [ResetController::class, 'reset_password'])->name('reset_p
 
 /*
 |-----------------------
+| Mobile Profile Photo (Signed URL - No Auth Required)
+|-----------------------
+*/
+
+Route::get('/profile/photo/mobile/{user_id}', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'showMobileUpload'])
+    ->name('profile.photo.mobile')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+Route::post('/profile/photo/mobile/{user_id}/set', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'setMobileProfilePhoto'])
+    ->name('profile.photo.mobile.set')
+    ->withoutMiddleware(['auth', 'twofactor', 'has.permission:pulse_view_account']);
+
+/*
+|-----------------------
 | Two Factor Authentication
 |-----------------------
 */
@@ -87,12 +123,16 @@ Route::post('/verify', [TwoFactorController::class, 'verify']);
 Route::get('/proxy/3d-printer/camera', [ProxyController::class, 'cameraStream'])->name('proxy.camera');
 Route::get('/proxy/3d-printer/status', [ProxyController::class, 'printerStatus'])->name('proxy.printer.status');
 Route::get('/proxy/3d-printer/status-stream', [ProxyController::class, 'printerStatusStream'])->name('proxy.printer.status.stream');
+Route::get('/proxy/bigin/pipeline-status', [ProxyController::class, 'biginPipelineStatus'])->name('proxy.bigin.pipeline.status')->withoutMiddleware('auth','twofactor', 'has.permission:pulse_view_administration');
 
 /*
 |-----------------------
 | Dashboard
 |-----------------------
 */
+
+// Broadcasting authentication (needs to be accessible without twofactor)
+Broadcast::routes(['middleware' => ['web', 'auth']]);
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
@@ -129,15 +169,51 @@ Route::get('/user/rota/calls', [UserController::class, 'calls'])->withoutMiddlew
 Route::get('/reporting', [ReportingController::class, 'index'])->name('reporting');
 Route::get('/reporting/{page}', [ReportingController::class, 'index'])->name('reporting');
 
-Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport']);
-Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport']);
-Route::get('/reporting/reports/generate/event-log', [ReportingController::class, 'eventLog']);
-Route::get('/reporting/reports/generate/technical-support-log', [ReportingController::class, 'technicalSupportLog']);
-Route::get('/reporting/reports/generate/kit-details', [ReportingController::class, 'kitDetailsReport']);
-Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog']);
-Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog']);
-Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog']);
-Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog']);
+// Rota Reports
+Route::get('/reporting/reports/generate/attendance', [ReportingController::class, 'attendenceReport'])
+    ->middleware(['has.permission:pulse_report_rota']);
+Route::get('/reporting/reports/generate/hours-comparison', [ReportingController::class, 'hoursComparisonReport'])
+    ->middleware(['has.permission:pulse_report_rota']);
+Route::get('/reporting/reports/generate/event-log', [ReportingController::class, 'eventLog'])
+    ->middleware(['has.permission:pulse_report_rota']);
+
+// Assets Reports
+Route::get('/reporting/reports/generate/technical-support-log', [ReportingController::class, 'technicalSupportLog'])
+    ->middleware(['has.permission:pulse_report_assets']);
+Route::get('/reporting/reports/generate/kit-details', [ReportingController::class, 'kitDetailsReport'])
+    ->middleware(['has.permission:pulse_report_assets']);
+
+// System Reports
+Route::get('/reporting/reports/generate/sms-log', [ReportingController::class, 'smsLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+Route::get('/reporting/reports/generate/audit-log', [ReportingController::class, 'auditLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+Route::get('/reporting/reports/generate/access-log', [ReportingController::class, 'accessLog'])
+    ->middleware(['has.permission:pulse_report_system']);
+
+// Site Reports
+Route::get('/reporting/reports/generate/site-access-log', [ReportingController::class, 'siteAccessLog'])
+    ->middleware(['has.permission:pulse_report_site']);
+
+// Chat Audit Reports
+Route::get('/reporting/reports/generate/chat-message-log', [ReportingController::class, 'chatMessageLog'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-activity-summary', [ReportingController::class, 'chatActivitySummary'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/team-chat-activity', [ReportingController::class, 'teamChatActivity'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/dm-activity', [ReportingController::class, 'dmActivity'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-attachment-log', [ReportingController::class, 'chatAttachmentLog'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-forwarded-messages', [ReportingController::class, 'chatForwardedMessages'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-deleted-messages', [ReportingController::class, 'chatDeletedMessages'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/reports/generate/chat-edited-messages', [ReportingController::class, 'chatEditedMessages'])
+    ->middleware(['has.permission:pulse_report_chat']);
+Route::get('/reporting/chat/attachment/{id}/download', [ReportingController::class, 'downloadChatAttachment'])
+    ->middleware(['has.permission:pulse_report_chat']);
 
 Route::post('/reporting/reports/targets/set', [ReportingController::class, 'setTargets'])->withoutMiddleware('log.access');
 
@@ -170,6 +246,14 @@ Route::get('/public/knowledge-base/article/{id}', [KnowledgeBaseController::clas
 
 /*
 |-----------------------
+| Chat
+|-----------------------
+*/
+Route::get('/chat', [ChatController::class, 'index'])->name('chat');
+Route::get('/chat/popout', [ChatController::class, 'popout'])->name('chat.popout');
+
+/*
+|-----------------------
 | Payroll
 |-----------------------
 */  
@@ -187,7 +271,7 @@ Route::post('/payroll/exports/toggle-hold', [PayrollController::class, 'toggleHo
 
 /*
 |-----------------------
-| Employee
+| My Profile / HR
 |-----------------------
 */
 
@@ -202,6 +286,10 @@ Route::post('/profile/account/photo/set', [AccountController::class, 'setProfile
 Route::post('/profile/account/photo/delete', [AccountController::class, 'deleteProfilePhoto'])->name('account.profile.photo.remove')->withoutMiddleware('has.permission:pulse_view_account');
 Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name('account.profile.photo')->withoutMiddleware('has.permission:pulse_view_account','auth','twofactor');
 
+// Profile Photo SMS Routes (authenticated)
+Route::get('/api/profile/photo/sms/status', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'checkStatus'])->withoutMiddleware('has.permission:pulse_view_account');
+Route::post('/api/profile/photo/sms/send', [\App\Http\Controllers\App\ProfilePhotoSmsController::class, 'sendSms'])->withoutMiddleware('has.permission:pulse_view_account');
+
 /*
 |-----------------------
 | User
@@ -209,6 +297,7 @@ Route::get('/profile/account/photo', [AccountController::class, 'photo'])->name(
 */
 
 Route::get('/users/active-states', [UserController::class, 'activeStates'])->withoutMiddleware('log.access');
+Route::get('/users/pulse/active-status', [UserController::class, 'pulseActiveStates']);
 Route::get('/users', [UserController::class, 'users'])->name('users');
 
 /*
@@ -274,3 +363,10 @@ Route::get('/camera/viewer', [SiteController::class, 'cameraViewer'])->name('cam
 Route::get('/fire-emergency/roll-call', [SiteController::class, 'rollCall'])
     ->name('fire.roll-call')
     ->middleware(['signed']);
+
+/*
+|-----------------------
+| Short URL Handler (must be last)
+|-----------------------
+*/
+Route::get('/{shortURLKey}', [\AshAllenDesign\ShortURL\Controllers\ShortURLController::class, '__invoke']);

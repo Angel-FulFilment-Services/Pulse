@@ -105,7 +105,7 @@ export default function Photo({ account }) {
   };
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-800 gap-y-8">
+    <div className="h-dvh flex flex-col items-center justify-center bg-gray-100 dark:bg-dark-800 gap-y-8">
     
         <div className="flex flex-col items-center justify-center scale-150 mb-10">
             <Logo/>
@@ -125,7 +125,7 @@ export default function Photo({ account }) {
                 <UserIcon className="size-32 lg:size-32 text-green-600 opacity-85 absolute z-20" />
             </div>
             <img
-                src={`https://pulse.cdn.angelfs.co.uk/profile/images/${account.profile_photo}`}
+                src={`https://pulse-cdn.angelfs.co.uk/profile/images/${account.profile_photo}`}
                 alt="Profile Preview"
                 draggable={false}
                 className="contrast-75 brightness-85 rounded-full w-full h-full object-cover"

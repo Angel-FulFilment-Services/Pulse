@@ -20,6 +20,11 @@ const rotaReportsConfig = [
             maxDate: subDays(new Date(), 1),
             minDate: new Date().setFullYear(new Date().getFullYear() - 1),
         },
+        grouping: {
+          groupBy: [
+            'agent',
+          ]
+        },
         date: false,
         structure: [
           {
@@ -36,6 +41,7 @@ const rotaReportsConfig = [
             headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows[0]?.agent,
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -58,6 +64,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.shift_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -80,6 +87,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.worked_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -102,6 +110,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.worked_duration_hours_excl_breaks) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -125,6 +134,11 @@ const rotaReportsConfig = [
                 return parseFloat(value).toFixed(2); // Convert to float and round to two decimal places
               }
               return value; // Return the value as is if it's not a number
+            },
+            group: (rows) => {
+              const totalWorked = rows.reduce((sum, row) => sum + (parseFloat(row.worked_duration_hours) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseFloat(row.shift_duration_hours) || 0), 0);
+              return totalScheduled > 0 ? (totalWorked / totalScheduled) * 100 : 0;
             },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
@@ -150,6 +164,40 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalWorked = rows.reduce((sum, row) => sum + (parseFloat(row.worked_duration_hours_excl_breaks) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseFloat(row.shift_duration_hours) || 0), 0);
+              return totalScheduled > 0 ? (totalWorked / totalScheduled) * 100 : 0;
+            },
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "utilisation",
+            label: "Utilisation",
+            dataType: "float",
+            visible: true,
+            allowTarget: true,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "%",
+            numeratorId: "minutes", 
+            denominatorId: "worked_duration_minutes",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "(%)",
+            format: (value) => {
+              if (!isNaN(value)) {
+                return parseFloat(value).toFixed(2); // Convert to float and round to two decimal places
+              }
+              return value; // Return the value as is if it's not a number
+            },
+            group: (rows) => {
+              const totalMinutes = rows.reduce((sum, row) => sum + (parseFloat(row.minutes) || 0), 0);
+              const totalMinutesWorked = rows.reduce((sum, row) => sum + (parseFloat(row.worked_duration_minutes) || 0), 0);
+              return totalMinutesWorked > 0 ? (totalMinutes / totalMinutesWorked) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -167,6 +215,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.shifts_scheduled) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -184,6 +233,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.shifts_sick) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -208,6 +258,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalSick = rows.reduce((sum, row) => sum + (parseInt(row.shifts_sick) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseInt(row.shifts_scheduled) || 0), 0);
+              return totalScheduled > 0 ? (totalSick / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -225,6 +280,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.shifts_absent) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -249,6 +305,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalAbsent = rows.reduce((sum, row) => sum + (parseInt(row.shifts_absent) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseInt(row.shifts_scheduled) || 0), 0);
+              return totalScheduled > 0 ? (totalAbsent / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -266,6 +327,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.shifts_awol) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -290,6 +352,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalAwol = rows.reduce((sum, row) => sum + (parseInt(row.shifts_awol) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseInt(row.shifts_scheduled) || 0), 0);
+              return totalScheduled > 0 ? (totalAwol / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -307,6 +374,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.shifts_late) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -331,6 +399,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalLate = rows.reduce((sum, row) => sum + (parseInt(row.shifts_late) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseInt(row.shifts_scheduled) || 0), 0);
+              return totalScheduled > 0 ? (totalLate / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -354,6 +427,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalSpells = rows.reduce((sum, row) => sum + (parseInt(row.absence_spells) || 0), 0);
+              const totalDays = rows.reduce((sum, row) => sum + (parseInt(row.total_absence_days) || 0), 0);
+              return totalSpells * totalSpells * totalDays;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -371,6 +449,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.total_absence_days) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -388,6 +467,7 @@ const rotaReportsConfig = [
             headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseInt(row.absence_spells) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           }
@@ -399,14 +479,75 @@ const rotaReportsConfig = [
               expression: (data) => (filterValue) => {
                 return data?.agent === filterValue;
               },
-              calculateOptions: (reportData) =>
-                reportData
-                  .map((item) => ({
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return reportData
+                  .filter(item => {
+                    if (!item.agent || seen.has(item.agent)) return false;
+                    seen.add(item.agent);
+                    return true;
+                  })
+                  .map(item => ({
                     value: item.agent,
                     label: item.agent,
                     checked: false,
-              }))
-              .sort((a, b) => a.label.localeCompare(b.label)),
+                  }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+              },
+            },
+            {
+              id: 'shift_category',
+              name: 'Shift Category',
+              expression: (data) => (filterValue) => {
+                if (filterValue === null) {
+                  return data?.shift_category === null || data?.shift_category === undefined || data?.shift_category === '';
+                }
+                return data?.shift_category === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return [
+                  ...reportData
+                    .filter(item => {
+                      if (!item.shift_category || seen.has(item.shift_category)) return false;
+                      seen.add(item.shift_category);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.shift_category,
+                      label: item.shift_category,
+                      checked: false,
+                    })),
+                  { value: null, label: 'Unspecified', checked: false }
+                ].sort((a, b) => a.label.localeCompare(b.label));
+              },
+            },
+            {
+              id: 'shift_location',
+              name: 'Shift Location',
+              expression: (data) => (filterValue) => {
+                if (filterValue === null) {
+                  return data?.shift_location === null || data?.shift_location === undefined || data?.shift_location === '';
+                }
+                return data?.shift_location === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return [
+                  ...reportData
+                    .filter(item => {
+                      if (!item.shift_location || seen.has(item.shift_location)) return false;
+                      seen.add(item.shift_location);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.shift_location,
+                      label: item.shift_location,
+                      checked: false,
+                    })),
+                  { value: null, label: 'Unspecified', checked: false }
+                ].sort((a, b) => a.label.localeCompare(b.label));
+              },
             },
             {
               id: 'exclude',
@@ -441,6 +582,11 @@ const rotaReportsConfig = [
             },
             maxDate: subDays(new Date(), 1),
             minDate: new Date().setFullYear(new Date().getFullYear() - 1),
+        },
+        grouping: {
+          groupBy: [
+            'shift_date',
+          ]
         },
         date: false,
         headerGrouping: true,
@@ -477,6 +623,7 @@ const rotaReportsConfig = [
             headerClass: "text-left flex flex-row items-center justify-start gap-x-2 w-full",
             headerAnnotation: "",
             format: (value) => format(new Date(value), 'dd MMMM, yyyy'),
+            group: (rows) => rows[0]?.shift_date,
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -499,6 +646,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_shift_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -521,6 +669,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_worked_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -543,6 +692,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_worked_duration_hours_excl_breaks) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -565,6 +715,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_difference) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },          
@@ -589,6 +740,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalWorked = rows.reduce((sum, row) => sum + (parseFloat(row.agent_worked_duration_hours) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseFloat(row.agent_shift_duration_hours) || 0), 0);
+              return totalScheduled > 0 ? (totalWorked / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -611,6 +767,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_sick_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -635,6 +792,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_awol_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -657,6 +815,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.management_shift_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -679,6 +838,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.management_worked_duration_hours) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -701,6 +861,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.management_worked_duration_hours_excl_breaks) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -723,6 +884,7 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.management_difference) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },           
@@ -749,6 +911,11 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalWorked = rows.reduce((sum, row) => sum + (parseFloat(row.management_worked_duration_hours) || 0), 0);
+              const totalScheduled = rows.reduce((sum, row) => sum + (parseFloat(row.management_shift_duration_hours) || 0), 0);
+              return totalScheduled > 0 ? (totalWorked / totalScheduled) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
@@ -771,6 +938,25 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.minutes) || 0), 0),
+            cellAnnotation: (value) => value,
+            cellAction: (value) => value,
+          },
+          {
+            id: "agent_worked_duration_seconds",
+            label: "Agent Worked Duration Seconds",
+            dataType: "float",
+            visible: false,
+            allowTarget: false,
+            target: 0,
+            targetDirection: 'asc',
+            prefix: "",
+            suffix: "",
+            cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+            headerAnnotation: "",
+            format: (value) => value,
+            group: (rows) => rows.reduce((sum, row) => sum + (parseFloat(row.agent_worked_duration_seconds) || 0), 0),
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },           
@@ -795,11 +981,70 @@ const rotaReportsConfig = [
               }
               return value; // Return the value as is if it's not a number
             },
+            group: (rows) => {
+              const totalMinutes = rows.reduce((sum, row) => sum + (parseFloat(row.minutes) || 0), 0);
+              const totalSeconds = rows.reduce((sum, row) => sum + (parseFloat(row.agent_worked_duration_seconds) || 0), 0);
+              return totalSeconds > 0 ? (totalMinutes / totalSeconds) * 100 : 0;
+            },
             cellAnnotation: (value) => value,
             cellAction: (value) => value,
           },
         ],
         filters: [
+            {
+              id: 'shift_category',
+              name: 'Shift Category',
+              expression: (data) => (filterValue) => {
+                if (filterValue === null) {
+                  return data?.shift_category === null || data?.shift_category === undefined || data?.shift_category === '';
+                }
+                return data?.shift_category === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return [
+                  ...reportData
+                    .filter(item => {
+                      if (!item.shift_category || seen.has(item.shift_category)) return false;
+                      seen.add(item.shift_category);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.shift_category,
+                      label: item.shift_category,
+                      checked: false,
+                    })),
+                  { value: null, label: 'Unspecified', checked: false }
+                ].sort((a, b) => a.label.localeCompare(b.label));
+              },
+            },
+            {
+              id: 'shift_location',
+              name: 'Shift Location',
+              expression: (data) => (filterValue) => {
+                if (filterValue === null) {
+                  return data?.shift_location === null || data?.shift_location === undefined || data?.shift_location === '';
+                }
+                return data?.shift_location === filterValue;
+              },
+              calculateOptions: (reportData) => {
+                const seen = new Set();
+                return [
+                  ...reportData
+                    .filter(item => {
+                      if (!item.shift_location || seen.has(item.shift_location)) return false;
+                      seen.add(item.shift_location);
+                      return true;
+                    })
+                    .map(item => ({
+                      value: item.shift_location,
+                      label: item.shift_location,
+                      checked: false,
+                    })),
+                  { value: null, label: 'Unspecified', checked: false }
+                ].sort((a, b) => a.label.localeCompare(b.label));
+              },
+            }
         ]
     },
   },
@@ -934,6 +1179,40 @@ const rotaReportsConfig = [
               cellAnnotation: (value) => value,
               cellAction: (value) => value,
             },
+            {
+              id: "shift_category",
+              label: "Shift Category",
+              dataType: "string",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            },
+            {
+              id: "shift_location",
+              label: "Shift Location",
+              dataType: "string",
+              visible: true,
+              allowTarget: true,
+              target: 0,
+              targetDirection: 'asc',
+              prefix: "",
+              suffix: "",
+              cellClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerClass: "text-center flex flex-row items-center justify-center gap-x-2 w-full",
+              headerAnnotation: "",
+              format: (value) => value,
+              cellAnnotation: (value) => value,
+              cellAction: (value) => value,
+            }
           ],
           filters: [
               {
@@ -1000,6 +1279,60 @@ const rotaReportsConfig = [
                       checked: false,
                     }))
                     .sort((a, b) => a.label.localeCompare(b.label));
+                },
+              },
+              {
+                id: 'shift_category',
+                name: 'Shift Category',
+                expression: (data) => (filterValue) => {
+                  if (filterValue === null) {
+                    return data?.shift_category === null || data?.shift_category === undefined || data?.shift_category === '';
+                  }
+                  return data?.shift_category === filterValue;
+                },
+                calculateOptions: (reportData) => {
+                  const seen = new Set();
+                  return [
+                    ...reportData
+                      .filter(item => {
+                        if (!item.shift_category || seen.has(item.shift_category)) return false;
+                        seen.add(item.shift_category);
+                        return true;
+                      })
+                      .map(item => ({
+                        value: item.shift_category,
+                        label: item.shift_category,
+                        checked: false,
+                      })),
+                    { value: null, label: 'Unspecified', checked: false }
+                  ].sort((a, b) => a.label.localeCompare(b.label));
+                },
+              },
+              {
+                id: 'shift_location',
+                name: 'Shift Location',
+                expression: (data) => (filterValue) => {
+                  if (filterValue === null) {
+                    return data?.shift_location === null || data?.shift_location === undefined || data?.shift_location === '';
+                  }
+                  return data?.shift_location === filterValue;
+                },
+                calculateOptions: (reportData) => {
+                  const seen = new Set();
+                  return [
+                    ...reportData
+                      .filter(item => {
+                        if (!item.shift_location || seen.has(item.shift_location)) return false;
+                        seen.add(item.shift_location);
+                        return true;
+                      })
+                      .map(item => ({
+                        value: item.shift_location,
+                        label: item.shift_location,
+                        checked: false,
+                      })),
+                    { value: null, label: 'Unspecified', checked: false }
+                  ].sort((a, b) => a.label.localeCompare(b.label));
                 },
               }
           ]

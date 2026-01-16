@@ -11,20 +11,26 @@ import UserItemSelf from '../User/UserItemSelf.jsx';
 import UserItem from '../User/UserItem.jsx';
 import { hasPermission } from '../../Utils/Permissions.jsx';
 import FireEmergencyButton from '../Emergency/FireEmergencyButton.jsx';
+import { useNotifications } from '../Context/NotificationContext';
 
 import {
   Bars3Icon,
   CalendarIcon,
   ChartPieIcon,
+  ChartBarIcon,
   DocumentDuplicateIcon,
   FolderIcon,
   AcademicCapIcon,
   HomeIcon,
+  ChatBubbleOvalLeftIcon,
   UsersIcon,
+  UserIcon,
+  UserGroupIcon,
   CubeIcon,
   BanknotesIcon,
   XMarkIcon,
   Cog6ToothIcon,
+  BuildingOffice2Icon
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 
@@ -32,10 +38,20 @@ export default function NavBar({ page }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { auth, employee, isOnSite } = usePage().props;
+  const { totalUnreadCount, navTeams } = useNotifications() || { totalUnreadCount: 0, navTeams: [] };
 
-  const teams = [
-    { name: 'All Staff', href: '#', initial: 'A', current: false },
-  ]
+  // Transform navTeams into the format needed for NavTeamItem
+  const teams = useMemo(() => {
+    return navTeams.map(team => ({
+      id: team.id,
+      name: team.name,
+      href: `/chat?type=team&id=${team.id}`,
+      initial: team.name?.charAt(0)?.toUpperCase() || '?',
+      // current: currentPath === '/chat' && new URLSearchParams(window.location.search).get('id') === String(team.id),
+      current: false, // Disable current state for teams in nav
+      unread_count: team.unread_count || 0
+    }))
+  }, [navTeams, currentPath])
 
   const navigation = useMemo(() => [
     { name: 'Dashboard', href: '/', icon: HomeIcon, current: currentPath === '/', right: null },
@@ -43,9 +59,11 @@ export default function NavBar({ page }) {
     { name: 'Reports', href: '/reporting', icon: ChartPieIcon, current: currentPath.startsWith('/reporting'), right: 'pulse_view_reporting' },
     { name: 'Payroll', href: '/payroll', icon: BanknotesIcon, current: currentPath.startsWith('/payroll'), right: 'pulse_view_payroll' },
     { name: 'Assets', href: '/asset-management/assets/scan', icon: CubeIcon, current: currentPath.startsWith('/asset-management'), right: 'pulse_view_assets' },
-    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: UsersIcon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
+    { name: 'Access Control', href: '/onsite/widgets/access-control', icon: BuildingOffice2Icon, current: currentPath.startsWith('/onsite'), right: 'pulse_view_access_control' },
     { name: 'Knowledge Base', href: '/knowledge-base', icon: AcademicCapIcon, current: currentPath.startsWith('/knowledge-base'), right: null },
+    { name: 'Chat', href: '/chat', icon: ChatBubbleOvalLeftIcon, current: currentPath.startsWith('/chat'), right: 'pulse_view_chat', notificationQty: totalUnreadCount },
     { name: 'Administration', href: '/administration', icon: Cog6ToothIcon, current: currentPath.startsWith('/admin'), right: 'pulse_view_administration' },
+], [currentPath, totalUnreadCount]);
     { name: 'AI Analytics', href: '/ai-analytics', icon: DocumentDuplicateIcon, current: currentPath.startsWith('/ai-analytics'), right: 'pulse_view_ai_analytics' },
 ], [currentPath]);
 
@@ -67,7 +85,7 @@ export default function NavBar({ page }) {
     return (
       <>
       <div>
-        <main className="bg-gray-50 dark:bg-dark-800 h-screen overflow-hidden w-full fixed lg:relative">
+        <main className="bg-gray-50 dark:bg-dark-800 h-dvh overflow-hidden w-full fixed lg:relative">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>
@@ -178,14 +196,16 @@ export default function NavBar({ page }) {
                     ))}
                   </ul>
                 </li>
-                <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
-                  <ul role="list" className="-mx-2 mt-2 space-y-1">
-                    {teams.map((team, i) => (
-                        <NavTeamItem team={team} key={i}></NavTeamItem>
-                    ))}
-                  </ul>
-                </li>
+                {teams.length > 0 && (
+                  <li>
+                    <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-dark-500">Your teams</div>
+                    <ul role="list" className="-mx-2 mt-2 space-y-1">
+                      {teams.map((team, i) => (
+                          <NavTeamItem team={team} key={i}></NavTeamItem>
+                      ))}
+                    </ul>
+                  </li>
+                )}
                 <li className="-mx-6 mt-auto">
                   {isOnSite && hasPermission('pulse_fire_warden') &&  (
                     <div className="px-2 flex items-center justify-start border-b border-gray-200 dark:border-dark-700 pb-2">
@@ -274,7 +294,7 @@ export default function NavBar({ page }) {
           </a>
         </div>
 
-        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative">
+        <main className="lg:pl-72 bg-gray-50 dark:bg-dark-800 overflow-hidden w-full fixed lg:relative h-dvh">
           <div className="h-full" children={page}>{/* Your content */}</div>
         </main>
       </div>

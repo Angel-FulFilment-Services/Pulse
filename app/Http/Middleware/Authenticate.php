@@ -14,7 +14,9 @@ class Authenticate extends Middleware
     {
         if (!$request->expectsJson()) {
             // Store intended URL
-            session(['url.intended' => $request->fullUrl()]);
+            if (!session()->has('url.intended')) {
+                session(['url.intended' => $request->fullUrl()]);
+            }
             return route('login');
         }
         return null;

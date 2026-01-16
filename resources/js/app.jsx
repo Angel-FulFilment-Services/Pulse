@@ -3,8 +3,12 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { ActiveStateProvider } from './Components/Context/ActiveStateContext';
+import { NotificationProvider } from './Components/Context/NotificationContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Initialize Laravel Echo for WebSocket
+import './echo-reverb';
 
 import NavBar from './Components/Navigation/NavBar.jsx';
 import Background from './Components/Branding/Background.jsx';
@@ -121,6 +125,20 @@ createInertiaApp({
           </AppWrapper>
         );
         break;
+      case name.startsWith('Chat/ChatPopout'):
+        page.default.layout = (page) => (
+          <AppWrapper>
+            {({ theme, mode, handleSetTheme, handleSetMode }) => (
+              <ActiveStateProvider>
+                <NotificationProvider>
+                  <ToastContainer />
+                  <div children={page} />
+                </NotificationProvider>
+              </ActiveStateProvider>
+            )}
+          </AppWrapper>
+        );
+        break;
       case name.startsWith('Site/'):
         page.default.layout = (page) => (
           <AppWrapper>
@@ -149,9 +167,18 @@ createInertiaApp({
         page.default.layout = (page) => (
           <AppWrapper>
             {() => (
-              <div className="min-h-screen bg-black text-white">
+              <div className="min-h-dvh bg-black text-white">
                 <div children={page} />
               </div>
+            )}
+          </AppWrapper>
+        );
+        break;
+      case name.startsWith('Account/MobileProfilePhoto'):
+        page.default.layout = (page) => (
+          <AppWrapper>
+            {() => (
+              <div children={page} />
             )}
           </AppWrapper>
         );
@@ -161,14 +188,16 @@ createInertiaApp({
           <AppWrapper>
             {({ theme, mode, handleSetTheme, handleSetMode }) => (
               <ActiveStateProvider>
-                <ToastContainer />
-                <NavBar
-                  page={page}
-                  theme={theme}
-                  mode={mode}
+                <NotificationProvider>
+                  <ToastContainer />
+                  <NavBar
+                    page={page}
+                    theme={theme}
+                    mode={mode}
                   handleSetTheme={handleSetTheme}
                   handleSetMode={handleSetMode}
                 />
+                </NotificationProvider>
               </ActiveStateProvider>
             )}
           </AppWrapper>

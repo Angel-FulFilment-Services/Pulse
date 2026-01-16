@@ -127,6 +127,7 @@ export default function UserFlyoutLayout({hrId, handleClose, jobTitle, startDate
             <UserItemFull 
               agent={{hr_id: hrId}} 
               allowClickInto={false} 
+              clickablePhoto={true}
               iconSize='extra-large'
               headingClass={"text-base font-semibold text-gray-900 dark:text-dark-50"}
               subHeadingClass={"text-sm text-gray-500 dark:text-dark-400"}

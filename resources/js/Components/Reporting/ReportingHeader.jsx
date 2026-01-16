@@ -73,7 +73,7 @@ export default function ReportingHeader({ dateRange, tabs, activeTab, handleTabC
       <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
         <div className="w-full flex items-center gap-x-2">
           <div className="max-w-56 w-full relative">
-            {reports.length &&
+            {reports.length > 0 &&
               <>
                 <SelectControl
                   id="view-select"

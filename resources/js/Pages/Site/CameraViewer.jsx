@@ -140,18 +140,18 @@ export default function CameraViewer() {
         <>
             <Head title="Camera Viewer" />
             
-            <div className="min-h-screen bg-black absolute z-50 w-full">
+            <div className="min-h-dvh bg-black absolute z-50 w-full">
                 <video
                     ref={videoRef}
-                    className="w-full h-screen object-cover"
+                    className="w-full h-dvh object-cover"
                     autoPlay
                     muted
                     playsInline
                     disablePictureInPicture
                     controls={false}
                     style={{
-                        width: '100vw',
-                        height: '100vh',
+                        width: '100dvw',
+                        height: '100dvh',
                         objectFit: 'cover'
                     }}
                 />

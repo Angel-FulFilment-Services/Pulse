@@ -95,7 +95,7 @@ export default function FireRollCall({ initialVisitors = [], initialEmployees = 
     return (
         <div className="bg-white">
             { Object.values(rollCallData).every(item => item.present) && rollCallData.length > 0 && (
-                <div className="bg-green-50 text-green-900 text-lg font-semibold px-4 rounded-t-lg w-full max-h-screen h-svh flex flex-col items-center justify-center animate-fade-in">
+                <div className="bg-green-50 text-green-900 text-lg font-semibold px-4 rounded-t-lg w-full max-h-dvh h-svh flex flex-col items-center justify-center animate-fade-in">
                     <div className="flex flex-col gap-y-6 items-center">
                         <FireIcon className="w-16 h-16 text-green-700 bg-green-200 ring-1 ring-green-600/20 rounded-full p-2" aria-hidden="true" />
                         <span>All employees and visitors are accounted for.</span>

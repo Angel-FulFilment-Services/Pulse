@@ -17,7 +17,7 @@ export function getImageUrl(filename, path = 'articles/questions') {
     
     // For existing images, try R2 first, then fall back to local storage
     // We'll use a simple check - if the image loads from R2, great; if not, the onError handler can try local
-    const r2Url = `https://pulse.cdn.angelfs.co.uk/${path}/${filename}`;
+    const r2Url = `https://pulse-cdn.angelfs.co.uk/${path}/${filename}`;
     const localUrl = `/storage/${path}/${filename}`;
     
     return { r2Url, localUrl, primaryUrl: r2Url };
@@ -64,13 +64,13 @@ export function SmartImage({ filename, alt, className, onLoad, onError, path = '
         }
         
         // For existing images, start with R2 URL
-        const r2Url = `https://pulse.cdn.angelfs.co.uk/${path}/${filename}`;
+        const r2Url = `https://pulse-cdn.angelfs.co.uk/${path}/${filename}`;
         setCurrentSrc(r2Url);
     }, [filename, path]);
     
     const handleError = (e) => {
         // If we haven't tried local storage yet and we're currently showing R2 URL, try local
-        if (!hasTriedFallback && currentSrc && currentSrc.includes('pulse.cdn.angelfs.co.uk')) {
+        if (!hasTriedFallback && currentSrc && currentSrc.includes('pulse-cdn.angelfs.co.uk')) {
             setHasTriedFallback(true);
             const localUrl = `/storage/${path}/${filename}`;
             setCurrentSrc(localUrl);

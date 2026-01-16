@@ -14,7 +14,7 @@ class ProxyController extends Controller
      */
     public function __construct(){
         $this->middleware(['auth', 'twofactor']);
-        $this->middleware(['has.permission:pulse_view_administration']);
+        $this->middleware(['has.permission:pulse_view_administration'])->except('biginPipelineStatus');
         $this->middleware(['log.access']);
     }
 
@@ -407,5 +407,253 @@ class ProxyController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Get Bigin Pipeline Status
+     * Fetches all pipeline records (deals) from Bigin CRM
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function biginPipelineStatus(Request $request)
+    {
+        try {
+            // Get Bigin access token from environment
+            $accessToken = env('BIGIN_CLIENT_ID');
+            
+            if (!$accessToken) {
+                return response()->json([
+                    'error' => 'Bigin access token not configured',
+                    'message' => 'Please set BIGIN_CLIENT_ID in your .env file'
+                ], 500);
+            }
+
+            $client = new Client([
+                'timeout' => 30,
+                'verify' => false,
+            ]);
+
+            // Bigin EU API endpoint for Pipelines (Deals)
+            $url = 'https://www.zohoapis.eu/bigin/v2/Pipelines';
+            
+            // Request parameters
+            $params = [
+                'fields' => 'Deal_Name,Stage,Amount,Closing_Date,Pipeline,Sub_Pipeline,Owner,Account_Name,Contact_Name,Modified_Time,Created_Time',
+                'per_page' => 200, // Max records per page
+                'sort_order' => 'desc',
+                'sort_by' => 'Modified_Time',
+            ];
+
+            // Add optional filters from request
+            if ($request->has('page')) {
+                $params['page'] = $request->input('page');
+            }
+            
+            if ($request->has('stage')) {
+                // Note: For filtering by stage, you would need to use COQL API or custom views
+                // This basic endpoint doesn't support direct stage filtering
+            }
+
+            $response = $client->get($url, [
+                'headers' => [
+                    'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+                ],
+                'query' => $params,
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if ($statusCode === 200 && isset($body['data'])) {
+                // Group pipelines by stage for easy visualization
+                $groupedByStage = [];
+                $groupedByPipeline = [];
+                $totalAmount = 0;
+                $dealCount = 0;
+
+                foreach ($body['data'] as $deal) {
+                    $stage = $deal['Stage'] ?? 'Unknown';
+                    $pipelineName = $deal['Pipeline']['name'] ?? 'Unknown';
+                    $amount = $deal['Amount'] ?? 0;
+                    
+                    // Group by stage
+                    if (!isset($groupedByStage[$stage])) {
+                        $groupedByStage[$stage] = [
+                            'deals' => [],
+                            'count' => 0,
+                            'total_amount' => 0,
+                        ];
+                    }
+                    
+                    $groupedByStage[$stage]['deals'][] = $deal;
+                    $groupedByStage[$stage]['count']++;
+                    $groupedByStage[$stage]['total_amount'] += $amount;
+                    
+                    // Group by pipeline
+                    if (!isset($groupedByPipeline[$pipelineName])) {
+                        $groupedByPipeline[$pipelineName] = [
+                            'deals' => [],
+                            'count' => 0,
+                            'total_amount' => 0,
+                            'stages' => [],
+                        ];
+                    }
+                    
+                    $groupedByPipeline[$pipelineName]['deals'][] = $deal;
+                    $groupedByPipeline[$pipelineName]['count']++;
+                    $groupedByPipeline[$pipelineName]['total_amount'] += $amount;
+                    
+                    if (!isset($groupedByPipeline[$pipelineName]['stages'][$stage])) {
+                        $groupedByPipeline[$pipelineName]['stages'][$stage] = 0;
+                    }
+                    $groupedByPipeline[$pipelineName]['stages'][$stage]++;
+                    
+                    $totalAmount += $amount;
+                    $dealCount++;
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $body['data'],
+                    'info' => $body['info'] ?? null,
+                    'summary' => [
+                        'total_deals' => $dealCount,
+                        'total_amount' => $totalAmount,
+                        'by_stage' => $groupedByStage,
+                        'by_pipeline' => $groupedByPipeline,
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'error' => 'Unexpected response from Bigin API',
+                'response' => $body,
+            ], $statusCode);
+
+        } catch (RequestException $e) {
+            \Log::error('Bigin API RequestException: ' . $e->getMessage());
+            
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+            
+            return response()->json([
+                'error' => 'Bigin API request failed',
+                'message' => $e->getMessage(),
+                'details' => $errorBody,
+            ], $statusCode);
+            
+        } catch (\Exception $e) {
+            \Log::error('Bigin API Exception: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => 'Bigin API error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Proxy postcode lookup to AFD validation API
+     */
+    public function postcodeLookup(Request $request)
+    {
+        $request->validate([
+            'postcode' => 'required|string',
+        ]);
+
+        $apiHost = env('AFD_VALIDATION_API_HOST', '192.168.20.46');
+        $postcode = urlencode($request->input('postcode'));
+        $url = "http://{$apiHost}:8000/lookup?postcode={$postcode}";
+
+        try {
+            $client = new Client([
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'verify' => false,
+            ]);
+
+            $response = $client->get($url);
+            $statusCode = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json($body, $statusCode);
+
+        } catch (RequestException $e) {
+            \Log::error('Postcode Lookup API RequestException: ' . $e->getMessage());
+
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+
+            return response()->json([
+                'error' => 'Postcode lookup request failed',
+                'message' => $e->getMessage(),
+                'details' => $errorBody,
+            ], $statusCode);
+
+        } catch (\Exception $e) {
+            \Log::error('Postcode Lookup API Exception: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Postcode lookup error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Proxy bank validation to AFD validation API
+     */
+    public function bankValidation(Request $request)
+    {
+        $request->validate([
+            'sortcode' => 'required|string',
+            'account_number' => 'required|string',
+            'clearing' => 'nullable|string',
+        ]);
+
+        $apiHost = env('AFD_VALIDATION_API_HOST', '192.168.20.46');
+        $sortcode = urlencode($request->input('sortcode'));
+        $accountNumber = urlencode($request->input('account_number'));
+        
+        $url = "http://{$apiHost}:8000/bank/validate?sortcode={$sortcode}&account_number={$accountNumber}";
+        
+        if ($request->has('clearing')) {
+            $clearing = urlencode($request->input('clearing'));
+            $url .= "&clearing={$clearing}";
+        }
+
+        try {
+            $client = new Client([
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'verify' => false,
+            ]);
+
+            $response = $client->get($url);
+            $statusCode = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json($body, $statusCode);
+
+        } catch (RequestException $e) {
+            \Log::error('Bank Validation API RequestException: ' . $e->getMessage());
+
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+
+            return response()->json([
+                'error' => 'Bank validation request failed',
+                'message' => $e->getMessage(),
+                'details' => $errorBody,
+            ], $statusCode);
+
+        } catch (\Exception $e) {
+            \Log::error('Bank Validation API Exception: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Bank validation error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

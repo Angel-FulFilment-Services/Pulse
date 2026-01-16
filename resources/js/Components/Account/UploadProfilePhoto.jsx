@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PhotoIcon, CameraIcon } from '@heroicons/react/24/solid';
+import ConfirmationDialog from '../Dialogs/ConfirmationDialog';
 
 // Simple spinner component
 function Spinner() {
@@ -29,18 +30,34 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   const [cameraError, setCameraError] = useState(false);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
+  const previewContainerRef = useRef(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [containerSize, setContainerSize] = useState(384);
 
   const [isLoading, setIsLoading] = useState(false);
   const [lastSource, setLastSource] = useState(null); // "camera" or "upload"
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Spinner for image loading
   const [imgLoaded, setImgLoaded] = useState(false);
   const [lastPinchDistance, setLastPinchDistance] = useState(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 }); // Track natural image size
+
+  // Track container size for accurate canvas rendering
+  useEffect(() => {
+    const updateSize = () => {
+      if (previewContainerRef.current) {
+        setContainerSize(previewContainerRef.current.offsetWidth);
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [preview]);
 
   const stopCamera = useCallback(() => {
     setIsCameraActive(false);
@@ -262,6 +279,7 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
   useEffect(() => {
     setDrag({ x: 0, y: 0 });
     setZoom(1);
+    setImageDimensions({ width: 0, height: 0 });
   }, [preview]);
 
   // When zoom changes, also clamp drag to prevent image from being out of bounds
@@ -284,28 +302,36 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
         const img = new window.Image();
         img.crossOrigin = "Anonymous";
         img.onload = () => {
-          const previewSize = 384;
+          // Output size is always 384px for consistency
+          const outputSize = 384;
+          // Use the actual displayed container size for calculations
+          const displaySize = containerSize;
+          // Scale factor to convert from display coordinates to output coordinates
+          const scaleFactor = outputSize / displaySize;
+          
           const canvas = document.createElement('canvas');
-          canvas.width = previewSize;
-          canvas.height = previewSize;
+          canvas.width = outputSize;
+          canvas.height = outputSize;
           const ctx = canvas.getContext('2d');
 
           ctx.save();
           ctx.beginPath();
-          ctx.arc(previewSize / 2, previewSize / 2, previewSize / 2, 0, Math.PI * 2, true);
+          ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2, true);
           ctx.closePath();
           ctx.clip();
 
-          // Use "contain" for uploads, "cover" for camera
-          const baseScale = Math.max(previewSize / img.width, previewSize / img.height);
+          // Always use "cover" behavior so image fills the frame
+          // For cover: scale so the image covers the entire area (use max)
+          const baseScale = Math.max(displaySize / img.width, displaySize / img.height);
 
-          const scale = baseScale * zoom;
+          // Apply zoom and scale up to output size
+          const scale = baseScale * zoom * scaleFactor;
           const displayWidth = img.width * scale;
           const displayHeight = img.height * scale;
 
-          // Center the image, then apply drag
-          const dx = (previewSize - displayWidth) / 2 + drag.x;
-          const dy = (previewSize - displayHeight) / 2 + drag.y;
+          // Center the image, then apply drag (scaled to output coordinates)
+          const dx = (outputSize - displayWidth) / 2 + (drag.x * scaleFactor);
+          const dy = (outputSize - displayHeight) / 2 + (drag.y * scaleFactor);
 
           ctx.drawImage(
             img,
@@ -323,17 +349,20 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
     };
 
     const cropped = await getCroppedImage();
-    handleSubmit(cropped);
-    handleClose();
+    await handleSubmit(cropped);
+    // Let the parent component handle closing after successful submission
   };
 
   return (
-    <form onSubmit={handleSave} className="flex flex-col items-center gap-4 h-full justify-center w-full">
+    <form onSubmit={handleSave} className="flex flex-col items-center gap-4 w-full">
       {/* Title and subtitle at the top */}
       <div className="mb-4 text-center w-full">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-100">Update Profile Photo</h1>
         <p className="mt-2 text-base text-gray-600 dark:text-dark-400">
           Take a new photo or upload an image to use as your profile picture.
+        </p>
+        <p className="mt-2 text-sm text-gray-500 dark:text-dark-500">
+          Your photo should be a clear, front-facing image of just you (No pets, groups, or inappropriate content.)
         </p>
       </div>
 
@@ -345,12 +374,11 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           >
             {preview ? (
               <div
+                ref={previewContainerRef}
                 className="w-full h-full cursor-move"
                 style={{
                   overflow: 'hidden',
                   borderRadius: '9999px',
-                  width: '24rem',
-                  height: '24rem',
                   position: 'relative',
                   userSelect: 'none',
                 }}
@@ -377,17 +405,46 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
                   src={preview}
                   alt="Profile Preview"
                   draggable={false}
-                  onLoad={() => setImgLoaded(true)}
+                  onLoad={(e) => {
+                    setImgLoaded(true);
+                    setImageDimensions({ 
+                      width: e.target.naturalWidth, 
+                      height: e.target.naturalHeight 
+                    });
+                  }}
                   style={{
                     position: 'absolute',
                     left: `calc(50% + ${drag.x}px)`,
                     top: `calc(50% + ${drag.y}px)`,
-                    width: `${zoom * 100}%`,
-                    height: `${zoom * 100}%`,
+                    // Calculate size to always cover the container
+                    // Use the larger scale factor to ensure full coverage
+                    ...(imageDimensions.width > 0 && imageDimensions.height > 0 ? (() => {
+                      const containerSizePx = containerSize || 384;
+                      const imgAspect = imageDimensions.width / imageDimensions.height;
+                      // For cover: the smaller dimension of the image should match the container
+                      if (imgAspect > 1) {
+                        // Landscape image: height should match container
+                        return {
+                          height: `${zoom * 100}%`,
+                          width: 'auto',
+                        };
+                      } else {
+                        // Portrait or square image: width should match container
+                        return {
+                          width: `${zoom * 100}%`,
+                          height: 'auto',
+                        };
+                      }
+                    })() : {
+                      width: `${zoom * 100}%`,
+                      height: `${zoom * 100}%`,
+                    }),
+                    minWidth: '100%',
+                    minHeight: '100%',
                     maxWidth: 'none',
                     maxHeight: 'none',
                     transform: 'translate(-50%, -50%)',
-                    objectFit: lastSource === 'upload' ? 'contain' : 'cover',
+                    objectFit: 'cover',
                     opacity: isLoading ? 0 : 1,
                     transition: 'opacity 0.2s',
                     touchAction: 'none',
@@ -516,11 +573,17 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
       </div>
 
       {/* Save and Cancel buttons at the bottom */}
-      <div className="flex justify-end gap-4 w-full mt-4">
+      <div className="flex justify-end gap-4 w-full mt-2">
         <button
           type="button"
           className="text-sm font-semibold text-gray-900 dark:text-dark-100 px-4 py-2 rounded-md"
-          onClick={handleClose}
+          onClick={() => {
+            if (preview) {
+              setShowCancelConfirm(true);
+            } else {
+              handleClose();
+            }
+          }}
         >
           Cancel
         </button>
@@ -532,6 +595,20 @@ export default function UploadProfilePhoto({ handleSubmit, handleClose }) {
           Save
         </button>
       </div>
+
+      <ConfirmationDialog
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        title="Discard Changes?"
+        description="You have an unsaved photo. Are you sure you want to discard it?"
+        isYes={() => {
+          setShowCancelConfirm(false);
+          handleClose();
+        }}
+        type="question"
+        yesText="Discard"
+        cancelText="Keep Editing"
+      />
     </form>
   );
 }

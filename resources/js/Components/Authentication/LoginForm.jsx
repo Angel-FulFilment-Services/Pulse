@@ -50,7 +50,7 @@ export default function LoginForm () {
     }
 
     return (
-        <div className="w-full lg:w-1/2 xl:w-1/3 h-screen flex flex-col items-center justify-center z-40">
+        <div className="w-full lg:w-1/2 xl:w-1/3 h-dvh flex flex-col items-center justify-center z-40">
             <form className='flex flex-row rounded-xl items-center justify-center w-4/5 shadow-2xl bg-gray-100 dark:bg-dark-800 overflow-y-auto' onSubmit={submit}>
                 <div className="h-full flex flex-col items-center justify-center">
                     <div className="h-full flex flex-col justify-between pt-10">
@@ -107,7 +107,7 @@ export default function LoginForm () {
                             </div>
                         </div>
                             
-                        <div className="mt-5 gap-x-6 gap-y-8">
+                        {/* <div className="mt-5 gap-x-6 gap-y-8">
                             <div className="flex flex-row justify-between sm:col-span-4">
                                 <div className="flex items-center">
                                     <input 
@@ -120,9 +120,8 @@ export default function LoginForm () {
                                     />
                                     <label htmlFor="remember" className="text-xs text-gray-900 dark:text-dark-100">Remember Me</label>
                                 </div>
-                                {/* <Link href="/forgot" className="cursor-pointer text-xs text-theme-500 focus:outline-none focus:underline focus:text-theme-600 hover:text-theme-600">Forgot Password?</Link> */}
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="gap-x-6 gap-y-8 pb-10 pt-5">
                             <div className="sm:col-span-4">

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import React, { useState } from 'react';
 import ConfirmationDialog from '../../Components/Dialogs/ConfirmationDialog';
+import RestrictedWordModal from './RestrictedWordModal.jsx';
 
 export default function Header({ 
   tabs, 
@@ -15,6 +16,7 @@ export default function Header({
 }) {    
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showRestrictedWordModal, setShowRestrictedWordModal] = useState(false);
 
   function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
@@ -24,6 +26,13 @@ export default function Header({
     e.preventDefault();
     e.stopPropagation();
 
+    // Handle different create actions based on active tab
+    if (activeTab === 'restricted_words') {
+      setShowRestrictedWordModal(true);
+      return;
+    }
+
+    // Default: Free Gifts template creation
     toast.promise(
       axios.post('https://free-gifts.co.uk/api/template/generate-template-url', {}, {
         headers: {
@@ -61,6 +70,20 @@ export default function Header({
         theme: 'light',
       }
     );
+  };
+
+  const getCreateButtonLabel = () => {
+    switch (activeTab) {
+      case 'restricted_words':
+        return 'Add Word';
+      case 'free_gifts':
+      default:
+        return 'Create Template';
+    }
+  };
+
+  const handleRestrictedWordCreated = () => {
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -106,24 +129,28 @@ export default function Header({
         </div>
         <div className="mx-auto flex items-center justify-between max-w-full w-full px-6 py-5">
           <div className="w-full flex items-center gap-x-4">
-            <div className="max-w-96 w-full relative">
-              <TextInput
-                id="view-select"
-                Icon={MagnifyingGlassIcon}
-                onTextChange={setSearch}
-                placeholder={`Search ${tabs.find(tab => tab.id === activeTab)?.label}...`}
-                currentState={search}
-                returnRaw={true}
-              />
-            </div>
-            
-            <button
-              onClick={handleCreateClick}
-              className="inline-flex items-center gap-x-2 rounded-lg bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 transition-colors duration-200 dark:bg-theme-600 dark:hover:bg-theme-500"
-            >
-              <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-              Create Template
-            </button>
+            {activeTab && (
+              <>
+                <div className="max-w-96 w-full relative">
+                  <TextInput
+                    id="view-select"
+                    Icon={MagnifyingGlassIcon}
+                    onTextChange={setSearch}
+                    placeholder={`Search ${tabs.find(tab => tab.id === activeTab)?.label || ''}...`}
+                    currentState={search}
+                    returnRaw={true}
+                  />
+                </div>
+                
+                <button
+                  onClick={handleCreateClick}
+                  className="inline-flex items-center gap-x-2 rounded-lg bg-theme-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-theme-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-theme-600 transition-colors duration-200 dark:bg-theme-600 dark:hover:bg-theme-500"
+                >
+                  <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+                  {getCreateButtonLabel()}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -136,6 +163,11 @@ export default function Header({
         type="info"
         yesText="Done"
         cancelText="Cancel"
+      />
+      <RestrictedWordModal
+        isOpen={showRestrictedWordModal}
+        onClose={() => setShowRestrictedWordModal(false)}
+        onWordCreated={handleRestrictedWordCreated}
       />
     </>
   )
