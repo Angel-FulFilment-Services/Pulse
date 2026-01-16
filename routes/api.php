@@ -12,11 +12,9 @@ use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\Chat\AnnouncementController;
 use App\Http\Controllers\App\Chat\LinkPreviewController;
-use App\Http\Controllers\App\Chat\GameController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
-use App\Http\Controllers\App\ProxyController;
 
 use App\Helper\T2SMS;
 
@@ -34,6 +32,8 @@ use App\Helper\T2SMS;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
 
 Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access')
 ->middleware('auth')
@@ -121,22 +121,19 @@ Route::post('/t2/send_sms', function (Request $request) {
 Route::post('/camera/stream-offer', [SiteController::class, 'handleStreamOffer'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1')
-->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
+->middleware('throttle:100,1');
 
 // Camera Viewer gets QR Scanner's peer ID
 Route::get('/camera/get-stream-offer', [SiteController::class, 'getStreamOffer'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1')
-->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
+->middleware('throttle:100,1');
 
 // Clear stored peer IDs when needed
 Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1')
-->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
+->middleware('throttle:100,1');
 
 /*
 |-----------------------
@@ -284,9 +281,7 @@ Route::get('/proxy/bank-validation', [ProxyController::class, 'bankValidation'])
 // Trigger fire emergency alert (accessible from both authenticated and access control)
 Route::post('/fire-emergency/trigger', [SiteController::class, 'triggerFireEmergency'])
 ->withoutMiddleware('throttle:api')
-->middleware('throttle:5,1') // Limited to 5 requests per minute to prevent spam
-->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
+->middleware('throttle:10,1'); // Limited to 10 requests per minute to prevent spam
 
 // Check for active fire events (accessible from access control screens)
-Route::get('/fire-emergency/check-active', [SiteController::class, 'checkActiveFireEvent'])
-->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
+Route::get('/fire-emergency/check-active', [SiteController::class, 'checkActiveFireEvent']);
