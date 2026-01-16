@@ -64,6 +64,7 @@ class SendTeamsNotification implements ShouldQueue
     {
         $teamUsers = TeamUser::where('team_id', $message->team_id)
             ->where('user_id', '!=', $sender->id)
+            ->whereNull('left_at')
             ->get();
 
         // Get all user IDs and fetch users from wings_config database
