@@ -12,9 +12,11 @@ use App\Http\Controllers\App\Chat\ChatFavoriteController;
 use App\Http\Controllers\App\Chat\ChatPreferencesController;
 use App\Http\Controllers\App\Chat\AnnouncementController;
 use App\Http\Controllers\App\Chat\LinkPreviewController;
+use App\Http\Controllers\App\Chat\GameController;
 use App\Http\Controllers\App\CallRecordingController;
 use App\Http\Controllers\App\SystemController;
 use App\Http\Controllers\App\ReportingController;
+use App\Http\Controllers\App\ProxyController;
 
 use App\Helper\T2SMS;
 
@@ -32,8 +34,6 @@ use App\Helper\T2SMS;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access');
 
 Route::get('/onsite/access', [SiteController::class, 'access'])->name('onsite.access')
 ->middleware('auth')
@@ -121,19 +121,22 @@ Route::post('/t2/send_sms', function (Request $request) {
 Route::post('/camera/stream-offer', [SiteController::class, 'handleStreamOffer'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1');
+->middleware('throttle:100,1')
+->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
 
 // Camera Viewer gets QR Scanner's peer ID
 Route::get('/camera/get-stream-offer', [SiteController::class, 'getStreamOffer'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1');
+->middleware('throttle:100,1')
+->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
 
 // Clear stored peer IDs when needed
 Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers'])
 ->withoutMiddleware('log.access')
 ->withoutMiddleware('guest')
-->middleware('throttle:100,1');
+->middleware('throttle:100,1')
+->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
 
 /*
 |-----------------------
@@ -144,6 +147,7 @@ Route::post('/camera/clear-offers', [SiteController::class, 'clearCameraOffers']
 Route::prefix('chat')
     ->withoutMiddleware('throttle:api')
     ->middleware('throttle:10000,1')
+    ->middleware('auth') 
     ->group(function () {    
     // Messages
     Route::get('messages', [MessageController::class, 'index']);
@@ -240,8 +244,35 @@ Route::prefix('chat')
     Route::post('announcements', [AnnouncementController::class, 'store']);
     Route::get('announcements/{announcementId}', [AnnouncementController::class, 'show']);
     Route::delete('announcements/{announcementId}', [AnnouncementController::class, 'destroy']);
+    
+    // Games
+    Route::get('teams/{teamId}/games/active', [GameController::class, 'getActiveGame']);
+    Route::get('teams/{teamId}/games/completed', [GameController::class, 'getCompletedGames']);
+    Route::post('teams/{teamId}/games/hangman', [GameController::class, 'startHangman']);
+    Route::post('teams/{teamId}/games/{gameId}/guess', [GameController::class, 'makeGuess']);
+    Route::post('teams/{teamId}/games/{gameId}/next-player', [GameController::class, 'selectNextPlayer']);
+    Route::post('teams/{teamId}/games/{gameId}/cancel', [GameController::class, 'cancelGame']);
+    Route::get('teams/{teamId}/games/history', [GameController::class, 'getGameHistory']);
+    Route::get('teams/{teamId}/games/leaderboard', [GameController::class, 'getLeaderboard']);
 });
 
+
+
+/*
+|-----------------------
+| AFD Validation Proxy API
+|-----------------------
+*/
+
+Route::get('/proxy/postcode-lookup', [ProxyController::class, 'postcodeLookup'])
+    ->withoutMiddleware('throttle:api')
+    ->middleware('throttle:100,1')
+    ->middleware('auth:api');
+
+Route::get('/proxy/bank-validation', [ProxyController::class, 'bankValidation'])
+    ->withoutMiddleware('throttle:api')
+    ->middleware('throttle:100,1')
+    ->middleware('auth:api');
 
 
 /*
@@ -253,7 +284,9 @@ Route::prefix('chat')
 // Trigger fire emergency alert (accessible from both authenticated and access control)
 Route::post('/fire-emergency/trigger', [SiteController::class, 'triggerFireEmergency'])
 ->withoutMiddleware('throttle:api')
-->middleware('throttle:10,1'); // Limited to 10 requests per minute to prevent spam
+->middleware('throttle:5,1') // Limited to 5 requests per minute to prevent spam
+->middleware(['ipInRange:172.71.0.0,172.71.255.255']);
 
 // Check for active fire events (accessible from access control screens)
-Route::get('/fire-emergency/check-active', [SiteController::class, 'checkActiveFireEvent']);
+Route::get('/fire-emergency/check-active', [SiteController::class, 'checkActiveFireEvent'])
+->middleware(['ipInRange:172.71.0.0,172.71.255.255']);

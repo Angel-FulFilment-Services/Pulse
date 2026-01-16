@@ -10,12 +10,15 @@ import MessageInput from './engine/MessageInput'
 import { extractUrls } from './engine/LinkPreview'
 import TypingIndicator from './engine/TypingIndicator'
 import ScrollToNewMessages from './engine/ScrollToNewMessages'
+import ScrollToUnreadMessages from './engine/ScrollToUnreadMessages'
 import EmptyState from './engine/EmptyState'
 import ComposeMode from './engine/ComposeMode'
 import ReplyPreview from './engine/ReplyPreview'
 import EditPreview from './engine/EditPreview'
 import PinnedMessageBanner from './engine/PinnedMessageBanner'
 import AnnouncementBanner from './engine/AnnouncementBanner'
+import ActiveGameDisplay from './games/ActiveGameDisplay'
+import ConfettiCelebration from './games/ConfettiCelebration'
 import { useRealtimeChat } from './engine/useRealtimeChat'
 import { useOptimisticMessages } from './engine/useOptimisticMessages'
 import { useRestrictedWords } from './engine/useRestrictedWords'
@@ -67,6 +70,9 @@ export default function ChatEngine({
   const [teamMembers, setTeamMembers] = useState([]) // Team members for mention picker
   const [pendingMentions, setPendingMentions] = useState([]) // Track mentions to send with message
   const [pendingLinks, setPendingLinks] = useState([]) // Track links to append to message
+  const [activeGame, setActiveGame] = useState(null) // Active game in team chat
+  const [completedGames, setCompletedGames] = useState([]) // Completed games for timeline display
+  const [celebration, setCelebration] = useState(null) // { winner: string, gameName: string } for confetti celebration
   const markedAsReadRef = useRef(new Set())
   const loadedMessageIdsRef = useRef(new Set()) // Track which messages we've already loaded
   const messagesRef = useRef([]) // Keep track of current messages for loadMoreMessages
@@ -78,10 +84,15 @@ export default function ChatEngine({
   const messageRefsRef = useRef(null) // Will hold the refs from MessageList
   const messageInputRef = useRef(null)
   const [unreadMessagesNotInView, setUnreadMessagesNotInView] = useState(0)
+  const [unreadMessagesAbove, setUnreadMessagesAbove] = useState(0) // Unread messages above viewport (including unloaded)
+  const [loadingToUnread, setLoadingToUnread] = useState(false) // Loading state for scroll to unread
   const lastUnreadMessageRef = useRef(null)
+  const firstUnreadMessageRef = useRef(null) // Track first unread above viewport
   const isUserScrolledUpRef = useRef(false)
   const readBatchTimeoutRef = useRef(null)
   const pendingReadMessagesRef = useRef([])
+  const totalUnreadCountRef = useRef(0) // Total unread from selectedChat
+  const markedAsReadCountRef = useRef(0) // Count of messages we've marked as read in this session
   
   // Rate limiting
   const messageSentTimestamps = useRef([])
@@ -228,7 +239,15 @@ export default function ChatEngine({
     }
   }, [replyingTo])
 
-  // Check for unread messages not in view
+  // Track total unread count from selectedChat and reset when chat changes
+  useEffect(() => {
+    if (selectedChat?.unread_count !== undefined) {
+      totalUnreadCountRef.current = selectedChat.unread_count
+      markedAsReadCountRef.current = 0
+    }
+  }, [selectedChat?.id, selectedChat?.unread_count])
+
+  // Check for unread messages not in view (both above and below)
   useEffect(() => {
     if (!messageListContainerRef.current || !messageRefsRef.current || !currentUser) return
 
@@ -237,10 +256,15 @@ export default function ChatEngine({
       if (!container) return
 
       const containerRect = container.getBoundingClientRect()
-      let unreadCount = 0
+      let unreadBelowCount = 0
+      let unreadAboveCount = 0
       let lastUnreadId = null
+      let firstUnreadAboveId = null
 
       messages.forEach(msg => {
+        // Skip membership events
+        if (msg.item_type === 'membership_event') return
+        
         const senderId = msg.sender_id || msg.user_id
         const isFromOther = senderId !== currentUser.id
         // Check if current user has read this message (not just if anyone has read it)
@@ -255,16 +279,30 @@ export default function ChatEngine({
             const messageRect = messageElement.getBoundingClientRect()
             // Check if message is below the visible area
             if (messageRect.top > containerRect.bottom) {
-              unreadCount++
-              // Keep updating to get the LAST unread message
+              unreadBelowCount++
+              // Keep updating to get the LAST unread message (for scrolling down)
               lastUnreadId = msg.id
+            }
+            // Check if message is above the visible area
+            else if (messageRect.bottom < containerRect.top) {
+              unreadAboveCount++
+              // Track the FIRST unread above (oldest one we have loaded)
+              if (!firstUnreadAboveId) {
+                firstUnreadAboveId = msg.id
+              }
             }
           }
         }
       })
 
-      setUnreadMessagesNotInView(unreadCount)
+      setUnreadMessagesNotInView(unreadBelowCount)
       lastUnreadMessageRef.current = lastUnreadId
+      firstUnreadMessageRef.current = firstUnreadAboveId
+      
+      // Calculate total unread above: loaded unread above + unloaded unread messages
+      // If hasMore is true and we have unread above, there may be more unloaded
+      const unloadedUnreadEstimate = hasMore ? Math.max(0, totalUnreadCountRef.current - markedAsReadCountRef.current - unreadBelowCount - unreadAboveCount) : 0
+      setUnreadMessagesAbove(unreadAboveCount + unloadedUnreadEstimate)
     }
 
     checkUnreadInView()
@@ -276,7 +314,7 @@ export default function ChatEngine({
     return () => {
       container?.removeEventListener('scroll', checkUnreadInView)
     }
-  }, [messages, messageReads, currentUser])
+  }, [messages, messageReads, currentUser, hasMore])
 
   // Scroll to last unread message
   const scrollToLastUnread = () => {
@@ -289,6 +327,129 @@ export default function ChatEngine({
         wasAtBottomBeforeUpdateRef.current = true
       }
     }
+  }
+
+  // Scroll to first unread message above viewport (or load more if needed)
+  const scrollToFirstUnread = async () => {
+    // If we have a loaded unread message above, scroll to it
+    if (firstUnreadMessageRef.current && messageRefsRef.current) {
+      const element = messageRefsRef.current[firstUnreadMessageRef.current]
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+    }
+    
+    // Otherwise, we need to load more messages to find the unread ones
+    if (!hasMore || loadingMore) return
+    
+    setLoadingToUnread(true)
+    
+    // Keep loading until we find unread messages or run out
+    const loadUntilUnread = async () => {
+      const container = messageListContainerRef.current
+      const currentMessages = messagesRef.current
+      if (!container || currentMessages.length === 0) {
+        setLoadingToUnread(false)
+        return
+      }
+      
+      const oldestMessage = currentMessages[0]
+      const params = chatType === 'team' 
+        ? `team_id=${selectedChat.id}` 
+        : `recipient_id=${selectedChat.id}`
+      
+      try {
+        const response = await fetch(`/api/chat/messages?${params}&before_id=${oldestMessage.id}`, {
+          credentials: 'same-origin'
+        })
+        
+        if (!response.ok) {
+          setLoadingToUnread(false)
+          return
+        }
+        
+        const data = await response.json()
+        const olderMessages = Array.isArray(data) ? data : (data.messages || [])
+        const moreAvailable = data.has_more !== undefined ? data.has_more : false
+        
+        // Filter out already loaded messages
+        const newMessages = olderMessages.filter(msg => !loadedMessageIdsRef.current.has(msg.id))
+        
+        if (newMessages.length > 0) {
+          // Add to loaded set
+          newMessages.forEach(msg => loadedMessageIdsRef.current.add(msg.id))
+          
+          // Update messages state
+          setMessages(prev => [...newMessages, ...prev])
+          setHasMore(moreAvailable)
+          
+          // Update reads for new messages
+          const reads = {}
+          newMessages.forEach(msg => {
+            if (msg.reads && msg.reads.length > 0) {
+              reads[msg.id] = msg.reads
+            }
+          })
+          if (Object.keys(reads).length > 0) {
+            setMessageReads(prev => ({ ...prev, ...reads }))
+          }
+          
+          // Check if any of the new messages are unread
+          const hasUnreadInNewMessages = newMessages.some(msg => {
+            if (msg.item_type === 'membership_event') return false
+            const senderId = msg.sender_id || msg.user_id
+            const isFromOther = senderId !== currentUser.id
+            const currentUserReads = msg.reads || []
+            const currentUserHasRead = currentUserReads.some(read => read.user_id === currentUser.id)
+            return isFromOther && !currentUserHasRead
+          })
+          
+          if (hasUnreadInNewMessages) {
+            // Wait for DOM to update then scroll to first unread
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                // Find first unread in the newly loaded messages
+                for (const msg of newMessages) {
+                  if (msg.item_type === 'membership_event') continue
+                  const senderId = msg.sender_id || msg.user_id
+                  const isFromOther = senderId !== currentUser.id
+                  const currentUserReads = msg.reads || []
+                  const currentUserHasRead = currentUserReads.some(read => read.user_id === currentUser.id)
+                  
+                  if (isFromOther && !currentUserHasRead) {
+                    const element = messageRefsRef.current?.[msg.id]
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      break
+                    }
+                  }
+                }
+                setLoadingToUnread(false)
+              })
+            })
+          } else if (moreAvailable) {
+            // Keep loading
+            setTimeout(loadUntilUnread, 100)
+          } else {
+            // No more to load
+            setLoadingToUnread(false)
+          }
+        } else {
+          setHasMore(moreAvailable)
+          if (moreAvailable) {
+            setTimeout(loadUntilUnread, 100)
+          } else {
+            setLoadingToUnread(false)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading messages to find unread:', error)
+        setLoadingToUnread(false)
+      }
+    }
+    
+    loadUntilUnread()
   }
 
   // Fetch messages when chat changes
@@ -308,6 +469,9 @@ export default function ChatEngine({
       setNewMessage('') // Clear message input
       setEditingMessage(null) // Clear editing state
       setReplyingTo(null) // Clear reply state
+      setUnreadMessagesAbove(0) // Clear unread above indicator
+      setLoadingToUnread(false) // Clear loading state
+      setActiveGame(null) // Clear active game
       return
     }
 
@@ -324,6 +488,9 @@ export default function ChatEngine({
     setEditingMessage(null) // Clear editing state for new chat
     setReplyingTo(null) // Clear reply state for new chat
     setNewMessage('') // Clear message input for new chat
+    setUnreadMessagesAbove(0) // Clear unread above indicator for new chat
+    setLoadingToUnread(false) // Clear loading state for new chat
+    setActiveGame(null) // Clear active game for new chat
     
     let messagesUrl = ''
     let pinnedUrl = ''
@@ -340,8 +507,12 @@ export default function ChatEngine({
       announcementsUrl = `/api/chat/announcements?recipient_id=${selectedChat.id}`
     }
     pinnedUrl = `/api/chat/messages/pinned?${params}`
+    
+    // Build active game URL for team chats
+    const activeGameUrl = chatType === 'team' ? `/api/chat/teams/${selectedChat.id}/games/active` : null
+    const completedGamesUrl = chatType === 'team' ? `/api/chat/teams/${selectedChat.id}/games/completed` : null
 
-    // Fetch messages, pinned message, and announcements in parallel
+    // Fetch messages, pinned message, announcements, active game, and completed games in parallel
     Promise.all([
       fetch(messagesUrl, { credentials: 'same-origin' })
         .then(res => res.ok ? res.json() : { messages: [], has_more: false }),
@@ -350,9 +521,19 @@ export default function ChatEngine({
         .catch(() => null),
       fetch(announcementsUrl, { credentials: 'same-origin' })
         .then(res => res.ok ? res.json() : [])
-        .catch(() => [])
+        .catch(() => []),
+      activeGameUrl 
+        ? fetch(activeGameUrl, { credentials: 'same-origin' })
+            .then(res => res.ok ? res.json() : { game: null })
+            .catch(() => ({ game: null }))
+        : Promise.resolve({ game: null }),
+      completedGamesUrl
+        ? fetch(completedGamesUrl, { credentials: 'same-origin' })
+            .then(res => res.ok ? res.json() : { games: [] })
+            .catch(() => ({ games: [] }))
+        : Promise.resolve({ games: [] })
     ])
-      .then(([messagesData, pinnedData, announcementsData]) => {
+      .then(([messagesData, pinnedData, announcementsData, activeGameData, completedGamesData]) => {
         const messageList = Array.isArray(messagesData) ? messagesData : (messagesData.messages || [])
         const hasMoreMessages = messagesData.has_more !== undefined ? messagesData.has_more : false
         
@@ -380,6 +561,12 @@ export default function ChatEngine({
         
         // Set announcements
         setAnnouncements(Array.isArray(announcementsData) ? announcementsData : [])
+        
+        // Set active game (for team chats)
+        setActiveGame(activeGameData?.game || null)
+        
+        // Set completed games (for team chats)
+        setCompletedGames(completedGamesData?.games || [])
         
         // Scroll to bottom after both messages and pinned banner are rendered
         // Use requestAnimationFrame to ensure DOM is painted before scrolling
@@ -927,6 +1114,47 @@ export default function ChatEngine({
     }
   })
 
+  // Listen for game events on team channel
+  useEffect(() => {
+    if (!selectedChat || chatType !== 'team' || !window.Echo) return
+    
+    const teamChannel = window.Echo.private(`team.${selectedChat.id}`)
+    
+    const handleGameUpdated = (event) => {
+      console.log('Game update received:', event.action, event.game)
+      if (event.action === 'cancelled') {
+        setActiveGame(null)
+      } else if (event.action === 'completed') {
+        // Add the completed game to the list
+        setCompletedGames(prev => {
+          // Avoid duplicates
+          if (prev.some(g => g.id === event.game.id)) {
+            return prev.map(g => g.id === event.game.id ? event.game : g)
+          }
+          return [...prev, event.game]
+        })
+        // Trigger celebration if there's a winner
+        if (event.game.winner) {
+          setCelebration({
+            winner: event.game.winner.name,
+            gameName: event.game.game_type === 'hangman' ? 'Hangman' : event.game.game_type,
+          })
+        }
+        // Clear the active game
+        setActiveGame(null)
+      } else {
+        // For started, guess_made, player_changed - update the active game
+        setActiveGame(event.game)
+      }
+    }
+    
+    teamChannel.listen('.game.updated', handleGameUpdated)
+    
+    return () => {
+      teamChannel.stopListening('.game.updated')
+    }
+  }, [selectedChat?.id, chatType])
+
   // Mark messages as read when viewing chat - only if visible in viewport
   useEffect(() => {
     if (!selectedChat || !currentUser || chatType === 'compose' || messages.length === 0) return
@@ -967,6 +1195,8 @@ export default function ChatEngine({
               })
               return updated
             })
+            // Track how many messages we've marked as read
+            markedAsReadCountRef.current += data.reads.length
             // Clear unread indicator when marking as read
             onClearUnread?.()
           }
@@ -2577,6 +2807,8 @@ export default function ChatEngine({
         }}
         onUserRoleChange={setCurrentUserRole}
         isMember={isMember}
+        onGameStarted={(game) => setActiveGame(game)}
+        activeGame={activeGame}
       />
       
       {/* WebSocket Connection Error Banner */}
@@ -2624,6 +2856,14 @@ export default function ChatEngine({
           canPinMessages={canPinMessages}
         />
       )}
+
+      {/* Confetti celebration for game wins - positioned above message list */}
+      <ConfettiCelebration
+        winner={celebration?.winner}
+        gameName={celebration?.gameName}
+        show={celebration !== null}
+        onComplete={() => setCelebration(null)}
+      />
 
       {/* Messages */}
       <div ref={messageListContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-4 relative flex flex-col w-full">
@@ -2673,6 +2913,19 @@ export default function ChatEngine({
           </div>
         )}
         
+        {/* Scroll to unread messages above - sticky at top (hide in spy mode) */}
+        {!loadError && unreadMessagesAbove > 0 && !loading && isMember && (
+          <div className="sticky top-0 flex justify-center pointer-events-none z-10 py-2">
+            <div className="pointer-events-auto">
+              <ScrollToUnreadMessages 
+                count={unreadMessagesAbove} 
+                onClick={scrollToFirstUnread} 
+                loading={loadingToUnread}
+              />
+            </div>
+          </div>
+        )}
+        
         {!loadError && <MessageList
           messages={getMergedMessages(messages)}
           currentUser={currentUser}
@@ -2709,6 +2962,7 @@ export default function ChatEngine({
           canPinMessages={canPinMessages}
           teamMembers={chatType === 'team' ? teamMembers : []}
           isMember={isMember}
+          completedGames={completedGames}
         />}
         
         {/* Spacer to push typing indicator to bottom when there are few messages */}
@@ -2738,6 +2992,18 @@ export default function ChatEngine({
 
       {/* Edit Preview */}
       <EditPreview editingMessage={editingMessage} onCancel={handleCancelEdit} />
+
+      {/* Active Game Display - for team chats */}
+      {chatType === 'team' && activeGame && (
+        <ActiveGameDisplay
+          teamId={selectedChat?.id}
+          currentUser={currentUser}
+          teamMembers={teamMembers}
+          game={activeGame}
+          onGameUpdate={setActiveGame}
+          isMember={isMember}
+        />
+      )}
 
       {/* Message Input */}
       {!loadError && (

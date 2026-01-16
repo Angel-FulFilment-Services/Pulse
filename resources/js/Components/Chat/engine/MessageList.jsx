@@ -10,6 +10,7 @@ import UserIcon from '../UserIcon'
 import AttachmentPreview from './AttachmentPreview'
 import ImageLightbox from './ImageLightbox'
 import PDFLightbox from './PDFLightbox'
+import CompletedGameCard from '../games/CompletedGameCard'
 import { URL_REGEX, extractUrls, LinkPreviewCard, normalizeUrl } from './LinkPreview'
 
 // Helper component to render message body with mentions and URLs highlighted
@@ -158,7 +159,8 @@ export default function MessageList({
   canPinMessages = false,
   teamMembers = [],
   isMember = true,
-  hasMore = false
+  hasMore = false,
+  completedGames = []
 }) {
   const messageRefs = useRef({})
   const [hoveredMessageId, setHoveredMessageId] = React.useState(null)
@@ -355,21 +357,42 @@ export default function MessageList({
     })
   }
   
-  // Now interleave message groups with pre-grouped events
+  // Prepare completed games as timeline items (sorted by completed_at)
+  const completedGameItems = (completedGames || [])
+    .filter(game => game.completed_at)
+    .map(game => ({
+      type: 'completedGame',
+      data: game,
+      created_at: game.completed_at,
+      key: `completed-game-${game.id}`
+    }))
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  
+  // Now interleave message groups with pre-grouped events and completed games
   const timeline = []
   let groupIndex = 0
   let eventGroupIndex = 0
+  let gameIndex = 0
   
-  while (groupIndex < groupedMessages.length || eventGroupIndex < preGroupedEvents.length) {
+  while (groupIndex < groupedMessages.length || eventGroupIndex < preGroupedEvents.length || gameIndex < completedGameItems.length) {
     const currentGroup = groupedMessages[groupIndex]
     const currentEventGroup = preGroupedEvents[eventGroupIndex]
+    const currentGame = completedGameItems[gameIndex]
     
-    if (!currentEventGroup) {
-      // No more events, add remaining message groups
+    // Get timestamps
+    const groupTime = currentGroup ? new Date(currentGroup[0].created_at).getTime() : Infinity
+    const eventTime = currentEventGroup ? new Date(currentEventGroup.created_at).getTime() : Infinity
+    const gameTime = currentGame ? new Date(currentGame.created_at).getTime() : Infinity
+    
+    // Find the minimum time
+    const minTime = Math.min(groupTime, eventTime, gameTime)
+    
+    if (minTime === Infinity) break
+    
+    if (groupTime === minTime) {
       timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
       groupIndex++
-    } else if (!currentGroup) {
-      // No more message groups, add remaining event groups
+    } else if (eventTime === minTime) {
       const eg = currentEventGroup
       if (eg.events.length === 1) {
         timeline.push({ type: 'event', data: eg.events[0], key: eg.events[0].id })
@@ -382,28 +405,9 @@ export default function MessageList({
         })
       }
       eventGroupIndex++
-    } else {
-      // Compare times - use the first message in the group vs first event in event group
-      const groupTime = new Date(currentGroup[0].created_at)
-      const eventTime = new Date(currentEventGroup.created_at)
-      
-      if (groupTime <= eventTime) {
-        timeline.push({ type: 'group', data: currentGroup, key: `group-${currentGroup[0].id}` })
-        groupIndex++
-      } else {
-        const eg = currentEventGroup
-        if (eg.events.length === 1) {
-          timeline.push({ type: 'event', data: eg.events[0], key: eg.events[0].id })
-        } else {
-          timeline.push({
-            type: 'eventGroup',
-            eventType: eg.eventType,
-            events: eg.events,
-            key: `event-group-${eg.events[0].id}-${eg.events[eg.events.length - 1].id}`
-          })
-        }
-        eventGroupIndex++
-      }
+    } else if (gameTime === minTime) {
+      timeline.push(currentGame)
+      gameIndex++
     }
   }
   
@@ -554,6 +558,15 @@ export default function MessageList({
         // Render single membership events
         if (item.type === 'event') {
           return renderMembershipEvent(item.data)
+        }
+        
+        // Render completed games
+        if (item.type === 'completedGame') {
+          return (
+            <div key={item.key} className="flex justify-center my-4">
+              <CompletedGameCard game={item.data} currentUser={currentUser} />
+            </div>
+          )
         }
         
         // Render message groups

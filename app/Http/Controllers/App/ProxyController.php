@@ -551,4 +551,109 @@ class ProxyController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Proxy postcode lookup to AFD validation API
+     */
+    public function postcodeLookup(Request $request)
+    {
+        $request->validate([
+            'postcode' => 'required|string',
+        ]);
+
+        $apiHost = env('AFD_VALIDATION_API_HOST', '192.168.20.46');
+        $postcode = urlencode($request->input('postcode'));
+        $url = "http://{$apiHost}:8000/lookup?postcode={$postcode}";
+
+        try {
+            $client = new Client([
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'verify' => false,
+            ]);
+
+            $response = $client->get($url);
+            $statusCode = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json($body, $statusCode);
+
+        } catch (RequestException $e) {
+            \Log::error('Postcode Lookup API RequestException: ' . $e->getMessage());
+
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+
+            return response()->json([
+                'error' => 'Postcode lookup request failed',
+                'message' => $e->getMessage(),
+                'details' => $errorBody,
+            ], $statusCode);
+
+        } catch (\Exception $e) {
+            \Log::error('Postcode Lookup API Exception: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Postcode lookup error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Proxy bank validation to AFD validation API
+     */
+    public function bankValidation(Request $request)
+    {
+        $request->validate([
+            'sortcode' => 'required|string',
+            'account_number' => 'required|string',
+            'clearing' => 'nullable|string',
+        ]);
+
+        $apiHost = env('AFD_VALIDATION_API_HOST', '192.168.20.46');
+        $sortcode = urlencode($request->input('sortcode'));
+        $accountNumber = urlencode($request->input('account_number'));
+        
+        $url = "http://{$apiHost}:8000/bank/validate?sortcode={$sortcode}&account_number={$accountNumber}";
+        
+        if ($request->has('clearing')) {
+            $clearing = urlencode($request->input('clearing'));
+            $url .= "&clearing={$clearing}";
+        }
+
+        try {
+            $client = new Client([
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'verify' => false,
+            ]);
+
+            $response = $client->get($url);
+            $statusCode = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json($body, $statusCode);
+
+        } catch (RequestException $e) {
+            \Log::error('Bank Validation API RequestException: ' . $e->getMessage());
+
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? json_decode($e->getResponse()->getBody()->getContents(), true) : null;
+
+            return response()->json([
+                'error' => 'Bank validation request failed',
+                'message' => $e->getMessage(),
+                'details' => $errorBody,
+            ], $statusCode);
+
+        } catch (\Exception $e) {
+            \Log::error('Bank Validation API Exception: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Bank validation error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

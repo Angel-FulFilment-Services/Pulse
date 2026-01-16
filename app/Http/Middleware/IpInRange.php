@@ -19,6 +19,12 @@ class IpInRange
     {
         // Only run in production or staging environments
         if (app()->environment(['production', 'staging'])) {
+
+            // Allow Cloudflare IP
+            if (ip2long($request->server('HTTP_CF_CONNECTING_IP')) == ip2long('193.117.223.34')) {
+                return $next($request);
+            }
+
             // Convert the low and high IPs to ip2long for numerical comparison
             $lowIpLong = ip2long(trim($lowIp));
             $highIpLong = ip2long(trim($highIp));

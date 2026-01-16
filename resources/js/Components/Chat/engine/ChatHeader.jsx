@@ -8,11 +8,12 @@ import UserIcon from '../UserIcon.jsx'
 import ConfirmationDialog from '../../Dialogs/ConfirmationDialog.jsx'
 import CreateTeamDropdown from '../CreateTeamDropdown.jsx'
 import AnnouncementDropdown from '../AnnouncementDropdown.jsx'
+import GameLauncher from '../games/GameLauncher.jsx'
 import { usePermission } from '../../../Utils/Permissions.jsx'
 import { useUserStates } from '../../Context/ActiveStateContext'
 import { useNotifications } from '../../Context/NotificationContext'
 
-export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange, isMember = true }) {
+export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPreferenceChange, chatPreferences = [], onMembersChange, currentUser, onTeamCreated, loading = false, onUserRoleChange, isMember = true, onGameStarted, activeGame = null }) {
   // Permission checks - must be at top level before any conditional returns
   const canCreateTeams = usePermission('pulse_chat_create_teams')
   const canMakeTeamAnnouncements = usePermission('pulse_chat_team_announcements')
@@ -130,7 +131,7 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
     }
   }
   
-  // Fetch current user's role in team on mount (for showing/hiding management button)
+  // Fetch current user's role and team members on mount (for showing/hiding management button and game launcher)
   useEffect(() => {
     if (chatType === 'team' && chat?.id) {
       fetch(`/api/chat/teams/${chat.id}`, { 
@@ -141,6 +142,9 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
         .then(data => {
           if (data?.current_user_role) {
             setCurrentUserRole(data.current_user_role)
+          }
+          if (data?.members) {
+            setTeamMembers(data.members)
           }
         })
         .catch(console.error)
@@ -912,6 +916,18 @@ export default function ChatHeader({ chat, chatType, onBackToSidebar, onChatPref
             >
               <MegaphoneIcon className="w-5 h-5" />
             </button>
+          )}
+          
+          {/* Game Launcher - only show for team chats where user is admin/owner */}
+          {chatType === 'team' && isMember && (currentUserRole === 'admin' || currentUserRole === 'owner') && (
+            <GameLauncher
+              teamId={chat?.id}
+              teamMembers={teamMembers}
+              currentUser={currentUser}
+              onGameStarted={onGameStarted}
+              activeGame={activeGame}
+              disabled={loading}
+            />
           )}
           
           {!isPopout && (

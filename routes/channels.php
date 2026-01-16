@@ -64,3 +64,20 @@ Broadcast::channel('chat.announcements.global', function ($user) {
     // Any authenticated user can receive global announcements
     return $user ? true : false;
 });
+
+// Team channel for games (same auth as chat.team but different channel name)
+Broadcast::channel('team.{teamId}', function ($user, $teamId) {
+    // Check if user has monitor permission (can view all teams)
+    if ($user->hasPermission('pulse_monitor_all_teams')) {
+        return true;
+    }
+    
+    // Check if user is an active member of this team (not left)
+    $membership = \DB::connection('pulse')->table('team_user')
+        ->where('team_id', $teamId)
+        ->where('user_id', $user->id)
+        ->whereNull('left_at')
+        ->first();
+    
+    return $membership ? true : false;
+});
