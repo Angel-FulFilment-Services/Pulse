@@ -240,7 +240,26 @@ const CloudType4 = React.memo(({ x, y, scale, opacity, delay, lightingCx, lighti
     </svg>
 ));
 
-const WelcomeCard = ({ employee, userStates }) => {
+const GreetingWidget = ({ employee, userStates, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 h-full">
+                <div className="relative z-10 flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm" />
+                    <div>
+                        <h2 className="text-xl font-bold text-white">Good morning!</h2>
+                        <p className="text-white/80 text-sm">Welcome back to Pulse</p>
+                    </div>
+                    <div className="ml-auto flex items-center gap-2 text-white/90">
+                        <ClockIcon className="h-5 w-5" />
+                        <span className="text-lg font-medium">9:00 AM</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const [currentRealTime, setCurrentRealTime] = useState(new Date());
 
     // Update real time every second
@@ -998,4 +1017,4 @@ const WelcomeCard = ({ employee, userStates }) => {
     );
 };
 
-export default WelcomeCard;
+export default GreetingWidget;

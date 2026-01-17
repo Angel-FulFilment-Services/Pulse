@@ -1,12 +1,34 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import Badge from '../../Badges/Badge.jsx';
-import useFetchBadges from '../../Fetches/Dashboard/useFetchBadges.jsx';
-import SelectControl from '../../Controls/SelectControl.jsx';
+import Badge from '../../../Badges/Badge.jsx';
+import useFetchBadges from '../../../Fetches/Dashboard/useFetchBadges.jsx';
+import SelectControl from '../../../Controls/SelectControl.jsx';
+import { TrophyIcon } from '@heroicons/react/24/outline';
 
 // Transition delay when expanding/collapsing (ms)
 const TRANSITION_DELAY = 1000;
 
-const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefresh, onRefreshStateChange }) => {
+const BadgesWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefresh, onRefreshStateChange, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <span className="px-2 py-1 text-xs font-medium bg-theme-100 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 rounded-lg">All</span>
+                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-dark-800 dark:text-dark-300 rounded-lg">Obtained</span>
+                    </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="aspect-square bg-gradient-to-br from-theme-100 to-theme-50 dark:from-theme-900/30 dark:to-theme-900/10 rounded-lg flex items-center justify-center border border-theme-200 dark:border-theme-800">
+                            <TrophyIcon className="h-8 w-8 text-theme-400 dark:text-theme-600" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     const [triggerFlip, setTriggerFlip] = useState(null);
     const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const [filter, setFilter] = useState('all'); // all, obtained, in-progress, locked
@@ -542,6 +564,6 @@ const BadgeWidget = React.memo(({ employee, isExpanded, onToggleExpand, onRefres
     );
 });
 
-BadgeWidget.displayName = 'BadgeWidget';
+BadgesWidget.displayName = 'BadgesWidget';
 
-export default BadgeWidget;
+export default BadgesWidget;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, cloneElement, isValidElement, Children } from 'react';
 import { ArrowsPointingOutIcon, ArrowsPointingInIcon, LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon, LockClosedIcon as LockClosedIconSolid } from '@heroicons/react/24/solid';
 
@@ -15,11 +15,24 @@ const WidgetItem = ({
     onLock,
     isLocked = false,
     dragEnabled = true,
+    isEditMode = false,
     ...props 
 }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Clone children and inject isHovered prop
+    const childrenWithHover = Children.map(children, child => {
+        if (isValidElement(child)) {
+            return cloneElement(child, { isHovered });
+        }
+        return child;
+    });
+
     return (
         <div 
-            className={`bg-white dark:bg-dark-900 rounded-2xl border border-gray-200 dark:border-dark-700 h-full flex flex-col ${className}`}
+            className={`bg-white dark:bg-dark-900 rounded-2xl border border-gray-200 dark:border-dark-700 h-full flex flex-col ${isEditMode ? 'ring-2 ring-theme-200 dark:ring-theme-800 ring-opacity-50' : ''} ${className}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             {...props}
         >
             {/* Header */}
@@ -29,7 +42,7 @@ const WidgetItem = ({
                         {title}
                     </h3>
                     <div className="flex items-center flex-shrink-0 divide-x divide-gray-200 dark:divide-dark-700">
-                        {dragEnabled && onLock && !isExpanded && (
+                        {isEditMode && onLock && (
                             <div className="px-1">
                                 <button
                                     onMouseDown={(e) => e.stopPropagation()}
@@ -50,7 +63,7 @@ const WidgetItem = ({
                                 </button>
                             </div>
                         )}
-                        {canExpand && onExpand && (
+                        {canExpand && onExpand && !isLocked && (
                             <div className="px-1">
                                 <button
                                     onMouseDown={(e) => e.stopPropagation()}
@@ -101,7 +114,7 @@ const WidgetItem = ({
             
             {/* Content */}
             <div className="p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
-                {children}
+                {childrenWithHover}
             </div>
         </div>
     );

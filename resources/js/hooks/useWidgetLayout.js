@@ -1,51 +1,48 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-
-// Check if we're in a testing/development environment
-const isTestingEnvironment = import.meta.env.DEV || import.meta.env.MODE === 'test';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 /**
  * Hook to manage dashboard widget layouts
  * Handles saving/loading layouts to localStorage and provides layout management
  * 
- * @param {Array|Function} initialWidgets - Array of widgets or function that receives setWidgetVisibility and returns widgets
+ * @param {Array|Function} initialWidgets - Array of widgets or function that returns widgets
  * @param {string} storageKey - Key for localStorage
+ * @param {boolean} isEditMode - Whether the dashboard is in edit mode (shows hidden widgets)
  */
-export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-layout') => {
-    // Set widget visibility - generic callback for any widget to show/hide itself
-    const setWidgetVisibility = useCallback((widgetId, isVisible) => {
-        setHiddenWidgets(prev => {
-            if (isVisible) {
-                // Remove from hidden list
-                return prev.filter(id => id !== widgetId);
-            } else {
-                // Add to hidden list (if not already there)
-                return prev.includes(widgetId) ? prev : [...prev, widgetId];
-            }
-        });
-    }, []);
+export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-layout', isEditMode = false) => {
+    // Track previous storage key to detect preset changes
+    const prevStorageKeyRef = useRef(storageKey);
     
-    // Resolve widgets - can be array or function that receives setWidgetVisibility
+    // Resolve widgets - can be array or function
     const resolvedWidgets = useMemo(() => {
         if (typeof initialWidgets === 'function') {
-            return initialWidgets(setWidgetVisibility);
+            return initialWidgets();
         }
         return initialWidgets;
-    }, [initialWidgets, setWidgetVisibility]);
+    }, [initialWidgets]);
     
-    // Initialize hidden widgets from widgets with startHidden: true
-    const initialHiddenWidgets = useMemo(() => {
+    // Initialize collapsed widgets from widgets with startCollapsed: true
+    const initialCollapsedWidgets = useMemo(() => {
         return resolvedWidgets
-            .filter(widget => widget.startHidden)
+            .filter(widget => widget.startCollapsed)
             .map(widget => widget.key || widget.id);
     }, [resolvedWidgets]);
     
-    const [hiddenWidgets, setHiddenWidgets] = useState(initialHiddenWidgets);
+    // Track collapsed widgets (widgets that should have 0 height when not in edit mode)
+    const [collapsedWidgets, setCollapsedWidgets] = useState(initialCollapsedWidgets);
+    
+    // Set widget collapsed state - for widgets that want to collapse to 0 height when empty
+    const setWidgetCollapsed = useCallback((widgetId, isCollapsed) => {
+        setCollapsedWidgets(prev => {
+            if (isCollapsed) {
+                return prev.includes(widgetId) ? prev : [...prev, widgetId];
+            } else {
+                return prev.filter(id => id !== widgetId);
+            }
+        });
+    }, []);
 
-    // Load saved layouts synchronously on initialization (skip in testing)
-    const loadSavedLayouts = () => {
-        if (isTestingEnvironment) {
-            return {};
-        }
+    // Load saved layouts synchronously (skip in testing)
+    const loadSavedLayouts = useCallback(() => {
         try {
             const saved = localStorage.getItem(storageKey);
             return saved ? JSON.parse(saved) : {};
@@ -53,9 +50,24 @@ export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-lay
             console.warn('Failed to load saved layouts:', error);
             return {};
         }
-    };
+    }, [storageKey]);
+    
+    // Load saved widget data (titles, custom settings, etc.)
+    const loadSavedWidgetData = useCallback(() => {
+        try {
+            const saved = localStorage.getItem(`${storageKey}-data`);
+            return saved ? JSON.parse(saved) : {};
+        } catch (error) {
+            console.warn('Failed to load saved widget data:', error);
+            return {};
+        }
+    }, [storageKey]);
 
-    const savedLayouts = loadSavedLayouts();
+    // Saved layouts - reactive to storageKey changes
+    const savedLayouts = useMemo(() => loadSavedLayouts(), [loadSavedLayouts]);
+    
+    // Saved widget data - reactive to storageKey changes
+    const savedWidgetData = useMemo(() => loadSavedWidgetData(), [loadSavedWidgetData, storageKey]);
 
     // Apply saved positions to resolved widgets
     const initializedWidgets = useMemo(() => {
@@ -79,27 +91,75 @@ export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-lay
 
     const [widgets, setWidgets] = useState(initializedWidgets);
     const [layouts, setLayouts] = useState(savedLayouts);
-    const [expandedWidgets, setExpandedWidgets] = useState([]);
-
-    // Get visible widgets (excluding hidden ones)
-    const visibleWidgets = widgets.filter(widget => {
-        const key = widget.key || widget.id;
-        return !hiddenWidgets.includes(key);
-    });
-
-    // Handle layout changes and save to localStorage
-    const handleLayoutChange = useCallback((currentLayout, allLayouts) => {
-        // Don't save layout changes when any widget is expanded
-        if (expandedWidgets.length > 0) {
-            return;
+    const [widgetData, setWidgetData] = useState(savedWidgetData);
+    
+    // Initialize expanded widgets from persisted state
+    const initialExpandedWidgets = useMemo(() => {
+        return initializedWidgets
+            .filter(widget => widget.persistedExpanded)
+            .map(widget => widget.key || widget.id);
+    }, [initializedWidgets]);
+    
+    const [expandedWidgets, setExpandedWidgets] = useState(initialExpandedWidgets);
+    
+    // Update widget data (e.g., section divider titles)
+    const updateWidgetData = useCallback((widgetId, data) => {
+        setWidgetData(prev => ({
+            ...prev,
+            [widgetId]: {
+                ...(prev[widgetId] || {}),
+                ...data
+            }
+        }));
+    }, []);
+    
+    // Sync widgets, layouts, widgetData and expanded state ONLY when preset changes (storageKey changes)
+    useEffect(() => {
+        // Only reset when actually switching presets
+        if (prevStorageKeyRef.current !== storageKey) {
+            // Load fresh data from localStorage for the new preset
+            const freshWidgetData = loadSavedWidgetData();
+            
+            setWidgets(initializedWidgets);
+            setLayouts(savedLayouts);
+            setWidgetData(freshWidgetData);
+            
+            // Re-calculate persisted expanded widgets for the new preset
+            const persistedExpanded = initializedWidgets
+                .filter(widget => widget.persistedExpanded)
+                .map(widget => widget.key || widget.id);
+            setExpandedWidgets(persistedExpanded);
+            
+            prevStorageKeyRef.current = storageKey;
         }
-        
-        // Save layouts and update widget positions
+    }, [storageKey, initializedWidgets, savedLayouts, loadSavedWidgetData]);
+
+
+
+    // Handle layout changes - update state but DON'T save to localStorage
+    const handleLayoutChange = useCallback((currentLayout, allLayouts) => {
+        // Build layouts to save (but don't persist yet)
         const layoutsToSave = {};
         
         Object.keys(allLayouts).forEach(breakpoint => {
             layoutsToSave[breakpoint] = allLayouts[breakpoint].map(item => {
                 const widget = widgets.find(w => (w.key || w.id) === item.i);
+                const isExpanded = expandedWidgets.includes(item.i);
+                
+                // Always save original (non-expanded) dimensions
+                // Expansion is handled dynamically - the 'expanded' flag in lockedWidgets handles persistence
+                if (isExpanded && widget) {
+                    return {
+                        i: item.i,
+                        x: item.x,
+                        y: item.y,
+                        w: widget.w,  // Original width
+                        h: widget.h,  // Original height
+                        locked: widget?.locked,
+                    };
+                }
+                
+                // Not expanded - save current dimensions
                 return {
                     ...item,
                     locked: widget?.locked,
@@ -108,11 +168,6 @@ export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-lay
         });
         
         setLayouts(layoutsToSave);
-        
-        // Only save to localStorage if not in testing environment
-        if (!isTestingEnvironment) {
-            localStorage.setItem(storageKey, JSON.stringify(layoutsToSave));
-        }
         
         // Update widget positions with the current layout (excluding expanded)
         setWidgets(prev => prev.map(widget => {
@@ -132,7 +187,13 @@ export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-lay
                 h: layoutItem.h,
             };
         }));
-    }, [storageKey, widgets, expandedWidgets]);
+    }, [widgets, expandedWidgets]);
+    
+    // Save current layouts and widget data to localStorage (called on explicit save)
+    const saveLayoutsToStorage = useCallback(() => {
+        localStorage.setItem(storageKey, JSON.stringify(layouts));
+        localStorage.setItem(`${storageKey}-data`, JSON.stringify(widgetData));
+    }, [storageKey, layouts, widgetData]);
 
     // Add a new widget
     const addWidget = useCallback((newWidget) => {
@@ -209,20 +270,71 @@ export const useWidgetLayout = (initialWidgets = [], storageKey = 'dashboard-lay
         }));
     }, [layouts]);
 
+    // Reload widgets and layouts from saved state (for cancel operation)
+    // Accepts optional widgetCreator function that returns fresh widgets
+    const reloadFromSaved = useCallback((widgetCreator) => {
+        // Reload saved layouts from localStorage
+        const saved = loadSavedLayouts();
+        setLayouts(saved);
+        
+        // Use provided widget creator, or fall back to initialWidgets
+        let freshWidgets;
+        if (widgetCreator) {
+            freshWidgets = widgetCreator();
+        } else {
+            freshWidgets = typeof initialWidgets === 'function' 
+                ? initialWidgets() 
+                : initialWidgets;
+        }
+        
+        // Reset widgets to initial state with saved positions applied
+        const reloadedWidgets = freshWidgets.map(widget => {
+            const key = widget.key || widget.id;
+            const savedLayout = saved.lg?.find(l => l.i === key);
+            
+            if (savedLayout) {
+                return {
+                    ...widget,
+                    x: savedLayout.x,
+                    y: savedLayout.y,
+                    w: savedLayout.w,
+                    h: savedLayout.h,
+                    locked: savedLayout.locked !== undefined ? savedLayout.locked : widget.locked,
+                };
+            }
+            return widget;
+        });
+        
+        setWidgets(reloadedWidgets);
+        
+        // Reload saved widget data
+        const savedData = loadSavedWidgetData();
+        setWidgetData(savedData);
+        
+        // Reset expanded widgets to persisted state
+        const persistedExpanded = reloadedWidgets
+            .filter(widget => widget.persistedExpanded)
+            .map(widget => widget.key || widget.id);
+        setExpandedWidgets(persistedExpanded);
+    }, [initialWidgets, loadSavedWidgetData]);
+
     return {
-        widgets: visibleWidgets,
-        allWidgets: widgets, // Include all widgets for reference
+        widgets,
         layouts,
+        widgetData,
+        updateWidgetData,
         handleLayoutChange,
+        saveLayoutsToStorage,
         addWidget,
         removeWidget,
         updateWidget,
         resetLayouts,
+        reloadFromSaved,
         getWidget,
         expandedWidgets,
         handleExpandWidget,
         handleLockWidget,
-        hiddenWidgets,
-        setWidgetVisibility
+        collapsedWidgets,
+        setWidgetCollapsed
     };
 };

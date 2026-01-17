@@ -1,9 +1,9 @@
-import React, { useMemo, useRef } from 'react';
-import { CalendarDaysIcon, ClockIcon, MapPinIcon, BriefcaseIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import React, { useMemo, useRef, useState } from 'react';
+import { CalendarDaysIcon, ClockIcon, MapPinIcon, BriefcaseIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, startOfDay, endOfDay, differenceInMinutes, isSameDay } from 'date-fns';
-import useFetchShifts from '../../Fetches/Rota/useFetchShifts.jsx';
-import useFetchTimesheets from '../../Fetches/Rota/useFetchTimesheets.jsx';
+import useFetchShifts from '../../../Fetches/Rota/useFetchShifts.jsx';
+import useFetchTimesheets from '../../../Fetches/Rota/useFetchTimesheets.jsx';
 
 // Category colors for timesheet entries
 const categoryColors = {
@@ -16,7 +16,45 @@ const categoryColors = {
     'Other': 'bg-gray-500',
 };
 
-const ScheduleCard = ({ employee, isExpanded }) => {
+const TodayScheduleWidget = ({ employee, isExpanded, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 rounded-lg bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30">
+                        <CalendarDaysIcon className="h-5 w-5 text-theme-600 dark:text-theme-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-dark-100">Standard</h4>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                Active
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-dark-400">
+                            <div className="flex items-center gap-1">
+                                <ClockIcon className="h-3.5 w-3.5" />
+                                <span>9:00 AM - 5:00 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 border border-gray-100 dark:border-dark-700">
+                        <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Status</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">4h remaining</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 border border-gray-100 dark:border-dark-700">
+                        <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Worked</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">4h 15m</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const { employee: currentEmployee } = usePage().props;
     const hrId = employee?.hr_id || currentEmployee?.hr_id;
     
@@ -26,8 +64,8 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     const endDate = format(endOfDay(today), 'yyyy-MM-dd');
     
     // Fetch shifts and timesheets for today
-    const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(startDate, endDate, 6927);
-    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(startDate, endDate, 6927);
+    const { shifts, isLoading: isLoadingShifts, isLoaded: isLoadedShifts } = useFetchShifts(startDate, endDate, 5758);
+    const { timesheets, isLoading: isLoadingTimesheets, isLoaded: isLoadedTimesheets } = useFetchTimesheets(startDate, endDate, 5758);
     
     const isLoading = isLoadingShifts || isLoadingTimesheets;
     const isLoaded = isLoadedShifts && isLoadedTimesheets;
@@ -51,12 +89,28 @@ const ScheduleCard = ({ employee, isExpanded }) => {
         return `${minutes}m`;
     };
     
-    // Process today's shift data
-    const shiftData = useMemo(() => {
-        if (!shifts || shifts.length === 0) return null;
+    // Get all today's shifts sorted by start time
+    const todayShifts = useMemo(() => {
+        if (!shifts || shifts.length === 0) return [];
         
-        // Find today's shift
-        const todayShift = shifts.find(shift => isSameDay(new Date(shift.shiftdate), today));
+        return shifts
+            .filter(shift => isSameDay(new Date(shift.shiftdate), today))
+            .sort((a, b) => a.shiftstart - b.shiftstart);
+    }, [shifts, today]);
+    
+    // State for navigating between shifts
+    const [currentShiftIndex, setCurrentShiftIndex] = useState(0);
+    
+    // Navigation handlers
+    const goToPreviousShift = () => setCurrentShiftIndex(prev => Math.max(0, prev - 1));
+    const goToNextShift = () => setCurrentShiftIndex(prev => Math.min(todayShifts.length - 1, prev + 1));
+    
+    // Process current shift data
+    const shiftData = useMemo(() => {
+        if (todayShifts.length === 0) return null;
+        
+        // Get the current shift based on index
+        const todayShift = todayShifts[currentShiftIndex];
         if (!todayShift) return null;
         
         const now = new Date();
@@ -156,6 +210,16 @@ const ScheduleCard = ({ employee, isExpanded }) => {
             workedText = `${workedMinutes}m`;
         }
         
+        // Format scheduled time (total shift duration)
+        let scheduledText = '';
+        if (totalDurationMinutes >= 60) {
+            const hours = Math.floor(totalDurationMinutes / 60);
+            const mins = totalDurationMinutes % 60;
+            scheduledText = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        } else {
+            scheduledText = `${totalDurationMinutes}m`;
+        }
+        
         // Group timesheet entries by category for breakdown
         const timesheetBreakdown = relevantTimesheets.reduce((acc, ts) => {
             const category = ts.category || 'Other';
@@ -190,10 +254,13 @@ const ScheduleCard = ({ employee, isExpanded }) => {
             clockedInAt,
             workedText,
             workedMinutes,
+            scheduledText,
             totalDurationMinutes,
             timesheetBreakdown: Object.values(timesheetBreakdown),
+            shiftIndex: currentShiftIndex,
+            totalShifts: todayShifts.length,
         };
-    }, [shifts, timesheets, today]);
+    }, [todayShifts, timesheets, today, currentShiftIndex]);
     
     // Loading skeleton
     if (showSkeleton) {
@@ -210,8 +277,8 @@ const ScheduleCard = ({ employee, isExpanded }) => {
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
-                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-700 rounded-lg"></div>
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-800 rounded-lg"></div>
+                    <div className="h-[5.3rem] bg-gray-100 dark:bg-dark-800 rounded-lg"></div>
                 </div>
             </div>
         );
@@ -302,12 +369,28 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     };
     
     const statusBadge = getStatusBadge();
+    const hasMultipleShifts = todayShifts.length > 1;
 
     return (
         <div className="flex flex-col flex-1 min-h-0">
             {/* Header with icon and shift info */}
             <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 rounded-lg bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30">
+                {/* Previous shift button */}
+                {hasMultipleShifts && (
+                    <button
+                        onClick={goToPreviousShift}
+                        disabled={currentShiftIndex === 0}
+                        className={`flex-shrink-0 p-1 rounded-lg transition-colors ${
+                            currentShiftIndex === 0
+                                ? 'text-gray-300 dark:text-dark-600 cursor-not-allowed'
+                                : 'text-gray-400 dark:text-dark-500 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700'
+                        }`}
+                    >
+                        <ChevronLeftIcon className="h-4 w-4" />
+                    </button>
+                )}
+                
+                <div className="p-2.5 rounded-lg bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30">
                     <CalendarDaysIcon className="h-5 w-5 text-theme-600 dark:text-theme-400" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -319,6 +402,11 @@ const ScheduleCard = ({ employee, isExpanded }) => {
                             <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot} ${shiftData.status === 'active' ? 'animate-pulse' : ''}`}></span>
                             {statusBadge.label}
                         </span>
+                        {hasMultipleShifts && (
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-dark-500">
+                                {currentShiftIndex + 1}/{todayShifts.length}
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-dark-400">
                         <div className="flex items-center gap-1">
@@ -331,15 +419,34 @@ const ScheduleCard = ({ employee, isExpanded }) => {
                         </div>
                     </div>
                 </div>
+                
+                {/* Next shift button */}
+                {hasMultipleShifts && (
+                    <button
+                        onClick={goToNextShift}
+                        disabled={currentShiftIndex === todayShifts.length - 1}
+                        className={`flex-shrink-0 p-1 rounded-lg transition-colors ${
+                            currentShiftIndex === todayShifts.length - 1
+                                ? 'text-gray-300 dark:text-dark-600 cursor-not-allowed'
+                                : 'text-gray-400 dark:text-dark-500 hover:text-gray-600 dark:hover:text-dark-300 hover:bg-gray-100 dark:hover:bg-dark-700'
+                        }`}
+                    >
+                        <ChevronRightIcon className="h-4 w-4" />
+                    </button>
+                )}
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 gap-2">
-                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700">
+            <div className="flex w-full gap-2">
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700 w-1/2">
                     <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Status</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">{shiftData.remainingText}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700">
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700 w-1/4">
+                    <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Scheduled</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">{shiftData.scheduledText || '0m'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 py-6 border border-gray-100 dark:border-dark-700 w-1/4">
                     <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase tracking-wide mb-0.5">Worked</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-dark-100">{shiftData.workedText || '0m'}</p>
                 </div>
@@ -348,4 +455,4 @@ const ScheduleCard = ({ employee, isExpanded }) => {
     );
 };
 
-export default ScheduleCard;
+export default TodayScheduleWidget;

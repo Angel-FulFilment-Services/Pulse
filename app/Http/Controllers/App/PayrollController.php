@@ -457,6 +457,28 @@ class PayrollController extends Controller
         return response()->json(['data' => $data]); 
     }
 
+    /**
+     * Public method to calculate bonus for a single user
+     * Used by UserController for payroll estimates
+     */
+    public function calculateBonusForUser($hrId, $haloId, $startDate, $endDate): float
+    {
+        // Check if user is CPA agent
+        $isCpaAgent = DB::connection('wings_config')
+            ->table('assigned_permissions')
+            ->leftJoin('wings_data.hr_details', 'assigned_permissions.user_id', '=', 'hr_details.user_id')
+            ->where('hr_details.hr_id', $hrId)
+            ->where('right', 'angel_cpa_agent')
+            ->exists();
+
+        // Get CPA data for the period, filtered to this user only
+        $cpaData = $this->getCPAData($startDate, $endDate, $hrId, $haloId);
+        $haloData = $cpaData['halo_data'] ?? collect();
+        $apexData = $cpaData['apex_data'] ?? collect();
+
+        return $this->calculateBonus($hrId, $haloId, $isCpaAgent, $haloData, $apexData, $startDate, $endDate);
+    }
+
     private function calculateBonus($hrId, $haloId, $isCpaAgent, $haloData, $apexData, $startDate, $endDate){   
 
         // Filter for this hr_id and date range
@@ -716,7 +738,7 @@ class PayrollController extends Controller
         return round($pay, 2);
     }
 
-    private function getCPAData($startDate, $endDate) {
+    private function getCPAData($startDate, $endDate, $hrId = null, $haloId = null) {
         $apexData = DB::connection('apex_data')
         ->table('apex_data')
         ->join(DB::raw('halo_config.ddi as ddis'), 'apex_data.ddi', '=', 'ddis.ddi')
@@ -724,6 +746,9 @@ class PayrollController extends Controller
         ->whereBetween('date',[date('Y-m-d', strtotime('monday this week', strtotime($startDate))), $endDate])
         ->where('apex_data.type', 'Dial')
         ->whereNotIn('apex_data.type',['Spy', 'Int-In', 'Int-Out', 'Queue'])
+        ->when($hrId, function ($query) use ($hrId) {
+            return $query->where('apex_data.hr_id', $hrId);
+        })
         ->groupBy('date')
         ->groupBy('hr_id')
         ->orderBy('date')
@@ -801,6 +826,9 @@ class PayrollController extends Controller
                     } else {
                         $query->whereIn('ords.product', $products);
                     }
+                })
+                ->when($haloId, function ($query) use ($haloId) {
+                    return $query->where('ords.operator', $haloId);
                 })
                 ->join(DB::raw('halo_data.' . $customers . ' as cust'),'ords.orderref','=','cust.orderref')
                 ->select(

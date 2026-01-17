@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { MegaphoneIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
-import useFetchAnnouncements from '../../Fetches/Dashboard/useFetchAnnouncements.jsx';
+import useFetchAnnouncements from '../../../Fetches/Dashboard/useFetchAnnouncements.jsx';
 
 // Local storage key for locally dismissed announcements in dashboard
 const DISMISSED_ANNOUNCEMENTS_KEY = 'dashboard_dismissed_announcements';
@@ -30,11 +30,27 @@ const saveDismissedAnnouncementId = (id) => {
     }
 };
 
-const AnnouncementsWidget = ({ widgetId, setWidgetVisibility }) => {
+const AnnouncementsWidget = ({ isPreview = false, isEditMode = false, widgetId, setWidgetCollapsed }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="relative rounded-xl overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 p-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                        <MegaphoneIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-white">Sample Announcement</h4>
+                        <p className="text-xs text-white/80">This is a preview of an announcement widget</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const { announcements, isLoading, isLoaded } = useFetchAnnouncements();
     const [locallyDismissed, setLocallyDismissed] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const hasNotifiedRef = useRef(false);
     const initialLoadDone = useRef(false);
     
     // Track if we've done the initial load
@@ -59,14 +75,13 @@ const AnnouncementsWidget = ({ widgetId, setWidgetVisibility }) => {
         return true;
     });
 
-    // Notify grid about widget visibility based on whether we have content
+    // Notify grid about collapsed state based on whether we have content
     useEffect(() => {
-        if (isLoaded && setWidgetVisibility && widgetId) {
-            const hasContent = activeAnnouncements.length > 0;
-            setWidgetVisibility(widgetId, hasContent);
-            hasNotifiedRef.current = true;
+        if (isLoaded && setWidgetCollapsed && widgetId) {
+            const shouldCollapse = activeAnnouncements.length === 0;
+            setWidgetCollapsed(widgetId, shouldCollapse);
         }
-    }, [isLoaded, activeAnnouncements.length, setWidgetVisibility, widgetId]);
+    }, [isLoaded, activeAnnouncements.length, setWidgetCollapsed, widgetId]);
 
     // Reset index when announcements change
     useEffect(() => {
@@ -115,9 +130,26 @@ const AnnouncementsWidget = ({ widgetId, setWidgetVisibility }) => {
         );
     }
 
-    // Empty state - don't render anything if no announcements
+    // Empty state - render minimal placeholder (invisible unless in edit mode)
     if (activeAnnouncements.length === 0) {
-        return null;
+        if (isEditMode) {
+            // Show placeholder in edit mode so widget can be managed
+            return (
+                <div className="h-full w-full flex flex-col">
+                    <div className="flex-1 bg-theme-50 dark:bg-theme-900/20 border-2 border-dashed border-theme-200 dark:border-theme-800 rounded-xl px-5 py-4 flex items-center justify-center">
+                        <div className="flex items-center gap-3 text-theme-600 dark:text-theme-400">
+                            <MegaphoneIcon className="w-6 h-6" />
+                            <div>
+                                <p className="text-sm font-medium">Announcements</p>
+                                <p className="text-xs">No active announcements - hidden when not editing</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        // When not in edit mode and no announcements, render invisible but space-preserving placeholder
+        return <div className="h-full w-full" />;
     }
 
     const safeIndex = Math.min(currentIndex, activeAnnouncements.length - 1);

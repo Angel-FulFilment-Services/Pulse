@@ -27,6 +27,15 @@ class RotaController extends Controller
         return Inertia::render('Rota/Rota');
     }
 
+    public function latestShiftDate(){
+        // Get the latest shift date across all shifts
+        $latestDate = Shift::max('shiftdate');
+        
+        return response()->json([
+            'latest_date' => $latestDate
+        ]);
+    }
+
     public function shifts(Request $request){
         $startDate = date("Y-m-d", strtotime($request->query('start_date')));
         $endDate = date("Y-m-d", strtotime($request->query('end_date')));

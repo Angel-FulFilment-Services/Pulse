@@ -2,14 +2,52 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon, CheckCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, startOfMonth, startOfWeek, endOfWeek, subWeeks, differenceInMinutes, isSameDay } from 'date-fns';
-import useFetchShifts from '../../Fetches/Rota/useFetchShifts.jsx';
-import useFetchTimesheets from '../../Fetches/Rota/useFetchTimesheets.jsx';
+import useFetchShifts from '../../../Fetches/Rota/useFetchShifts.jsx';
+import useFetchTimesheets from '../../../Fetches/Rota/useFetchTimesheets.jsx';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
-const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
+const AttendanceStatsWidget = ({ employee, isExpanded, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                    {[
+                        { label: 'Hours (5 Weeks)', value: '175h', trend: '-33h' },
+                        { label: 'Punctuality', value: '95%', status: 'Good' },
+                        { label: 'Attendance', value: '100%', status: '21/21' },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2.5 border border-gray-100 dark:border-dark-700">
+                            <div className="flex items-center justify-between mb-1">
+                                <p className="text-[10px] text-gray-500 dark:text-dark-400 uppercase">{stat.label}</p>
+                                {stat.trend && <span className="text-[10px] text-red-500">{stat.trend}</span>}
+                                {stat.status && <span className="text-[10px] text-green-500">{stat.status}</span>}
+                            </div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-dark-100">{stat.value}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex-1 bg-gray-50 dark:bg-dark-800 rounded-lg p-3 border border-gray-100 dark:border-dark-700">
+                    <div className="flex flex-col items-center gap-2 pt-2">
+                        <div className="h-24 w-full max-w-xs flex items-end justify-center gap-2">
+                            {[50, 80, 100].map((height, i) => (
+                                <div 
+                                    key={i} 
+                                    className="w-8 bg-theme-200/75 dark:bg-dark-700/25 rounded-md"
+                                    style={{ height: `${height}%` }}
+                                ></div>
+                            ))}
+                        </div>
+                        <div className="h-5 w-28 bg-theme-200/75 dark:bg-dark-700/25 rounded-md"></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const { employee: currentEmployee } = usePage().props;
     const hrId = employee?.hr_id || currentEmployee?.hr_id;
     
@@ -278,9 +316,8 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
             <div className="flex flex-col flex-1 min-h-0 animate-pulse">
                 <div className="grid grid-cols-3 gap-3">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 py-4 border border-gray-100 dark:border-dark-700">
-                            <div className="h-3 w-20 bg-gray-200/75 dark:bg-dark-700/25 rounded mb-2"></div>
-                            <div className="h-6 w-12 bg-gray-200/75 dark:bg-dark-700/25 rounded mb-0.5"></div>
+                        <div key={i} className="bg-gray-100 dark:bg-dark-800 rounded-lg p-3 py-4 h-20">
+                            
                         </div>
                     ))}
                 </div>
@@ -291,18 +328,11 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
                             <div className="h-3 w-28 bg-gray-200/75 dark:bg-dark-700/25 rounded"></div>
                             <div className="h-3 w-32 bg-gray-200/75 dark:bg-dark-700/25 rounded"></div>
                         </div>
-                        <div className="h-44 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-100 dark:border-dark-700 flex items-center justify-center">
+                        <div className="h-44 bg-gray-100 dark:bg-dark-800 rounded-lg flex items-center justify-center">
                             <div className="flex flex-col items-center gap-2">
                                 <div className="h-24 w-full max-w-xs flex items-end justify-center gap-2">
-                                    {[50, 80, 100].map((height, i) => (
-                                        <div 
-                                            key={i} 
-                                            className="w-8 bg-gray-200/75 dark:bg-dark-700/25 rounded-md"
-                                            style={{ height: `${height}%` }}
-                                        ></div>
-                                    ))}
+                                    
                                 </div>
-                                <div className="h-5 w-28 bg-gray-200/75 dark:bg-dark-700/25 rounded-md"></div>
                             </div>
                         </div>
                     </div>
@@ -443,4 +473,4 @@ const PerformanceInsightsWidget = ({ employee, isExpanded }) => {
     );
 };
 
-export default PerformanceInsightsWidget;
+export default AttendanceStatsWidget;

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MagnifyingGlassIcon, DocumentTextIcon, EyeIcon, TagIcon, SpeakerWaveIcon, WrenchIcon } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
-import ScrollHint from '../../Hints/ScrollHint';
+import ScrollHint from '../../../Hints/ScrollHint';
 
 // Get icon component based on article category
 const getCategoryIcon = (category) => {
@@ -13,10 +13,43 @@ const getCategoryIcon = (category) => {
     }
     return DocumentTextIcon;
 };
-import useFetchLatestArticles from '../../Fetches/Dashboard/useFetchLatestArticles.jsx';
-import TextInput from '../../Forms/TextInput.jsx';
+import useFetchLatestArticles from '../../../Fetches/Dashboard/useFetchLatestArticles.jsx';
+import TextInput from '../../../Forms/TextInput.jsx';
 
-const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
+const KnowledgeBaseWidget = ({ employee, isExpanded, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="mb-2 h-9 bg-gray-100 dark:bg-dark-800 rounded-md flex items-center px-3">
+                    <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+                    <span className="ml-2 text-sm text-gray-400">Search...</span>
+                </div>
+                <div className="flex gap-2 mb-2">
+                    <span className="px-3 py-1.5 text-xs font-medium bg-theme-50 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 rounded-lg">All</span>
+                    <span className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-dark-800 dark:text-dark-300 rounded-lg">Call Hub</span>
+                </div>
+                <div className="space-y-2">
+                    {['Getting Started Guide', 'How to Reset Password', 'Call Hub Overview', 'Your Account Settings'].map((title, i) => (
+                        <div key={i} className="border border-gray-200 dark:border-dark-700 rounded-lg p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-theme-50 dark:bg-theme-900/30 flex items-center justify-center">
+                                    <DocumentTextIcon className="h-4 w-4 text-theme-600 dark:text-theme-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-dark-100">{title}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs bg-gray-200 dark:bg-dark-700 text-gray-600 dark:text-dark-300 px-2 py-0.5 rounded-full">Guide</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [limitedArticles, setLimitedArticles] = useState([]);
@@ -53,7 +86,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 {/* Search skeleton */}
                 <div className="mb-2">
-                    <div className="h-9 bg-gray-100 dark:bg-dark-800 rounded-md animate-pulse"></div>
+                    <div className="h-9 bg-gray-100 dark:bg-dark-700 rounded-md animate-pulse"></div>
                 </div>
                 
                 {/* Tabs skeleton */}
@@ -71,7 +104,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
                                 <div className="h-8 w-8 bg-gray-200 dark:bg-dark-700 rounded-lg flex-shrink-0"></div>
                                 <div className="flex-1 space-y-1">
                                     <div className="h-4 w-3/4 bg-gray-200 dark:bg-dark-700 rounded"></div>
-                                    <div className="h-4 w-1/4 bg-gray-200 dark:bg-dark-700 rounded"></div>
+                                    <div className="h-4 w-1/4 bg-gray-200 dark:bg-dark-800 rounded"></div>
                                 </div>
                             </div>
                         </div>
@@ -101,7 +134,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
                         selectedCategory === null
-                            ? 'bg-theme-100 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 border border-theme-200 dark:border-theme-800'
+                            ? 'bg-theme-50 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 border border-theme-200 dark:border-theme-800'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-dark-300 dark:hover:bg-dark-700'
                     }`}
                 >
@@ -113,7 +146,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
                         onClick={() => setSelectedCategory(category.toLowerCase().replace(/\s+/g, '-'))}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
                             selectedCategory === category.toLowerCase().replace(/\s+/g, '-')
-                                ? 'bg-theme-100 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 border border-theme-200 dark:border-theme-800'
+                                ? 'bg-theme-50 text-theme-700 dark:bg-theme-900/30 dark:text-theme-400 border border-theme-200 dark:border-theme-800'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-dark-300 dark:hover:bg-dark-700'
                         }`}
                     >
@@ -158,7 +191,7 @@ const KnowledgeBaseWidget = ({ employee, isExpanded }) => {
                                 {(() => {
                                     const IconComponent = getCategoryIcon(article.category);
                                     return (
-                                        <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30 flex items-center justify-center">
+                                        <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30 flex items-center justify-center">
                                             <IconComponent className="h-4 w-4 text-theme-600 dark:text-theme-400" />
                                         </div>
                                     );

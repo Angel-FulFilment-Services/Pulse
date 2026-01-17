@@ -152,6 +152,150 @@ class MessageController extends Controller
             'attachment' => $pinnedAttachment
         ]);
     }
+
+    /**
+     * Get recent conversations for the dashboard widget.
+     * Returns the most recent incoming message from each conversation (teams + DMs).
+     * Only shows messages from others, not the user's own messages.
+     */
+    public function recent(Request $request)
+    {
+        $userId = auth()->user()->id;
+        $limit = $request->input('limit', 5);
+        
+        // Get user's chat preferences for hide_preview settings
+        $preferences = ChatUserPreference::where('user_id', $userId)->get();
+        $preferencesMap = $preferences->keyBy(function($pref) {
+            return $pref->chat_type . '_' . $pref->chat_id;
+        });
+        
+        // Get global settings
+        $globalHidePreview = ChatUserPreference::where('user_id', $userId)
+            ->where('chat_type', 'global')
+            ->where('chat_id', 0)
+            ->value('hide_preview') ?? false;
+        
+        // Get recent team messages (from teams user is a member of)
+        // Only incoming messages (not sent by the current user)
+        $teamMessages = \DB::connection('pulse')
+            ->table('messages as m')
+            ->join('team_user as tu', function($join) use ($userId) {
+                $join->on('tu.team_id', '=', 'm.team_id')
+                     ->where('tu.user_id', '=', $userId)
+                     ->whereNull('tu.left_at');
+            })
+            ->join('teams as t', 't.id', '=', 'm.team_id')
+            ->whereNotNull('m.team_id')
+            ->where('m.sender_id', '!=', $userId) // Only incoming messages
+            ->whereNull('m.deleted_at')
+            ->select([
+                'm.id',
+                'm.body',
+                'm.sender_id',
+                'm.team_id',
+                'm.created_at',
+                'm.type',
+                't.name as team_name',
+                \DB::raw("'team' as chat_type"),
+                'm.team_id as chat_id',
+            ])
+            ->orderBy('m.created_at', 'desc')
+            ->limit(50)
+            ->get();
+        
+        // Get recent DM messages - only incoming (where current user is recipient)
+        $dmMessages = \DB::connection('pulse')
+            ->table('messages as m')
+            ->where('m.recipient_id', $userId) // Only incoming DMs
+            ->whereNull('m.team_id')
+            ->whereNull('m.deleted_at')
+            ->select([
+                'm.id',
+                'm.body',
+                'm.sender_id',
+                'm.recipient_id',
+                'm.created_at',
+                'm.type',
+                \DB::raw("'user' as chat_type"),
+                'm.sender_id as chat_id', // The other user is always the sender for incoming DMs
+            ])
+            ->orderBy('m.created_at', 'desc')
+            ->limit(50)
+            ->get();
+        
+        // Collect all user IDs we need to look up
+        $allUserIds = collect();
+        $allUserIds = $allUserIds->merge($teamMessages->pluck('sender_id'));
+        $allUserIds = $allUserIds->merge($dmMessages->pluck('sender_id'));
+        $allUserIds = $allUserIds->unique()->filter();
+        
+        // Get all users from the main database
+        $users = User::whereIn('id', $allUserIds)->get()->keyBy('id');
+        
+        // Combine and sort by created_at
+        $allMessages = collect();
+        
+        // Group team messages by team_id to get latest per team
+        $teamMessagesByTeam = $teamMessages->groupBy('team_id');
+        foreach ($teamMessagesByTeam as $teamId => $messages) {
+            $latestMessage = $messages->first();
+            $prefKey = 'team_' . $teamId;
+            $hidePreview = $globalHidePreview || ($preferencesMap->has($prefKey) && $preferencesMap->get($prefKey)->hide_preview);
+            
+            // Get sender info from users lookup
+            $sender = $users->get($latestMessage->sender_id);
+            
+            $allMessages->push([
+                'id' => $latestMessage->id,
+                'body' => $hidePreview ? null : $latestMessage->body,
+                'hide_preview' => $hidePreview,
+                'chat_type' => 'team',
+                'chat_id' => $teamId,
+                'chat_name' => $latestMessage->team_name,
+                'sender_id' => $latestMessage->sender_id,
+                'sender_name' => $sender?->name ?? 'Unknown',
+                'sender_profile_photo_url' => $sender?->profile_photo ?? null,
+                'created_at' => $latestMessage->created_at,
+                'type' => $latestMessage->type,
+                'is_own_message' => $latestMessage->sender_id === $userId,
+            ]);
+        }
+        
+        // Group DM messages by chat_id to get latest per conversation
+        $dmMessagesByChat = $dmMessages->groupBy('chat_id');
+        foreach ($dmMessagesByChat as $chatId => $messages) {
+            $latestMessage = $messages->first();
+            $prefKey = 'user_' . $chatId;
+            $hidePreview = $globalHidePreview || ($preferencesMap->has($prefKey) && $preferencesMap->get($prefKey)->hide_preview);
+            
+            $otherUser = $users->get($chatId);
+            $sender = $users->get($latestMessage->sender_id);
+            
+            $allMessages->push([
+                'id' => $latestMessage->id,
+                'body' => $hidePreview ? null : $latestMessage->body,
+                'hide_preview' => $hidePreview,
+                'chat_type' => 'user',
+                'chat_id' => $chatId,
+                'chat_name' => $otherUser?->name ?? 'Unknown',
+                'sender_id' => $latestMessage->sender_id,
+                'sender_name' => $sender?->name ?? 'Unknown',
+                'sender_profile_photo_url' => $otherUser?->profile_photo ?? null,
+                'created_at' => $latestMessage->created_at,
+                'type' => $latestMessage->type,
+                'is_own_message' => $latestMessage->sender_id === $userId,
+            ]);
+        }
+        
+        // Sort by created_at and limit
+        $recentConversations = $allMessages
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->values();
+        
+        return response()->json($recentConversations);
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 50);

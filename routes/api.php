@@ -147,6 +147,7 @@ Route::prefix('chat')
     ->group(function () {    
     // Messages
     Route::get('messages', [MessageController::class, 'index']);
+    Route::get('messages/recent', [MessageController::class, 'recent']); // Dashboard widget - recent conversations
     Route::post('messages', [MessageController::class, 'store']);
     Route::put('messages/{id}', [MessageController::class, 'update']);
     Route::delete('messages/{id}', [MessageController::class, 'destroy']);

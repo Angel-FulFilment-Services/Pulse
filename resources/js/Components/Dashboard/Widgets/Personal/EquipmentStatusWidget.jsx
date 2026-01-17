@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { CubeIcon, ComputerDesktopIcon, SignalIcon, ExclamationTriangleIcon, CheckCircleIcon, SignalSlashIcon, WifiIcon } from '@heroicons/react/24/outline';
 import { usePage } from '@inertiajs/react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import useFetchKit from '../../Fetches/Assets/useFetchKit.jsx';
+import useFetchKit from '../../../Fetches/Assets/useFetchKit.jsx';
 
 // Stat card component matching PerformanceInsightsWidget style
 const StatCard = ({ title, value, unit, status, icon: Icon, isExpanded }) => {
@@ -57,7 +57,56 @@ const StatCard = ({ title, value, unit, status, icon: Icon, isExpanded }) => {
     );
 };
 
-const EquipmentStatusWidget = ({ employee, isExpanded }) => {
+const EquipmentStatusWidget = ({ employee, isExpanded, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 border border-gray-100 dark:border-dark-700 mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-theme-50 dark:bg-theme-900/30 border border-theme-200 dark:border-theme-800">
+                            <ComputerDesktopIcon className="h-5 w-5 text-theme-600 dark:text-theme-400" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-dark-100">Kit: AFS-LM307</h4>
+                            <p className="text-xs text-gray-500 dark:text-dark-400">9 items assigned</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                    {[
+                        { label: 'MIN', value: '0ms' },
+                        { label: 'MAX', value: '128ms' },
+                        { label: 'AVG', value: '35ms' },
+                        { label: 'LOST', value: '2.12%' },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-2 border border-gray-100 dark:border-dark-700 text-center">
+                            <p className="text-[10px] text-gray-500 dark:text-dark-400">{stat.label}</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-dark-100">{stat.value}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-dark-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="bg-gray-50 dark:bg-dark-800 rounded-lg p-3 border border-gray-100 dark:border-dark-700">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1.5 bg-theme-50 dark:bg-theme-900/30 border border-theme-200 dark:border-theme-800 rounded-md">
+                                        <CubeIcon className="h-4 w-4 text-theme-600 dark:text-theme-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-dark-100">Laptop Model X</p>
+                                        <p className="text-xs text-gray-500 dark:text-dark-400">AFS-ID: 6755</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const { employee: currentEmployee } = usePage().props;
     const hrId = employee?.hr_id || currentEmployee?.hr_id;
     
@@ -204,7 +253,7 @@ const EquipmentStatusWidget = ({ employee, isExpanded }) => {
             <div className="flex flex-col flex-1 min-h-0">
                 {/* Kit Header */}
                 <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2.5 rounded-lg bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30`}>
+                    <div className={`p-2.5 rounded-lg bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30`}>
                         <ComputerDesktopIcon className={`h-5 w-5 text-theme-600 dark:text-theme-400`} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -276,7 +325,7 @@ const EquipmentStatusWidget = ({ employee, isExpanded }) => {
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Kit Header */}
             <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2.5 rounded-lg bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30`}>
+                <div className={`p-2.5 rounded-lg bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30`}>
                     <ComputerDesktopIcon className={`h-5 w-5 text-theme-600 dark:text-theme-400`} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -347,7 +396,7 @@ const EquipmentStatusWidget = ({ employee, isExpanded }) => {
                             className="bg-gray-50 dark:bg-dark-800 border border-gray-100 dark:border-dark-700 rounded-lg p-3"
                         >
                             <div className="flex items-center gap-2.5">
-                                <div className="p-1.5 bg-theme-100 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30 rounded-md">
+                                <div className="p-1.5 bg-theme-50 border border-theme-200 dark:border-theme-800 dark:bg-theme-900/30 rounded-md">
                                     <CubeIcon className="h-4 w-4 text-theme-600 dark:text-theme-400" />
                                 </div>
                                 <div className="flex-1 min-w-0">

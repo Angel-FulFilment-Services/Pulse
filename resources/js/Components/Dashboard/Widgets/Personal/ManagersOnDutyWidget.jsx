@@ -1,13 +1,43 @@
 import React, { useMemo, useRef } from 'react';
 import { ChatBubbleLeftEllipsisIcon, UserIcon as UserIconOutline } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
-import useFetchManagersOnDuty from '../../Fetches/Dashboard/useFetchManagersOnDuty.jsx';
-import UserIcon from '../../User/UserIcon.jsx';
-import ScrollHint from '../../Hints/ScrollHint';
+import useFetchManagersOnDuty from '../../../Fetches/Dashboard/useFetchManagersOnDuty.jsx';
+import UserIcon from '../../../User/UserIcon.jsx';
+import ScrollHint from '../../../Hints/ScrollHint';
 
 const MIN_DISPLAY_COUNT = 4; // Always show at least 4 cards
 
-const ManagersOnDutyCard = ({ employee, isExpanded }) => {
+const ManagersOnDutyWidget = ({ employee, isExpanded, isPreview = false }) => {
+    // Preview mode - return static dummy content
+    if (isPreview) {
+        return (
+            <div className="flex flex-col flex-1 min-h-0">
+                <div className="space-y-2">
+                    {[
+                        { name: 'John Smith', role: 'Team Manager', online: true },
+                        { name: 'Jane Doe', role: 'Duty Manager', online: true },
+                        { name: 'Foo Bar', role: 'Duty Manager', online: false },
+                        { name: 'John Smith', role: 'Duty Manager', online: false },
+                        { name: 'Jane Doe', role: 'Duty Manager', online: false},
+                    ].map((manager, i) => (
+                        <div key={i} className="border border-gray-200 dark:border-dark-700 rounded-lg p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <UserIcon size="medium" />
+                                    <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ${manager.online ? 'bg-green-500' : 'bg-yellow-500'} ring-2 ring-white dark:ring-dark-900`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-medium text-gray-900 dark:text-dark-100">{manager.name}</h4>
+                                    <p className="text-xs text-gray-500 dark:text-dark-400">{manager.role}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     const { managers, isLoading, isLoaded } = useFetchManagersOnDuty();
     const scrollRef = useRef(null);
     const initialLoadDone = useRef(false);
@@ -99,9 +129,6 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
                                     <h4 className="text-sm font-medium text-gray-900 dark:text-dark-100 truncate">
                                         {manager.name}
                                     </h4>
-                                    <span className="text-xs text-gray-500 dark:text-dark-400">
-                                        • {getStatusText(manager)}
-                                    </span>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-dark-400 mt-0.5">
                                     {getRoleLabel(manager.rank)}
@@ -111,10 +138,12 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
                             {/* Message Button */}
                             <button 
                                 onClick={() => handleMessageClick(manager)}
-                                className="flex-shrink-0 flex items-center gap-1.5 bg-theme-50 hover:bg-theme-100 dark:bg-theme-900/20 dark:hover:bg-theme-900/40 text-theme-600 dark:text-theme-400 rounded-lg px-3 py-1.5 transition-colors border border-theme-200 dark:border-theme-800"
+                                className={`flex-shrink-0 flex items-center gap-1.5 bg-theme-50 hover:bg-theme-100 dark:bg-theme-900/20 dark:hover:bg-theme-900/40 text-theme-600 dark:text-theme-400 rounded-lg ${isExpanded ? 'px-3 py-1.5' : 'px-1.5 py-1.5'} transition-colors border border-theme-200 dark:border-theme-800`}
                             >
                                 <ChatBubbleLeftEllipsisIcon className="h-4 w-4" />
-                                <span className="text-xs font-medium">Message</span>
+                                {isExpanded && (
+                                    <span className="text-xs font-medium">Message</span>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -150,4 +179,4 @@ const ManagersOnDutyCard = ({ employee, isExpanded }) => {
     );
 };
 
-export default ManagersOnDutyCard;
+export default ManagersOnDutyWidget;

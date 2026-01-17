@@ -165,6 +165,7 @@ Route::get('/rota/shifts', [RotaController::class, 'shifts'])->withoutMiddleware
 Route::get('/rota/timesheets', [RotaController::class, 'timesheets'])->withoutMiddleware('log.access');
 Route::get('/rota/events', [RotaController::class, 'events'])->withoutMiddleware('log.access');
 Route::get('/rota/calls', [RotaController::class, 'calls'])->withoutMiddleware('log.access');
+Route::get('/rota/latest-date', [RotaController::class, 'latestShiftDate'])->withoutMiddleware('log.access');
 Route::post('/rota/save-event', [RotaController::class, 'saveEvent']);
 Route::post('/rota/remove-event', [RotaController::class, 'removeEvent']);
 Route::post('/rota/remove-break', [RotaController::class, 'removeBreak']);
@@ -173,6 +174,9 @@ Route::get('/user/rota/shifts', [UserController::class, 'shifts'])->withoutMiddl
 Route::get('/user/rota/timesheets', [UserController::class, 'timesheets'])->withoutMiddleware('log.access');
 Route::get('/user/rota/events', [UserController::class, 'events'])->withoutMiddleware('log.access');
 Route::get('/user/rota/calls', [UserController::class, 'calls'])->withoutMiddleware('log.access');
+Route::get('/user/rota/latest-date', [UserController::class, 'latestShiftDate'])->withoutMiddleware('log.access');
+Route::get('/user/payroll/estimate', [UserController::class, 'payrollEstimate'])->withoutMiddleware('log.access');
+Route::get('/user/payroll/history', [UserController::class, 'payrollHistory'])->withoutMiddleware('log.access');
 
 /*
 |-----------------------
