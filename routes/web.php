@@ -22,6 +22,7 @@ use App\Http\Controllers\App\SiteController;
 use App\Http\Controllers\App\KnowledgeBaseController;
 use App\Http\Controllers\App\Chat\ChatController;
 use App\Http\Controllers\App\AdministrationController;
+use App\Http\Controllers\App\AngelIntelligenceController;
 use App\Http\Controllers\App\ProxyController;
 
 // HR
@@ -68,6 +69,15 @@ Route::delete('/api/administration/restricted-words/{id}', [AdministrationContro
 
 // Wildcard route for SPA navigation (must come after specific routes)
 Route::get('/administration/{page}', [AdministrationController::class, 'index'])->name('administration.page');
+
+
+/*
+|-----------------------
+| Angel Intelligence (AI Analytics)
+|-----------------------
+*/
+Route::get('/ai-analytics', [AngelIntelligenceController::class, 'index'])->name('ai-analytics');
+Route::get('/ai-analytics/{page}', [AngelIntelligenceController::class, 'index'])->name('ai-analytics.page');
 
 
 /*
